@@ -1,0 +1,231 @@
+/* --- 基础与暗色模式设定 --- */
+:root {
+  color-scheme: dark;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  font-size: 12px;
+  border-radius: 20px;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%; /* 改为 100% 确保高度撑满 */
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  border-radius: 20px;
+}
+
+body {
+  user-select: none;
+}
+
+/* --- 容器布局 --- */
+.app-frame {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+.app-panel {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100vh; /* 强制占据视口高度 */
+  display: flex;
+  flex-direction: column; /* 纵向排列：Header -> Body -> Footer */
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(35, 37, 38, 0.96) 0%, rgba(25, 26, 27, 0.95) 100%);
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(30px);
+  color: #f3f4f5;
+}
+
+/* --- 头部搜索区 --- */
+.app-header {
+  flex-shrink: 0; /* 禁止头部被压缩 */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app-kicker {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 800;
+  color: #5da5ff;
+  letter-spacing: 0.05em;
+}
+
+.app-search {
+  flex: 1;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 12px;
+  color: #fff;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.app-search:focus {
+  border-color: #5da5ff;
+  box-shadow: 0 0 0 2px rgba(93, 165, 255, 0.2);
+}
+
+/* --- 列表主体 (修复消失的关键) --- */
+.app-body {
+  flex: 1;           /* 自动占据中间剩余的所有空间 */
+  min-height: 50px;     /* 关键：允许容器在内部内容多时可以收缩，而不是撑开 */
+  display: flex;
+  flex-direction: column;
+  padding: 6px 6px 6px 0;
+  overflow: hidden;
+}
+
+.app-history-group {
+  flex: 1;           /* 在 Body 中占据剩余空间 */
+  overflow-y: auto;  /* 允许内部滚动 */
+  padding: 0 2px 0 6px;
+}
+
+/* --- 条目样式 --- */
+.app-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.app-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.app-item-index {
+  flex: 0 0 auto;
+  min-width: 18px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6f7277;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-item-text {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #e0e0e0;
+  word-break: break-all;
+}
+
+/* --- 底部菜单 (修复消失的关键) --- */
+.app-footer {
+  flex-shrink: 0;    /* 核心修复：禁止底部菜单被压缩或挤出窗口 */
+  padding: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04); /* 稍微加深底色以示区分 */
+}
+
+.app-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px; /* 稍微增加点击区域 */
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #c0c0c2;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.app-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.app-menu-shortcut {
+  color: #6f7277;
+  font-size: 10px;
+}
+
+/* --- 滚动条优化 --- */
+.app-history-group::-webkit-scrollbar {
+  width: 5px;
+}
+
+.app-history-group::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-history-group::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+/* --- 弹窗与空状态 --- */
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.app-modal {
+  width: 280px;
+  background: #2a2c2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+}
+
+/* 针对空状态的样式优化 */
+.app-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1; /* 撑满 body 的可用空间 */
+  min-height: 120px; /* 确保第一次运行时有足够的高度显示文字 */
+  color: #888;
+  font-size: 13px;
+  font-style: italic;
+  text-align: center;
+}

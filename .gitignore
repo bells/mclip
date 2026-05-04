@@ -1,0 +1,41 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Rust Specific ---
+/src-tauri/target/
+
+# --- Tauri Specific ---
+src-tauri/binaries/
+src-tauri/gen/
+
+# --- User Data & Database (CRITICAL) ---
+# 防止上传你的个人剪贴板历史记录和本地设置
+src-tauri/storage/
+history.json
+settings.json
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
