@@ -1,270 +1,197 @@
-import { useEffect, useRef, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useEffect, useRef } from "react";
 
-type AppSettings = {
-  launchAtLogin: boolean;
-  maxHistoryCount: number;
-};
-
-const DEFAULT_SETTINGS: AppSettings = {
-  launchAtLogin: false,
-  maxHistoryCount: 50,
-};
-
-const MIN_MAX_HISTORY_COUNT = 10;
-const MAX_MAX_HISTORY_COUNT = 200;
-
-const clampHistoryCount = (value: number) =>
-  Math.min(MAX_MAX_HISTORY_COUNT, Math.max(MIN_MAX_HISTORY_COUNT, value));
+import { AboutDialog } from "./components/AboutDialog";
+import { AppFooter } from "./components/AppFooter";
+import { AppHeader } from "./components/AppHeader";
+import { HistoryGroupNav } from "./components/HistoryGroupNav";
+import { HistoryList } from "./components/HistoryList";
+import { PreferencesDialog } from "./components/PreferencesDialog";
+import { useClipboardApp } from "./hooks/useClipboardApp";
+import { listenToMainWindowShown } from "./lib/tauri";
 
 function App() {
-  const [list, setList] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showAbout, setShowAbout] = useState(false);
-  const [showPreferences, setShowPreferences] = useState(false);
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [settingsDraft, setSettingsDraft] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [settingsError, setSettingsError] = useState("");
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
-  const maxHistoryCountRef = useRef(DEFAULT_SETTINGS.maxHistoryCount);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const {
+    appVersion,
+    filteredHistory,
+    historyGroups,
+    hasHistory,
+    isAboutOpen,
+    isPreferencesOpen,
+    isSavingSettings,
+    previewHistory,
+    previewHistoryGroupIndex,
+    searchQuery,
+    selectedHistoryItem,
+    settingsDraft,
+    settingsError,
+    clearHistory,
+    closeAboutDialog,
+    closeHistoryGroupPreview,
+    closePreferencesDialog,
+    hideWindow,
+    moveSelection,
+    openAboutDialog,
+    openHistoryGroupPreview,
+    openPreferencesDialog,
+    quit,
+    savePreferences,
+    selectHighlightedHistoryItem,
+    selectHistoryItem,
+    setSearchQuery,
+    toggleLaunchAtLogin,
+    updateMaxHistoryCount,
+  } = useClipboardApp();
 
-  // 初始化应用：加载设置、加载历史记录并开启监听[cite: 1]
   useEffect(() => {
-    const initApp = async () => {
-      try {
-        const [loadedSettings, initialHistory] = await Promise.all([
-          invoke<AppSettings>("get_settings"),
-          invoke<string[]>("get_history")
-        ]);
+    searchInputRef.current?.focus();
+  }, []);
 
-        const normalizedSettings = {
-          ...loadedSettings,
-          maxHistoryCount: clampHistoryCount(loadedSettings.maxHistoryCount),
-        };
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
 
-        setSettings(normalizedSettings);
-        setSettingsDraft(normalizedSettings);
-        setList(initialHistory);
-        maxHistoryCountRef.current = normalizedSettings.maxHistoryCount;
-      } catch (err) {
-        console.error("初始化应用失败:", err);
-      }
-    };
-
-    const setupListeners = async () => {
-      // 监听后端推送的全量更新事件[cite: 1]
-      const unlisten = await listen<string[]>("history-updated", (event) => {
-        setList(event.payload);
-      });
-      return unlisten;
-    };
-
-    void initApp();
-    const unlistenPromise = setupListeners();
+    void listenToMainWindowShown(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    }).then((unsubscribe) => {
+      unlisten = unsubscribe;
+    });
 
     return () => {
-      unlistenPromise.then((f) => f());
+      unlisten?.();
     };
   }, []);
 
-  // 监听列表变化，自动调整窗口高度[cite: 1]
   useEffect(() => {
-    const adjustHeight = async () => {
-      try {
-        await invoke("adjust_window_height", { itemCount: list.length });
-      } catch (err) {
-        console.error("调整窗口高度失败:", err);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const hasMetaModifier = event.metaKey || event.ctrlKey;
+      const normalizedKey = event.key.toLowerCase();
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+
+        if (previewHistoryGroupIndex !== null) {
+          closeHistoryGroupPreview();
+          return;
+        }
+
+        if (isAboutOpen) {
+          closeAboutDialog();
+          return;
+        }
+
+        if (isPreferencesOpen) {
+          closePreferencesDialog();
+          return;
+        }
+
+        void hideWindow();
+        return;
+      }
+
+      if (isAboutOpen || isPreferencesOpen) {
+        return;
+      }
+
+      if (hasMetaModifier && normalizedKey === "f") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+
+      if (hasMetaModifier && event.key === ",") {
+        event.preventDefault();
+        openPreferencesDialog();
+        return;
+      }
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        moveSelection(1);
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        moveSelection(-1);
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void selectHighlightedHistoryItem();
       }
     };
-    adjustHeight();
-  }, [list.length]);
 
-  const handleItemClick = async (text: string) => {
-    try {
-      await invoke("copy_to_clipboard", { content: text });
-      await getCurrentWindow().hide();
-    } catch (err) {
-      console.error("操作失败:", err);
-    }
-  };
+    window.addEventListener("keydown", handleKeyDown);
 
-  const handleClearHistory = async () => {
-    try {
-      await invoke("clear_history");
-      setList([]); // 手动清空前端列表以即时反馈[cite: 1]
-    } catch (err) {
-      console.error("清空历史失败:", err);
-    }
-  };
-
-  const handleOpenPreferences = () => {
-    setSettingsDraft(settings);
-    setSettingsError("");
-    setShowPreferences(true);
-  };
-
-  const handleClosePreferences = () => {
-    if (!isSavingSettings) {
-      setShowPreferences(false);
-    }
-  };
-
-  const handleSavePreferences = async () => {
-    try {
-      setIsSavingSettings(true);
-      const sanitizedSettings = {
-        ...settingsDraft,
-        maxHistoryCount: clampHistoryCount(settingsDraft.maxHistoryCount),
-      };
-      const savedSettings = await invoke<AppSettings>("save_settings", {
-        settings: sanitizedSettings,
-      });
-      setSettings(savedSettings);
-      maxHistoryCountRef.current = savedSettings.maxHistoryCount;
-      setShowPreferences(false);
-    } catch (err) {
-      setSettingsError("保存失败");
-    } finally {
-      setIsSavingSettings(false);
-    }
-  };
-
-  const handleHistoryCountChange = (value: number) => {
-    setSettingsDraft((prev) => ({
-      ...prev,
-      maxHistoryCount: clampHistoryCount(value),
-    }));
-  };
-
-  const handleExit = async () => {
-    await invoke("quit_app");
-  };
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    closeAboutDialog,
+    closeHistoryGroupPreview,
+    closePreferencesDialog,
+    hideWindow,
+    isAboutOpen,
+    isPreferencesOpen,
+    moveSelection,
+    openPreferencesDialog,
+    previewHistoryGroupIndex,
+    selectHighlightedHistoryItem,
+  ]);
 
   return (
     <div className="app-frame">
       <div className="app-panel">
-        <div className="app-header">
-          <span className="app-kicker">mclip</span>
-          <input
-            type="text"
-            className="app-search"
-            placeholder="搜索..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+        <AppHeader
+          inputRef={searchInputRef}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+        />
+
+        <div className="app-body">
+          <HistoryList
+            hasHistory={hasHistory}
+            items={filteredHistory}
+            onSelectItem={selectHistoryItem}
+            selectedItemId={selectedHistoryItem?.id}
           />
         </div>
 
-        <div className="app-body">
-          <div className="app-section">
-            <div className="app-history-group">
-              {(() => {
-                const filteredList = list.filter((item) =>
-                  item.toLowerCase().includes(searchQuery.toLowerCase())
-                );
-                
-                // 空状态处理[cite: 1]
-                if (filteredList.length === 0) {
-                  return (
-                    <div className="app-empty">
-                      {list.length === 0 ? "等待复制内容..." : "没有匹配的结果"}
-                    </div>
-                  );
-                }
+        <HistoryGroupNav
+          groups={historyGroups}
+          previewGroupIndex={previewHistoryGroupIndex}
+          previewItems={previewHistory}
+          onClosePreview={closeHistoryGroupPreview}
+          onOpenPreview={openHistoryGroupPreview}
+          onSelectItem={selectHistoryItem}
+        />
 
-                return filteredList.map((item, index) => (
-                  <button
-                    key={`${index}-${item}`}
-                    className="app-item"
-                    onClick={() => handleItemClick(item)}
-                    title={item}
-                    type="button"
-                  >
-                    <span className="app-item-index">{list.indexOf(item) + 1}.</span>
-                    <span className="app-item-text">{item}</span>
-                  </button>
-                ));
-              })()}
-            </div>
-          </div>
-        </div>
-
-        <div className="app-footer">
-          <button className="app-menu-item" onClick={handleClearHistory} type="button">
-            <span className="app-menu-label">清除历史</span>
-            <span className="app-menu-shortcut">⌫</span>
-          </button>
-          <button className="app-menu-item" onClick={handleOpenPreferences} type="button">
-            <span className="app-menu-label">偏好设置</span>
-          </button>
-          <button className="app-menu-item" onClick={() => setShowAbout(true)} type="button">
-            <span className="app-menu-label">关于mclip</span>
-          </button>
-          <button className="app-menu-item" onClick={handleExit} type="button">
-            <span className="app-menu-label">退出</span>
-            <span className="app-menu-shortcut">⌘Q</span>
-          </button>
-        </div>
+        <AppFooter
+          onClearHistory={clearHistory}
+          onOpenAbout={openAboutDialog}
+          onOpenPreferences={openPreferencesDialog}
+          onQuit={quit}
+        />
       </div>
 
-      {/* About Modal */}
-      {showAbout && (
-        <div className="app-modal-overlay" onClick={() => setShowAbout(false)}>
-          <div className="app-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="app-modal-header">
-              <span className="app-modal-title">关于mclip</span>
-            </div>
-            <div className="app-modal-content">
-               <h2 className="app-modal-app-name">mclip</h2>
-               <p className="app-modal-version">版本 0.1.0</p>
-            </div>
-            <div className="app-modal-footer">
-              <button className="app-modal-btn" onClick={() => setShowAbout(false)}>确定</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {isAboutOpen ? (
+        <AboutDialog appVersion={appVersion} onClose={closeAboutDialog} />
+      ) : null}
 
-      {/* Preferences Modal */}
-      {showPreferences && (
-        <div className="app-modal-overlay" onClick={handleClosePreferences}>
-          <div className="app-modal app-settings-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="app-modal-header">
-              <span className="app-modal-title">偏好设置</span>
-            </div>
-            <div className="app-settings-content">
-              <div className="app-settings-row">
-                <div className="app-settings-copy">
-                  <div className="app-settings-label">登录时打开</div>
-                </div>
-                <button
-                  className={`app-switch ${settingsDraft.launchAtLogin ? "is-on" : ""}`}
-                  onClick={() => setSettingsDraft(p => ({...p, launchAtLogin: !p.launchAtLogin}))}
-                >
-                  <span className="app-switch-thumb" />
-                </button>
-              </div>
-
-              <div className="app-settings-row">
-                <div className="app-settings-copy">
-                  <div className="app-settings-label">最大记录条数</div>
-                </div>
-                <div className="app-stepper">
-                  <button className="app-stepper-btn" onClick={() => handleHistoryCountChange(settingsDraft.maxHistoryCount - 1)}>-</button>
-                  <input className="app-stepper-input" type="number" readOnly value={settingsDraft.maxHistoryCount} />
-                  <button className="app-stepper-btn" onClick={() => handleHistoryCountChange(settingsDraft.maxHistoryCount + 1)}>+</button>
-                </div>
-              </div>
-              {settingsError && <div className="app-settings-error">{settingsError}</div>}
-            </div>
-            <div className="app-modal-footer">
-              <button className="app-modal-secondary-btn" onClick={handleClosePreferences}>取消</button>
-              <button className="app-modal-btn" onClick={handleSavePreferences} disabled={isSavingSettings}>保存</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {isPreferencesOpen ? (
+        <PreferencesDialog
+          errorMessage={settingsError}
+          isSaving={isSavingSettings}
+          settings={settingsDraft}
+          onClose={closePreferencesDialog}
+          onSave={savePreferences}
+          onToggleLaunchAtLogin={toggleLaunchAtLogin}
+          onUpdateMaxHistoryCount={updateMaxHistoryCount}
+        />
+      ) : null}
     </div>
   );
 }

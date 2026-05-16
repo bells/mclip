@@ -13,18 +13,18 @@
     "windows": [
       {
         "title": "mclip",
-        "width": 300,
-        "height": 200,
-        "minWidth": 300,
-        "minHeight": 100,
-        "maxWidth": 300,
+        "width": 320,
+        "height": 320,
+        "minWidth": 320,
+        "minHeight": 220,
+        "maxWidth": 640,
         "maxHeight": 600,
         "resizable": true,
-        "decorations": false,    
-        "transparent": true,     
-        "alwaysOnTop": true,     
-        "visible": false,        
-        "skipTaskbar": true   
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "visible": false,
+        "skipTaskbar": true
       }
     ],
     "security": {

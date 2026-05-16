@@ -1,59 +1,45 @@
-name: "Release"
+name: Release
 
-# 触发条件：当你推送以 v 开头的标签（如 v0.1.0）时触发打包
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
-# 在全局或 Job 级别开启 Node 24 强制选项
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   publish:
     permissions:
-      contents: write # 赋予 Actions 写入 Release 资产的权限
+      contents: write
     strategy:
       fail-fast: false
       matrix:
-        # 同时在 Mac 和 Windows 虚拟机上运行
         platform: [macos-latest, windows-latest]
 
     runs-on: ${{ matrix.platform }}
+
     steps:
       - uses: actions/checkout@v4
 
-      # 1. 安装 Node.js 环境
-      - name: setup node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm' # 开启缓存加速后续打包
+          node-version: "24"
+          cache: npm
 
-      # 2. 安装 Rust 编译环境
-      - name: install Rust stable
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      # 3. 如果是 Windows 平台，安装必要的依赖 (WiX Toolset 用于生成 .msi)[cite: 4]
-      - name: install dependencies (Windows only)
-        if: matrix.platform == 'windows-latest'
-        run: |
-          # WiX Toolset 通常在 GitHub 虚拟机会预装，这里作为保险确认
+      - name: Install frontend dependencies
+        run: npm ci
 
-      # 4. 安装项目前端依赖
-      - name: install frontend dependencies
-        run: npm install
-
-      # 5. 执行 Tauri 打包动作
-      # 此动作会自动处理 Rust 编译、资源注入并创建 GitHub Release[cite: 4]
       - uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用内置令牌上传安装包[cite: 4]
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # v__VERSION__ 会自动抓取 package.json 中的版本号作为 Tag 名
-          tagName: v__VERSION__ 
+          tagName: v__VERSION__
           releaseName: "mclip v__VERSION__"
-          releaseBody: "自动生成的 mclip 发行版本。包含 macOS (.dmg) 和 Windows (.msi) 安装包。"
-          releaseDraft: true # 设置为草稿模式，打包完后你可以去 Release 页面手动点击“发布”
+          releaseBody: "自动生成的 mclip 发布版本，包含 macOS 和 Windows 安装包。"
+          releaseDraft: true
           prerelease: false
