@@ -141,6 +141,14 @@ export function useClipboardApp() {
   }, [historyGroups.length, previewHistoryGroupIndex]);
 
   useEffect(() => {
+    if (previewHistoryGroupIndex === null) {
+      void setGroupPreviewVisible(false).catch((error) => {
+        console.error("收起历史分组预览失败:", error);
+      });
+    }
+  }, [previewHistoryGroupIndex]);
+
+  useEffect(() => {
     setSelectedHistoryIndex((currentIndex) => {
       if (visibleHistory.length === 0) {
         return 0;
@@ -285,16 +293,13 @@ export function useClipboardApp() {
 
   const closeHistoryGroupPreview = () => {
     setPreviewHistoryGroupIndex(null);
-    void setGroupPreviewVisible(false).catch((error) => {
-      console.error("收起历史分组预览失败:", error);
-    });
   };
 
   const selectedHistoryItem: HistoryListItem | undefined = visibleHistory[selectedHistoryIndex];
 
   return {
     appVersion,
-    filteredHistory: visibleHistory,
+    visibleHistory,
     historyGroups,
     hasHistory: history.length > 0,
     isAboutOpen,

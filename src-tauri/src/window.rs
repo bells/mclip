@@ -25,9 +25,20 @@ pub fn adjust_window_height(
     group_count: u32,
 ) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window("main") {
+        let scale_factor = window.scale_factor().map_err(|error| error.to_string())?;
+        let current_width = window
+            .outer_size()
+            .map_err(|error| error.to_string())?
+            .to_logical::<f64>(scale_factor)
+            .width;
+
         window
             .set_size(Size::Logical(LogicalSize {
-                width: WINDOW_WIDTH,
+                width: if current_width > WINDOW_WIDTH + 1.0 {
+                    WINDOW_PREVIEW_WIDTH
+                } else {
+                    WINDOW_WIDTH
+                },
                 height: calculate_window_height(item_count, group_count),
             }))
             .map_err(|error| error.to_string())?;

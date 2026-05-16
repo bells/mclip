@@ -13,7 +13,7 @@ function App() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const {
     appVersion,
-    filteredHistory,
+    visibleHistory,
     historyGroups,
     hasHistory,
     isAboutOpen,
@@ -154,7 +154,7 @@ function App() {
         <div className="app-body">
           <HistoryList
             hasHistory={hasHistory}
-            items={filteredHistory}
+            items={visibleHistory}
             onSelectItem={selectHistoryItem}
             selectedItemId={selectedHistoryItem?.id}
           />
