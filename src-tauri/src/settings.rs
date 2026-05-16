@@ -86,6 +86,7 @@ fn settings_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
     Ok(config_dir.join("settings.json"))
 }
 
+#[cfg(target_os = "macos")]
 fn launch_agent_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
     let home_dir = app_handle
         .path()
