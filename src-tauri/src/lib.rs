@@ -20,8 +20,8 @@ use crate::clipboard::{copy_to_clipboard, spawn_clipboard_watcher};
 use crate::history::{clear_history, get_history};
 use crate::settings::{get_settings, save_settings};
 use crate::window::{
-    adjust_window_height, configure_main_window, hide_main_window, set_group_preview_visible,
-    toggle_main_window, WindowPlacement,
+    adjust_window_height, configure_main_window, hide_main_window, toggle_main_window,
+    WindowPlacement,
 };
 
 const SHOW_GUARD_MS: u64 = 450;
@@ -131,8 +131,7 @@ pub fn run() {
             save_settings,
             get_history,
             clear_history,
-            adjust_window_height,
-            set_group_preview_visible
+            adjust_window_height
         ])
         .setup({
             let show_guard_until = Arc::clone(&show_guard_until);

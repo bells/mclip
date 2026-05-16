@@ -27,7 +27,7 @@ export function getHistoryGroups(
 
   return Array.from({ length: groupCount }, (_, index) => {
     const startPosition = index * groupSize + 1;
-    const endPosition = Math.min((index + 1) * groupSize, itemCount);
+    const endPosition = (index + 1) * groupSize;
 
     return {
       endPosition,

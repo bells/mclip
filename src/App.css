@@ -125,29 +125,14 @@ button {
 }
 
 .app-body {
-  min-height: 0;
-  flex: 1;
+  flex: 0 0 auto;
   padding: 6px 6px 6px 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .app-history-group {
-  height: 100%;
-  overflow-y: auto;
+  overflow: visible;
   padding: 0 2px 0 6px;
-}
-
-.app-history-group::-webkit-scrollbar {
-  width: 5px;
-}
-
-.app-history-group::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.app-history-group::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
 }
 
 .app-item {
@@ -303,34 +288,25 @@ button {
 
 .app-history-preview-shell {
   position: absolute;
-  top: -6px;
-  left: calc(100% - 6px);
+  top: 0;
+  left: calc(100% + 8px);
   z-index: 30;
-  padding-left: 12px;
-}
-
-.app-history-preview-shell::before {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 18px;
-  content: "";
+  width: 304px;
 }
 
 .app-history-preview {
   display: grid;
-  width: 304px;
-  max-height: 500px;
-  gap: 10px;
-  overflow: hidden;
+  width: 100%;
+  gap: 8px;
   border: 1px solid rgba(255, 255, 255, 0.32);
-  border-radius: 16px;
+  border-radius: 12px;
   background:
     radial-gradient(circle at top right, rgba(93, 165, 255, 0.1), transparent 34%),
     rgba(20, 21, 22, 0.96);
   box-shadow:
     0 18px 44px rgba(0, 0, 0, 0.48),
     inset 0 0 0 1px rgba(0, 0, 0, 0.32);
-  padding: 12px;
+  padding: 10px;
 }
 
 .app-history-preview-header {

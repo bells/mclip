@@ -18,7 +18,6 @@ import {
   listenToHistoryUpdated,
   quitApp,
   saveSettings,
-  setGroupPreviewVisible,
 } from "../lib/tauri";
 import type { AppSettings, HistoryListItem } from "../types";
 import {
@@ -115,10 +114,14 @@ export function useClipboardApp() {
   }, []);
 
   useEffect(() => {
-    void adjustWindowHeight(visibleHistory.length, historyGroups.length).catch((error) => {
+    void adjustWindowHeight(
+      visibleHistory.length,
+      historyGroups.length,
+      previewHistory.length,
+    ).catch((error) => {
       console.error("调整窗口高度失败:", error);
     });
-  }, [historyGroups.length, visibleHistory.length]);
+  }, [historyGroups.length, previewHistory.length, visibleHistory.length]);
 
   useEffect(() => {
     setPreviewHistoryGroupIndex(null);
@@ -139,14 +142,6 @@ export function useClipboardApp() {
       setPreviewHistoryGroupIndex(null);
     }
   }, [historyGroups.length, previewHistoryGroupIndex]);
-
-  useEffect(() => {
-    if (previewHistoryGroupIndex === null) {
-      void setGroupPreviewVisible(false).catch((error) => {
-        console.error("收起历史分组预览失败:", error);
-      });
-    }
-  }, [previewHistoryGroupIndex]);
 
   useEffect(() => {
     setSelectedHistoryIndex((currentIndex) => {
@@ -214,7 +209,6 @@ export function useClipboardApp() {
   const selectHistoryItem = async (text: string) => {
     try {
       setPreviewHistoryGroupIndex(null);
-      await setGroupPreviewVisible(false);
       await copyToClipboard(text);
       await hideCurrentWindow();
     } catch (error) {
@@ -244,7 +238,6 @@ export function useClipboardApp() {
   const hideWindow = async () => {
     try {
       setPreviewHistoryGroupIndex(null);
-      await setGroupPreviewVisible(false);
       await hideCurrentWindow();
     } catch (error) {
       console.error("隐藏主窗口失败:", error);
@@ -281,14 +274,7 @@ export function useClipboardApp() {
   };
 
   const openHistoryGroupPreview = (groupIndex: number) => {
-    const shouldExpandWindow = previewHistoryGroupIndex === null;
     setPreviewHistoryGroupIndex(groupIndex);
-
-    if (shouldExpandWindow) {
-      void setGroupPreviewVisible(true).catch((error) => {
-        console.error("展开历史分组预览失败:", error);
-      });
-    }
   };
 
   const closeHistoryGroupPreview = () => {

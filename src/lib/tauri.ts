@@ -25,12 +25,16 @@ export function clearHistory() {
   return invoke<void>("clear_history");
 }
 
-export function adjustWindowHeight(itemCount: number, groupCount: number) {
-  return invoke<void>("adjust_window_height", { groupCount, itemCount });
-}
-
-export function setGroupPreviewVisible(visible: boolean) {
-  return invoke<void>("set_group_preview_visible", { visible });
+export function adjustWindowHeight(
+  itemCount: number,
+  groupCount: number,
+  previewItemCount: number,
+) {
+  return invoke<void>("adjust_window_height", {
+    groupCount,
+    itemCount,
+    previewItemCount,
+  });
 }
 
 export function copyToClipboard(content: string) {
