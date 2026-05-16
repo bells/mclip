@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
+
 import {
+  clampHistoryCount,
   MAX_MAX_HISTORY_COUNT,
   MIN_MAX_HISTORY_COUNT,
 } from "../constants";
@@ -25,6 +28,33 @@ export function PreferencesDialog({
   onToggleLaunchAtLogin,
   onUpdateMaxHistoryCount,
 }: PreferencesDialogProps) {
+  const [maxHistoryCountInput, setMaxHistoryCountInput] = useState(
+    String(settings.maxHistoryCount),
+  );
+
+  useEffect(() => {
+    setMaxHistoryCountInput(String(settings.maxHistoryCount));
+  }, [settings.maxHistoryCount]);
+
+  const commitMaxHistoryCountInput = () => {
+    const parsedValue = Number(maxHistoryCountInput);
+
+    if (!Number.isFinite(parsedValue)) {
+      setMaxHistoryCountInput(String(settings.maxHistoryCount));
+      return;
+    }
+
+    const nextValue = clampHistoryCount(Math.trunc(parsedValue));
+    setMaxHistoryCountInput(String(nextValue));
+    onUpdateMaxHistoryCount(nextValue);
+  };
+
+  const updateMaxHistoryCountInput = (value: string) => {
+    if (/^\d*$/.test(value)) {
+      setMaxHistoryCountInput(value);
+    }
+  };
+
   return (
     <Modal
       className="app-settings-modal"
@@ -84,6 +114,7 @@ export function PreferencesDialog({
           <div className="app-stepper">
             <button
               className="app-stepper-btn"
+              disabled={isSaving}
               onClick={() => onUpdateMaxHistoryCount(settings.maxHistoryCount - 1)}
               type="button"
             >
@@ -92,12 +123,22 @@ export function PreferencesDialog({
             <input
               aria-label="最大记录条数"
               className="app-stepper-input"
-              readOnly
+              disabled={isSaving}
+              max={MAX_MAX_HISTORY_COUNT}
+              min={MIN_MAX_HISTORY_COUNT}
+              onBlur={commitMaxHistoryCountInput}
+              onChange={(event) => updateMaxHistoryCountInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.currentTarget.blur();
+                }
+              }}
               type="number"
-              value={settings.maxHistoryCount}
+              value={maxHistoryCountInput}
             />
             <button
               className="app-stepper-btn"
+              disabled={isSaving}
               onClick={() => onUpdateMaxHistoryCount(settings.maxHistoryCount + 1)}
               type="button"
             >
