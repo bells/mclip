@@ -55,6 +55,12 @@ button {
   color: inherit;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .app-frame {
   position: relative;
   width: 320px;
@@ -464,7 +470,8 @@ button {
 }
 
 .app-settings-modal {
-  width: 360px;
+  width: calc(100% - 24px);
+  max-width: 360px;
 }
 
 .app-modal-header {

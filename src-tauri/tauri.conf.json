@@ -17,7 +17,7 @@
         "height": 320,
         "minWidth": 320,
         "minHeight": 220,
-        "maxWidth": 640,
+        "maxWidth": 660,
         "maxHeight": 600,
         "resizable": true,
         "decorations": false,
@@ -28,7 +28,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; img-src 'self' asset: http://asset.localhost; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {

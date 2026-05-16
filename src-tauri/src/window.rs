@@ -2,7 +2,7 @@ use tauri::{AppHandle, Emitter, LogicalSize, Manager, Size};
 use tauri_plugin_positioner::{Position, WindowExt};
 
 pub const WINDOW_WIDTH: f64 = 320.0;
-pub const WINDOW_PREVIEW_WIDTH: f64 = 640.0;
+pub const WINDOW_PREVIEW_WIDTH: f64 = 660.0;
 pub const MAX_WINDOW_HEIGHT: f64 = 600.0;
 pub const MAIN_WINDOW_SHOWN_EVENT: &str = "main-window-shown";
 

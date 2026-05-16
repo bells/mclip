@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "check:frontend": "tsc --noEmit",
-    "check:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml",
+    "check:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
     "check": "npm run build && npm run check:rust",
     "preview": "vite preview",
     "tauri": "tauri",

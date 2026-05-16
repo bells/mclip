@@ -1,6 +1,7 @@
 mod clipboard;
 mod history;
 mod settings;
+mod storage;
 mod window;
 
 use std::io;
@@ -116,7 +117,7 @@ pub fn run() {
                         .unwrap_or_default();
 
                     if remaining_guard.is_zero() {
-                        let _ = hide_main_window(&window.app_handle());
+                        let _ = hide_main_window(window.app_handle());
                     }
                 }
             }

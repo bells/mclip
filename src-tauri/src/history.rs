@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::settings::load_settings;
+use crate::storage::write_text_atomically;
 
 pub const HISTORY_UPDATED_EVENT: &str = "history-updated";
 
@@ -38,6 +39,18 @@ pub fn process_new_history_item(
     Ok(next_history)
 }
 
+pub fn trim_history_to_max(app_handle: &AppHandle, max_history_count: usize) -> Result<(), String> {
+    let mut history = load_history(app_handle)?;
+
+    if history.len() <= max_history_count {
+        return Ok(());
+    }
+
+    history.truncate(max_history_count);
+    persist_history(app_handle, &history)?;
+    emit_history_updated(app_handle, &history)
+}
+
 pub fn emit_history_updated(app_handle: &AppHandle, history: &[String]) -> Result<(), String> {
     app_handle
         .emit(HISTORY_UPDATED_EVENT, history.to_vec())
@@ -49,7 +62,13 @@ fn load_history(app_handle: &AppHandle) -> Result<Vec<String>, String> {
 
     if path.exists() {
         let content = fs::read_to_string(path).map_err(|error| error.to_string())?;
-        serde_json::from_str::<Vec<String>>(&content).map_err(|error| error.to_string())
+        match serde_json::from_str::<Vec<String>>(&content) {
+            Ok(history) => Ok(history),
+            Err(error) => {
+                eprintln!("failed to parse clipboard history, using empty history: {error}");
+                Ok(Vec::new())
+            }
+        }
     } else {
         Ok(Vec::new())
     }
@@ -57,13 +76,8 @@ fn load_history(app_handle: &AppHandle) -> Result<Vec<String>, String> {
 
 fn persist_history(app_handle: &AppHandle, history: &[String]) -> Result<(), String> {
     let path = history_path(app_handle)?;
-
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    }
-
     let content = serde_json::to_string_pretty(history).map_err(|error| error.to_string())?;
-    fs::write(path, content).map_err(|error| error.to_string())
+    write_text_atomically(&path, &content)
 }
 
 fn history_path(app_handle: &AppHandle) -> Result<PathBuf, String> {

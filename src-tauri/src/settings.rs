@@ -3,6 +3,9 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
+use crate::history::trim_history_to_max;
+use crate::storage::write_text_atomically;
+
 pub const DEFAULT_MAX_HISTORY_COUNT: u32 = 50;
 pub const MIN_MAX_HISTORY_COUNT: u32 = 10;
 pub const MAX_MAX_HISTORY_COUNT: u32 = 200;
@@ -46,9 +49,13 @@ pub fn load_settings(app_handle: &AppHandle) -> Result<AppSettings, String> {
     let path = settings_path(app_handle)?;
     let mut settings = if path.exists() {
         let content = fs::read_to_string(&path).map_err(|error| error.to_string())?;
-        serde_json::from_str::<AppSettings>(&content)
-            .map_err(|error| error.to_string())?
-            .sanitize()
+        match serde_json::from_str::<AppSettings>(&content) {
+            Ok(settings) => settings.sanitize(),
+            Err(error) => {
+                eprintln!("failed to parse settings, using defaults: {error}");
+                AppSettings::default()
+            }
+        }
     } else {
         AppSettings::default()
     };
@@ -61,14 +68,11 @@ pub fn load_settings(app_handle: &AppHandle) -> Result<AppSettings, String> {
 fn persist_settings(app_handle: &AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
     let settings = settings.sanitize();
     sync_launch_at_login(app_handle, settings.launch_at_login)?;
+    trim_history_to_max(app_handle, settings.max_history_count as usize)?;
 
     let path = settings_path(app_handle)?;
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    }
-
     let content = serde_json::to_string_pretty(&settings).map_err(|error| error.to_string())?;
-    fs::write(path, content).map_err(|error| error.to_string())?;
+    write_text_atomically(&path, &content)?;
 
     load_settings(app_handle)
 }
