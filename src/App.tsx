@@ -7,6 +7,7 @@ import { HistoryGroupNav } from "./components/HistoryGroupNav";
 import { HistoryList } from "./components/HistoryList";
 import { PreferencesDialog } from "./components/PreferencesDialog";
 import { useClipboardApp } from "./hooks/useClipboardApp";
+import { getTranslations } from "./i18n";
 import { listenToMainWindowShown } from "./lib/tauri";
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
     previewHistoryGroupIndex,
     searchQuery,
     selectedHistoryItem,
+    settings,
     settingsDraft,
     settingsError,
     clearHistory,
@@ -40,8 +42,11 @@ function App() {
     selectHistoryItem,
     setSearchQuery,
     toggleLaunchAtLogin,
+    updateLanguage,
     updateMaxHistoryCount,
   } = useClipboardApp();
+  const displayLanguage = isPreferencesOpen ? settingsDraft.language : settings.language;
+  const t = getTranslations(displayLanguage);
 
   useEffect(() => {
     searchInputRef.current?.focus();
@@ -148,28 +153,32 @@ function App() {
         <AppHeader
           inputRef={searchInputRef}
           searchQuery={searchQuery}
+          translations={t.header}
           onSearchQueryChange={setSearchQuery}
         />
 
         <div className="app-body">
           <HistoryList
-            hasHistory={hasHistory}
-            items={visibleHistory}
-            onSelectItem={selectHistoryItem}
-            selectedItemId={selectedHistoryItem?.id}
-          />
+          hasHistory={hasHistory}
+          items={visibleHistory}
+          translations={t.history}
+          onSelectItem={selectHistoryItem}
+          selectedItemId={selectedHistoryItem?.id}
+        />
         </div>
 
         <HistoryGroupNav
           groups={historyGroups}
           previewGroupIndex={previewHistoryGroupIndex}
           previewItems={previewHistory}
+          translations={t.history}
           onClosePreview={closeHistoryGroupPreview}
           onOpenPreview={openHistoryGroupPreview}
           onSelectItem={selectHistoryItem}
         />
 
         <AppFooter
+          translations={t.footer}
           onClearHistory={clearHistory}
           onOpenAbout={openAboutDialog}
           onOpenPreferences={openPreferencesDialog}
@@ -178,7 +187,11 @@ function App() {
       </div>
 
       {isAboutOpen ? (
-        <AboutDialog appVersion={appVersion} onClose={closeAboutDialog} />
+        <AboutDialog
+          appVersion={appVersion}
+          translations={t.about}
+          onClose={closeAboutDialog}
+        />
       ) : null}
 
       {isPreferencesOpen ? (
@@ -186,9 +199,11 @@ function App() {
           errorMessage={settingsError}
           isSaving={isSavingSettings}
           settings={settingsDraft}
+          translations={t.preferences}
           onClose={closePreferencesDialog}
           onSave={savePreferences}
           onToggleLaunchAtLogin={toggleLaunchAtLogin}
+          onUpdateLanguage={updateLanguage}
           onUpdateMaxHistoryCount={updateMaxHistoryCount}
         />
       ) : null}

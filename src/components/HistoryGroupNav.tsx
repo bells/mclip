@@ -1,9 +1,11 @@
+import type { AppTranslations } from "../i18n";
 import type { HistoryGroupInfo, HistoryListItem } from "../types";
 
 type HistoryGroupNavProps = {
   groups: HistoryGroupInfo[];
   previewGroupIndex: number | null;
   previewItems: HistoryListItem[];
+  translations: AppTranslations["history"];
   onClosePreview: () => void;
   onOpenPreview: (groupIndex: number) => void;
   onSelectItem: (text: string) => void;
@@ -18,6 +20,7 @@ export function HistoryGroupNav({
   groups,
   previewGroupIndex,
   previewItems,
+  translations,
   onClosePreview,
   onOpenPreview,
   onSelectItem,
@@ -32,7 +35,7 @@ export function HistoryGroupNav({
     <div className="app-history-archive" onMouseLeave={onClosePreview}>
       <div className="app-history-archive-divider" />
 
-      <div className="app-history-archive-list" aria-label="更早的剪贴板历史">
+      <div className="app-history-archive-list" aria-label={translations.groupAriaLabel}>
         {archiveGroups.map((group) => {
           const isActive = group.index === previewGroupIndex;
           const groupItems = isActive ? previewItems : [];
@@ -60,12 +63,17 @@ export function HistoryGroupNav({
               {isActive && groupItems.length > 0 ? (
                 <div className="app-history-preview-shell">
                   <div
-                    aria-label={`历史分组 ${group.startPosition}-${group.endPosition}`}
+                    aria-label={translations.previewAriaLabel(
+                      group.startPosition,
+                      group.endPosition,
+                    )}
                     className="app-history-preview"
                     role="menu"
                   >
                     <div className="app-history-preview-header">
-                      <span className="app-history-preview-kicker">History Group</span>
+                      <span className="app-history-preview-kicker">
+                        {translations.groupPreviewKicker}
+                      </span>
                       <span className="app-history-preview-range">
                         {group.startPosition} - {group.endPosition}
                       </span>

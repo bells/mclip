@@ -12,8 +12,17 @@ pub const MAX_MAX_HISTORY_COUNT: u32 = 200;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub enum AppLanguage {
+    ZhCn,
+    En,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub launch_at_login: bool,
+    #[serde(default = "default_language")]
+    pub language: AppLanguage,
     pub max_history_count: u32,
 }
 
@@ -21,6 +30,7 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             launch_at_login: false,
+            language: default_language(),
             max_history_count: DEFAULT_MAX_HISTORY_COUNT,
         }
     }
@@ -33,6 +43,49 @@ impl AppSettings {
             .clamp(MIN_MAX_HISTORY_COUNT, MAX_MAX_HISTORY_COUNT);
         self
     }
+}
+
+fn default_language() -> AppLanguage {
+    resolve_supported_language(&system_locale())
+}
+
+fn resolve_supported_language(locale: &str) -> AppLanguage {
+    let normalized_locale = locale.to_lowercase();
+
+    if normalized_locale.starts_with("zh") {
+        AppLanguage::ZhCn
+    } else {
+        AppLanguage::En
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn system_locale() -> String {
+    const LOCALE_NAME_MAX_LENGTH: usize = 85;
+
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        #[link_name = "GetUserDefaultLocaleName"]
+        fn get_user_default_locale_name(name: *mut u16, name_count: i32) -> i32;
+    }
+
+    let mut locale_name = [0u16; LOCALE_NAME_MAX_LENGTH];
+    let locale_length =
+        unsafe { get_user_default_locale_name(locale_name.as_mut_ptr(), locale_name.len() as i32) };
+
+    if locale_length > 0 {
+        String::from_utf16_lossy(&locale_name[..locale_length as usize])
+    } else {
+        String::new()
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn system_locale() -> String {
+    ["LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"]
+        .iter()
+        .find_map(|key| std::env::var(key).ok())
+        .unwrap_or_default()
 }
 
 #[tauri::command]
@@ -203,12 +256,16 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
 
 #[cfg(test)]
 mod tests {
-    use super::{AppSettings, MAX_MAX_HISTORY_COUNT, MIN_MAX_HISTORY_COUNT};
+    use super::{
+        resolve_supported_language, AppLanguage, AppSettings, MAX_MAX_HISTORY_COUNT,
+        MIN_MAX_HISTORY_COUNT,
+    };
 
     #[test]
     fn sanitize_clamps_history_count_to_lower_bound() {
         let settings = AppSettings {
             launch_at_login: false,
+            language: AppLanguage::En,
             max_history_count: 1,
         }
         .sanitize();
@@ -220,10 +277,21 @@ mod tests {
     fn sanitize_clamps_history_count_to_upper_bound() {
         let settings = AppSettings {
             launch_at_login: false,
+            language: AppLanguage::En,
             max_history_count: 999,
         }
         .sanitize();
 
         assert_eq!(settings.max_history_count, MAX_MAX_HISTORY_COUNT);
+    }
+
+    #[test]
+    fn resolve_supported_language_detects_chinese_locale() {
+        assert_eq!(resolve_supported_language("zh-CN"), AppLanguage::ZhCn);
+    }
+
+    #[test]
+    fn resolve_supported_language_falls_back_to_english() {
+        assert_eq!(resolve_supported_language("tr-TR"), AppLanguage::En);
     }
 }

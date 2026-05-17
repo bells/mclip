@@ -1,8 +1,10 @@
+import type { AppTranslations } from "../i18n";
 import type { HistoryListItem } from "../types";
 
 type HistoryListProps = {
   hasHistory: boolean;
   items: HistoryListItem[];
+  translations: AppTranslations["history"];
   onSelectItem: (text: string) => void;
   selectedItemId?: string;
 };
@@ -10,6 +12,7 @@ type HistoryListProps = {
 export function HistoryList({
   hasHistory,
   items,
+  translations,
   onSelectItem,
   selectedItemId,
 }: HistoryListProps) {
@@ -17,7 +20,7 @@ export function HistoryList({
     return (
       <div className="app-history-group">
         <div className="app-empty">
-          {hasHistory ? "没有匹配的结果" : "等待复制内容..."}
+          {hasHistory ? translations.noMatches : translations.empty}
         </div>
       </div>
     );

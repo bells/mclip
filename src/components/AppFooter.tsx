@@ -1,4 +1,7 @@
+import type { AppTranslations } from "../i18n";
+
 type AppFooterProps = {
+  translations: AppTranslations["footer"];
   onClearHistory: () => void;
   onOpenAbout: () => void;
   onOpenPreferences: () => void;
@@ -6,6 +9,7 @@ type AppFooterProps = {
 };
 
 export function AppFooter({
+  translations,
   onClearHistory,
   onOpenAbout,
   onOpenPreferences,
@@ -14,23 +18,23 @@ export function AppFooter({
   return (
     <footer className="app-footer">
       <button className="app-menu-item is-danger" onClick={onClearHistory} type="button">
-        <span className="app-menu-label">清除历史</span>
-        <span className="app-menu-hint">删除本地保存的记录</span>
+        <span className="app-menu-label">{translations.clearLabel}</span>
+        <span className="app-menu-hint">{translations.clearHint}</span>
       </button>
 
       <button className="app-menu-item" onClick={onOpenPreferences} type="button">
-        <span className="app-menu-label">偏好设置</span>
-        <span className="app-menu-hint">启动方式与历史条数</span>
+        <span className="app-menu-label">{translations.preferencesLabel}</span>
+        <span className="app-menu-hint">{translations.preferencesHint}</span>
       </button>
 
       <button className="app-menu-item" onClick={onOpenAbout} type="button">
-        <span className="app-menu-label">关于 mclip</span>
-        <span className="app-menu-hint">查看版本信息</span>
+        <span className="app-menu-label">{translations.aboutLabel}</span>
+        <span className="app-menu-hint">{translations.aboutHint}</span>
       </button>
 
       <button className="app-menu-item" onClick={onQuit} type="button">
-        <span className="app-menu-label">退出</span>
-        <span className="app-menu-hint">关闭托盘应用</span>
+        <span className="app-menu-label">{translations.quitLabel}</span>
+        <span className="app-menu-hint">{translations.quitHint}</span>
       </button>
     </footer>
   );

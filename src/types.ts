@@ -1,4 +1,7 @@
+export type AppLanguage = "zhCn" | "en";
+
 export type AppSettings = {
+  language: AppLanguage;
   launchAtLogin: boolean;
   maxHistoryCount: number;
 };

@@ -25,10 +25,12 @@ import {
   getHistoryGroupItems,
   getHistoryGroups,
 } from "../utils/history";
+import { getTranslations } from "../i18n";
 
 function normalizeSettings(settings: AppSettings): AppSettings {
   return {
     ...settings,
+    language: settings.language === "zhCn" ? "zhCn" : "en",
     maxHistoryCount: clampHistoryCount(settings.maxHistoryCount),
   };
 }
@@ -187,6 +189,13 @@ export function useClipboardApp() {
     }));
   };
 
+  const updateLanguage = (language: AppSettings["language"]) => {
+    setSettingsDraft((current) => ({
+      ...current,
+      language,
+    }));
+  };
+
   const savePreferences = async () => {
     try {
       setIsSavingSettings(true);
@@ -200,7 +209,7 @@ export function useClipboardApp() {
       setIsPreferencesOpen(false);
     } catch (error) {
       console.error("保存设置失败:", error);
-      setSettingsError("保存失败，请重试。");
+      setSettingsError(getTranslations(settingsDraft.language).preferences.error);
     } finally {
       setIsSavingSettings(false);
     }
@@ -295,6 +304,7 @@ export function useClipboardApp() {
     previewHistoryGroupIndex,
     searchQuery,
     selectedHistoryItem,
+    settings,
     settingsDraft,
     settingsError,
     clearHistory: clearHistoryItems,
@@ -312,6 +322,7 @@ export function useClipboardApp() {
     selectHistoryItem,
     setSearchQuery,
     toggleLaunchAtLogin,
+    updateLanguage,
     updateMaxHistoryCount,
   };
 }

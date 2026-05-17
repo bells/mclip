@@ -5,7 +5,8 @@ import {
   MAX_MAX_HISTORY_COUNT,
   MIN_MAX_HISTORY_COUNT,
 } from "../constants";
-import type { AppSettings } from "../types";
+import type { AppTranslations } from "../i18n";
+import type { AppLanguage, AppSettings } from "../types";
 
 import { Modal } from "./Modal";
 
@@ -13,9 +14,11 @@ type PreferencesDialogProps = {
   errorMessage: string;
   isSaving: boolean;
   settings: AppSettings;
+  translations: AppTranslations["preferences"];
   onClose: () => void;
   onSave: () => void;
   onToggleLaunchAtLogin: () => void;
+  onUpdateLanguage: (language: AppLanguage) => void;
   onUpdateMaxHistoryCount: (value: number) => void;
 };
 
@@ -23,9 +26,11 @@ export function PreferencesDialog({
   errorMessage,
   isSaving,
   settings,
+  translations,
   onClose,
   onSave,
   onToggleLaunchAtLogin,
+  onUpdateLanguage,
   onUpdateMaxHistoryCount,
 }: PreferencesDialogProps) {
   const [maxHistoryCountInput, setMaxHistoryCountInput] = useState(
@@ -66,7 +71,7 @@ export function PreferencesDialog({
             onClick={onClose}
             type="button"
           >
-            取消
+            {translations.cancel}
           </button>
           <button
             className="app-modal-btn"
@@ -74,19 +79,19 @@ export function PreferencesDialog({
             onClick={onSave}
             type="button"
           >
-            {isSaving ? "保存中..." : "保存"}
+            {isSaving ? translations.saving : translations.save}
           </button>
         </>
       }
       onRequestClose={onClose}
-      title="偏好设置"
+      title={translations.title}
     >
       <div className="app-settings-content">
         <div className="app-settings-row">
           <div className="app-settings-copy">
-            <div className="app-settings-label">登录时启动</div>
+            <div className="app-settings-label">{translations.launchAtLoginLabel}</div>
             <div className="app-settings-description">
-              在系统登录后自动启动 mclip。
+              {translations.launchAtLoginDescription}
             </div>
           </div>
 
@@ -102,12 +107,31 @@ export function PreferencesDialog({
 
         <div className="app-settings-row">
           <div className="app-settings-copy">
-            <div className="app-settings-label">最大记录条数</div>
+            <div className="app-settings-label">{translations.languageLabel}</div>
             <div className="app-settings-description">
-              控制本地历史列表最多保留多少条文本记录。
+              {translations.languageDescription}
+            </div>
+          </div>
+
+          <select
+            className="app-language-select"
+            disabled={isSaving}
+            onChange={(event) => onUpdateLanguage(event.target.value as AppLanguage)}
+            value={settings.language}
+          >
+            <option value="zhCn">{translations.languageChinese}</option>
+            <option value="en">{translations.languageEnglish}</option>
+          </select>
+        </div>
+
+        <div className="app-settings-row">
+          <div className="app-settings-copy">
+            <div className="app-settings-label">{translations.maxHistoryCountLabel}</div>
+            <div className="app-settings-description">
+              {translations.maxHistoryCountDescription}
             </div>
             <div className="app-settings-note">
-              可选范围 {MIN_MAX_HISTORY_COUNT} - {MAX_MAX_HISTORY_COUNT}
+              {translations.rangeNote(MIN_MAX_HISTORY_COUNT, MAX_MAX_HISTORY_COUNT)}
             </div>
           </div>
 
@@ -121,7 +145,7 @@ export function PreferencesDialog({
               -
             </button>
             <input
-              aria-label="最大记录条数"
+              aria-label={translations.maxHistoryCountAriaLabel}
               className="app-stepper-input"
               disabled={isSaving}
               max={MAX_MAX_HISTORY_COUNT}

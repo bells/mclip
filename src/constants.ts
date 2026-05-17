@@ -8,6 +8,7 @@ export const MIN_MAX_HISTORY_COUNT = 10;
 export const MAX_MAX_HISTORY_COUNT = 200;
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  language: "en",
   launchAtLogin: false,
   maxHistoryCount: 50,
 };

@@ -47,7 +47,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -535,6 +536,7 @@ button {
 
 .app-modal-btn:disabled,
 .app-modal-secondary-btn:disabled,
+.app-language-select:disabled,
 .app-stepper-btn:disabled,
 .app-switch:disabled {
   cursor: not-allowed;
@@ -618,6 +620,22 @@ button {
 
 .app-switch.is-on .app-switch-thumb {
   transform: translateX(18px);
+}
+
+.app-language-select {
+  min-width: 96px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.24);
+  color: var(--app-text);
+  cursor: pointer;
+  outline: none;
+  padding: 6px 8px;
+}
+
+.app-language-select:focus {
+  border-color: rgba(93, 165, 255, 0.72);
+  box-shadow: 0 0 0 3px rgba(93, 165, 255, 0.16);
 }
 
 .app-stepper {
