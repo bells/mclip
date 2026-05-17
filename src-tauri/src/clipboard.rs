@@ -1,3 +1,6 @@
+//! 剪贴板读写与监听。
+//! Windows 使用系统剪贴板事件；其它平台保留轻量轮询，并且每次读取都重新打开剪贴板以降低句柄失效风险。
+
 use arboard::Clipboard;
 #[cfg(not(target_os = "windows"))]
 use std::thread;
@@ -28,6 +31,7 @@ pub fn spawn_clipboard_watcher(app_handle: AppHandle) {
     spawn_platform_clipboard_watcher(app_handle);
 }
 
+// 统一处理平台监听得到的新文本：去重、写入历史、通知前端刷新。
 fn process_clipboard_text(
     app_handle: &AppHandle,
     last_content: &mut String,
@@ -57,6 +61,7 @@ fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
         let mut last_content = read_clipboard_text().unwrap_or_default();
 
         loop {
+            // macOS 当前仍采用轮询。每轮独立读取，避免长时间持有 Clipboard 导致后续读取不稳定。
             if let Ok(current_content) = read_clipboard_text() {
                 process_clipboard_text(&app_handle, &mut last_content, current_content);
             }
@@ -68,6 +73,9 @@ fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
 
 #[cfg(target_os = "windows")]
 mod windows_clipboard_watcher {
+    //! Windows 剪贴板事件监听。
+    //! 这里没有引入额外 crate，而是用最小 Win32 FFI 创建 message-only window 接收 WM_CLIPBOARDUPDATE。
+
     use std::ffi::c_void;
     use std::ptr;
     use std::sync::mpsc::{self, Sender};
@@ -202,6 +210,7 @@ mod windows_clipboard_watcher {
                 dispatch_message_w(&message);
             }
 
+            // window_proc 只负责把系统事件转成 channel 信号；实际读取剪贴板放在消息循环里做。
             while event_receiver.try_recv().is_ok() {
                 if let Ok(current_content) = read_clipboard_text() {
                     process_clipboard_text(&app_handle, &mut last_content, current_content);
@@ -282,6 +291,7 @@ mod windows_clipboard_watcher {
         lparam: Lparam,
     ) -> Lresult {
         if message == WM_CLIPBOARDUPDATE {
+            // Win32 回调保持极简，避免在回调里做可能阻塞的剪贴板读取。
             if let Some(sender_slot) = CLIPBOARD_EVENT_SENDER.get() {
                 if let Ok(sender) = sender_slot.lock() {
                     if let Some(sender) = sender.as_ref() {

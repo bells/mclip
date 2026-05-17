@@ -1,3 +1,5 @@
+//! 剪贴板历史的读取、合并、裁剪和前端事件通知。
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -28,6 +30,7 @@ pub fn process_new_history_item(
     new_item: &str,
 ) -> Result<Vec<String>, String> {
     let settings = load_settings(app_handle)?;
+    // 新内容永远放到最前面；重复内容会先移除旧位置，避免历史列表出现同一文本多次。
     let next_history = merge_history(
         load_history(app_handle)?,
         new_item.to_string(),
@@ -65,6 +68,7 @@ fn load_history(app_handle: &AppHandle) -> Result<Vec<String>, String> {
         match serde_json::from_str::<Vec<String>>(&content) {
             Ok(history) => Ok(history),
             Err(error) => {
+                // 历史文件损坏不能影响应用启动；回退为空历史即可。
                 eprintln!("failed to parse clipboard history, using empty history: {error}");
                 Ok(Vec::new())
             }

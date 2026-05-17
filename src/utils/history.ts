@@ -1,3 +1,5 @@
+// 纯前端历史列表工具：负责搜索过滤、分组计算和分页取数。
+
 import type { HistoryGroupInfo, HistoryListItem } from "../types";
 
 export function filterHistoryItems(
@@ -6,6 +8,7 @@ export function filterHistoryItems(
 ): HistoryListItem[] {
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
+  // id 带上原始位置和文本，避免相同文本在渲染时出现不稳定 key。
   return history
     .map((text, index) => ({
       id: `${index}:${text}`,
@@ -29,6 +32,7 @@ export function getHistoryGroups(
     const startPosition = index * groupSize + 1;
     const endPosition = (index + 1) * groupSize;
 
+    // 分组范围按完整组显示，例如实际只有第 11 条，也显示 11-20。
     return {
       endPosition,
       index,

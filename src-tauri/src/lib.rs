@@ -1,3 +1,6 @@
+//! Tauri 应用入口与全局生命周期管理。
+//! 这里负责托盘、快捷键、窗口焦点规则以及所有前端可调用命令的注册。
+
 mod clipboard;
 mod history;
 mod settings;
@@ -20,18 +23,22 @@ use crate::clipboard::{copy_to_clipboard, spawn_clipboard_watcher};
 use crate::history::{clear_history, get_history};
 use crate::settings::{get_settings, save_settings};
 use crate::window::{
-    adjust_window_height, configure_main_window, hide_main_window, toggle_main_window,
-    WindowPlacement,
+    adjust_window_height, configure_main_window, hide_history_preview_window, hide_main_window,
+    is_pointer_over_history_preview_window, is_pointer_over_preview_window,
+    show_history_preview_window, toggle_main_window, WindowPlacement,
 };
 
 const SHOW_GUARD_MS: u64 = 450;
 const TOGGLE_WINDOW_SHORTCUT: &str = "CommandOrControl+Shift+V";
+const TRAY_TOOLTIP: &str = "更好用的剪贴帮工具mclip";
 
 #[tauri::command]
 fn quit_app(app_handle: AppHandle) {
     app_handle.exit(0);
 }
 
+// Opening the window from tray/shortcut briefly changes focus on macOS and
+// Windows. This guard prevents the just-opened popover from hiding itself.
 fn protect_next_focus_loss(show_guard_until: &Arc<Mutex<Option<Instant>>>) {
     if let Ok(mut deadline) = show_guard_until.lock() {
         *deadline = Some(Instant::now() + Duration::from_millis(SHOW_GUARD_MS));
@@ -52,6 +59,7 @@ fn build_tray(
 
     TrayIconBuilder::new()
         .icon(icon)
+        .tooltip(TRAY_TOOLTIP)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_tray_icon_event(move |tray, event| {
@@ -116,7 +124,13 @@ pub fn run() {
                         .map(|deadline| deadline.saturating_duration_since(Instant::now()))
                         .unwrap_or_default();
 
-                    if remaining_guard.is_zero() {
+                    let is_pointer_over_preview =
+                        is_pointer_over_preview_window(window.app_handle()).unwrap_or(false);
+
+                    // Moving from the main popover into the preview transfers
+                    // focus away from the main window. Keep both windows alive
+                    // while the pointer is over the preview.
+                    if remaining_guard.is_zero() && !is_pointer_over_preview {
                         let _ = hide_main_window(window.app_handle());
                     }
                 }
@@ -131,7 +145,10 @@ pub fn run() {
             save_settings,
             get_history,
             clear_history,
-            adjust_window_height
+            adjust_window_height,
+            show_history_preview_window,
+            hide_history_preview_window,
+            is_pointer_over_history_preview_window
         ])
         .setup({
             let show_guard_until = Arc::clone(&show_guard_until);

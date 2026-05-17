@@ -1,3 +1,5 @@
+// 主历史列表：展示当前分组的前 10 条或搜索结果，并支持点击复制。
+
 import type { AppTranslations } from "../i18n";
 import type { HistoryListItem } from "../types";
 

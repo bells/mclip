@@ -1,3 +1,5 @@
+// 主窗口底部菜单：清除历史、偏好设置、关于和退出。
+
 import type { AppTranslations } from "../i18n";
 
 type AppFooterProps = {
@@ -5,6 +7,7 @@ type AppFooterProps = {
   onClearHistory: () => void;
   onOpenAbout: () => void;
   onOpenPreferences: () => void;
+  onPointerEnter?: () => void;
   onQuit: () => void;
 };
 
@@ -13,10 +16,11 @@ export function AppFooter({
   onClearHistory,
   onOpenAbout,
   onOpenPreferences,
+  onPointerEnter,
   onQuit,
 }: AppFooterProps) {
   return (
-    <footer className="app-footer">
+    <footer className="app-footer" onMouseEnter={onPointerEnter}>
       <button className="app-menu-item is-danger" onClick={onClearHistory} type="button">
         <span className="app-menu-label">{translations.clearLabel}</span>
         <span className="app-menu-hint">{translations.clearHint}</span>

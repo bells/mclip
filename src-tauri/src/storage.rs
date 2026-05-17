@@ -1,3 +1,6 @@
+//! 通用文件写入工具。
+//! 通过临时文件 + rename 降低写入过程中崩溃造成配置/历史文件损坏的概率。
+
 use std::fs;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -23,6 +26,7 @@ pub fn write_text_atomically(path: &Path, content: &str) -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     if path.exists() {
+        // Windows 的 rename 不能稳定覆盖已有文件，先删除目标文件。
         fs::remove_file(path).map_err(|error| error.to_string())?;
     }
 

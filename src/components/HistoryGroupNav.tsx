@@ -1,29 +1,22 @@
+// 历史分组入口：主窗口只显示分组按钮，具体预览由独立 preview 窗口承载。
+
 import type { AppTranslations } from "../i18n";
-import type { HistoryGroupInfo, HistoryListItem } from "../types";
+import type { HistoryGroupInfo } from "../types";
 
 type HistoryGroupNavProps = {
   groups: HistoryGroupInfo[];
   previewGroupIndex: number | null;
-  previewItems: HistoryListItem[];
   translations: AppTranslations["history"];
-  onClosePreview: () => void;
-  onOpenPreview: (groupIndex: number) => void;
-  onSelectItem: (text: string) => void;
+  onOpenPreview: (groupIndex: number, anchorTop: number) => void;
+  onScheduleClosePreview: () => void;
 };
-
-function getLocalDisplayPosition(item: HistoryListItem, group: HistoryGroupInfo) {
-  const localPosition = item.position - group.startPosition + 1;
-  return String(localPosition);
-}
 
 export function HistoryGroupNav({
   groups,
   previewGroupIndex,
-  previewItems,
   translations,
-  onClosePreview,
   onOpenPreview,
-  onSelectItem,
+  onScheduleClosePreview,
 }: HistoryGroupNavProps) {
   const archiveGroups = groups.slice(1);
 
@@ -31,14 +24,21 @@ export function HistoryGroupNav({
     return null;
   }
 
+  const openPreview = (
+    groupIndex: number,
+    element: HTMLButtonElement,
+  ) => {
+    // anchorTop 是当前分组按钮在主窗口内的顶部位置，Rust 用它对齐 preview 窗口。
+    onOpenPreview(groupIndex, element.getBoundingClientRect().top);
+  };
+
   return (
-    <div className="app-history-archive" onMouseLeave={onClosePreview}>
+    <div className="app-history-archive" onMouseLeave={onScheduleClosePreview}>
       <div className="app-history-archive-divider" />
 
       <div className="app-history-archive-list" aria-label={translations.groupAriaLabel}>
         {archiveGroups.map((group) => {
           const isActive = group.index === previewGroupIndex;
-          const groupItems = isActive ? previewItems : [];
 
           return (
             <div className="app-history-archive-entry" key={group.index}>
@@ -46,9 +46,9 @@ export function HistoryGroupNav({
                 aria-expanded={isActive}
                 aria-haspopup="menu"
                 className={`app-history-archive-row ${isActive ? "is-active" : ""}`}
-                onClick={() => onOpenPreview(group.index)}
-                onFocus={() => onOpenPreview(group.index)}
-                onMouseEnter={() => onOpenPreview(group.index)}
+                onClick={(event) => openPreview(group.index, event.currentTarget)}
+                onFocus={(event) => openPreview(group.index, event.currentTarget)}
+                onMouseEnter={(event) => openPreview(group.index, event.currentTarget)}
                 type="button"
               >
                 <span className="app-history-folder-icon" aria-hidden="true" />
@@ -59,45 +59,6 @@ export function HistoryGroupNav({
                   &gt;
                 </span>
               </button>
-
-              {isActive && groupItems.length > 0 ? (
-                <div className="app-history-preview-shell">
-                  <div
-                    aria-label={translations.previewAriaLabel(
-                      group.startPosition,
-                      group.endPosition,
-                    )}
-                    className="app-history-preview"
-                    role="menu"
-                  >
-                    <div className="app-history-preview-header">
-                      <span className="app-history-preview-kicker">
-                        {translations.groupPreviewKicker}
-                      </span>
-                      <span className="app-history-preview-range">
-                        {group.startPosition} - {group.endPosition}
-                      </span>
-                    </div>
-
-                    <div className="app-history-preview-list">
-                      {groupItems.map((item) => (
-                        <button
-                          className="app-history-preview-item"
-                          key={item.id}
-                          onClick={() => onSelectItem(item.text)}
-                          title={item.text}
-                          type="button"
-                        >
-                          <span className="app-history-preview-index">
-                            {getLocalDisplayPosition(item, group)}.
-                          </span>
-                          <span className="app-history-preview-text">{item.text}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
             </div>
           );
         })}

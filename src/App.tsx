@@ -1,16 +1,24 @@
+// 应用根组件。根据 Tauri 当前窗口 label，在主界面和独立 preview 窗口之间切换渲染。
+
 import { useEffect, useRef } from "react";
 
 import { AboutDialog } from "./components/AboutDialog";
 import { AppFooter } from "./components/AppFooter";
 import { AppHeader } from "./components/AppHeader";
+import { HistoryPreviewWindow } from "./components/HistoryPreviewWindow";
 import { HistoryGroupNav } from "./components/HistoryGroupNav";
 import { HistoryList } from "./components/HistoryList";
 import { PreferencesDialog } from "./components/PreferencesDialog";
 import { useClipboardApp } from "./hooks/useClipboardApp";
 import { getTranslations } from "./i18n";
-import { listenToMainWindowShown } from "./lib/tauri";
+import { getCurrentWindowLabel, listenToMainWindowShown } from "./lib/tauri";
 
 function App() {
+  return getCurrentWindowLabel() === "preview" ? <HistoryPreviewWindow /> : <MainWindow />;
+}
+
+function MainWindow() {
+  // 主窗口负责管理完整应用状态；preview 窗口只接收主窗口发过去的展示数据。
   const searchInputRef = useRef<HTMLInputElement>(null);
   const {
     appVersion,
@@ -20,7 +28,6 @@ function App() {
     isAboutOpen,
     isPreferencesOpen,
     isSavingSettings,
-    previewHistory,
     previewHistoryGroupIndex,
     searchQuery,
     selectedHistoryItem,
@@ -41,6 +48,7 @@ function App() {
     selectHighlightedHistoryItem,
     selectHistoryItem,
     setSearchQuery,
+    scheduleHistoryGroupPreviewClose,
     toggleLaunchAtLogin,
     updateLanguage,
     updateMaxHistoryCount,
@@ -75,6 +83,7 @@ function App() {
       if (event.key === "Escape") {
         event.preventDefault();
 
+        // Escape 从最浮层开始关闭，最后才隐藏整个主窗口。
         if (previewHistoryGroupIndex !== null) {
           closeHistoryGroupPreview();
           return;
@@ -170,11 +179,9 @@ function App() {
         <HistoryGroupNav
           groups={historyGroups}
           previewGroupIndex={previewHistoryGroupIndex}
-          previewItems={previewHistory}
           translations={t.history}
-          onClosePreview={closeHistoryGroupPreview}
           onOpenPreview={openHistoryGroupPreview}
-          onSelectItem={selectHistoryItem}
+          onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
         />
 
         <AppFooter
@@ -182,6 +189,7 @@ function App() {
           onClearHistory={clearHistory}
           onOpenAbout={openAboutDialog}
           onOpenPreferences={openPreferencesDialog}
+          onPointerEnter={closeHistoryGroupPreview}
           onQuit={quit}
         />
       </div>

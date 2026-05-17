@@ -1,3 +1,5 @@
+// 前端文案表。新增界面文案时在这里同时补中文和英文，组件只消费 translations。
+
 import { APP_NAME } from "./constants";
 import type { AppLanguage } from "./types";
 
@@ -97,5 +99,6 @@ export const translations = {
 export type AppTranslations = (typeof translations)[AppLanguage];
 
 export function getTranslations(language: AppLanguage): AppTranslations {
+  // 防御旧配置或异常输入：未知语言统一回退英文。
   return translations[language] ?? translations.en;
 }

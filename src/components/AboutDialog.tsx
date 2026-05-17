@@ -1,3 +1,5 @@
+// 关于弹窗：展示版本和应用简介。
+
 import { APP_NAME } from "../constants";
 import type { AppTranslations } from "../i18n";
 

@@ -1,3 +1,5 @@
+// 偏好设置弹窗：编辑登录启动、语言和最大历史条数。
+
 import { useEffect, useState } from "react";
 
 import {
@@ -50,6 +52,7 @@ export function PreferencesDialog({
     }
 
     const nextValue = clampHistoryCount(Math.trunc(parsedValue));
+    // 手动输入在失焦或回车时提交，提交前统一裁剪到允许范围。
     setMaxHistoryCountInput(String(nextValue));
     onUpdateMaxHistoryCount(nextValue);
   };

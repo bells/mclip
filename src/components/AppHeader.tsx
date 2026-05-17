@@ -1,3 +1,5 @@
+// 主窗口顶部：应用名与搜索输入框。
+
 import type { RefObject } from "react";
 
 import { APP_NAME } from "../constants";

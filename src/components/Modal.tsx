@@ -1,3 +1,5 @@
+// 通用模态框骨架：点击遮罩关闭，点击内容区阻止冒泡。
+
 import type { PropsWithChildren, ReactNode } from "react";
 
 type ModalProps = PropsWithChildren<{

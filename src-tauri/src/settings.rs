@@ -1,3 +1,6 @@
+//! 应用偏好设置。
+//! 负责语言、历史条数、登录启动等配置的持久化，并同步平台启动项。
+
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -52,6 +55,7 @@ fn default_language() -> AppLanguage {
 fn resolve_supported_language(locale: &str) -> AppLanguage {
     let normalized_locale = locale.to_lowercase();
 
+    // 首次安装时只区分中文与其它语言；非中文环境统一回退英文。
     if normalized_locale.starts_with("zh") {
         AppLanguage::ZhCn
     } else {
@@ -120,6 +124,7 @@ pub fn load_settings(app_handle: &AppHandle) -> Result<AppSettings, String> {
 
 fn persist_settings(app_handle: &AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
     let settings = settings.sanitize();
+    // 保存偏好时同步外部副作用：启动项与历史条数裁剪必须和配置保持一致。
     sync_launch_at_login(app_handle, settings.launch_at_login)?;
     trim_history_to_max(app_handle, settings.max_history_count as usize)?;
 
@@ -195,6 +200,7 @@ fn launch_agent_enabled(app_handle: &AppHandle) -> Result<bool, String> {
 fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
+        // macOS 使用 LaunchAgent plist 实现登录启动。
         let plist_path = launch_agent_path(app_handle)?;
 
         if enabled {
@@ -230,6 +236,7 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
 
     #[cfg(target_os = "windows")]
     {
+        // Windows 使用 Startup 目录下的 cmd 脚本实现登录启动。
         let startup_script_path = windows_startup_script_path(app_handle)?;
 
         if enabled {
