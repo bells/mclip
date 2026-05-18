@@ -37,6 +37,15 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: "mclip v__VERSION__"
-          releaseBody: "自动生成的 mclip 发布版本，包含 macOS 和 Windows 安装包。"
+          releaseBody: |
+            自动生成的 mclip 发布版本，包含 macOS 和 Windows 安装包。
+
+            注意：当前 macOS 包未做 Apple Developer ID 公证。若首次打开提示“mclip.app 已损坏，无法打开”，请先把 mclip 拖到“应用程序”，然后在终端执行：
+
+            ```bash
+            xattr -dr com.apple.quarantine /Applications/mclip.app
+            ```
+
+            执行后再打开 mclip 即可。
           releaseDraft: true
           prerelease: false

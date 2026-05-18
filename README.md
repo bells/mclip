@@ -47,6 +47,18 @@ npm run check        # 前端构建 + Rust fmt/test/check
 npm run tauri:build  # 打包桌面应用
 ```
 
+## macOS 首次打开提示“已损坏”
+
+GitHub Release 里的 macOS 安装包目前没有做 Apple Developer ID 公证。macOS 可能会把从浏览器下载的应用标记为隔离文件，并提示“`mclip.app` 已损坏，无法打开”。
+
+如果你信任该 Release，先把 `mclip.app` 拖到“应用程序”，再执行：
+
+```bash
+xattr -dr com.apple.quarantine /Applications/mclip.app
+```
+
+然后重新打开 `mclip`。这个命令只会移除下载隔离标记，不会修改应用功能。
+
 ## 工程约定
 
 - 前端尽量把 UI、状态管理和 Tauri 调用分层
