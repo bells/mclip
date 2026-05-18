@@ -241,6 +241,7 @@ Release：
 - 使用 `tauri-apps/tauri-action@v0`
 - 生成 GitHub Release draft
 - macOS 和 Windows 都会打包
+- 发布前会校验 tag 版本和 `package.json` 版本一致
 
 示例：
 
@@ -253,6 +254,8 @@ git push origin v0.1.3
 
 - `windows-latest` 已改为 `windows-2022`，避免 GitHub runner 重定向 notice。
 - `checkout/setup-node` 已升级到原生 Node 24 action，避免 Node 20 deprecated warning。
+- Tauri 版本配置使用 `src-tauri/tauri.conf.json` 里的 `"version": "../package.json"`，安装包文件名会跟随 `package.json`。
+- 发版时需要先更新 `package.json` 版本，再创建同版本 tag，例如 `package.json` 是 `0.1.3`，tag 必须是 `v0.1.3`。
 
 ## macOS 发布与 Gatekeeper
 

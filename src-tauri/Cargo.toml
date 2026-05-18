@@ -1,6 +1,6 @@
 [package]
 name = "mclip"
-version = "0.1.0"
+version = "0.1.3"
 description = "Cross-platform clipboard history app built with Tauri"
 authors = ["Watson"]
 edition = "2021"
