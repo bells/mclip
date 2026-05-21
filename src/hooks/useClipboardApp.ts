@@ -1,11 +1,9 @@
 // 主窗口状态中心：加载设置/历史、处理快捷键选择、驱动窗口高度和 preview 窗口联动。
 
 import type { UnlistenFn } from "@tauri-apps/api/event";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  clampHistoryCount,
-  DEFAULT_APP_VERSION,
   DEFAULT_SETTINGS,
   HISTORY_GROUP_SIZE,
 } from "../constants";
@@ -13,7 +11,6 @@ import {
   adjustWindowHeight,
   clearHistory,
   copyToClipboard,
-  getAppVersion,
   getHistory,
   getSettings,
   hideCurrentWindow,
@@ -22,9 +19,11 @@ import {
   listenToHistoryPreviewCloseRequested,
   listenToHistoryPreviewPointerEntered,
   listenToHistoryUpdated,
+  listenToSettingsUpdated,
   quitApp,
-  saveSettings,
+  showAboutWindow,
   showHistoryPreviewWindow,
+  showPreferencesWindow,
   updateHistoryPreviewWindow,
 } from "../lib/tauri";
 import type { AppSettings, HistoryListItem } from "../types";
@@ -33,48 +32,43 @@ import {
   getHistoryGroupItems,
   getHistoryGroups,
 } from "../utils/history";
-import { getTranslations } from "../i18n";
+import { normalizeSettings } from "../utils/settings";
 
 const PREVIEW_CLOSE_DELAY_MS = 500;
 
-function normalizeSettings(settings: AppSettings): AppSettings {
-  // 后端会校验一次，前端也归一化，确保旧配置不会污染界面状态。
-  return {
-    ...settings,
-    language: settings.language === "zhCn" ? "zhCn" : "en",
-    maxHistoryCount: clampHistoryCount(settings.maxHistoryCount),
-  };
-}
-
 export function useClipboardApp() {
-  const [appVersion, setAppVersion] = useState(DEFAULT_APP_VERSION);
   const [history, setHistory] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isAboutOpen, setIsAboutOpen] = useState(false);
-  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [settingsDraft, setSettingsDraft] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [settingsError, setSettingsError] = useState("");
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [previewHistoryGroupIndex, setPreviewHistoryGroupIndex] = useState<number | null>(null);
   const [previewAnchorTop, setPreviewAnchorTop] = useState<number | null>(null);
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
   const previewCloseTimerRef = useRef<number | null>(null);
-  // Fast-path hint from preview-window events. The Rust hit test below remains
-  // the final authority because the preview is a separate Tauri window.
-  const isPreviewPointerInsideRef = useRef(false);
   const searchQueryRef = useRef(searchQuery);
 
-  const filteredHistory = filterHistoryItems(history, searchQuery);
-  const historyGroups = getHistoryGroups(filteredHistory.length, HISTORY_GROUP_SIZE);
-  const visibleHistory = getHistoryGroupItems(
-    filteredHistory,
-    0,
-    HISTORY_GROUP_SIZE,
+  const filteredHistory = useMemo(
+    () => filterHistoryItems(history, searchQuery),
+    [history, searchQuery],
   );
-  const previewHistory = previewHistoryGroupIndex === null
-    ? []
-    : getHistoryGroupItems(filteredHistory, previewHistoryGroupIndex, HISTORY_GROUP_SIZE);
+  const historyGroups = useMemo(
+    () => getHistoryGroups(filteredHistory.length, HISTORY_GROUP_SIZE),
+    [filteredHistory.length],
+  );
+  const visibleHistory = useMemo(
+    () => getHistoryGroupItems(filteredHistory, 0, HISTORY_GROUP_SIZE),
+    [filteredHistory],
+  );
+  const previewHistory = useMemo(
+    () =>
+      previewHistoryGroupIndex === null
+        ? []
+        : getHistoryGroupItems(
+            filteredHistory,
+            previewHistoryGroupIndex,
+            HISTORY_GROUP_SIZE,
+          ),
+    [filteredHistory, previewHistoryGroupIndex],
+  );
 
   // 事件回调里要读取最新搜索词，用 ref 避免闭包拿到旧值。
   useEffect(() => {
@@ -87,10 +81,9 @@ export function useClipboardApp() {
 
     const initializeApp = async () => {
       try {
-        const [loadedSettings, initialHistory, version] = await Promise.all([
+        const [loadedSettings, initialHistory] = await Promise.all([
           getSettings(),
           getHistory(),
-          getAppVersion(),
         ]);
 
         if (!isActive) {
@@ -98,9 +91,7 @@ export function useClipboardApp() {
         }
 
         const normalizedSettings = normalizeSettings(loadedSettings);
-        setAppVersion(version);
         setSettings(normalizedSettings);
-        setSettingsDraft(normalizedSettings);
         setHistory(initialHistory);
       } catch (error) {
         console.error("初始化应用失败:", error);
@@ -138,18 +129,30 @@ export function useClipboardApp() {
   }, []);
 
   useEffect(() => {
+    let unlisten: UnlistenFn | undefined;
+
+    void listenToSettingsUpdated((updatedSettings) => {
+      setSettings(normalizeSettings(updatedSettings));
+    }).then((unsubscribe) => {
+      unlisten = unsubscribe;
+    });
+
+    return () => {
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
     let unlistenCloseRequested: UnlistenFn | undefined;
     let unlistenPointerEntered: UnlistenFn | undefined;
 
     void listenToHistoryPreviewCloseRequested(() => {
-      isPreviewPointerInsideRef.current = false;
       closeHistoryGroupPreview();
     }).then((unsubscribe) => {
       unlistenCloseRequested = unsubscribe;
     });
 
     void listenToHistoryPreviewPointerEntered(() => {
-      isPreviewPointerInsideRef.current = true;
       scheduleHistoryGroupPreviewClose();
     }).then((unsubscribe) => {
       unlistenPointerEntered = unsubscribe;
@@ -166,11 +169,10 @@ export function useClipboardApp() {
     void adjustWindowHeight(
       visibleHistory.length,
       historyGroups.length,
-      previewHistory.length,
     ).catch((error) => {
       console.error("调整窗口高度失败:", error);
     });
-  }, [historyGroups.length, previewHistory.length, visibleHistory.length]);
+  }, [historyGroups.length, visibleHistory.length]);
 
   useEffect(() => {
     setPreviewHistoryGroupIndex(null);
@@ -234,64 +236,25 @@ export function useClipboardApp() {
     });
   }, [visibleHistory.length]);
 
-  const openAboutDialog = () => {
-    setIsAboutOpen(true);
-  };
-
-  const closeAboutDialog = () => {
-    setIsAboutOpen(false);
-  };
-
-  const openPreferencesDialog = () => {
-    setSettingsDraft(settings);
-    setSettingsError("");
-    setIsPreferencesOpen(true);
-  };
-
-  const closePreferencesDialog = () => {
-    if (!isSavingSettings) {
-      setIsPreferencesOpen(false);
+  const openAboutDialog = async () => {
+    try {
+      setPreviewHistoryGroupIndex(null);
+      setPreviewAnchorTop(null);
+      await hideHistoryPreviewWindow();
+      await showAboutWindow();
+    } catch (error) {
+      console.error("打开关于窗口失败:", error);
     }
   };
 
-  const toggleLaunchAtLogin = () => {
-    setSettingsDraft((current) => ({
-      ...current,
-      launchAtLogin: !current.launchAtLogin,
-    }));
-  };
-
-  const updateMaxHistoryCount = (nextValue: number) => {
-    setSettingsDraft((current) => ({
-      ...current,
-      maxHistoryCount: clampHistoryCount(nextValue),
-    }));
-  };
-
-  const updateLanguage = (language: AppSettings["language"]) => {
-    setSettingsDraft((current) => ({
-      ...current,
-      language,
-    }));
-  };
-
-  const savePreferences = async () => {
+  const openPreferencesDialog = async () => {
     try {
-      setIsSavingSettings(true);
-      setSettingsError("");
-
-      const normalizedSettings = normalizeSettings(settingsDraft);
-      const savedSettings = normalizeSettings(await saveSettings(normalizedSettings));
-
-      // 保存成功后用后端回读结果覆盖草稿，保证启动项等平台状态与界面一致。
-      setSettings(savedSettings);
-      setSettingsDraft(savedSettings);
-      setIsPreferencesOpen(false);
+      setPreviewHistoryGroupIndex(null);
+      setPreviewAnchorTop(null);
+      await hideHistoryPreviewWindow();
+      await showPreferencesWindow();
     } catch (error) {
-      console.error("保存设置失败:", error);
-      setSettingsError(getTranslations(settingsDraft.language).preferences.error);
-    } finally {
-      setIsSavingSettings(false);
+      console.error("打开偏好设置窗口失败:", error);
     }
   };
 
@@ -376,14 +339,12 @@ export function useClipboardApp() {
 
   const openHistoryGroupPreview = (groupIndex: number, anchorTop: number) => {
     clearScheduledPreviewClose();
-    isPreviewPointerInsideRef.current = false;
     setPreviewHistoryGroupIndex(groupIndex);
     setPreviewAnchorTop(anchorTop);
   };
 
   const closeHistoryGroupPreview = () => {
     clearScheduledPreviewClose();
-    isPreviewPointerInsideRef.current = false;
     setPreviewHistoryGroupIndex(null);
     setPreviewAnchorTop(null);
   };
@@ -399,7 +360,6 @@ export function useClipboardApp() {
       void isPointerOverHistoryPreviewWindow()
         .then((isPointerOverPreview) => {
           if (isPointerOverPreview) {
-            isPreviewPointerInsideRef.current = true;
             scheduleHistoryGroupPreviewClose();
             return;
           }
@@ -416,37 +376,25 @@ export function useClipboardApp() {
   const selectedHistoryItem: HistoryListItem | undefined = visibleHistory[selectedHistoryIndex];
 
   return {
-    appVersion,
     visibleHistory,
     historyGroups,
     hasHistory: history.length > 0,
-    isAboutOpen,
-    isPreferencesOpen,
-    isSavingSettings,
     previewHistory,
     previewHistoryGroupIndex,
     searchQuery,
     selectedHistoryItem,
     settings,
-    settingsDraft,
-    settingsError,
     clearHistory: clearHistoryItems,
-    closeAboutDialog,
-    closePreferencesDialog,
     closeHistoryGroupPreview,
     hideWindow,
     moveSelection,
     openAboutDialog,
     openPreferencesDialog,
     quit,
-    savePreferences,
     openHistoryGroupPreview,
     selectHighlightedHistoryItem,
     selectHistoryItem,
     setSearchQuery,
     scheduleHistoryGroupPreviewClose,
-    toggleLaunchAtLogin,
-    updateLanguage,
-    updateMaxHistoryCount,
   };
 }

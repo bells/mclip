@@ -8,6 +8,8 @@ pub const WINDOW_WIDTH: f64 = 320.0;
 pub const PREVIEW_WINDOW_WIDTH: f64 = 304.0;
 pub const MAX_WINDOW_HEIGHT: f64 = 900.0;
 pub const MAIN_WINDOW_SHOWN_EVENT: &str = "main-window-shown";
+const ABOUT_WINDOW_LABEL: &str = "about";
+const PREFERENCES_WINDOW_LABEL: &str = "preferences";
 
 const HEADER_HEIGHT: f64 = 56.0;
 const GROUP_ROW_HEIGHT: f64 = 52.0;
@@ -31,13 +33,12 @@ pub fn adjust_window_height(
     app_handle: AppHandle,
     item_count: u32,
     group_count: u32,
-    preview_item_count: u32,
 ) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window("main") {
         window
             .set_size(Size::Logical(LogicalSize {
                 width: WINDOW_WIDTH,
-                height: calculate_window_height(item_count, group_count, preview_item_count),
+                height: calculate_window_height(item_count, group_count),
             }))
             .map_err(|error| error.to_string())?;
     }
@@ -94,6 +95,16 @@ pub fn hide_history_preview_window(app_handle: AppHandle) -> Result<(), String> 
 }
 
 #[tauri::command]
+pub fn show_about_window(app_handle: AppHandle) -> Result<(), String> {
+    show_centered_dialog_window(&app_handle, ABOUT_WINDOW_LABEL)
+}
+
+#[tauri::command]
+pub fn show_preferences_window(app_handle: AppHandle) -> Result<(), String> {
+    show_centered_dialog_window(&app_handle, PREFERENCES_WINDOW_LABEL)
+}
+
+#[tauri::command]
 pub fn is_pointer_over_history_preview_window(app_handle: AppHandle) -> Result<bool, String> {
     is_pointer_over_preview_window(&app_handle)
 }
@@ -135,7 +146,7 @@ pub fn configure_main_window(app_handle: &AppHandle) {
         let _ = window.set_shadow(false);
         let _ = window.set_size(Size::Logical(LogicalSize {
             width: WINDOW_WIDTH,
-            height: calculate_window_height(0, 0, 0),
+            height: calculate_window_height(0, 0),
         }));
     }
 
@@ -145,6 +156,20 @@ pub fn configure_main_window(app_handle: &AppHandle) {
         // focus, the main window's focus-loss handler can close both windows.
         let _ = window.set_focusable(false);
     }
+}
+
+fn show_centered_dialog_window(app_handle: &AppHandle, label: &str) -> Result<(), String> {
+    let Some(window) = app_handle.get_webview_window(label) else {
+        return Ok(());
+    };
+
+    let _ = window.unminimize();
+
+    window
+        .move_window(TrayPosition::Center)
+        .map_err(|error| error.to_string())?;
+    window.show().map_err(|error| error.to_string())?;
+    window.set_focus().map_err(|error| error.to_string())
 }
 
 pub fn hide_main_window(app_handle: &AppHandle) -> Result<(), String> {
@@ -191,7 +216,7 @@ pub fn toggle_main_window(
     Ok(())
 }
 
-fn calculate_window_height(item_count: u32, group_count: u32, preview_item_count: u32) -> f64 {
+fn calculate_window_height(item_count: u32, group_count: u32) -> f64 {
     let content_height = if item_count == 0 {
         EMPTY_STATE_HEIGHT
     } else {
@@ -202,7 +227,6 @@ fn calculate_window_height(item_count: u32, group_count: u32, preview_item_count
     } else {
         0.0
     };
-    let _ = preview_item_count;
 
     (HEADER_HEIGHT + group_rows_height + FOOTER_HEIGHT + content_height).min(MAX_WINDOW_HEIGHT)
 }
@@ -224,17 +248,17 @@ mod tests {
 
     #[test]
     fn empty_state_height_has_expected_floor() {
-        assert_eq!(calculate_window_height(0, 0, 0), 320.0);
+        assert_eq!(calculate_window_height(0, 0), 320.0);
     }
 
     #[test]
     fn group_nav_height_is_included_when_multiple_groups_exist() {
-        assert_eq!(calculate_window_height(10, 2, 0), 592.0);
+        assert_eq!(calculate_window_height(10, 2), 592.0);
     }
 
     #[test]
     fn list_height_is_capped_at_maximum() {
-        assert_eq!(calculate_window_height(100, 10, 0), MAX_WINDOW_HEIGHT);
+        assert_eq!(calculate_window_height(100, 10), MAX_WINDOW_HEIGHT);
     }
 
     #[test]

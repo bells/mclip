@@ -39,3 +39,6 @@ settings.json
 # --- OS Specific ---
 .DS_Store
 Thumbs.db
+
+.agents/
+design/

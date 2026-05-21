@@ -11,6 +11,12 @@ export const translations = {
       title: `关于 ${APP_NAME}`,
       version: (version: string) => `版本 ${version}`,
     },
+    clearHistoryConfirm: {
+      cancel: "取消",
+      confirm: "清除",
+      message: "这会删除本机保存的全部剪贴板历史，操作无法撤销。",
+      title: "清除所有历史？",
+    },
     footer: {
       aboutHint: "查看版本信息",
       aboutLabel: `关于 ${APP_NAME}`,
@@ -55,6 +61,12 @@ export const translations = {
       description: "A lightweight cross-platform clipboard history app built with Tauri, React, and Rust.",
       title: `About ${APP_NAME}`,
       version: (version: string) => `Version ${version}`,
+    },
+    clearHistoryConfirm: {
+      cancel: "Cancel",
+      confirm: "Clear",
+      message: "This deletes all clipboard history saved on this device. This cannot be undone.",
+      title: "Clear all history?",
     },
     footer: {
       aboutHint: "View version info",

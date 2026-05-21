@@ -20,7 +20,8 @@ pub fn write_text_atomically(path: &Path, content: &str) -> Result<(), String> {
         .duration_since(UNIX_EPOCH)
         .map_err(|error| error.to_string())?
         .as_nanos();
-    let temp_path = parent.join(format!(".{file_name}.{timestamp}.tmp"));
+    let process_id = std::process::id();
+    let temp_path = parent.join(format!(".{file_name}.{process_id}.{timestamp}.tmp"));
 
     fs::write(&temp_path, content).map_err(|error| error.to_string())?;
 

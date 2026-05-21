@@ -6,7 +6,10 @@
     "linux"
   ],
   "windows": [
-    "main"
+    "main",
+    "preview",
+    "about",
+    "preferences"
   ],
   "permissions": [
     "positioner:default"

@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::history::trim_history_to_max;
 use crate::storage::write_text_atomically;
@@ -12,6 +12,7 @@ use crate::storage::write_text_atomically;
 pub const DEFAULT_MAX_HISTORY_COUNT: u32 = 50;
 pub const MIN_MAX_HISTORY_COUNT: u32 = 10;
 pub const MAX_MAX_HISTORY_COUNT: u32 = 200;
+pub const SETTINGS_UPDATED_EVENT: &str = "settings-updated";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -132,7 +133,12 @@ fn persist_settings(app_handle: &AppHandle, settings: AppSettings) -> Result<App
     let content = serde_json::to_string_pretty(&settings).map_err(|error| error.to_string())?;
     write_text_atomically(&path, &content)?;
 
-    load_settings(app_handle)
+    let saved_settings = load_settings(app_handle)?;
+    app_handle
+        .emit(SETTINGS_UPDATED_EVENT, saved_settings.clone())
+        .map_err(|error| error.to_string())?;
+
+    Ok(saved_settings)
 }
 
 fn settings_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
@@ -228,7 +234,7 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
                 program = executable.to_string_lossy().replace('&', "&amp;"),
             );
 
-            fs::write(&plist_path, plist_content).map_err(|error| error.to_string())?;
+            write_text_atomically(&plist_path, &plist_content)?;
         } else if plist_path.exists() {
             fs::remove_file(&plist_path).map_err(|error| error.to_string())?;
         }
@@ -247,7 +253,7 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
             let executable = std::env::current_exe().map_err(|error| error.to_string())?;
             let script = windows_startup_script_contents(&executable);
 
-            fs::write(&startup_script_path, script).map_err(|error| error.to_string())?;
+            write_text_atomically(&startup_script_path, &script)?;
         } else if startup_script_path.exists() {
             fs::remove_file(&startup_script_path).map_err(|error| error.to_string())?;
         }

@@ -9,6 +9,7 @@ import { DEFAULT_APP_VERSION } from "../constants";
 import type { AppSettings, HistoryPreviewPayload } from "../types";
 
 const HISTORY_UPDATED_EVENT = "history-updated";
+const SETTINGS_UPDATED_EVENT = "settings-updated";
 const HISTORY_PREVIEW_UPDATED_EVENT = "history-preview-updated";
 // Best-effort cross-window hover signals. Rust-side pointer hit testing covers
 // cases where separate transparent windows miss mouse events.
@@ -47,12 +48,10 @@ export function clearHistory() {
 export function adjustWindowHeight(
   itemCount: number,
   groupCount: number,
-  previewItemCount: number,
 ) {
   return invoke<void>("adjust_window_height", {
     groupCount,
     itemCount,
-    previewItemCount,
   });
 }
 
@@ -66,6 +65,14 @@ export function showHistoryPreviewWindow(anchorTop: number, itemCount: number) {
 
 export function hideHistoryPreviewWindow() {
   return invoke<void>("hide_history_preview_window");
+}
+
+export function showAboutWindow() {
+  return invoke<void>("show_about_window");
+}
+
+export function showPreferencesWindow() {
+  return invoke<void>("show_preferences_window");
 }
 
 export function isPointerOverHistoryPreviewWindow() {
@@ -117,6 +124,14 @@ export function listenToHistoryUpdated(
   handler: (history: string[]) => void,
 ): Promise<UnlistenFn> {
   return listen<string[]>(HISTORY_UPDATED_EVENT, (event) => {
+    handler(event.payload);
+  });
+}
+
+export function listenToSettingsUpdated(
+  handler: (settings: AppSettings) => void,
+): Promise<UnlistenFn> {
+  return listen<AppSettings>(SETTINGS_UPDATED_EVENT, (event) => {
     handler(event.payload);
   });
 }

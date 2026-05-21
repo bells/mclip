@@ -20,16 +20,22 @@ export function AppHeader({
 }: AppHeaderProps) {
   return (
     <header className="app-header">
-      <span className="app-kicker">{APP_NAME}</span>
-      <input
-        autoComplete="off"
-        className="app-search"
-        onChange={(event) => onSearchQueryChange(event.target.value)}
-        placeholder={translations.searchPlaceholder}
-        ref={inputRef}
-        type="text"
-        value={searchQuery}
-      />
+      <div className="app-brand" aria-label={APP_NAME}>
+        <span className="app-brand-mark" aria-hidden="true" />
+        <span className="app-kicker">{APP_NAME}</span>
+      </div>
+      <label className="app-search-shell">
+        <span className="app-search-icon" aria-hidden="true" />
+        <input
+          autoComplete="off"
+          className="app-search"
+          onChange={(event) => onSearchQueryChange(event.target.value)}
+          placeholder={translations.searchPlaceholder}
+          ref={inputRef}
+          type="text"
+          value={searchQuery}
+        />
+      </label>
     </header>
   );
 }

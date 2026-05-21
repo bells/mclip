@@ -1,60 +1,63 @@
 // 应用根组件。根据 Tauri 当前窗口 label，在主界面和独立 preview 窗口之间切换渲染。
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { AboutDialog } from "./components/AboutDialog";
+import { AboutWindow } from "./components/AboutWindow";
 import { AppFooter } from "./components/AppFooter";
 import { AppHeader } from "./components/AppHeader";
 import { HistoryPreviewWindow } from "./components/HistoryPreviewWindow";
 import { HistoryGroupNav } from "./components/HistoryGroupNav";
 import { HistoryList } from "./components/HistoryList";
-import { PreferencesDialog } from "./components/PreferencesDialog";
+import { Modal } from "./components/Modal";
+import { PreferencesWindow } from "./components/PreferencesWindow";
 import { useClipboardApp } from "./hooks/useClipboardApp";
 import { getTranslations } from "./i18n";
 import { getCurrentWindowLabel, listenToMainWindowShown } from "./lib/tauri";
 
 function App() {
-  return getCurrentWindowLabel() === "preview" ? <HistoryPreviewWindow /> : <MainWindow />;
+  const windowLabel = getCurrentWindowLabel();
+
+  if (windowLabel === "preview") {
+    return <HistoryPreviewWindow />;
+  }
+
+  if (windowLabel === "about") {
+    return <AboutWindow />;
+  }
+
+  if (windowLabel === "preferences") {
+    return <PreferencesWindow />;
+  }
+
+  return <MainWindow />;
 }
 
 function MainWindow() {
   // 主窗口负责管理完整应用状态；preview 窗口只接收主窗口发过去的展示数据。
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const {
-    appVersion,
     visibleHistory,
     historyGroups,
     hasHistory,
-    isAboutOpen,
-    isPreferencesOpen,
-    isSavingSettings,
     previewHistoryGroupIndex,
     searchQuery,
     selectedHistoryItem,
     settings,
-    settingsDraft,
-    settingsError,
     clearHistory,
-    closeAboutDialog,
     closeHistoryGroupPreview,
-    closePreferencesDialog,
     hideWindow,
     moveSelection,
     openAboutDialog,
     openHistoryGroupPreview,
     openPreferencesDialog,
     quit,
-    savePreferences,
     selectHighlightedHistoryItem,
     selectHistoryItem,
     setSearchQuery,
     scheduleHistoryGroupPreviewClose,
-    toggleLaunchAtLogin,
-    updateLanguage,
-    updateMaxHistoryCount,
   } = useClipboardApp();
-  const displayLanguage = isPreferencesOpen ? settingsDraft.language : settings.language;
-  const t = getTranslations(displayLanguage);
+  const t = getTranslations(settings.language);
 
   useEffect(() => {
     searchInputRef.current?.focus();
@@ -83,27 +86,18 @@ function MainWindow() {
       if (event.key === "Escape") {
         event.preventDefault();
 
-        // Escape 从最浮层开始关闭，最后才隐藏整个主窗口。
+        if (isClearConfirmOpen) {
+          setIsClearConfirmOpen(false);
+          return;
+        }
+
+        // 主窗口内只保留分组 preview 这一层浮层；偏好设置和关于已拆到独立窗口。
         if (previewHistoryGroupIndex !== null) {
           closeHistoryGroupPreview();
           return;
         }
 
-        if (isAboutOpen) {
-          closeAboutDialog();
-          return;
-        }
-
-        if (isPreferencesOpen) {
-          closePreferencesDialog();
-          return;
-        }
-
         void hideWindow();
-        return;
-      }
-
-      if (isAboutOpen || isPreferencesOpen) {
         return;
       }
 
@@ -144,17 +138,28 @@ function MainWindow() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [
-    closeAboutDialog,
     closeHistoryGroupPreview,
-    closePreferencesDialog,
     hideWindow,
-    isAboutOpen,
-    isPreferencesOpen,
+    isClearConfirmOpen,
     moveSelection,
     openPreferencesDialog,
     previewHistoryGroupIndex,
     selectHighlightedHistoryItem,
   ]);
+
+  const openClearHistoryConfirm = () => {
+    if (!hasHistory) {
+      return;
+    }
+
+    closeHistoryGroupPreview();
+    setIsClearConfirmOpen(true);
+  };
+
+  const confirmClearHistory = () => {
+    setIsClearConfirmOpen(false);
+    void clearHistory();
+  };
 
   return (
     <div className="app-frame">
@@ -168,12 +173,12 @@ function MainWindow() {
 
         <div className="app-body">
           <HistoryList
-          hasHistory={hasHistory}
-          items={visibleHistory}
-          translations={t.history}
-          onSelectItem={selectHistoryItem}
-          selectedItemId={selectedHistoryItem?.id}
-        />
+            hasHistory={hasHistory}
+            items={visibleHistory}
+            translations={t.history}
+            onSelectItem={selectHistoryItem}
+            selectedItemId={selectedHistoryItem?.id}
+          />
         </div>
 
         <HistoryGroupNav
@@ -185,36 +190,48 @@ function MainWindow() {
         />
 
         <AppFooter
+          canClearHistory={hasHistory}
           translations={t.footer}
-          onClearHistory={clearHistory}
+          onClearHistory={openClearHistoryConfirm}
           onOpenAbout={openAboutDialog}
           onOpenPreferences={openPreferencesDialog}
           onPointerEnter={closeHistoryGroupPreview}
           onQuit={quit}
         />
+
+        {isClearConfirmOpen ? (
+          <Modal
+            className="app-clear-confirm-modal"
+            footer={
+              <>
+                <button
+                  className="app-modal-secondary-btn"
+                  onClick={() => setIsClearConfirmOpen(false)}
+                  type="button"
+                >
+                  {t.clearHistoryConfirm.cancel}
+                </button>
+                <button
+                  className="app-modal-btn app-modal-danger-btn"
+                  onClick={confirmClearHistory}
+                  type="button"
+                >
+                  {t.clearHistoryConfirm.confirm}
+                </button>
+              </>
+            }
+            onRequestClose={() => setIsClearConfirmOpen(false)}
+            title={t.clearHistoryConfirm.title}
+          >
+            <div className="app-clear-confirm">
+              <span className="app-clear-confirm-mark" aria-hidden="true" />
+              <p className="app-clear-confirm-message">
+                {t.clearHistoryConfirm.message}
+              </p>
+            </div>
+          </Modal>
+        ) : null}
       </div>
-
-      {isAboutOpen ? (
-        <AboutDialog
-          appVersion={appVersion}
-          translations={t.about}
-          onClose={closeAboutDialog}
-        />
-      ) : null}
-
-      {isPreferencesOpen ? (
-        <PreferencesDialog
-          errorMessage={settingsError}
-          isSaving={isSavingSettings}
-          settings={settingsDraft}
-          translations={t.preferences}
-          onClose={closePreferencesDialog}
-          onSave={savePreferences}
-          onToggleLaunchAtLogin={toggleLaunchAtLogin}
-          onUpdateLanguage={updateLanguage}
-          onUpdateMaxHistoryCount={updateMaxHistoryCount}
-        />
-      ) : null}
     </div>
   );
 }

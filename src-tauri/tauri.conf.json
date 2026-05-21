@@ -37,10 +37,43 @@
         "alwaysOnTop": true,
         "visible": false,
         "skipTaskbar": true
+      },
+      {
+        "title": "About mclip",
+        "label": "about",
+        "width": 360,
+        "height": 250,
+        "minWidth": 360,
+        "minHeight": 250,
+        "maxWidth": 360,
+        "maxHeight": 250,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": false,
+        "visible": false,
+        "skipTaskbar": true
+      },
+      {
+        "title": "mclip Preferences",
+        "label": "preferences",
+        "width": 460,
+        "height": 420,
+        "minWidth": 460,
+        "minHeight": 420,
+        "maxWidth": 460,
+        "maxHeight": 420,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": false,
+        "visible": false,
+        "skipTaskbar": true
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; img-src 'self' asset: http://asset.localhost; style-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost; style-src 'self' 'unsafe-inline'",
+      "devCsp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; img-src 'self' asset: http://asset.localhost; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
