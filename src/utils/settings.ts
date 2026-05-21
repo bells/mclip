@@ -1,0 +1,13 @@
+// 偏好设置工具：前端展示前先归一化，后端仍负责最终校验与持久化。
+
+import { clampHistoryCount, DEFAULT_SETTINGS } from "../constants";
+import type { AppSettings } from "../types";
+
+export function normalizeSettings(settings: AppSettings): AppSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...settings,
+    language: settings.language === "zhCn" ? "zhCn" : "en",
+    maxHistoryCount: clampHistoryCount(settings.maxHistoryCount),
+  };
+}
