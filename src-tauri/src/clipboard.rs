@@ -17,7 +17,9 @@ use crate::history::{
     emit_history_updated, find_history_item, hash_hex, process_new_history_item, HistoryEntry,
     NewHistoryItem,
 };
-use crate::settings::{load_settings, HistoryTypes};
+#[cfg(not(target_os = "windows"))]
+use crate::settings::load_settings;
+use crate::settings::HistoryTypes;
 
 #[cfg(not(target_os = "windows"))]
 const CLIPBOARD_POLL_INTERVAL_MS: u64 = 500;
