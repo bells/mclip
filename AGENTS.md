@@ -1,8 +1,8 @@
 # AGENTS.md
 
-## 项目概览
+## 项目定位
 
-`mclip` 是一个跨平台剪贴板历史工具，目标平台是 macOS 和 Windows。
+`mclip` 是一个跨平台文本剪贴板历史工具，目标平台是 macOS 和 Windows。
 
 技术栈：
 
@@ -10,6 +10,11 @@
 - 桌面壳：Tauri 2
 - 后端：Rust
 - 打包发布：GitHub Actions + `tauri-apps/tauri-action`
+
+适用 skill：
+
+- `frontend-design`：改主窗口、preview、偏好设置等前端界面时使用。界面应保持桌面工具的紧凑、清晰、可快速扫描，不要做成营销页或装饰性页面。
+- `tauri-v2`：改 Tauri 2 配置、窗口、权限、Rust 命令、插件或跨平台桌面行为时使用。
 
 核心体验：
 
@@ -39,7 +44,7 @@ npm run tauri:build
 
 提交前优先跑 `npm run check`。
 
-## 目录与关键文件
+## 代码地图
 
 ```text
 src/
@@ -47,9 +52,9 @@ src/
   App.css                         全局样式、圆角裁剪、主窗口/preview 视觉
   hooks/useClipboardApp.ts        主窗口状态中心
   lib/tauri.ts                    前端 Tauri invoke/event 封装
+  components/HistoryGroupNav.tsx  历史分组按钮
   components/HistoryPreviewWindow.tsx
                                   独立 preview 窗口内容
-  components/HistoryGroupNav.tsx  历史分组按钮
   components/PreferencesDialog.tsx
                                   偏好设置弹窗
   utils/history.ts                历史过滤、分组、分页纯函数
@@ -84,20 +89,20 @@ src-tauri/
 - 推送 preview 数据到独立 `preview` 窗口。
 - 处理复制、清空历史、保存偏好、退出应用等操作。
 
-注意：
+维护注意：
 
 - `searchQueryRef` 用来避免事件回调拿到旧搜索词闭包。
 - `previewHistoryGroupIndex` 和 `previewAnchorTop` 必须一起维护。
 - 关闭 preview 时要清理延迟关闭 timer。
 
-## 主窗口与 preview 窗口
+## 窗口模型
 
 Tauri 配置里有两个窗口：
 
 - `main`：主界面，宽度固定 `320`，不可由用户手动 resize。
 - `preview`：独立透明预览窗口，宽度 `304`，不可 resize，默认隐藏。
 
-为什么 preview 是独立窗口：
+preview 必须是独立窗口：
 
 - 主窗口不应该为了右侧预览被撑宽。
 - 主窗口高度应该只跟左侧内容有关。
@@ -106,9 +111,11 @@ Tauri 配置里有两个窗口：
 关键实现：
 
 - 前端 `HistoryGroupNav` 用 `getBoundingClientRect().top` 传入分组按钮顶部。
-- Rust `show_history_preview_window` 根据 main 窗口位置 + anchorTop 定位 preview。
+- Rust `show_history_preview_window` 根据 main 窗口位置 + `anchorTop` 定位 preview。
 - `PREVIEW_WINDOW_GAP` 是 `0.0`，保持主窗口和 preview 窗口贴边，避免鼠标穿过空白缝隙导致 hover 断掉。
 - preview 窗口设置 `set_focusable(false)`，避免它抢焦点后触发 main 窗口失焦隐藏。
+
+## Preview 交互
 
 鼠标行为比较敏感，改动时要小心：
 
@@ -123,17 +130,14 @@ Tauri 配置里有两个窗口：
 - Rust 用系统鼠标坐标和 preview 窗口矩形做最终命中判断。
 - 不要只依赖 CSS `:hover` 或前端 `mouseenter`，透明独立窗口下这些事件可能不稳定。
 
-## preview 条目高亮
+preview 条目高亮：
 
-preview 条目既有 CSS `:hover`，也有 `pointermove` 主动追踪。
-
-原因：
-
+- preview 条目既有 CSS `:hover`，也有 `pointermove` 主动追踪。
 - 单纯 `:hover` 在独立透明 Tauri 窗口中可能表现不稳定。
 - `HistoryPreviewWindow` 会根据 `data-preview-item-id` 设置 `hoveredItemId`。
 - 当前条目叠加 `is-selected` class，样式与主列表选中态一致。
 
-维护时注意：
+维护注意：
 
 - 不要移除 `data-preview-item-id`。
 - 不要把 pointermove 逻辑改成只在 button 上 `onMouseEnter`，快速移动时容易丢高亮。
@@ -171,10 +175,7 @@ Windows 监听注意：
 
 - 由 `src-tauri/src/settings.rs` 管理。
 - 存在系统 app config 目录的 `settings.json`。
-- 字段包括：
-  - `launchAtLogin`
-  - `language`
-  - `maxHistoryCount`
+- 字段包括 `launchAtLogin`、`language`、`maxHistoryCount`。
 
 语言规则：
 
@@ -192,9 +193,9 @@ Windows 监听注意：
 - 统一通过 `write_text_atomically`。
 - 先写临时文件再 rename，降低文件损坏概率。
 
-## 权限能力
+## 权限与透明窗口
 
-文件：`src-tauri/capabilities/default.json`
+Tauri capability 文件：`src-tauri/capabilities/default.json`
 
 当前 capability 覆盖：
 
@@ -209,30 +210,21 @@ Windows 监听注意：
 
 如果新增 Tauri API 调用，优先检查 capability 是否需要补权限。
 
-## 窗口圆角与透明
+透明与圆角：
 
-Tauri 窗口启用了 `transparent: true`。
+- Tauri 窗口启用了 `transparent: true`。
+- `main` 根容器 `.app-frame` 使用 `border-radius` + `clip-path`。
+- `preview` 根容器 `.history-preview-window` 使用 `border-radius` + `clip-path`。
+- 根容器裁剪比只给内部面板加圆角更稳，能减少某些平台/WebView 下露出直角背景的问题。
 
-CSS 里额外做了根容器裁剪：
-
-- `main` 根容器 `.app-frame` 使用 `border-radius` + `clip-path`
-- `preview` 根容器 `.history-preview-window` 使用 `border-radius` + `clip-path`
-
-原因：
-
-- 只给内部面板 `border-radius`，在某些平台/WebView 下仍可能露出直角背景。
-- 根容器裁剪更稳。
-
-## GitHub Actions
+## GitHub Actions 与发布
 
 CI：
 
 - 文件：`.github/workflows/ci.yml`
 - 触发：PR 和 main push
 - 平台：`macos-latest`、`windows-2022`
-- action 使用：
-  - `actions/checkout@v6`
-  - `actions/setup-node@v6`
+- action 使用 `actions/checkout@v6` 和 `actions/setup-node@v6`
 
 Release：
 
@@ -243,21 +235,21 @@ Release：
 - macOS 和 Windows 都会打包
 - 发布前会校验 tag 版本和 `package.json` 版本一致
 
-示例：
+发版示例：
 
 ```bash
 git tag v0.1.3
 git push origin v0.1.3
 ```
 
-注意：
+发布注意：
 
 - `windows-latest` 已改为 `windows-2022`，避免 GitHub runner 重定向 notice。
 - `checkout/setup-node` 已升级到原生 Node 24 action，避免 Node 20 deprecated warning。
 - Tauri 版本配置使用 `src-tauri/tauri.conf.json` 里的 `"version": "../package.json"`，安装包文件名会跟随 `package.json`。
-- 发版时需要先更新 `package.json` 版本，再创建同版本 tag，例如 `package.json` 是 `0.1.3`，tag 必须是 `v0.1.3`。
+- 发版时需要先更新 `package.json` 版本，再创建同版本 tag。例如 `package.json` 是 `0.1.3`，tag 必须是 `v0.1.3`。
 
-## macOS 发布与 Gatekeeper
+## macOS 发布
 
 当前不使用 Apple Developer ID，不做 notarization。
 
@@ -290,13 +282,13 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - 用户已将 `mclip.app` 拖到“应用程序”。
 - 用户信任该 Release。
 
-如果未来想彻底解决：
+未来彻底解决需要：
 
 - 注册 Apple Developer Program。
 - 使用 Developer ID Application 证书签名。
 - 做 notarization。
 
-## Windows 发布与 SmartScreen
+## Windows 发布
 
 当前未配置 Windows 代码签名。
 
@@ -310,7 +302,9 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - 代码签名证书，或
 - Microsoft Store/MSIX 分发。
 
-## 重要维护约束
+## 维护约束
+
+这些约束优先级高，改相关代码时先确认：
 
 - 不要把 preview 重新塞回主窗口 DOM 里，否则主窗口会再次被撑宽。
 - 不要移除 Rust 侧 `is_pointer_over_preview_window` 命中判断。
@@ -319,6 +313,7 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - 改历史条数逻辑时，前端 clamp 和后端 sanitize 都要同步考虑。
 - 改语言文案时，中文和英文都要补齐。
 - 改 Tauri 命令或事件名时，要同步更新 `src/lib/tauri.ts` 和 Rust `generate_handler!`。
+- 新增 Tauri API 时，同步检查 `src-tauri/capabilities/default.json`。
 - 发布前至少跑 `npm run check`。
 
 ## 当前已知限制

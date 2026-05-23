@@ -10,7 +10,8 @@ import {
 import {
   adjustWindowHeight,
   clearHistory,
-  copyToClipboard,
+  copyHistoryItem,
+  deleteHistoryItem as deleteHistoryItemCommand,
   getHistory,
   getSettings,
   hideCurrentWindow,
@@ -26,7 +27,7 @@ import {
   showPreferencesWindow,
   updateHistoryPreviewWindow,
 } from "../lib/tauri";
-import type { AppSettings, HistoryListItem } from "../types";
+import type { AppSettings, HistoryEntry, HistoryListItem } from "../types";
 import {
   filterHistoryItems,
   getHistoryGroupItems,
@@ -37,10 +38,11 @@ import { normalizeSettings } from "../utils/settings";
 const PREVIEW_CLOSE_DELAY_MS = 500;
 
 export function useClipboardApp() {
-  const [history, setHistory] = useState<string[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [previewHistoryGroupIndex, setPreviewHistoryGroupIndex] = useState<number | null>(null);
+  const [previewHistoryItemId, setPreviewHistoryItemId] = useState<string | null>(null);
   const [previewAnchorTop, setPreviewAnchorTop] = useState<number | null>(null);
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
   const previewCloseTimerRef = useRef<number | null>(null);
@@ -68,6 +70,13 @@ export function useClipboardApp() {
             HISTORY_GROUP_SIZE,
           ),
     [filteredHistory, previewHistoryGroupIndex],
+  );
+  const previewHistoryItem = useMemo(
+    () =>
+      previewHistoryItemId === null
+        ? null
+        : filteredHistory.find((item) => item.id === previewHistoryItemId) ?? null,
+    [filteredHistory, previewHistoryItemId],
   );
 
   // 事件回调里要读取最新搜索词，用 ref 避免闭包拿到旧值。
@@ -102,13 +111,24 @@ export function useClipboardApp() {
       try {
         unlisten = await listenToHistoryUpdated((updatedHistory) => {
           if (isActive) {
-            setHistory(updatedHistory);
-            if (searchQueryRef.current.trim() === "") {
-              // 无搜索时新剪贴板内容进来，列表回到顶部并关闭旧 preview。
-              setPreviewHistoryGroupIndex(null);
-              setPreviewAnchorTop(null);
-              setSelectedHistoryIndex(0);
-            }
+            setHistory((currentHistory) => {
+              const isLikelyClipboardInsert =
+                updatedHistory.length >= currentHistory.length &&
+                updatedHistory[0]?.id !== currentHistory[0]?.id;
+
+              if (
+                isLikelyClipboardInsert &&
+                searchQueryRef.current.trim() === ""
+              ) {
+                // 无搜索时新剪贴板内容进来，列表回到顶部并关闭旧 preview。
+                setPreviewHistoryGroupIndex(null);
+                setPreviewHistoryItemId(null);
+                setPreviewAnchorTop(null);
+                setSelectedHistoryIndex(0);
+              }
+
+              return updatedHistory;
+            });
           }
         });
       } catch (error) {
@@ -176,16 +196,17 @@ export function useClipboardApp() {
 
   useEffect(() => {
     setPreviewHistoryGroupIndex(null);
+    setPreviewHistoryItemId(null);
     setPreviewAnchorTop(null);
     setSelectedHistoryIndex(0);
   }, [searchQuery]);
 
   useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setPreviewHistoryGroupIndex(null);
+    if (previewHistoryItemId !== null && !previewHistoryItem) {
+      setPreviewHistoryItemId(null);
       setPreviewAnchorTop(null);
     }
-  }, [history.length, searchQuery]);
+  }, [previewHistoryItem, previewHistoryItemId]);
 
   useEffect(() => {
     if (
@@ -198,6 +219,19 @@ export function useClipboardApp() {
   }, [historyGroups.length, previewHistoryGroupIndex]);
 
   useEffect(() => {
+    if (previewAnchorTop !== null && previewHistoryItem) {
+      void updateHistoryPreviewWindow({
+        item: previewHistoryItem,
+        kind: "item",
+        language: settings.language,
+      })
+        .then(() => showHistoryPreviewWindow(previewAnchorTop, 1, "item"))
+        .catch((error) => {
+          console.error("显示历史条目预览失败:", error);
+        });
+      return;
+    }
+
     const previewGroup = historyGroups.find(
       (group) => group.index === previewHistoryGroupIndex,
     );
@@ -212,9 +246,10 @@ export function useClipboardApp() {
     void updateHistoryPreviewWindow({
       group: previewGroup,
       items: previewHistory,
+      kind: "group",
       language: settings.language,
     })
-      .then(() => showHistoryPreviewWindow(previewAnchorTop, previewHistory.length))
+      .then(() => showHistoryPreviewWindow(previewAnchorTop, previewHistory.length, "group"))
       .catch((error) => {
         console.error("显示历史分组预览失败:", error);
       });
@@ -222,6 +257,7 @@ export function useClipboardApp() {
     historyGroups,
     previewAnchorTop,
     previewHistory,
+    previewHistoryItem,
     previewHistoryGroupIndex,
     settings.language,
   ]);
@@ -239,6 +275,7 @@ export function useClipboardApp() {
   const openAboutDialog = async () => {
     try {
       setPreviewHistoryGroupIndex(null);
+      setPreviewHistoryItemId(null);
       setPreviewAnchorTop(null);
       await hideHistoryPreviewWindow();
       await showAboutWindow();
@@ -250,6 +287,7 @@ export function useClipboardApp() {
   const openPreferencesDialog = async () => {
     try {
       setPreviewHistoryGroupIndex(null);
+      setPreviewHistoryItemId(null);
       setPreviewAnchorTop(null);
       await hideHistoryPreviewWindow();
       await showPreferencesWindow();
@@ -258,12 +296,13 @@ export function useClipboardApp() {
     }
   };
 
-  const selectHistoryItem = async (text: string) => {
+  const selectHistoryItem = async (id: string) => {
     try {
       setPreviewHistoryGroupIndex(null);
+      setPreviewHistoryItemId(null);
       setPreviewAnchorTop(null);
       await hideHistoryPreviewWindow();
-      await copyToClipboard(text);
+      await copyHistoryItem(id);
       await hideCurrentWindow();
     } catch (error) {
       console.error("复制历史记录失败:", error);
@@ -275,10 +314,25 @@ export function useClipboardApp() {
       await clearHistory();
       setHistory([]);
       setPreviewHistoryGroupIndex(null);
+      setPreviewHistoryItemId(null);
       setPreviewAnchorTop(null);
       setSelectedHistoryIndex(0);
     } catch (error) {
       console.error("清空历史失败:", error);
+    }
+  };
+
+  const deleteHistoryItem = async (id: string) => {
+    try {
+      setPreviewHistoryGroupIndex(null);
+      setPreviewHistoryItemId(null);
+      setPreviewAnchorTop(null);
+      await hideHistoryPreviewWindow();
+
+      const updatedHistory = await deleteHistoryItemCommand(id);
+      setHistory(updatedHistory);
+    } catch (error) {
+      console.error("删除历史记录失败:", error);
     }
   };
 
@@ -293,6 +347,7 @@ export function useClipboardApp() {
   const hideWindow = async () => {
     try {
       setPreviewHistoryGroupIndex(null);
+      setPreviewHistoryItemId(null);
       setPreviewAnchorTop(null);
       await hideHistoryPreviewWindow();
       await hideCurrentWindow();
@@ -326,7 +381,7 @@ export function useClipboardApp() {
     const selectedItem = visibleHistory[selectedHistoryIndex];
 
     if (selectedItem) {
-      await selectHistoryItem(selectedItem.text);
+      await selectHistoryItem(selectedItem.id);
     }
   };
 
@@ -340,12 +395,21 @@ export function useClipboardApp() {
   const openHistoryGroupPreview = (groupIndex: number, anchorTop: number) => {
     clearScheduledPreviewClose();
     setPreviewHistoryGroupIndex(groupIndex);
+    setPreviewHistoryItemId(null);
+    setPreviewAnchorTop(anchorTop);
+  };
+
+  const openHistoryItemPreview = (item: HistoryListItem, anchorTop: number) => {
+    clearScheduledPreviewClose();
+    setPreviewHistoryGroupIndex(null);
+    setPreviewHistoryItemId(item.id);
     setPreviewAnchorTop(anchorTop);
   };
 
   const closeHistoryGroupPreview = () => {
     clearScheduledPreviewClose();
     setPreviewHistoryGroupIndex(null);
+    setPreviewHistoryItemId(null);
     setPreviewAnchorTop(null);
   };
 
@@ -386,12 +450,14 @@ export function useClipboardApp() {
     settings,
     clearHistory: clearHistoryItems,
     closeHistoryGroupPreview,
+    deleteHistoryItem,
     hideWindow,
     moveSelection,
     openAboutDialog,
     openPreferencesDialog,
     quit,
     openHistoryGroupPreview,
+    openHistoryItemPreview,
     selectHighlightedHistoryItem,
     selectHistoryItem,
     setSearchQuery,

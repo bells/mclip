@@ -16,7 +16,7 @@ import {
   listenToSettingsUpdated,
   saveSettings,
 } from "../lib/tauri";
-import type { AppLanguage, AppSettings } from "../types";
+import type { AppLanguage, AppSettings, HistoryKind } from "../types";
 import { normalizeSettings } from "../utils/settings";
 
 export function PreferencesWindow() {
@@ -90,6 +90,16 @@ export function PreferencesWindow() {
     setSettingsDraft((current) => ({
       ...current,
       language,
+    }));
+  };
+
+  const toggleHistoryType = (kind: HistoryKind) => {
+    setSettingsDraft((current) => ({
+      ...current,
+      enabledHistoryTypes: {
+        ...current.enabledHistoryTypes,
+        [kind]: !current.enabledHistoryTypes[kind],
+      },
     }));
   };
 
@@ -229,6 +239,40 @@ export function PreferencesWindow() {
                 >
                   +
                 </button>
+              </div>
+            </div>
+
+            <div className="app-settings-section">
+              <div className="app-settings-section-heading">
+                <div className="app-settings-label">{t.typesLabel}</div>
+                <div className="app-settings-description">{t.typesDescription}</div>
+              </div>
+
+              <div className="app-history-type-grid">
+                {([
+                  ["text", t.typeText, t.typeTextDescription],
+                  ["url", t.typeUrl, t.typeUrlDescription],
+                  ["image", t.typeImage, t.typeImageDescription],
+                  ["files", t.typeFiles, t.typeFilesDescription],
+                ] as const).map(([kind, label, description]) => (
+                  <button
+                    aria-pressed={settingsDraft.enabledHistoryTypes[kind]}
+                    className={`app-history-type-toggle ${
+                      settingsDraft.enabledHistoryTypes[kind] ? "is-on" : ""
+                    }`}
+                    disabled={isSavingSettings}
+                    key={kind}
+                    onClick={() => toggleHistoryType(kind)}
+                    type="button"
+                  >
+                    <span className={`app-history-type-icon app-history-type-icon-${kind}`} />
+                    <span className="app-history-type-copy">
+                      <span className="app-history-type-label">{label}</span>
+                      <span className="app-history-type-description">{description}</span>
+                    </span>
+                    <span className="app-history-type-check" />
+                  </button>
+                ))}
               </div>
             </div>
 

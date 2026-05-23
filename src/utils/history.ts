@@ -1,24 +1,38 @@
 // 纯前端历史列表工具：负责搜索过滤、分组计算和分页取数。
 
-import type { HistoryGroupInfo, HistoryListItem } from "../types";
+import type { HistoryEntry, HistoryGroupInfo, HistoryListItem } from "../types";
+
+export function getHistoryItemSearchText(item: HistoryEntry): string {
+  const commonText = `${item.displayText} ${item.sourceApp ?? ""}`;
+
+  switch (item.kind) {
+    case "text":
+      return `${commonText} ${item.text}`;
+    case "url":
+      return `${commonText} ${item.url}`;
+    case "files":
+      return `${commonText} ${item.filePaths.join(" ")}`;
+    case "image":
+      return `${commonText} image ${item.width}x${item.height}`;
+  }
+}
 
 export function filterHistoryItems(
-  history: string[],
+  history: HistoryEntry[],
   searchQuery: string,
 ): HistoryListItem[] {
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  // id 带上原始位置和文本，避免相同文本在渲染时出现不稳定 key。
   return history
-    .map((text, index) => ({
-      id: `${index}:${text}`,
+    .map((entry, index) => ({
+      ...entry,
+      renderId: `${index}:${entry.id}:${entry.lastCopiedAt}`,
       position: index + 1,
-      text,
     }))
     .filter(
       (item) =>
         normalizedQuery === "" ||
-        item.text.toLowerCase().includes(normalizedQuery),
+        getHistoryItemSearchText(item).toLowerCase().includes(normalizedQuery),
     );
 }
 

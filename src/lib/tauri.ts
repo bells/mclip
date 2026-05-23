@@ -1,12 +1,12 @@
 // Tauri invoke/event 的前端封装。组件和 hook 只依赖这里，避免到处散落命令名和事件名。
 
 import { getVersion } from "@tauri-apps/api/app";
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow, Window as TauriWindow } from "@tauri-apps/api/window";
 
 import { DEFAULT_APP_VERSION } from "../constants";
-import type { AppSettings, HistoryPreviewPayload } from "../types";
+import type { AppSettings, HistoryEntry, HistoryPreviewPayload } from "../types";
 
 const HISTORY_UPDATED_EVENT = "history-updated";
 const SETTINGS_UPDATED_EVENT = "settings-updated";
@@ -38,11 +38,15 @@ export function saveSettings(settings: AppSettings) {
 }
 
 export function getHistory() {
-  return invoke<string[]>("get_history");
+  return invoke<HistoryEntry[]>("get_history");
 }
 
 export function clearHistory() {
   return invoke<void>("clear_history");
+}
+
+export function deleteHistoryItem(id: string) {
+  return invoke<HistoryEntry[]>("delete_history_item", { id });
 }
 
 export function adjustWindowHeight(
@@ -55,12 +59,24 @@ export function adjustWindowHeight(
   });
 }
 
-export function copyToClipboard(content: string) {
-  return invoke<void>("copy_to_clipboard", { content });
+export function copyHistoryItem(id: string) {
+  return invoke<void>("copy_history_item", { id });
 }
 
-export function showHistoryPreviewWindow(anchorTop: number, itemCount: number) {
-  return invoke<void>("show_history_preview_window", { anchorTop, itemCount });
+export function getAssetUrl(path: string) {
+  return convertFileSrc(path);
+}
+
+export function showHistoryPreviewWindow(
+  anchorTop: number,
+  itemCount: number,
+  previewKind: HistoryPreviewPayload["kind"],
+) {
+  return invoke<void>("show_history_preview_window", {
+    anchorTop,
+    itemCount,
+    previewKind,
+  });
 }
 
 export function hideHistoryPreviewWindow() {
@@ -121,9 +137,9 @@ export async function getAppVersion() {
 }
 
 export function listenToHistoryUpdated(
-  handler: (history: string[]) => void,
+  handler: (history: HistoryEntry[]) => void,
 ): Promise<UnlistenFn> {
-  return listen<string[]>(HISTORY_UPDATED_EVENT, (event) => {
+  return listen<HistoryEntry[]>(HISTORY_UPDATED_EVENT, (event) => {
     handler(event.payload);
   });
 }

@@ -1,24 +1,143 @@
 //! 剪贴板读写与监听。
 //! Windows 使用系统剪贴板事件；其它平台保留轻量轮询，并且每次读取都重新打开剪贴板以降低句柄失效风险。
 
-use arboard::Clipboard;
+use std::borrow::Cow;
+use std::path::PathBuf;
+
+use arboard::{Clipboard, ImageData};
+use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
 #[cfg(not(target_os = "windows"))]
 use std::thread;
 #[cfg(not(target_os = "windows"))]
 use std::time::Duration;
 use tauri::AppHandle;
+use url::Url;
 
-use crate::history::{emit_history_updated, process_new_history_item};
+use crate::history::{
+    emit_history_updated, find_history_item, hash_hex, process_new_history_item, HistoryEntry,
+    NewHistoryItem,
+};
+use crate::settings::{load_settings, HistoryTypes};
 
 #[cfg(not(target_os = "windows"))]
 const CLIPBOARD_POLL_INTERVAL_MS: u64 = 500;
 
 #[tauri::command]
-pub fn copy_to_clipboard(content: String) -> Result<(), String> {
+pub fn copy_history_item(app_handle: AppHandle, id: String) -> Result<(), String> {
+    let Some(history_item) = find_history_item(&app_handle, &id)? else {
+        return Err("history item not found".to_string());
+    };
+
+    write_history_item_to_clipboard(history_item)
+}
+
+pub fn spawn_clipboard_watcher(app_handle: AppHandle) {
+    spawn_platform_clipboard_watcher(app_handle);
+}
+
+// 统一处理平台监听得到的新内容：去重、写入历史、通知前端刷新。
+fn process_clipboard_snapshot(
+    app_handle: &AppHandle,
+    last_signature: &mut String,
+    snapshot: ClipboardSnapshot,
+) {
+    if snapshot.signature == *last_signature {
+        return;
+    }
+
+    *last_signature = snapshot.signature;
+
+    match process_new_history_item(app_handle, snapshot.item) {
+        Ok(Some(updated_history)) => {
+            if let Err(error) = emit_history_updated(app_handle, &updated_history) {
+                eprintln!("failed to emit history update: {error}");
+            }
+        }
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("failed to process clipboard history: {error}");
+        }
+    }
+}
+
+fn write_history_item_to_clipboard(history_item: HistoryEntry) -> Result<(), String> {
     let mut clipboard = Clipboard::new().map_err(|error| error.to_string())?;
-    clipboard
-        .set_text(content)
-        .map_err(|error| error.to_string())
+
+    match history_item {
+        HistoryEntry::Text { text, .. } => {
+            clipboard.set_text(text).map_err(|error| error.to_string())
+        }
+        HistoryEntry::Url { url, .. } => clipboard.set_text(url).map_err(|error| error.to_string()),
+        HistoryEntry::Files { file_paths, .. } => {
+            let paths: Vec<PathBuf> = file_paths.into_iter().map(PathBuf::from).collect();
+            clipboard
+                .set()
+                .file_list(&paths)
+                .map_err(|error| error.to_string())
+        }
+        HistoryEntry::Image { image_path, .. } => {
+            let png_bytes = std::fs::read(image_path).map_err(|error| error.to_string())?;
+            let image = image::load_from_memory(&png_bytes)
+                .map_err(|error| error.to_string())?
+                .to_rgba8();
+            let (width, height) = image.dimensions();
+
+            clipboard
+                .set_image(ImageData {
+                    width: width as usize,
+                    height: height as usize,
+                    bytes: Cow::Owned(image.into_raw()),
+                })
+                .map_err(|error| error.to_string())
+        }
+    }
+}
+
+struct ClipboardSnapshot {
+    signature: String,
+    item: NewHistoryItem,
+}
+
+fn read_clipboard_snapshot(enabled_types: &HistoryTypes) -> Option<ClipboardSnapshot> {
+    if enabled_types.files {
+        if let Ok(file_paths) = read_clipboard_files() {
+            if !file_paths.is_empty() {
+                let item = NewHistoryItem::Files(file_paths);
+                return Some(ClipboardSnapshot {
+                    signature: item.dedupe_key(),
+                    item,
+                });
+            }
+        }
+    }
+
+    if enabled_types.image {
+        if let Ok(item) = read_clipboard_image() {
+            return Some(ClipboardSnapshot {
+                signature: item.dedupe_key(),
+                item,
+            });
+        }
+    }
+
+    if enabled_types.text || enabled_types.url {
+        if let Ok(text) = read_clipboard_text() {
+            if let Some(item) = text_to_history_item(text, enabled_types) {
+                return Some(ClipboardSnapshot {
+                    signature: item.dedupe_key(),
+                    item,
+                });
+            }
+        }
+    }
+
+    None
+}
+
+fn read_clipboard_signature(enabled_types: &HistoryTypes) -> String {
+    read_clipboard_snapshot(enabled_types)
+        .map(|snapshot| snapshot.signature)
+        .unwrap_or_default()
 }
 
 fn read_clipboard_text() -> Result<String, String> {
@@ -27,43 +146,90 @@ fn read_clipboard_text() -> Result<String, String> {
         .map_err(|error| error.to_string())
 }
 
-pub fn spawn_clipboard_watcher(app_handle: AppHandle) {
-    spawn_platform_clipboard_watcher(app_handle);
+fn read_clipboard_files() -> Result<Vec<String>, String> {
+    Clipboard::new()
+        .and_then(|mut clipboard| clipboard.get().file_list())
+        .map(|paths| {
+            paths
+                .into_iter()
+                .map(|path| path.to_string_lossy().into_owned())
+                .collect()
+        })
+        .map_err(|error| error.to_string())
 }
 
-// 统一处理平台监听得到的新文本：去重、写入历史、通知前端刷新。
-fn process_clipboard_text(
-    app_handle: &AppHandle,
-    last_content: &mut String,
-    current_content: String,
-) {
-    if current_content.is_empty() || current_content == *last_content {
-        return;
+fn read_clipboard_image() -> Result<NewHistoryItem, String> {
+    let image = Clipboard::new()
+        .and_then(|mut clipboard| clipboard.get_image())
+        .map_err(|error| error.to_string())?;
+    let png_bytes = encode_png_rgba(&image)?;
+    let content_hash = hash_hex(&png_bytes);
+
+    Ok(NewHistoryItem::Image {
+        png_bytes,
+        width: image.width as u32,
+        height: image.height as u32,
+        content_hash,
+    })
+}
+
+fn encode_png_rgba(image: &ImageData<'_>) -> Result<Vec<u8>, String> {
+    let mut png_bytes = Vec::new();
+    let encoder = PngEncoder::new(&mut png_bytes);
+
+    encoder
+        .write_image(
+            image.bytes.as_ref(),
+            image.width as u32,
+            image.height as u32,
+            ColorType::Rgba8.into(),
+        )
+        .map_err(|error| error.to_string())?;
+
+    Ok(png_bytes)
+}
+
+fn text_to_history_item(text: String, enabled_types: &HistoryTypes) -> Option<NewHistoryItem> {
+    let trimmed_text = text.trim();
+
+    if trimmed_text.is_empty() {
+        return None;
     }
 
-    *last_content = current_content.clone();
-
-    match process_new_history_item(app_handle, &current_content) {
-        Ok(updated_history) => {
-            if let Err(error) = emit_history_updated(app_handle, &updated_history) {
-                eprintln!("failed to emit history update: {error}");
-            }
-        }
-        Err(error) => {
-            eprintln!("failed to process clipboard history: {error}");
-        }
+    if enabled_types.url && is_supported_url(trimmed_text) {
+        return Some(NewHistoryItem::Url(trimmed_text.to_string()));
     }
+
+    if enabled_types.text {
+        Some(NewHistoryItem::Text(text))
+    } else {
+        None
+    }
+}
+
+fn is_supported_url(value: &str) -> bool {
+    if value.lines().count() != 1 || value.split_whitespace().count() != 1 {
+        return false;
+    }
+
+    Url::parse(value)
+        .map(|url| matches!(url.scheme(), "http" | "https" | "file" | "mailto"))
+        .unwrap_or(false)
 }
 
 #[cfg(not(target_os = "windows"))]
 fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
     thread::spawn(move || {
-        let mut last_content = read_clipboard_text().unwrap_or_default();
+        let mut last_signature = load_settings(&app_handle)
+            .map(|settings| read_clipboard_signature(&settings.enabled_history_types))
+            .unwrap_or_default();
 
         loop {
             // macOS 当前仍采用轮询。每轮独立读取，避免长时间持有 Clipboard 导致后续读取不稳定。
-            if let Ok(current_content) = read_clipboard_text() {
-                process_clipboard_text(&app_handle, &mut last_content, current_content);
+            if let Ok(settings) = load_settings(&app_handle) {
+                if let Some(snapshot) = read_clipboard_snapshot(&settings.enabled_history_types) {
+                    process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
+                }
             }
 
             thread::sleep(Duration::from_millis(CLIPBOARD_POLL_INTERVAL_MS));
@@ -84,7 +250,9 @@ mod windows_clipboard_watcher {
 
     use tauri::AppHandle;
 
-    use super::{process_clipboard_text, read_clipboard_text};
+    use crate::settings::load_settings;
+
+    use super::{process_clipboard_snapshot, read_clipboard_signature, read_clipboard_snapshot};
 
     type Bool = i32;
     type Hinstance = isize;
@@ -195,7 +363,9 @@ mod windows_clipboard_watcher {
             return Err("AddClipboardFormatListener failed".to_string());
         }
 
-        let mut last_content = read_clipboard_text().unwrap_or_default();
+        let mut last_signature = load_settings(&app_handle)
+            .map(|settings| read_clipboard_signature(&settings.enabled_history_types))
+            .unwrap_or_default();
         let mut message = Msg::default();
 
         loop {
@@ -212,8 +382,11 @@ mod windows_clipboard_watcher {
 
             // window_proc 只负责把系统事件转成 channel 信号；实际读取剪贴板放在消息循环里做。
             while event_receiver.try_recv().is_ok() {
-                if let Ok(current_content) = read_clipboard_text() {
-                    process_clipboard_text(&app_handle, &mut last_content, current_content);
+                if let Ok(settings) = load_settings(&app_handle) {
+                    if let Some(snapshot) = read_clipboard_snapshot(&settings.enabled_history_types)
+                    {
+                        process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
+                    }
                 }
             }
         }
@@ -228,22 +401,29 @@ mod windows_clipboard_watcher {
 
     fn create_message_window() -> Result<Hwnd, String> {
         let class_name = wide_null("mclip_clipboard_listener");
+        let window_name = wide_null("");
         let instance = unsafe { get_module_handle_w(ptr::null()) };
 
         let window_class = WndClassW {
-            style: 0,
             lpfn_wnd_proc: Some(window_proc),
-            cb_cls_extra: 0,
-            cb_wnd_extra: 0,
             h_instance: instance,
-            h_icon: 0,
-            h_cursor: 0,
-            hbr_background: 0,
-            lpsz_menu_name: ptr::null(),
             lpsz_class_name: class_name.as_ptr(),
+            ..WndClassW {
+                style: 0,
+                lpfn_wnd_proc: None,
+                cb_cls_extra: 0,
+                cb_wnd_extra: 0,
+                h_instance: 0,
+                h_icon: 0,
+                h_cursor: 0,
+                hbr_background: 0,
+                lpsz_menu_name: ptr::null(),
+                lpsz_class_name: ptr::null(),
+            }
         };
 
         let atom = unsafe { register_class_w(&window_class) };
+
         if atom == 0 {
             return Err("RegisterClassW failed".to_string());
         }
@@ -252,7 +432,7 @@ mod windows_clipboard_watcher {
             create_window_ex_w(
                 0,
                 class_name.as_ptr(),
-                class_name.as_ptr(),
+                window_name.as_ptr(),
                 0,
                 0,
                 0,
@@ -280,10 +460,6 @@ mod windows_clipboard_watcher {
         }
     }
 
-    fn wide_null(value: &str) -> Vec<u16> {
-        value.encode_utf16().chain(std::iter::once(0)).collect()
-    }
-
     unsafe extern "system" fn window_proc(
         hwnd: Hwnd,
         message: u32,
@@ -291,10 +467,9 @@ mod windows_clipboard_watcher {
         lparam: Lparam,
     ) -> Lresult {
         if message == WM_CLIPBOARDUPDATE {
-            // Win32 回调保持极简，避免在回调里做可能阻塞的剪贴板读取。
             if let Some(sender_slot) = CLIPBOARD_EVENT_SENDER.get() {
-                if let Ok(sender) = sender_slot.lock() {
-                    if let Some(sender) = sender.as_ref() {
+                if let Ok(sender_guard) = sender_slot.lock() {
+                    if let Some(sender) = sender_guard.as_ref() {
                         let _ = sender.send(());
                     }
                 }
@@ -305,9 +480,78 @@ mod windows_clipboard_watcher {
 
         unsafe { def_window_proc_w(hwnd, message, wparam, lparam) }
     }
+
+    fn wide_null(value: &str) -> Vec<u16> {
+        value.encode_utf16().chain(std::iter::once(0)).collect()
+    }
 }
 
 #[cfg(target_os = "windows")]
 fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
     windows_clipboard_watcher::spawn(app_handle);
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::settings::HistoryTypes;
+
+    use super::{is_supported_url, text_to_history_item};
+    use crate::history::{HistoryKind, NewHistoryItem};
+
+    fn all_types() -> HistoryTypes {
+        HistoryTypes {
+            text: true,
+            url: true,
+            image: true,
+            files: true,
+        }
+    }
+
+    #[test]
+    fn supported_url_requires_single_supported_url() {
+        assert!(is_supported_url("https://example.com/path"));
+        assert!(is_supported_url("mailto:test@example.com"));
+        assert!(!is_supported_url("ftp://example.com"));
+        assert!(!is_supported_url(
+            "https://example.com\nhttps://example.org"
+        ));
+        assert!(!is_supported_url("hello world"));
+    }
+
+    #[test]
+    fn text_to_history_item_classifies_urls_before_text() {
+        let item = text_to_history_item("https://example.com".to_string(), &all_types()).unwrap();
+        assert_eq!(item.kind(), HistoryKind::Url);
+    }
+
+    #[test]
+    fn text_to_history_item_respects_disabled_text_type() {
+        let item = text_to_history_item(
+            "plain text".to_string(),
+            &HistoryTypes {
+                text: false,
+                url: true,
+                image: true,
+                files: true,
+            },
+        );
+
+        assert!(item.is_none());
+    }
+
+    #[test]
+    fn text_to_history_item_keeps_plain_text_when_url_is_disabled() {
+        let item = text_to_history_item(
+            "https://example.com".to_string(),
+            &HistoryTypes {
+                text: true,
+                url: false,
+                image: true,
+                files: true,
+            },
+        )
+        .unwrap();
+
+        assert!(matches!(item, NewHistoryItem::Text(_)));
+    }
 }

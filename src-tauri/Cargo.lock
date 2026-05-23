@@ -1938,12 +1938,15 @@ name = "mclip"
 version = "0.1.4"
 dependencies = [
  "arboard",
+ "image",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-global-shortcut",
  "tauri-plugin-positioner",
+ "url",
 ]
 
 [[package]]

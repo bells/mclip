@@ -10,6 +10,12 @@ export const MIN_MAX_HISTORY_COUNT = 10;
 export const MAX_MAX_HISTORY_COUNT = 200;
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  enabledHistoryTypes: {
+    files: true,
+    image: true,
+    text: true,
+    url: true,
+  },
   language: "en",
   launchAtLogin: false,
   maxHistoryCount: 50,

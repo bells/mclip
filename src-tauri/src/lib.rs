@@ -4,6 +4,7 @@
 mod clipboard;
 mod history;
 mod settings;
+mod source_app;
 mod storage;
 mod window;
 
@@ -19,8 +20,8 @@ use tauri::{
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_positioner::on_tray_event;
 
-use crate::clipboard::{copy_to_clipboard, spawn_clipboard_watcher};
-use crate::history::{clear_history, get_history};
+use crate::clipboard::{copy_history_item, spawn_clipboard_watcher};
+use crate::history::{clear_history, delete_history_item, get_history};
 use crate::settings::{get_settings, save_settings};
 use crate::window::{
     adjust_window_height, configure_main_window, hide_history_preview_window, hide_main_window,
@@ -139,12 +140,13 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_positioner::init())
         .invoke_handler(tauri::generate_handler![
-            copy_to_clipboard,
+            copy_history_item,
             quit_app,
             get_settings,
             save_settings,
             get_history,
             clear_history,
+            delete_history_item,
             adjust_window_height,
             show_history_preview_window,
             hide_history_preview_window,

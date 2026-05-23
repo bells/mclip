@@ -6,7 +6,7 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::history::trim_history_to_max;
+use crate::history::{trim_history_to_max, HistoryKind};
 use crate::storage::write_text_atomically;
 
 pub const DEFAULT_MAX_HISTORY_COUNT: u32 = 50;
@@ -28,6 +28,39 @@ pub struct AppSettings {
     #[serde(default = "default_language")]
     pub language: AppLanguage,
     pub max_history_count: u32,
+    #[serde(default)]
+    pub enabled_history_types: HistoryTypes,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryTypes {
+    pub text: bool,
+    pub url: bool,
+    pub image: bool,
+    pub files: bool,
+}
+
+impl Default for HistoryTypes {
+    fn default() -> Self {
+        Self {
+            text: true,
+            url: true,
+            image: true,
+            files: true,
+        }
+    }
+}
+
+impl HistoryTypes {
+    pub fn is_enabled(&self, kind: HistoryKind) -> bool {
+        match kind {
+            HistoryKind::Text => self.text,
+            HistoryKind::Url => self.url,
+            HistoryKind::Image => self.image,
+            HistoryKind::Files => self.files,
+        }
+    }
 }
 
 impl Default for AppSettings {
@@ -36,6 +69,7 @@ impl Default for AppSettings {
             launch_at_login: false,
             language: default_language(),
             max_history_count: DEFAULT_MAX_HISTORY_COUNT,
+            enabled_history_types: HistoryTypes::default(),
         }
     }
 }
@@ -270,9 +304,10 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
 #[cfg(test)]
 mod tests {
     use super::{
-        resolve_supported_language, AppLanguage, AppSettings, MAX_MAX_HISTORY_COUNT,
+        resolve_supported_language, AppLanguage, AppSettings, HistoryTypes, MAX_MAX_HISTORY_COUNT,
         MIN_MAX_HISTORY_COUNT,
     };
+    use crate::history::HistoryKind;
 
     #[test]
     fn sanitize_clamps_history_count_to_lower_bound() {
@@ -280,6 +315,7 @@ mod tests {
             launch_at_login: false,
             language: AppLanguage::En,
             max_history_count: 1,
+            enabled_history_types: HistoryTypes::default(),
         }
         .sanitize();
 
@@ -292,6 +328,7 @@ mod tests {
             launch_at_login: false,
             language: AppLanguage::En,
             max_history_count: 999,
+            enabled_history_types: HistoryTypes::default(),
         }
         .sanitize();
 
@@ -306,5 +343,30 @@ mod tests {
     #[test]
     fn resolve_supported_language_falls_back_to_english() {
         assert_eq!(resolve_supported_language("tr-TR"), AppLanguage::En);
+    }
+
+    #[test]
+    fn history_types_enable_all_types_by_default() {
+        let types = HistoryTypes::default();
+
+        assert!(types.is_enabled(HistoryKind::Text));
+        assert!(types.is_enabled(HistoryKind::Url));
+        assert!(types.is_enabled(HistoryKind::Image));
+        assert!(types.is_enabled(HistoryKind::Files));
+    }
+
+    #[test]
+    fn history_types_allow_all_types_to_be_disabled() {
+        let types = HistoryTypes {
+            text: false,
+            url: false,
+            image: false,
+            files: false,
+        };
+
+        assert!(!types.is_enabled(HistoryKind::Text));
+        assert!(!types.is_enabled(HistoryKind::Url));
+        assert!(!types.is_enabled(HistoryKind::Image));
+        assert!(!types.is_enabled(HistoryKind::Files));
     }
 }

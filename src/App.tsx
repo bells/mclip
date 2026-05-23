@@ -46,10 +46,12 @@ function MainWindow() {
     settings,
     clearHistory,
     closeHistoryGroupPreview,
+    deleteHistoryItem,
     hideWindow,
     moveSelection,
     openAboutDialog,
     openHistoryGroupPreview,
+    openHistoryItemPreview,
     openPreferencesDialog,
     quit,
     selectHighlightedHistoryItem,
@@ -176,6 +178,9 @@ function MainWindow() {
             hasHistory={hasHistory}
             items={visibleHistory}
             translations={t.history}
+            onDeleteItem={deleteHistoryItem}
+            onOpenItemPreview={openHistoryItemPreview}
+            onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
             onSelectItem={selectHistoryItem}
             selectedItemId={selectedHistoryItem?.id}
           />

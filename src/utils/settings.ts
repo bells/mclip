@@ -4,9 +4,15 @@ import { clampHistoryCount, DEFAULT_SETTINGS } from "../constants";
 import type { AppSettings } from "../types";
 
 export function normalizeSettings(settings: AppSettings): AppSettings {
+  const enabledHistoryTypes = {
+    ...DEFAULT_SETTINGS.enabledHistoryTypes,
+    ...settings.enabledHistoryTypes,
+  };
+
   return {
     ...DEFAULT_SETTINGS,
     ...settings,
+    enabledHistoryTypes,
     language: settings.language === "zhCn" ? "zhCn" : "en",
     maxHistoryCount: clampHistoryCount(settings.maxHistoryCount),
   };

@@ -17,7 +17,8 @@ const FOOTER_HEIGHT: f64 = 144.0;
 const PER_ITEM_HEIGHT: f64 = 34.0;
 const EMPTY_STATE_HEIGHT: f64 = 120.0;
 const PREVIEW_HEADER_HEIGHT: f64 = 58.0;
-const PREVIEW_ITEM_HEIGHT: f64 = 38.0;
+const PREVIEW_ITEM_HEIGHT: f64 = 70.0;
+const ITEM_DETAIL_PREVIEW_HEIGHT: f64 = 292.0;
 // Keep the preview flush with the main window so the pointer can cross into it
 // without passing through a dead hover gap.
 const PREVIEW_WINDOW_GAP: f64 = 0.0;
@@ -51,6 +52,7 @@ pub fn show_history_preview_window(
     app_handle: AppHandle,
     anchor_top: f64,
     item_count: u32,
+    preview_kind: String,
 ) -> Result<(), String> {
     let Some(main_window) = app_handle.get_webview_window("main") else {
         return Ok(());
@@ -68,7 +70,7 @@ pub fn show_history_preview_window(
         .outer_position()
         .map_err(|error| error.to_string())?
         .to_logical::<f64>(scale_factor);
-    let preview_height = calculate_preview_window_height(item_count);
+    let preview_height = calculate_preview_window_height(item_count, &preview_kind);
 
     preview_window
         .set_size(Size::Logical(LogicalSize {
@@ -231,8 +233,12 @@ fn calculate_window_height(item_count: u32, group_count: u32) -> f64 {
     (HEADER_HEIGHT + group_rows_height + FOOTER_HEIGHT + content_height).min(MAX_WINDOW_HEIGHT)
 }
 
-fn calculate_preview_window_height(item_count: u32) -> f64 {
-    PREVIEW_HEADER_HEIGHT + item_count as f64 * PREVIEW_ITEM_HEIGHT
+fn calculate_preview_window_height(item_count: u32, preview_kind: &str) -> f64 {
+    if preview_kind == "item" {
+        ITEM_DETAIL_PREVIEW_HEIGHT
+    } else {
+        PREVIEW_HEADER_HEIGHT + item_count as f64 * PREVIEW_ITEM_HEIGHT
+    }
 }
 
 fn is_physical_point_in_rect(x: f64, y: f64, left: f64, top: f64, width: f64, height: f64) -> bool {
@@ -263,7 +269,12 @@ mod tests {
 
     #[test]
     fn preview_height_tracks_item_count() {
-        assert_eq!(calculate_preview_window_height(4), 210.0);
+        assert_eq!(calculate_preview_window_height(4, "group"), 338.0);
+    }
+
+    #[test]
+    fn item_detail_preview_uses_fixed_height() {
+        assert_eq!(calculate_preview_window_height(1, "item"), 292.0);
     }
 
     #[test]
