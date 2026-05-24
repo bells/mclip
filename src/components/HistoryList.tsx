@@ -65,9 +65,6 @@ export function HistoryList({
             type="button"
           >
             <span className="app-item-index">{item.position}.</span>
-            <span className={`app-item-kind app-item-kind-${item.kind}`}>
-              {translations.kindLabels[item.kind]}
-            </span>
             <span className="app-item-text">{item.displayText}</span>
           </button>
           <button

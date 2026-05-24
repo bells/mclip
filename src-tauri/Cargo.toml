@@ -21,6 +21,7 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 sha2 = "0.10"
 tauri-plugin-global-shortcut = "2"
 url = "2"
+raw-window-handle = "0.6"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-positioner = { version = "2", features = ["tray-icon"] }

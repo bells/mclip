@@ -1939,6 +1939,7 @@ version = "0.1.4"
 dependencies = [
  "arboard",
  "image",
+ "raw-window-handle",
  "serde",
  "serde_json",
  "sha2",

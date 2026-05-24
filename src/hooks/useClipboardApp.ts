@@ -44,7 +44,7 @@ export function useClipboardApp() {
   const [previewHistoryGroupIndex, setPreviewHistoryGroupIndex] = useState<number | null>(null);
   const [previewHistoryItemId, setPreviewHistoryItemId] = useState<string | null>(null);
   const [previewAnchorTop, setPreviewAnchorTop] = useState<number | null>(null);
-  const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
+  const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(-1);
   const previewCloseTimerRef = useRef<number | null>(null);
   const searchQueryRef = useRef(searchQuery);
 
@@ -124,7 +124,7 @@ export function useClipboardApp() {
                 setPreviewHistoryGroupIndex(null);
                 setPreviewHistoryItemId(null);
                 setPreviewAnchorTop(null);
-                setSelectedHistoryIndex(0);
+                setSelectedHistoryIndex(-1);
               }
 
               return updatedHistory;
@@ -198,7 +198,7 @@ export function useClipboardApp() {
     setPreviewHistoryGroupIndex(null);
     setPreviewHistoryItemId(null);
     setPreviewAnchorTop(null);
-    setSelectedHistoryIndex(0);
+    setSelectedHistoryIndex(-1);
   }, [searchQuery]);
 
   useEffect(() => {
@@ -265,7 +265,11 @@ export function useClipboardApp() {
   useEffect(() => {
     setSelectedHistoryIndex((currentIndex) => {
       if (visibleHistory.length === 0) {
-        return 0;
+        return -1;
+      }
+
+      if (currentIndex < 0) {
+        return -1;
       }
 
       return Math.min(currentIndex, visibleHistory.length - 1);
@@ -316,7 +320,7 @@ export function useClipboardApp() {
       setPreviewHistoryGroupIndex(null);
       setPreviewHistoryItemId(null);
       setPreviewAnchorTop(null);
-      setSelectedHistoryIndex(0);
+      setSelectedHistoryIndex(-1);
     } catch (error) {
       console.error("清空历史失败:", error);
     }
@@ -362,6 +366,10 @@ export function useClipboardApp() {
     }
 
     setSelectedHistoryIndex((currentIndex) => {
+      if (currentIndex < 0) {
+        return offset > 0 ? 0 : visibleHistory.length - 1;
+      }
+
       const lastIndex = visibleHistory.length - 1;
       const nextIndex = currentIndex + offset;
 
@@ -378,6 +386,10 @@ export function useClipboardApp() {
   };
 
   const selectHighlightedHistoryItem = async () => {
+    if (selectedHistoryIndex < 0) {
+      return;
+    }
+
     const selectedItem = visibleHistory[selectedHistoryIndex];
 
     if (selectedItem) {
@@ -437,7 +449,8 @@ export function useClipboardApp() {
     }, PREVIEW_CLOSE_DELAY_MS);
   };
 
-  const selectedHistoryItem: HistoryListItem | undefined = visibleHistory[selectedHistoryIndex];
+  const selectedHistoryItem: HistoryListItem | undefined =
+    selectedHistoryIndex >= 0 ? visibleHistory[selectedHistoryIndex] : undefined;
 
   return {
     visibleHistory,

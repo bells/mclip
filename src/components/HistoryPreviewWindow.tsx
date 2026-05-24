@@ -90,6 +90,7 @@ function HistoryDetailContent({
 export function HistoryPreviewWindow() {
   const [preview, setPreview] = useState<HistoryPreviewPayload | null>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+  const [isDetailMetaOpen, setIsDetailMetaOpen] = useState(false);
   const lastPointerNotifyAtRef = useRef(0);
 
   useEffect(() => {
@@ -99,6 +100,7 @@ export function HistoryPreviewWindow() {
     void listenToHistoryPreviewUpdated((payload) => {
       setPreview(payload);
       setHoveredItemId(null);
+      setIsDetailMetaOpen(false);
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
     });
@@ -201,32 +203,39 @@ export function HistoryPreviewWindow() {
           <div className="app-history-detail-body">
             <HistoryDetailContent item={preview.item} translations={t} />
 
-            <dl className="app-history-detail-meta">
-              <div>
-                <dt>{t.contentLabel}</dt>
-                <dd>{preview.item.displayText}</dd>
-              </div>
-              <div>
-                <dt>{t.sourceAppLabel}</dt>
-                <dd>{preview.item.sourceApp ?? t.sourceAppFallback}</dd>
-              </div>
-              <div>
-                <dt>{t.firstCopiedTimeLabel}</dt>
-                <dd>
-                  {formatHistoryTimestamp(preview.item.firstCopiedAt, preview.language)}
-                </dd>
-              </div>
-              <div>
-                <dt>{t.lastCopiedTimeLabel}</dt>
-                <dd>
-                  {formatHistoryTimestamp(preview.item.lastCopiedAt, preview.language)}
-                </dd>
-              </div>
-              <div>
-                <dt>{t.copyCountLabel}</dt>
-                <dd>{preview.item.copyCount}</dd>
-              </div>
-            </dl>
+            <button
+              className={`app-detail-meta-toggle ${isDetailMetaOpen ? "is-open" : ""}`}
+              onClick={() => setIsDetailMetaOpen((prev) => !prev)}
+              type="button"
+            >
+              <span className="app-detail-meta-toggle-label">{t.detailMetaToggle}</span>
+              <span className="app-detail-meta-toggle-chevron" aria-hidden="true" />
+            </button>
+
+            {isDetailMetaOpen ? (
+              <dl className="app-history-detail-meta">
+                <div>
+                  <dt>{t.sourceAppLabel}</dt>
+                  <dd>{preview.item.sourceApp ?? t.sourceAppFallback}</dd>
+                </div>
+                <div>
+                  <dt>{t.firstCopiedTimeLabel}</dt>
+                  <dd>
+                    {formatHistoryTimestamp(preview.item.firstCopiedAt, preview.language)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t.lastCopiedTimeLabel}</dt>
+                  <dd>
+                    {formatHistoryTimestamp(preview.item.lastCopiedAt, preview.language)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t.copyCountLabel}</dt>
+                  <dd>{preview.item.copyCount}</dd>
+                </div>
+              </dl>
+            ) : null}
           </div>
         </div>
       </div>
@@ -268,14 +277,13 @@ export function HistoryPreviewWindow() {
             setHoveredItemId(null);
           }}
           onPointerMove={(event) => {
-            // 用 pointermove 主动追踪当前条目，比单纯 CSS :hover 更能覆盖透明子窗口场景。
             const previewItem = (event.target as Element).closest<HTMLElement>(
               "[data-preview-item-id]",
             );
             setHoveredItemId(previewItem?.dataset.previewItemId ?? null);
           }}
         >
-                  {preview.items.map((item) => (
+          {preview.items.map((item) => (
             <div
               className={`app-history-preview-item-row ${
                 item.id === hoveredItemId ? "is-selected" : ""
@@ -294,25 +302,7 @@ export function HistoryPreviewWindow() {
                 <span className="app-history-preview-index">
                   {getLocalDisplayPosition(item, preview.group)}.
                 </span>
-                <span className={`app-history-preview-kind app-history-preview-kind-${item.kind}`}>
-                  {t.kindLabels[item.kind]}
-                </span>
                 <span className="app-history-preview-text">{item.displayText}</span>
-                <span className="app-history-preview-meta">
-                  <span>
-                    {t.sourceAppLabel}: {item.sourceApp ?? t.sourceAppFallback}
-                  </span>
-                  <span>
-                    {t.firstCopiedTimeLabel}:{" "}
-                    {formatHistoryTimestamp(item.firstCopiedAt, preview.language)}
-                  </span>
-                  <span>
-                    {t.lastCopiedTimeLabel}:{" "}
-                    {formatHistoryTimestamp(item.lastCopiedAt, preview.language)}
-                    <span aria-hidden="true"> · </span>
-                    {t.copyCountLabel}: {item.copyCount}
-                  </span>
-                </span>
               </button>
               <button
                 aria-label={t.deleteItemAriaLabel}

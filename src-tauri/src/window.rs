@@ -4,6 +4,9 @@
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Size};
 use tauri_plugin_positioner::{Position as TrayPosition, WindowExt};
 
+#[cfg(target_os = "macos")]
+use raw_window_handle::HasWindowHandle;
+
 pub const WINDOW_WIDTH: f64 = 320.0;
 pub const PREVIEW_WINDOW_WIDTH: f64 = 304.0;
 pub const MAX_WINDOW_HEIGHT: f64 = 900.0;
@@ -18,7 +21,7 @@ const PER_ITEM_HEIGHT: f64 = 34.0;
 const EMPTY_STATE_HEIGHT: f64 = 120.0;
 const PREVIEW_HEADER_HEIGHT: f64 = 58.0;
 const PREVIEW_ITEM_HEIGHT: f64 = 70.0;
-const ITEM_DETAIL_PREVIEW_HEIGHT: f64 = 292.0;
+const ITEM_DETAIL_PREVIEW_HEIGHT: f64 = 200.0;
 // Keep the preview flush with the main window so the pointer can cross into it
 // without passing through a dead hover gap.
 const PREVIEW_WINDOW_GAP: f64 = 0.0;
@@ -158,6 +161,14 @@ pub fn configure_main_window(app_handle: &AppHandle) {
         // focus, the main window's focus-loss handler can close both windows.
         let _ = window.set_focusable(false);
     }
+
+    #[cfg(target_os = "macos")]
+    {
+        apply_window_corner_radius(app_handle, "main", CORNER_RADIUS);
+        apply_window_corner_radius(app_handle, "preview", CORNER_RADIUS);
+        apply_window_corner_radius(app_handle, "about", CORNER_RADIUS);
+        apply_window_corner_radius(app_handle, "preferences", CORNER_RADIUS);
+    }
 }
 
 fn show_centered_dialog_window(app_handle: &AppHandle, label: &str) -> Result<(), String> {
@@ -245,6 +256,111 @@ fn is_physical_point_in_rect(x: f64, y: f64, left: f64, top: f64, width: f64, he
     x >= left && x <= left + width && y >= top && y <= top + height
 }
 
+#[cfg(target_os = "macos")]
+const CORNER_RADIUS: f64 = 20.0;
+
+#[cfg(target_os = "macos")]
+fn apply_window_corner_radius(app_handle: &AppHandle, label: &str, radius: f64) {
+    use raw_window_handle::RawWindowHandle;
+
+    let Some(window) = app_handle.get_webview_window(label) else {
+        return;
+    };
+    let Ok(window_handle) = window.window_handle() else {
+        return;
+    };
+    let RawWindowHandle::AppKit(handle) = window_handle.as_raw() else {
+        return;
+    };
+
+    macos_window::set_corner_radius(handle.ns_view.as_ptr(), radius);
+}
+
+#[cfg(target_os = "macos")]
+mod macos_window {
+    use std::ffi::{c_char, c_void};
+
+    type ObjcId = *mut c_void;
+
+    #[allow(clashing_extern_declarations)]
+    #[link(name = "objc", kind = "dylib")]
+    unsafe extern "C" {
+        #[link_name = "sel_registerName"]
+        fn sel(name: *const c_char) -> ObjcId;
+
+        #[link_name = "objc_getClass"]
+        fn objc_getClass(name: *const c_char) -> ObjcId;
+
+        #[link_name = "objc_msgSend"]
+        fn msg_send_id(receiver: ObjcId, selector: ObjcId) -> ObjcId;
+
+        #[link_name = "objc_msgSend"]
+        fn msg_send_bool(receiver: ObjcId, selector: ObjcId, value: i8);
+
+        #[link_name = "objc_msgSend"]
+        fn msg_send_double(receiver: ObjcId, selector: ObjcId, value: f64);
+
+        #[link_name = "objc_msgSend"]
+        fn msg_send_void_id(receiver: ObjcId, selector: ObjcId, arg: ObjcId);
+    }
+
+    fn layer_backed_view_set_corner_radius(view: ObjcId, radius: f64) {
+        unsafe {
+            msg_send_bool(view, sel(c"setWantsLayer:".as_ptr()), 1);
+            let layer = msg_send_id(view, sel(c"layer".as_ptr()));
+            if layer.is_null() {
+                return;
+            }
+            msg_send_double(layer, sel(c"setCornerRadius:".as_ptr()), radius);
+            msg_send_bool(layer, sel(c"setMasksToBounds:".as_ptr()), 1);
+        }
+    }
+
+    pub fn set_corner_radius(ns_view: *mut c_void, radius: f64) {
+        unsafe {
+            // [nsView window] -> NSWindow
+            let ns_window = msg_send_id(
+                ns_view as ObjcId,
+                sel(c"window".as_ptr()),
+            );
+
+            if ns_window.is_null() {
+                return;
+            }
+
+            // Ensure the window itself is non-opaque with a clear background so
+            // the rounded corners are truly transparent.
+            msg_send_bool(ns_window, sel(c"setOpaque:".as_ptr()), 0);
+
+            let ns_color_class = objc_getClass(c"NSColor".as_ptr());
+            let clear_color = msg_send_id(
+                ns_color_class,
+                sel(c"clearColor".as_ptr()),
+            );
+            if !clear_color.is_null() {
+                msg_send_void_id(
+                    ns_window,
+                    sel(c"setBackgroundColor:".as_ptr()),
+                    clear_color,
+                );
+            }
+
+            // Round the contentView layer — this gives the NSWindow its shape.
+            let content_view = msg_send_id(
+                ns_window,
+                sel(c"contentView".as_ptr()),
+            );
+            if !content_view.is_null() {
+                layer_backed_view_set_corner_radius(content_view, radius);
+            }
+
+            // Round the WKWebView's layer as well. Without this the webview
+            // renders a sharp rectangle that bleeds past the contentView clip.
+            layer_backed_view_set_corner_radius(ns_view as ObjcId, radius);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -274,7 +390,7 @@ mod tests {
 
     #[test]
     fn item_detail_preview_uses_fixed_height() {
-        assert_eq!(calculate_preview_window_height(1, "item"), 292.0);
+        assert_eq!(calculate_preview_window_height(1, "item"), 200.0);
     }
 
     #[test]
