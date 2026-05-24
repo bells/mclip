@@ -19,7 +19,6 @@ pub const HISTORY_UPDATED_EVENT: &str = "history-updated";
 #[serde(rename_all = "camelCase")]
 pub enum HistoryKind {
     Text,
-    Url,
     Image,
     Files,
 }
@@ -31,11 +30,6 @@ pub enum HistoryEntry {
         #[serde(flatten)]
         common: HistoryEntryCommon,
         text: String,
-    },
-    Url {
-        #[serde(flatten)]
-        common: HistoryEntryCommon,
-        url: String,
     },
     Image {
         #[serde(flatten)]
@@ -66,7 +60,6 @@ pub struct HistoryEntryCommon {
 
 pub enum NewHistoryItem {
     Text(String),
-    Url(String),
     Image {
         png_bytes: Vec<u8>,
         width: u32,
@@ -94,7 +87,6 @@ impl HistoryEntry {
     pub fn common(&self) -> &HistoryEntryCommon {
         match self {
             HistoryEntry::Text { common, .. }
-            | HistoryEntry::Url { common, .. }
             | HistoryEntry::Image { common, .. }
             | HistoryEntry::Files { common, .. } => common,
         }
@@ -103,7 +95,6 @@ impl HistoryEntry {
     fn common_mut(&mut self) -> &mut HistoryEntryCommon {
         match self {
             HistoryEntry::Text { common, .. }
-            | HistoryEntry::Url { common, .. }
             | HistoryEntry::Image { common, .. }
             | HistoryEntry::Files { common, .. } => common,
         }
@@ -121,7 +112,6 @@ impl NewHistoryItem {
     pub fn kind(&self) -> HistoryKind {
         match self {
             NewHistoryItem::Text(_) => HistoryKind::Text,
-            NewHistoryItem::Url(_) => HistoryKind::Url,
             NewHistoryItem::Image { .. } => HistoryKind::Image,
             NewHistoryItem::Files(_) => HistoryKind::Files,
         }
@@ -130,7 +120,6 @@ impl NewHistoryItem {
     pub fn dedupe_key(&self) -> String {
         match self {
             NewHistoryItem::Text(text) => format!("text:{text}"),
-            NewHistoryItem::Url(url) => format!("url:{url}"),
             NewHistoryItem::Image { content_hash, .. } => format!("image:{content_hash}"),
             NewHistoryItem::Files(file_paths) => format!("files:{}", file_paths.join("\n")),
         }
@@ -298,17 +287,6 @@ fn create_history_entry(
         NewHistoryItem::Text(text) => {
             Ok(create_text_entry(text, copied_at, copied_at, source_app, 1))
         }
-        NewHistoryItem::Url(url) => Ok(HistoryEntry::Url {
-            common: HistoryEntryCommon {
-                id,
-                display_text: url.clone(),
-                first_copied_at: copied_at,
-                last_copied_at: copied_at,
-                source_app,
-                copy_count: 1,
-            },
-            url,
-        }),
         NewHistoryItem::Image {
             png_bytes,
             width,
@@ -525,10 +503,6 @@ mod tests {
         assert_eq!(
             NewHistoryItem::Text("a".to_string()).kind(),
             HistoryKind::Text
-        );
-        assert_eq!(
-            NewHistoryItem::Url("https://example.com".to_string()).kind(),
-            HistoryKind::Url
         );
         assert_eq!(
             NewHistoryItem::Image {

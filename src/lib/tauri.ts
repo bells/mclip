@@ -67,6 +67,10 @@ export function getAssetUrl(path: string) {
   return convertFileSrc(path);
 }
 
+export function getImageBase64(path: string) {
+  return invoke<string>("get_image_base64", { path });
+}
+
 export function showHistoryPreviewWindow(
   anchorTop: number,
   itemCount: number,

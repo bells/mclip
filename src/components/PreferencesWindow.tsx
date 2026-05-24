@@ -251,7 +251,6 @@ export function PreferencesWindow() {
               <div className="app-history-type-grid">
                 {([
                   ["text", t.typeText, t.typeTextDescription],
-                  ["url", t.typeUrl, t.typeUrlDescription],
                   ["image", t.typeImage, t.typeImageDescription],
                   ["files", t.typeFiles, t.typeFilesDescription],
                 ] as const).map(([kind, label, description]) => (

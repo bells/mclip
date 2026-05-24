@@ -21,7 +21,7 @@ const PER_ITEM_HEIGHT: f64 = 34.0;
 const EMPTY_STATE_HEIGHT: f64 = 120.0;
 const PREVIEW_HEADER_HEIGHT: f64 = 58.0;
 const PREVIEW_ITEM_HEIGHT: f64 = 70.0;
-const ITEM_DETAIL_PREVIEW_HEIGHT: f64 = 200.0;
+const ITEM_DETAIL_PREVIEW_HEIGHT: f64 = 248.0;
 // Keep the preview flush with the main window so the pointer can cross into it
 // without passing through a dead hover gap.
 const PREVIEW_WINDOW_GAP: f64 = 0.0;

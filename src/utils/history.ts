@@ -8,8 +8,6 @@ export function getHistoryItemSearchText(item: HistoryEntry): string {
   switch (item.kind) {
     case "text":
       return `${commonText} ${item.text}`;
-    case "url":
-      return `${commonText} ${item.url}`;
     case "files":
       return `${commonText} ${item.filePaths.join(" ")}`;
     case "image":

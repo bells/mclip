@@ -2,6 +2,7 @@
 
 import type { AppTranslations } from "../i18n";
 import type { HistoryListItem } from "../types";
+import { ImageThumb } from "./ImageThumb";
 
 type HistoryListProps = {
   hasHistory: boolean;
@@ -18,8 +19,6 @@ function getHistoryItemTitle(item: HistoryListItem) {
   switch (item.kind) {
     case "text":
       return item.text;
-    case "url":
-      return item.url;
     case "files":
       return item.filePaths.join("\n");
     case "image":
@@ -65,7 +64,18 @@ export function HistoryList({
             type="button"
           >
             <span className="app-item-index">{item.position}.</span>
-            <span className="app-item-text">{item.displayText}</span>
+            {item.kind === "image" ? (
+              <span className="app-item-thumbnail-wrap">
+                <ImageThumb
+                  alt={item.displayText}
+                  className="app-item-thumbnail"
+                  imagePath={item.imagePath}
+                />
+                <span className="app-item-text">{item.displayText}</span>
+              </span>
+            ) : (
+              <span className="app-item-text">{item.displayText}</span>
+            )}
           </button>
           <button
             aria-label={translations.deleteItemAriaLabel}

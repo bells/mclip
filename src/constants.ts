@@ -14,7 +14,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     files: true,
     image: true,
     text: true,
-    url: true,
   },
   language: "en",
   launchAtLogin: false,

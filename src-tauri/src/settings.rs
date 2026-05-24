@@ -36,7 +36,6 @@ pub struct AppSettings {
 #[serde(rename_all = "camelCase")]
 pub struct HistoryTypes {
     pub text: bool,
-    pub url: bool,
     pub image: bool,
     pub files: bool,
 }
@@ -45,7 +44,6 @@ impl Default for HistoryTypes {
     fn default() -> Self {
         Self {
             text: true,
-            url: true,
             image: true,
             files: true,
         }
@@ -56,7 +54,6 @@ impl HistoryTypes {
     pub fn is_enabled(&self, kind: HistoryKind) -> bool {
         match kind {
             HistoryKind::Text => self.text,
-            HistoryKind::Url => self.url,
             HistoryKind::Image => self.image,
             HistoryKind::Files => self.files,
         }
@@ -350,7 +347,6 @@ mod tests {
         let types = HistoryTypes::default();
 
         assert!(types.is_enabled(HistoryKind::Text));
-        assert!(types.is_enabled(HistoryKind::Url));
         assert!(types.is_enabled(HistoryKind::Image));
         assert!(types.is_enabled(HistoryKind::Files));
     }
@@ -359,13 +355,11 @@ mod tests {
     fn history_types_allow_all_types_to_be_disabled() {
         let types = HistoryTypes {
             text: false,
-            url: false,
             image: false,
             files: false,
         };
 
         assert!(!types.is_enabled(HistoryKind::Text));
-        assert!(!types.is_enabled(HistoryKind::Url));
         assert!(!types.is_enabled(HistoryKind::Image));
         assert!(!types.is_enabled(HistoryKind::Files));
     }

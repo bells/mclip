@@ -1,7 +1,7 @@
 // 前后端共享的数据结构。字段命名需要和 Rust serde 的 camelCase 输出保持一致。
 
 export type AppLanguage = "zhCn" | "en";
-export type HistoryKind = "text" | "url" | "image" | "files";
+export type HistoryKind = "text" | "image" | "files";
 
 export type EnabledHistoryTypes = Record<HistoryKind, boolean>;
 
@@ -26,11 +26,6 @@ export type TextHistoryEntry = HistoryEntryBase & {
   text: string;
 };
 
-export type UrlHistoryEntry = HistoryEntryBase & {
-  kind: "url";
-  url: string;
-};
-
 export type ImageHistoryEntry = HistoryEntryBase & {
   kind: "image";
   imagePath: string;
@@ -47,7 +42,6 @@ export type FilesHistoryEntry = HistoryEntryBase & {
 
 export type HistoryEntry =
   | TextHistoryEntry
-  | UrlHistoryEntry
   | ImageHistoryEntry
   | FilesHistoryEntry;
 

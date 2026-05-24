@@ -20,7 +20,7 @@ use tauri::{
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_positioner::on_tray_event;
 
-use crate::clipboard::{copy_history_item, spawn_clipboard_watcher};
+use crate::clipboard::{copy_history_item, get_image_base64, spawn_clipboard_watcher};
 use crate::history::{clear_history, delete_history_item, get_history};
 use crate::settings::{get_settings, save_settings};
 use crate::window::{
@@ -141,6 +141,7 @@ pub fn run() {
         .plugin(tauri_plugin_positioner::init())
         .invoke_handler(tauri::generate_handler![
             copy_history_item,
+            get_image_base64,
             quit_app,
             get_settings,
             save_settings,

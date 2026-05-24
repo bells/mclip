@@ -5,13 +5,15 @@ use std::borrow::Cow;
 use std::path::PathBuf;
 
 use arboard::{Clipboard, ImageData};
+use base64::prelude::*;
+use image::imageops::{self, FilterType};
+use image::RgbaImage;
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
 #[cfg(not(target_os = "windows"))]
 use std::thread;
 #[cfg(not(target_os = "windows"))]
 use std::time::Duration;
 use tauri::AppHandle;
-use url::Url;
 
 use crate::history::{
     emit_history_updated, find_history_item, hash_hex, process_new_history_item, HistoryEntry,
@@ -23,6 +25,7 @@ use crate::settings::HistoryTypes;
 
 #[cfg(not(target_os = "windows"))]
 const CLIPBOARD_POLL_INTERVAL_MS: u64 = 500;
+const MAX_IMAGE_DIMENSION: u32 = 1200;
 
 #[tauri::command]
 pub fn copy_history_item(app_handle: AppHandle, id: String) -> Result<(), String> {
@@ -31,6 +34,12 @@ pub fn copy_history_item(app_handle: AppHandle, id: String) -> Result<(), String
     };
 
     write_history_item_to_clipboard(history_item)
+}
+
+#[tauri::command]
+pub fn get_image_base64(path: String) -> Result<String, String> {
+    let bytes = std::fs::read(&path).map_err(|error| error.to_string())?;
+    Ok(BASE64_STANDARD.encode(&bytes))
 }
 
 pub fn spawn_clipboard_watcher(app_handle: AppHandle) {
@@ -69,7 +78,6 @@ fn write_history_item_to_clipboard(history_item: HistoryEntry) -> Result<(), Str
         HistoryEntry::Text { text, .. } => {
             clipboard.set_text(text).map_err(|error| error.to_string())
         }
-        HistoryEntry::Url { url, .. } => clipboard.set_text(url).map_err(|error| error.to_string()),
         HistoryEntry::Files { file_paths, .. } => {
             let paths: Vec<PathBuf> = file_paths.into_iter().map(PathBuf::from).collect();
             clipboard
@@ -101,18 +109,6 @@ struct ClipboardSnapshot {
 }
 
 fn read_clipboard_snapshot(enabled_types: &HistoryTypes) -> Option<ClipboardSnapshot> {
-    if enabled_types.files {
-        if let Ok(file_paths) = read_clipboard_files() {
-            if !file_paths.is_empty() {
-                let item = NewHistoryItem::Files(file_paths);
-                return Some(ClipboardSnapshot {
-                    signature: item.dedupe_key(),
-                    item,
-                });
-            }
-        }
-    }
-
     if enabled_types.image {
         if let Ok(item) = read_clipboard_image() {
             return Some(ClipboardSnapshot {
@@ -122,7 +118,31 @@ fn read_clipboard_snapshot(enabled_types: &HistoryTypes) -> Option<ClipboardSnap
         }
     }
 
-    if enabled_types.text || enabled_types.url {
+    if enabled_types.files {
+        if let Ok(file_paths) = read_clipboard_files() {
+            if !file_paths.is_empty() {
+                // Finder 拷贝单张图片时剪贴板上只有文件引用，没有像素数据。
+                // 检测到单张常见图片格式时直接读取文件内容生成 image 条目，
+                // 这样历史列表里能正常展示缩略图。
+                if file_paths.len() == 1 && enabled_types.image {
+                    if let Ok(item) = read_image_from_file(&file_paths[0]) {
+                        return Some(ClipboardSnapshot {
+                            signature: item.dedupe_key(),
+                            item,
+                        });
+                    }
+                }
+
+                let item = NewHistoryItem::Files(file_paths);
+                return Some(ClipboardSnapshot {
+                    signature: item.dedupe_key(),
+                    item,
+                });
+            }
+        }
+    }
+
+    if enabled_types.text {
         if let Ok(text) = read_clipboard_text() {
             if let Some(item) = text_to_history_item(text, enabled_types) {
                 return Some(ClipboardSnapshot {
@@ -161,31 +181,72 @@ fn read_clipboard_files() -> Result<Vec<String>, String> {
 }
 
 fn read_clipboard_image() -> Result<NewHistoryItem, String> {
-    let image = Clipboard::new()
+    let clipboard_image = Clipboard::new()
         .and_then(|mut clipboard| clipboard.get_image())
         .map_err(|error| error.to_string())?;
-    let png_bytes = encode_png_rgba(&image)?;
+
+    let rgba = RgbaImage::from_raw(
+        clipboard_image.width as u32,
+        clipboard_image.height as u32,
+        clipboard_image.bytes.as_ref().to_vec(),
+    )
+    .ok_or_else(|| "failed to create image from raw clipboard pixels".to_string())?;
+
+    let (resized, final_width, final_height) = resize_if_large(rgba, MAX_IMAGE_DIMENSION);
+    let png_bytes = encode_png_rgba(&resized)?;
     let content_hash = hash_hex(&png_bytes);
 
     Ok(NewHistoryItem::Image {
         png_bytes,
-        width: image.width as u32,
-        height: image.height as u32,
+        width: final_width,
+        height: final_height,
         content_hash,
     })
 }
 
-fn encode_png_rgba(image: &ImageData<'_>) -> Result<Vec<u8>, String> {
+fn read_image_from_file(path: &str) -> Result<NewHistoryItem, String> {
+    let bytes = std::fs::read(path).map_err(|error| error.to_string())?;
+
+    let img = image::load_from_memory(&bytes).map_err(|error| error.to_string())?;
+    let rgba = img.to_rgba8();
+    let (resized, final_width, final_height) = resize_if_large(rgba, MAX_IMAGE_DIMENSION);
+    let png_bytes = encode_png_rgba(&resized)?;
+    let content_hash = hash_hex(&png_bytes);
+
+    Ok(NewHistoryItem::Image {
+        png_bytes,
+        width: final_width,
+        height: final_height,
+        content_hash,
+    })
+}
+
+fn resize_if_large(img: RgbaImage, max_dim: u32) -> (RgbaImage, u32, u32) {
+    let (width, height) = img.dimensions();
+
+    if width <= max_dim && height <= max_dim {
+        return (img, width, height);
+    }
+
+    let (new_w, new_h) = if width > height {
+        let ratio = max_dim as f64 / width as f64;
+        (max_dim, (height as f64 * ratio) as u32)
+    } else {
+        let ratio = max_dim as f64 / height as f64;
+        ((width as f64 * ratio) as u32, max_dim)
+    };
+
+    let resized = imageops::resize(&img, new_w, new_h, FilterType::Lanczos3);
+    (resized, new_w, new_h)
+}
+
+fn encode_png_rgba(image: &RgbaImage) -> Result<Vec<u8>, String> {
+    let (width, height) = image.dimensions();
     let mut png_bytes = Vec::new();
     let encoder = PngEncoder::new(&mut png_bytes);
 
     encoder
-        .write_image(
-            image.bytes.as_ref(),
-            image.width as u32,
-            image.height as u32,
-            ColorType::Rgba8.into(),
-        )
+        .write_image(image.as_raw(), width, height, ColorType::Rgba8.into())
         .map_err(|error| error.to_string())?;
 
     Ok(png_bytes)
@@ -198,25 +259,11 @@ fn text_to_history_item(text: String, enabled_types: &HistoryTypes) -> Option<Ne
         return None;
     }
 
-    if enabled_types.url && is_supported_url(trimmed_text) {
-        return Some(NewHistoryItem::Url(trimmed_text.to_string()));
-    }
-
     if enabled_types.text {
         Some(NewHistoryItem::Text(text))
     } else {
         None
     }
-}
-
-fn is_supported_url(value: &str) -> bool {
-    if value.lines().count() != 1 || value.split_whitespace().count() != 1 {
-        return false;
-    }
-
-    Url::parse(value)
-        .map(|url| matches!(url.scheme(), "http" | "https" | "file" | "mailto"))
-        .unwrap_or(false)
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -497,33 +544,21 @@ fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
 mod tests {
     use crate::settings::HistoryTypes;
 
-    use super::{is_supported_url, text_to_history_item};
+    use super::text_to_history_item;
     use crate::history::{HistoryKind, NewHistoryItem};
 
     fn all_types() -> HistoryTypes {
         HistoryTypes {
             text: true,
-            url: true,
             image: true,
             files: true,
         }
     }
 
     #[test]
-    fn supported_url_requires_single_supported_url() {
-        assert!(is_supported_url("https://example.com/path"));
-        assert!(is_supported_url("mailto:test@example.com"));
-        assert!(!is_supported_url("ftp://example.com"));
-        assert!(!is_supported_url(
-            "https://example.com\nhttps://example.org"
-        ));
-        assert!(!is_supported_url("hello world"));
-    }
-
-    #[test]
-    fn text_to_history_item_classifies_urls_before_text() {
+    fn text_to_history_item_returns_text_for_any_string() {
         let item = text_to_history_item("https://example.com".to_string(), &all_types()).unwrap();
-        assert_eq!(item.kind(), HistoryKind::Url);
+        assert_eq!(item.kind(), HistoryKind::Text);
     }
 
     #[test]
@@ -532,28 +567,11 @@ mod tests {
             "plain text".to_string(),
             &HistoryTypes {
                 text: false,
-                url: true,
                 image: true,
                 files: true,
             },
         );
 
         assert!(item.is_none());
-    }
-
-    #[test]
-    fn text_to_history_item_keeps_plain_text_when_url_is_disabled() {
-        let item = text_to_history_item(
-            "https://example.com".to_string(),
-            &HistoryTypes {
-                text: true,
-                url: false,
-                image: true,
-                files: true,
-            },
-        )
-        .unwrap();
-
-        assert!(matches!(item, NewHistoryItem::Text(_)));
     }
 }

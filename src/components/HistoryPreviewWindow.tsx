@@ -6,7 +6,6 @@ import { getTranslations } from "../i18n";
 import {
   copyHistoryItem,
   deleteHistoryItem,
-  getAssetUrl,
   hideHistoryPreviewWindow,
   hideMainWindow,
   listenToHistoryPreviewUpdated,
@@ -14,6 +13,7 @@ import {
   requestHistoryPreviewClose,
 } from "../lib/tauri";
 import type { HistoryGroupInfo, HistoryListItem, HistoryPreviewPayload } from "../types";
+import { ImageThumb } from "./ImageThumb";
 
 function getLocalDisplayPosition(item: HistoryListItem, group: HistoryGroupInfo) {
   const localPosition = item.position - group.startPosition + 1;
@@ -36,8 +36,6 @@ function getHistoryItemTitle(item: HistoryListItem) {
   switch (item.kind) {
     case "text":
       return item.text;
-    case "url":
-      return item.url;
     case "files":
       return item.filePaths.join("\n");
     case "image":
@@ -55,14 +53,17 @@ function HistoryDetailContent({
   if (item.kind === "image") {
     return (
       <div className="app-history-detail-image-wrap">
-        <img
+        <ImageThumb
           alt={item.displayText}
           className="app-history-detail-image"
-          draggable={false}
-          src={getAssetUrl(item.imagePath)}
+          imagePath={item.imagePath}
         />
         <div className="app-history-detail-image-caption">
-          {translations.imageSizeLabel(item.width, item.height)}
+          {translations.imageSizeLabel(item.width, item.height)} · {item.byteSize > 1024 * 1024
+            ? `${(item.byteSize / (1024 * 1024)).toFixed(1)} MB`
+            : item.byteSize > 1024
+              ? `${(item.byteSize / 1024).toFixed(0)} KB`
+              : `${item.byteSize} B`}
         </div>
       </div>
     );
@@ -82,7 +83,7 @@ function HistoryDetailContent({
 
   return (
     <div className="app-history-detail-content" title={getHistoryItemTitle(item)}>
-      {item.kind === "url" ? item.url : item.text}
+      {item.text}
     </div>
   );
 }
@@ -302,7 +303,18 @@ export function HistoryPreviewWindow() {
                 <span className="app-history-preview-index">
                   {getLocalDisplayPosition(item, preview.group)}.
                 </span>
-                <span className="app-history-preview-text">{item.displayText}</span>
+                {item.kind === "image" ? (
+                  <span className="app-item-thumbnail-wrap">
+                    <ImageThumb
+                      alt={item.displayText}
+                      className="app-item-thumbnail"
+                      imagePath={item.imagePath}
+                    />
+                    <span className="app-history-preview-text">{item.displayText}</span>
+                  </span>
+                ) : (
+                  <span className="app-history-preview-text">{item.displayText}</span>
+                )}
               </button>
               <button
                 aria-label={t.deleteItemAriaLabel}
