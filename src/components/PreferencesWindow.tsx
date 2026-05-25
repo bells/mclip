@@ -248,15 +248,15 @@ export function PreferencesWindow() {
                 <div className="app-settings-description">{t.typesDescription}</div>
               </div>
 
-              <div className="app-history-type-grid">
+              <div className="app-history-type-list">
                 {([
-                  ["text", t.typeText, t.typeTextDescription],
-                  ["image", t.typeImage, t.typeImageDescription],
-                  ["files", t.typeFiles, t.typeFilesDescription],
-                ] as const).map(([kind, label, description]) => (
+                  ["text", t.typeText],
+                  ["image", t.typeImage],
+                  ["files", t.typeFiles],
+                ] as const).map(([kind, label]) => (
                   <button
                     aria-pressed={settingsDraft.enabledHistoryTypes[kind]}
-                    className={`app-history-type-toggle ${
+                    className={`app-history-type-row ${
                       settingsDraft.enabledHistoryTypes[kind] ? "is-on" : ""
                     }`}
                     disabled={isSavingSettings}
@@ -264,11 +264,7 @@ export function PreferencesWindow() {
                     onClick={() => toggleHistoryType(kind)}
                     type="button"
                   >
-                    <span className={`app-history-type-icon app-history-type-icon-${kind}`} />
-                    <span className="app-history-type-copy">
-                      <span className="app-history-type-label">{label}</span>
-                      <span className="app-history-type-description">{description}</span>
-                    </span>
+                    <span className="app-history-type-label">{label}</span>
                     <span className="app-history-type-check" />
                   </button>
                 ))}

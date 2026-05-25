@@ -15,17 +15,6 @@ type HistoryListProps = {
   selectedItemId?: string;
 };
 
-function getHistoryItemTitle(item: HistoryListItem) {
-  switch (item.kind) {
-    case "text":
-      return item.text;
-    case "files":
-      return item.filePaths.join("\n");
-    case "image":
-      return item.displayText;
-  }
-}
-
 export function HistoryList({
   hasHistory,
   items,
@@ -60,7 +49,6 @@ export function HistoryList({
           <button
             className="app-item"
             onClick={() => onSelectItem(item.id)}
-            title={getHistoryItemTitle(item)}
             type="button"
           >
             <span className="app-item-index">{item.position}.</span>

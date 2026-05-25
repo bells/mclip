@@ -32,17 +32,6 @@ function formatHistoryTimestamp(timestamp: number, language: HistoryPreviewPaylo
   }).format(new Date(timestamp));
 }
 
-function getHistoryItemTitle(item: HistoryListItem) {
-  switch (item.kind) {
-    case "text":
-      return item.text;
-    case "files":
-      return item.filePaths.join("\n");
-    case "image":
-      return item.displayText;
-  }
-}
-
 function HistoryDetailContent({
   item,
   translations,
@@ -73,7 +62,7 @@ function HistoryDetailContent({
     return (
       <div className="app-history-detail-files">
         {item.filePaths.map((filePath) => (
-          <div className="app-history-detail-file" key={filePath} title={filePath}>
+          <div className="app-history-detail-file" key={filePath}>
             {filePath}
           </div>
         ))}
@@ -82,7 +71,7 @@ function HistoryDetailContent({
   }
 
   return (
-    <div className="app-history-detail-content" title={getHistoryItemTitle(item)}>
+    <div className="app-history-detail-content">
       {item.text}
     </div>
   );
@@ -297,7 +286,6 @@ export function HistoryPreviewWindow() {
                 onClick={() => {
                   void selectPreviewItem(item.id);
                 }}
-                title={getHistoryItemTitle(item)}
                 type="button"
               >
                 <span className="app-history-preview-index">
