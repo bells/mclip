@@ -34,15 +34,19 @@ pub enum HistoryEntry {
     Image {
         #[serde(flatten)]
         common: HistoryEntryCommon,
+        #[serde(rename = "imagePath", alias = "image_path")]
         image_path: String,
         width: u32,
         height: u32,
+        #[serde(rename = "byteSize", alias = "byte_size")]
         byte_size: u64,
+        #[serde(rename = "contentHash", alias = "content_hash")]
         content_hash: String,
     },
     Files {
         #[serde(flatten)]
         common: HistoryEntryCommon,
+        #[serde(rename = "filePaths", alias = "file_paths")]
         file_paths: Vec<String>,
     },
 }
@@ -615,6 +619,77 @@ mod tests {
             files_display_text(&["/tmp/report.pdf".to_string(), "/tmp/notes.txt".to_string()]),
             "report.pdf +1"
         );
+    }
+
+    #[test]
+    fn file_history_entries_serialize_frontend_field_names() {
+        let entry = HistoryEntry::Files {
+            common: super::HistoryEntryCommon {
+                id: "h_files".to_string(),
+                display_text: "note.txt".to_string(),
+                first_copied_at: 100,
+                last_copied_at: 200,
+                source_app: None,
+                copy_count: 1,
+            },
+            file_paths: vec!["/tmp/note.txt".to_string()],
+        };
+
+        let json = serde_json::to_value(entry).unwrap();
+
+        assert!(json.get("filePaths").is_some());
+        assert!(json.get("file_paths").is_none());
+    }
+
+    #[test]
+    fn image_history_entries_serialize_frontend_field_names() {
+        let entry = HistoryEntry::Image {
+            common: super::HistoryEntryCommon {
+                id: "h_image".to_string(),
+                display_text: "Image 1x1".to_string(),
+                first_copied_at: 100,
+                last_copied_at: 200,
+                source_app: None,
+                copy_count: 1,
+            },
+            image_path: "/tmp/image.png".to_string(),
+            width: 1,
+            height: 1,
+            byte_size: 42,
+            content_hash: "hash".to_string(),
+        };
+
+        let json = serde_json::to_value(entry).unwrap();
+
+        assert!(json.get("imagePath").is_some());
+        assert!(json.get("byteSize").is_some());
+        assert!(json.get("contentHash").is_some());
+        assert!(json.get("image_path").is_none());
+        assert!(json.get("byte_size").is_none());
+        assert!(json.get("content_hash").is_none());
+    }
+
+    #[test]
+    fn file_history_entries_deserialize_legacy_snake_case_field_names() {
+        let json = serde_json::json!({
+            "kind": "files",
+            "id": "h_files",
+            "displayText": "note.txt",
+            "firstCopiedAt": 100,
+            "lastCopiedAt": 200,
+            "sourceApp": null,
+            "copyCount": 1,
+            "file_paths": ["/tmp/note.txt"],
+        });
+
+        let entry: HistoryEntry = serde_json::from_value(json).unwrap();
+
+        match entry {
+            HistoryEntry::Files { file_paths, .. } => {
+                assert_eq!(file_paths, vec!["/tmp/note.txt".to_string()]);
+            }
+            _ => panic!("expected files entry"),
+        }
     }
 
     #[test]

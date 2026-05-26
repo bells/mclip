@@ -109,15 +109,6 @@ struct ClipboardSnapshot {
 }
 
 fn read_clipboard_snapshot(enabled_types: &HistoryTypes) -> Option<ClipboardSnapshot> {
-    if enabled_types.image {
-        if let Ok(item) = read_clipboard_image() {
-            return Some(ClipboardSnapshot {
-                signature: item.dedupe_key(),
-                item,
-            });
-        }
-    }
-
     if enabled_types.files {
         if let Ok(file_paths) = read_clipboard_files() {
             if !file_paths.is_empty() {
@@ -134,26 +125,40 @@ fn read_clipboard_snapshot(enabled_types: &HistoryTypes) -> Option<ClipboardSnap
                 }
 
                 let item = NewHistoryItem::Files(file_paths);
-                return Some(ClipboardSnapshot {
-                    signature: item.dedupe_key(),
-                    item,
-                });
+                return clipboard_snapshot_from_candidates(Some(item), None, None);
             }
+        }
+    }
+
+    if enabled_types.image {
+        if let Ok(item) = read_clipboard_image() {
+            return clipboard_snapshot_from_candidates(None, Some(item), None);
         }
     }
 
     if enabled_types.text {
         if let Ok(text) = read_clipboard_text() {
             if let Some(item) = text_to_history_item(text, enabled_types) {
-                return Some(ClipboardSnapshot {
-                    signature: item.dedupe_key(),
-                    item,
-                });
+                return clipboard_snapshot_from_candidates(None, None, Some(item));
             }
         }
     }
 
     None
+}
+
+fn clipboard_snapshot_from_candidates(
+    file_item: Option<NewHistoryItem>,
+    image_item: Option<NewHistoryItem>,
+    text_item: Option<NewHistoryItem>,
+) -> Option<ClipboardSnapshot> {
+    file_item
+        .or(image_item)
+        .or(text_item)
+        .map(|item| ClipboardSnapshot {
+            signature: item.dedupe_key(),
+            item,
+        })
 }
 
 fn read_clipboard_signature(enabled_types: &HistoryTypes) -> String {
@@ -544,7 +549,7 @@ fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
 mod tests {
     use crate::settings::HistoryTypes;
 
-    use super::text_to_history_item;
+    use super::{clipboard_snapshot_from_candidates, text_to_history_item};
     use crate::history::{HistoryKind, NewHistoryItem};
 
     fn all_types() -> HistoryTypes {
@@ -573,5 +578,22 @@ mod tests {
         );
 
         assert!(item.is_none());
+    }
+
+    #[test]
+    fn clipboard_snapshot_prefers_file_list_over_image_data() {
+        let snapshot = clipboard_snapshot_from_candidates(
+            Some(NewHistoryItem::Files(vec!["/tmp/note.txt".to_string()])),
+            Some(NewHistoryItem::Image {
+                png_bytes: vec![1, 2, 3],
+                width: 1,
+                height: 1,
+                content_hash: "icon".to_string(),
+            }),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(snapshot.item.kind(), HistoryKind::Files);
     }
 }
