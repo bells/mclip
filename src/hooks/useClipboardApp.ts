@@ -36,6 +36,15 @@ import {
 import { normalizeSettings } from "../utils/settings";
 
 const PREVIEW_CLOSE_DELAY_MS = 500;
+const ITEM_PREVIEW_WIDTH = 304;
+const GROUP_PREVIEW_WIDTH = 320;
+const GROUP_PREVIEW_BASE_HEIGHT = 62;
+const GROUP_PREVIEW_ROW_HEIGHT = 36;
+const ITEM_PREVIEW_BASE_HEIGHT = 82;
+const ITEM_PREVIEW_BODY_MIN_HEIGHT = 48;
+const ITEM_PREVIEW_BODY_MAX_HEIGHT = 120;
+const ITEM_PREVIEW_TEXT_CHARS_PER_LINE = 32;
+const ITEM_PREVIEW_TEXT_LINE_HEIGHT = 21;
 
 export function useClipboardApp() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -78,6 +87,32 @@ export function useClipboardApp() {
         : filteredHistory.find((item) => item.id === previewHistoryItemId) ?? null,
     [filteredHistory, previewHistoryItemId],
   );
+
+  const getItemPreviewHeight = (item: HistoryListItem) => {
+    const bodyHeight = (() => {
+      if (item.kind === "image") {
+        return ITEM_PREVIEW_BODY_MAX_HEIGHT;
+      }
+
+      if (item.kind === "files") {
+        return Math.min(
+          ITEM_PREVIEW_BODY_MAX_HEIGHT,
+          Math.max(ITEM_PREVIEW_BODY_MIN_HEIGHT, item.filePaths.length * 34),
+        );
+      }
+
+      const lineCount = Math.ceil(item.text.length / ITEM_PREVIEW_TEXT_CHARS_PER_LINE);
+      return Math.min(
+        ITEM_PREVIEW_BODY_MAX_HEIGHT,
+        Math.max(ITEM_PREVIEW_BODY_MIN_HEIGHT, lineCount * ITEM_PREVIEW_TEXT_LINE_HEIGHT),
+      );
+    })();
+
+    return ITEM_PREVIEW_BASE_HEIGHT + bodyHeight;
+  };
+
+  const getGroupPreviewHeight = (itemCount: number) =>
+    GROUP_PREVIEW_BASE_HEIGHT + itemCount * GROUP_PREVIEW_ROW_HEIGHT;
 
   // 事件回调里要读取最新搜索词，用 ref 避免闭包拿到旧值。
   useEffect(() => {
@@ -225,7 +260,13 @@ export function useClipboardApp() {
         kind: "item",
         language: settings.language,
       })
-        .then(() => showHistoryPreviewWindow(previewAnchorTop, 1, "item"))
+        .then(() =>
+          showHistoryPreviewWindow(
+            previewAnchorTop,
+            getItemPreviewHeight(previewHistoryItem),
+            ITEM_PREVIEW_WIDTH,
+          ),
+        )
         .catch((error) => {
           console.error("显示历史条目预览失败:", error);
         });
@@ -249,7 +290,13 @@ export function useClipboardApp() {
       kind: "group",
       language: settings.language,
     })
-      .then(() => showHistoryPreviewWindow(previewAnchorTop, previewHistory.length, "group"))
+      .then(() =>
+        showHistoryPreviewWindow(
+          previewAnchorTop,
+          getGroupPreviewHeight(previewHistory.length),
+          GROUP_PREVIEW_WIDTH,
+        ),
+      )
       .catch((error) => {
         console.error("显示历史分组预览失败:", error);
       });

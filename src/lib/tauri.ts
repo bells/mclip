@@ -73,18 +73,22 @@ export function getImageBase64(path: string) {
 
 export function showHistoryPreviewWindow(
   anchorTop: number,
-  itemCount: number,
-  previewKind: HistoryPreviewPayload["kind"],
+  previewHeight: number,
+  previewWidth: number,
 ) {
   return invoke<void>("show_history_preview_window", {
     anchorTop,
-    itemCount,
-    previewKind,
+    previewHeight,
+    previewWidth,
   });
 }
 
 export function hideHistoryPreviewWindow() {
   return invoke<void>("hide_history_preview_window");
+}
+
+export function setHistoryPreviewWindowWidth(previewWidth: number) {
+  return invoke<void>("set_history_preview_window_width", { previewWidth });
 }
 
 export function showAboutWindow() {

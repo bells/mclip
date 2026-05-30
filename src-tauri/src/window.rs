@@ -8,7 +8,6 @@ use tauri_plugin_positioner::{Position as TrayPosition, WindowExt};
 use raw_window_handle::HasWindowHandle;
 
 pub const WINDOW_WIDTH: f64 = 320.0;
-pub const PREVIEW_WINDOW_WIDTH: f64 = 304.0;
 pub const MAX_WINDOW_HEIGHT: f64 = 900.0;
 pub const MAIN_WINDOW_SHOWN_EVENT: &str = "main-window-shown";
 const ABOUT_WINDOW_LABEL: &str = "about";
@@ -19,9 +18,9 @@ const GROUP_ROW_HEIGHT: f64 = 52.0;
 const FOOTER_HEIGHT: f64 = 144.0;
 const PER_ITEM_HEIGHT: f64 = 34.0;
 const EMPTY_STATE_HEIGHT: f64 = 120.0;
-const PREVIEW_HEADER_HEIGHT: f64 = 58.0;
-const PREVIEW_ITEM_HEIGHT: f64 = 70.0;
-const ITEM_DETAIL_PREVIEW_HEIGHT: f64 = 248.0;
+const MIN_PREVIEW_WINDOW_WIDTH: f64 = 240.0;
+const MAX_PREVIEW_WINDOW_WIDTH: f64 = 680.0;
+const MIN_PREVIEW_WINDOW_HEIGHT: f64 = 120.0;
 // Keep the preview flush with the main window so the pointer can cross into it
 // without passing through a dead hover gap.
 const PREVIEW_WINDOW_GAP: f64 = 0.0;
@@ -54,8 +53,8 @@ pub fn adjust_window_height(
 pub fn show_history_preview_window(
     app_handle: AppHandle,
     anchor_top: f64,
-    item_count: u32,
-    preview_kind: String,
+    preview_height: f64,
+    preview_width: f64,
 ) -> Result<(), String> {
     let Some(main_window) = app_handle.get_webview_window("main") else {
         return Ok(());
@@ -73,12 +72,10 @@ pub fn show_history_preview_window(
         .outer_position()
         .map_err(|error| error.to_string())?
         .to_logical::<f64>(scale_factor);
-    let preview_height = calculate_preview_window_height(item_count, &preview_kind);
-
     preview_window
         .set_size(Size::Logical(LogicalSize {
-            width: PREVIEW_WINDOW_WIDTH,
-            height: preview_height,
+            width: clamp_preview_width(preview_width),
+            height: clamp_preview_height(preview_height),
         }))
         .map_err(|error| error.to_string())?;
     preview_window
@@ -97,6 +94,30 @@ pub fn hide_history_preview_window(app_handle: AppHandle) -> Result<(), String> 
     }
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn set_history_preview_window_width(
+    app_handle: AppHandle,
+    preview_width: f64,
+) -> Result<(), String> {
+    let Some(preview_window) = app_handle.get_webview_window("preview") else {
+        return Ok(());
+    };
+    let current_size = preview_window
+        .outer_size()
+        .map_err(|error| error.to_string())?;
+    let scale_factor = preview_window
+        .scale_factor()
+        .map_err(|error| error.to_string())?;
+    let logical_size = current_size.to_logical::<f64>(scale_factor);
+
+    preview_window
+        .set_size(Size::Logical(LogicalSize {
+            width: clamp_preview_width(preview_width),
+            height: logical_size.height,
+        }))
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -244,12 +265,12 @@ fn calculate_window_height(item_count: u32, group_count: u32) -> f64 {
     (HEADER_HEIGHT + group_rows_height + FOOTER_HEIGHT + content_height).min(MAX_WINDOW_HEIGHT)
 }
 
-fn calculate_preview_window_height(item_count: u32, preview_kind: &str) -> f64 {
-    if preview_kind == "item" {
-        ITEM_DETAIL_PREVIEW_HEIGHT
-    } else {
-        PREVIEW_HEADER_HEIGHT + item_count as f64 * PREVIEW_ITEM_HEIGHT
-    }
+fn clamp_preview_width(width: f64) -> f64 {
+    width.clamp(MIN_PREVIEW_WINDOW_WIDTH, MAX_PREVIEW_WINDOW_WIDTH)
+}
+
+fn clamp_preview_height(height: f64) -> f64 {
+    height.clamp(MIN_PREVIEW_WINDOW_HEIGHT, MAX_WINDOW_HEIGHT)
 }
 
 fn is_physical_point_in_rect(x: f64, y: f64, left: f64, top: f64, width: f64, height: f64) -> bool {
@@ -351,8 +372,8 @@ mod macos_window {
 #[cfg(test)]
 mod tests {
     use super::{
-        calculate_preview_window_height, calculate_window_height, is_physical_point_in_rect,
-        MAX_WINDOW_HEIGHT,
+        calculate_window_height, clamp_preview_height, clamp_preview_width,
+        is_physical_point_in_rect, MAX_WINDOW_HEIGHT,
     };
 
     #[test]
@@ -371,13 +392,17 @@ mod tests {
     }
 
     #[test]
-    fn preview_height_tracks_item_count() {
-        assert_eq!(calculate_preview_window_height(4, "group"), 338.0);
+    fn preview_width_is_clamped_to_supported_range() {
+        assert_eq!(clamp_preview_width(10.0), 240.0);
+        assert_eq!(clamp_preview_width(608.0), 608.0);
+        assert_eq!(clamp_preview_width(2000.0), 680.0);
     }
 
     #[test]
-    fn item_detail_preview_uses_fixed_height() {
-        assert_eq!(calculate_preview_window_height(1, "item"), 248.0);
+    fn preview_height_is_clamped_to_supported_range() {
+        assert_eq!(clamp_preview_height(10.0), 120.0);
+        assert_eq!(clamp_preview_height(182.0), 182.0);
+        assert_eq!(clamp_preview_height(2000.0), MAX_WINDOW_HEIGHT);
     }
 
     #[test]
