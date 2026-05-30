@@ -3,6 +3,7 @@
 import type { AppTranslations } from "../i18n";
 import type { HistoryGroupInfo } from "../types";
 
+// 主列表显示最新一组，后续分组通过这些入口打开右侧 preview 窗口。
 type HistoryGroupNavProps = {
   groups: HistoryGroupInfo[];
   previewGroupIndex: number | null;
@@ -18,9 +19,11 @@ export function HistoryGroupNav({
   onOpenPreview,
   onScheduleClosePreview,
 }: HistoryGroupNavProps) {
+  // slice(1) 会返回一个新数组，不会修改原来的 groups；第 0 组已经在主列表中显示。
   const archiveGroups = groups.slice(1);
 
   if (archiveGroups.length === 0) {
+    // React 组件返回 null 表示什么都不渲染。
     return null;
   }
 
@@ -40,6 +43,7 @@ export function HistoryGroupNav({
         {archiveGroups.map((group) => {
           const isActive = group.index === previewGroupIndex;
 
+          // map 渲染列表时必须给稳定的 key，React 用它识别哪些节点需要复用。
           return (
             <div className="app-history-archive-entry" key={group.index}>
               <button

@@ -20,9 +20,11 @@ import type { AppLanguage, AppSettings, HistoryKind } from "../types";
 import { normalizeSettings } from "../utils/settings";
 
 export function PreferencesWindow() {
+  // settingsDraft 是本窗口里的“草稿”，保存前不会直接写入后端。
   const [settingsDraft, setSettingsDraft] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [settingsError, setSettingsError] = useState("");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  // 数字输入框单独保存字符串，允许用户编辑中间态，比如暂时清空输入框。
   const [maxHistoryCountInput, setMaxHistoryCountInput] = useState(
     String(DEFAULT_SETTINGS.maxHistoryCount),
   );
@@ -36,6 +38,7 @@ export function PreferencesWindow() {
       try {
         const loadedSettings = normalizeSettings(await getSettings());
 
+        // 如果异步请求回来时组件已经卸载，就不要再 setState。
         if (!isActive) {
           return;
         }
@@ -98,6 +101,7 @@ export function PreferencesWindow() {
       ...current,
       enabledHistoryTypes: {
         ...current.enabledHistoryTypes,
+        // 计算属性名：用变量 kind 的值作为对象 key，比如 "text" / "image" / "files"。
         [kind]: !current.enabledHistoryTypes[kind],
       },
     }));
@@ -117,6 +121,7 @@ export function PreferencesWindow() {
     const parsedValue = Number(maxHistoryCountInput);
 
     if (!Number.isFinite(parsedValue)) {
+      // 输入不是有效数字时回退到当前草稿值，避免把 NaN 写进设置。
       setMaxHistoryCountInput(String(settingsDraft.maxHistoryCount));
       return;
     }
@@ -249,6 +254,7 @@ export function PreferencesWindow() {
               </div>
 
               <div className="app-history-type-list">
+                {/* `as const` 让 TypeScript 把 kind 推断成字面量类型，而不是普通 string。 */}
                 {([
                   ["text", t.typeText],
                   ["image", t.typeImage],

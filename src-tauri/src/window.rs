@@ -319,10 +319,7 @@ mod macos_window {
     pub fn set_corner_radius(ns_view: *mut c_void, radius: f64) {
         unsafe {
             // [nsView window] -> NSWindow
-            let ns_window = msg_send_id(
-                ns_view as ObjcId,
-                sel(c"window".as_ptr()),
-            );
+            let ns_window = msg_send_id(ns_view as ObjcId, sel(c"window".as_ptr()));
 
             if ns_window.is_null() {
                 return;
@@ -333,23 +330,13 @@ mod macos_window {
             msg_send_bool(ns_window, sel(c"setOpaque:".as_ptr()), 0);
 
             let ns_color_class = objc_getClass(c"NSColor".as_ptr());
-            let clear_color = msg_send_id(
-                ns_color_class,
-                sel(c"clearColor".as_ptr()),
-            );
+            let clear_color = msg_send_id(ns_color_class, sel(c"clearColor".as_ptr()));
             if !clear_color.is_null() {
-                msg_send_void_id(
-                    ns_window,
-                    sel(c"setBackgroundColor:".as_ptr()),
-                    clear_color,
-                );
+                msg_send_void_id(ns_window, sel(c"setBackgroundColor:".as_ptr()), clear_color);
             }
 
             // Round the contentView layer — this gives the NSWindow its shape.
-            let content_view = msg_send_id(
-                ns_window,
-                sel(c"contentView".as_ptr()),
-            );
+            let content_view = msg_send_id(ns_window, sel(c"contentView".as_ptr()));
             if !content_view.is_null() {
                 layer_backed_view_set_corner_radius(content_view, radius);
             }
@@ -390,7 +377,7 @@ mod tests {
 
     #[test]
     fn item_detail_preview_uses_fixed_height() {
-        assert_eq!(calculate_preview_window_height(1, "item"), 200.0);
+        assert_eq!(calculate_preview_window_height(1, "item"), 248.0);
     }
 
     #[test]

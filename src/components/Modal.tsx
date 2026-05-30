@@ -2,6 +2,7 @@
 
 import type { PropsWithChildren, ReactNode } from "react";
 
+// PropsWithChildren 会把 children 加进 props 类型，ReactNode 可表示任意可渲染内容。
 type ModalProps = PropsWithChildren<{
   className?: string;
   footer?: ReactNode;
@@ -20,6 +21,7 @@ export function Modal({
     <div className="app-modal-overlay" onClick={onRequestClose}>
       <div
         aria-modal="true"
+        // filter(Boolean) 去掉 undefined class，再 join 成浏览器需要的 className 字符串。
         className={["app-modal", className].filter(Boolean).join(" ")}
         onClick={(event) => event.stopPropagation()}
         role="dialog"

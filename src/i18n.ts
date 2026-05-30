@@ -8,7 +8,8 @@ export const translations = {
     about: {
       confirm: "确定",
       description: "一个轻量的跨平台剪贴板历史工具，基于 Tauri、React 和 Rust 构建。",
-      title: `关于 ${APP_NAME}`,
+      githubLabel: "GitHub",
+      title: `关于${APP_NAME}`,
       version: (version: string) => `版本 ${version}`,
     },
     clearHistoryConfirm: {
@@ -19,7 +20,7 @@ export const translations = {
     },
     footer: {
       aboutHint: "查看版本信息",
-      aboutLabel: `关于 ${APP_NAME}`,
+      aboutLabel: `关于${APP_NAME}`,
       clearHint: "删除本地保存的记录",
       clearLabel: "清除历史",
       preferencesHint: "启动方式、语言与历史条数",
@@ -84,6 +85,7 @@ export const translations = {
     about: {
       confirm: "OK",
       description: "A lightweight cross-platform clipboard history app built with Tauri, React, and Rust.",
+      githubLabel: "GitHub",
       title: `About ${APP_NAME}`,
       version: (version: string) => `Version ${version}`,
     },

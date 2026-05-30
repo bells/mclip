@@ -2,8 +2,14 @@
 
 import { useEffect, useState } from "react";
 import type { UnlistenFn } from "@tauri-apps/api/event";
+import appIconUrl from "../../src-tauri/icons/128x128.png";
 
-import { APP_NAME, DEFAULT_APP_VERSION, DEFAULT_SETTINGS } from "../constants";
+import {
+  APP_GITHUB_URL,
+  APP_NAME,
+  DEFAULT_APP_VERSION,
+  DEFAULT_SETTINGS,
+} from "../constants";
 import { getTranslations } from "../i18n";
 import {
   getAppVersion,
@@ -17,6 +23,7 @@ import { normalizeSettings } from "../utils/settings";
 export function AboutWindow() {
   const [appVersion, setAppVersion] = useState(DEFAULT_APP_VERSION);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  // 根据当前语言取文案；settings 更新后组件会重新渲染，t 也会跟着切换语言。
   const t = getTranslations(settings.language).about;
 
   useEffect(() => {
@@ -25,6 +32,7 @@ export function AboutWindow() {
 
     const loadAboutData = async () => {
       try {
+        // Promise.all 并行读取设置和版本号，比顺序 await 少一次等待。
         const [loadedSettings, version] = await Promise.all([
           getSettings(),
           getAppVersion(),
@@ -72,15 +80,22 @@ export function AboutWindow() {
   return (
     <div className="app-dialog-frame app-about-window">
       <div className="app-dialog-panel">
+        <img className="app-about-icon" src={appIconUrl} alt="" aria-hidden="true" />
+
         <div className="app-modal-header">
           <span className="app-modal-title">{t.title}</span>
         </div>
 
         <div className="app-modal-content">
-          <span className="app-about-mark" aria-hidden="true" />
-          <h2 className="app-modal-app-name">{APP_NAME}</h2>
-          <p className="app-modal-version">{t.version(appVersion)}</p>
+          <div className="app-modal-identity">
+            <h2 className="app-modal-app-name">{APP_NAME}</h2>
+            <span className="app-modal-version">{t.version(appVersion)}</span>
+          </div>
           <p className="app-modal-description">{t.description}</p>
+          <div className="app-modal-github" aria-label={t.githubLabel}>
+            <span className="app-modal-github-label">{t.githubLabel}</span>
+            <span className="app-modal-github-url">{APP_GITHUB_URL}</span>
+          </div>
         </div>
 
         <div className="app-modal-footer">

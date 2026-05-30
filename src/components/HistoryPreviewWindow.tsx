@@ -16,11 +16,13 @@ import type { HistoryGroupInfo, HistoryListItem, HistoryPreviewPayload } from ".
 import { ImageThumb } from "./ImageThumb";
 
 function getLocalDisplayPosition(item: HistoryListItem, group: HistoryGroupInfo) {
+  // item.position 是全局序号；preview 里显示的是当前分组内的相对序号。
   const localPosition = item.position - group.startPosition + 1;
   return String(localPosition);
 }
 
 function formatHistoryTimestamp(timestamp: number, language: HistoryPreviewPayload["language"]) {
+  // language 的类型直接复用 payload 字段，避免这里和 types.ts 里的定义漂移。
   const locale = language === "zhCn" ? "zh-CN" : "en-US";
 
   return new Intl.DateTimeFormat(locale, {
@@ -39,6 +41,7 @@ function HistoryDetailContent({
   item: HistoryListItem;
   translations: ReturnType<typeof getTranslations>["history"];
 }) {
+  // HistoryListItem 是联合类型，判断 kind 后 TypeScript 会自动收窄字段类型。
   if (item.kind === "image") {
     return (
       <div className="app-history-detail-image-wrap">
@@ -78,9 +81,11 @@ function HistoryDetailContent({
 }
 
 export function HistoryPreviewWindow() {
+  // preview 为 null 时窗口没有可展示数据，组件会返回 null。
   const [preview, setPreview] = useState<HistoryPreviewPayload | null>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [isDetailMetaOpen, setIsDetailMetaOpen] = useState(false);
+  // ref 适合保存不参与渲染的可变值；这里记录上次通知主窗口的时间。
   const lastPointerNotifyAtRef = useRef(0);
 
   useEffect(() => {
@@ -114,6 +119,7 @@ export function HistoryPreviewWindow() {
     try {
       await deleteHistoryItem(id);
 
+      // 函数式 setState 可以拿到最新 state，适合基于当前 preview 删除某一项。
       setPreview((currentPreview) => {
         if (!currentPreview) {
           return currentPreview;
@@ -267,6 +273,7 @@ export function HistoryPreviewWindow() {
             setHoveredItemId(null);
           }}
           onPointerMove={(event) => {
+            // target 可能是按钮里的子元素，closest 可以向上找到带 data 属性的条目行。
             const previewItem = (event.target as Element).closest<HTMLElement>(
               "[data-preview-item-id]",
             );

@@ -17,6 +17,7 @@ import { getCurrentWindowLabel, listenToMainWindowShown } from "./lib/tauri";
 function App() {
   const windowLabel = getCurrentWindowLabel();
 
+  // Tauri 的每个窗口都会加载同一份前端入口，这里按窗口 label 决定实际渲染哪个组件。
   if (windowLabel === "preview") {
     return <HistoryPreviewWindow />;
   }
@@ -34,8 +35,11 @@ function App() {
 
 function MainWindow() {
   // 主窗口负责管理完整应用状态；preview 窗口只接收主窗口发过去的展示数据。
+  // useRef 保存 DOM 节点引用；改变 ref.current 不会触发组件重新渲染。
   const searchInputRef = useRef<HTMLInputElement>(null);
+  // useState 适合保存会影响界面的状态。这里的 boolean 控制确认弹窗是否显示。
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+  // 自定义 Hook 把剪贴板历史、设置、窗口命令等逻辑集中起来，组件只负责组装界面。
   const {
     visibleHistory,
     historyGroups,
@@ -62,12 +66,14 @@ function MainWindow() {
   const t = getTranslations(settings.language);
 
   useEffect(() => {
+    // 第二个参数是空数组，表示这个 effect 只在组件首次挂载后执行一次。
     searchInputRef.current?.focus();
   }, []);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
 
+    // Tauri 事件监听是异步注册的，所以先保存取消监听函数，卸载组件时再调用。
     void listenToMainWindowShown(() => {
       searchInputRef.current?.focus();
       searchInputRef.current?.select();
@@ -82,6 +88,7 @@ function MainWindow() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // 浏览器键盘事件来自 DOM，不是 React 的合成事件，所以类型是 KeyboardEvent。
       const hasMetaModifier = event.metaKey || event.ctrlKey;
       const normalizedKey = event.key.toLowerCase();
 
@@ -155,6 +162,7 @@ function MainWindow() {
     }
 
     closeHistoryGroupPreview();
+    // 打开模态框前先关闭右侧 preview，避免两个浮层同时响应鼠标事件。
     setIsClearConfirmOpen(true);
   };
 
@@ -204,6 +212,7 @@ function MainWindow() {
           onQuit={quit}
         />
 
+        {/* JSX 里用三元表达式做条件渲染；不显示时返回 null。 */}
         {isClearConfirmOpen ? (
           <Modal
             className="app-clear-confirm-modal"

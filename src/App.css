@@ -142,9 +142,32 @@ button {
 }
 
 .app-about-window .app-dialog-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  padding: 22px 22px 20px;
+}
+
+.app-about-window .app-modal-header {
+  margin-bottom: 8px;
+}
+
+.app-about-window .app-modal-footer {
   justify-content: center;
+  margin-top: 16px;
+}
+
+.app-about-icon {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 8px 18px rgba(0, 0, 0, 0.22);
 }
 
 .app-settings-window-panel {
@@ -1185,6 +1208,14 @@ button {
   transform: translate(6px, -6px);
 }
 
+.app-modal-identity {
+  display: flex;
+  max-width: 100%;
+  align-items: baseline;
+  justify-content: center;
+  gap: 9px;
+}
+
 .app-modal-app-name {
   margin: 0;
   color: var(--app-ink);
@@ -1195,11 +1226,13 @@ button {
 }
 
 .app-modal-version {
-  margin: 9px 0 0;
   color: rgba(244, 184, 96, 0.86);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 800;
+  line-height: 1;
   text-align: center;
+  white-space: nowrap;
 }
 
 .app-modal-description {
@@ -1207,6 +1240,37 @@ button {
   color: var(--app-ink-dim);
   line-height: 1.6;
   text-align: center;
+}
+
+.app-modal-github {
+  display: grid;
+  max-width: 100%;
+  justify-items: center;
+  gap: 5px;
+  margin-top: 14px;
+  padding: 9px 10px;
+  border: 1px solid rgba(124, 199, 193, 0.22);
+  border-radius: 8px;
+  background: rgba(124, 199, 193, 0.07);
+}
+
+.app-modal-github-label {
+  color: rgba(124, 199, 193, 0.9);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.app-modal-github-url {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--app-ink-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-modal-footer {

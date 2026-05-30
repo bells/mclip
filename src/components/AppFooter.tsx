@@ -2,6 +2,7 @@
 
 import type { AppTranslations } from "../i18n";
 
+// 这里把“能做什么”交给父组件实现，Footer 只负责触发对应的回调。
 type AppFooterProps = {
   canClearHistory: boolean;
   translations: AppTranslations["footer"];
@@ -25,6 +26,7 @@ export function AppFooter({
     <footer className="app-footer" onMouseEnter={onPointerEnter}>
       <button
         className="app-menu-item is-danger"
+        // disabled 会同时禁用点击行为和键盘触发，适合空历史时避免误操作。
         disabled={!canClearHistory}
         onClick={onClearHistory}
         type="button"

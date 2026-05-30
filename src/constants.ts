@@ -3,6 +3,7 @@
 import type { AppSettings } from "./types";
 
 export const APP_NAME = "mclip";
+export const APP_GITHUB_URL = "https://github.com/bells/mclip";
 export const DEFAULT_APP_VERSION = "0.1.0";
 export const HISTORY_GROUP_SIZE = 10;
 
