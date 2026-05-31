@@ -51,6 +51,8 @@ jobs:
           releaseBody: |
             自动生成的 mclip 发布版本，包含 macOS 和 Windows 安装包。
 
+            This automated mclip release includes installers for macOS and Windows.
+
             注意：当前 macOS 包未做 Apple Developer ID 公证。若首次打开提示“mclip.app 已损坏，无法打开”，请先把 mclip 拖到“应用程序”，然后在终端执行：
 
             ```bash
@@ -58,5 +60,9 @@ jobs:
             ```
 
             执行后再打开 mclip 即可。
+
+            Windows 安装包当前未做代码签名。安装或首次启动时，如果 Windows SmartScreen 提示未知发布者，请只在确认信任该 Release 后继续。
+
+            The Windows installer is currently unsigned. If Windows SmartScreen warns about an unknown publisher, continue only if you trust this release.
           releaseDraft: true
           prerelease: false
