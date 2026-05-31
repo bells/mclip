@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { GROUP_PREVIEW_DETAIL_WINDOW_WIDTH } from "../constants";
+import { GROUP_PREVIEW_DETAIL_WINDOW_WIDTH, GROUP_PREVIEW_WIDTH } from "../constants";
 import { getTranslations } from "../i18n";
 import {
   copyHistoryItem,
@@ -10,14 +10,16 @@ import {
   hideHistoryPreviewDetailWindow,
   hideHistoryPreviewWindow,
   hideMainWindow,
+  listenToHistoryPreviewPlacementUpdated,
   listenToHistoryPreviewUpdated,
   notifyHistoryPreviewPointerEntered,
   requestHistoryPreviewClose,
-  showHistoryPreviewDetailWindow,
-  updateHistoryPreviewDetailWindow,
+  showHistoryGroupPreviewWithDetailWindow,
+  type PreviewWindowPosition,
+  type PreviewWindowSide,
 } from "../lib/tauri";
 import type { HistoryPreviewPayload } from "../types";
-import { getItemPreviewHeight } from "../utils/preview";
+import { getGroupPreviewHeight, getItemPreviewHeight } from "../utils/preview";
 import { HistoryGroupPreviewWindow } from "./HistoryGroupPreviewWindow";
 import { HistoryItemPreviewWindow } from "./HistoryItemPreviewWindow";
 
@@ -25,16 +27,42 @@ export function HistoryPreviewWindow() {
   // preview 为 null 时窗口没有可展示数据，组件会返回 null。
   const [preview, setPreview] = useState<HistoryPreviewPayload | null>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+  const [groupPlacement, setGroupPlacement] = useState<PreviewWindowPosition | null>(null);
+  const [groupDetailSide, setGroupDetailSide] =
+    useState<PreviewWindowSide>("right");
   // ref 适合保存不参与渲染的可变值；这里记录上次通知主窗口的时间。
   const lastPointerNotifyAtRef = useRef(0);
+  const latestPlacementRef = useRef<PreviewWindowPosition | null>(null);
+  const previewKindRef = useRef<HistoryPreviewPayload["kind"] | null>(null);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
 
     // preview 窗口不主动读取历史，由主窗口通过事件推送当前分组数据。
     void listenToHistoryPreviewUpdated((payload) => {
+      previewKindRef.current = payload.kind;
       setPreview(payload);
       setHoveredItemId(null);
+      setGroupPlacement(payload.kind === "group" ? latestPlacementRef.current : null);
+      setGroupDetailSide("right");
+      void hideHistoryPreviewDetailWindow();
+    }).then((unsubscribe) => {
+      unlisten = unsubscribe;
+    });
+
+    return () => {
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    void listenToHistoryPreviewPlacementUpdated((placement) => {
+      latestPlacementRef.current = placement;
+      if (previewKindRef.current === "group") {
+        setGroupPlacement(placement);
+      }
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
     });
@@ -107,30 +135,37 @@ export function HistoryPreviewWindow() {
     preview?.kind === "group" && hoveredItemId !== null
       ? preview.items.find((item) => item.id === hoveredItemId) ?? null
       : null;
+  const groupPreviewHeight =
+    preview?.kind === "group" ? getGroupPreviewHeight(preview.items.length) : null;
+  const detailPreviewHeight =
+    hoveredItem === null ? null : getItemPreviewHeight(hoveredItem);
 
   useEffect(() => {
-    if (!hoveredItem || preview?.kind !== "group") {
+    if (
+      !hoveredItem ||
+      preview?.kind !== "group" ||
+      !groupPlacement ||
+      groupPreviewHeight === null ||
+      detailPreviewHeight === null
+    ) {
       void hideHistoryPreviewDetailWindow().catch((error) => {
         console.error("隐藏历史分组详情预览失败:", error);
       });
       return;
     }
 
-    void updateHistoryPreviewDetailWindow({
-      item: hoveredItem,
-      kind: "item",
-      language: preview.language,
-    })
-      .then(() =>
-        showHistoryPreviewDetailWindow(
-          getItemPreviewHeight(hoveredItem),
-          GROUP_PREVIEW_DETAIL_WINDOW_WIDTH,
-        ),
-      )
+    void showHistoryGroupPreviewWithDetailWindow(
+      groupPlacement.x,
+      groupPlacement.y,
+      Math.max(detailPreviewHeight, groupPreviewHeight),
+      GROUP_PREVIEW_WIDTH,
+      GROUP_PREVIEW_DETAIL_WINDOW_WIDTH,
+    )
+      .then((placement) => setGroupDetailSide(placement.side))
       .catch((error) => {
         console.error("显示历史分组详情预览失败:", error);
       });
-  }, [hoveredItem, preview]);
+  }, [detailPreviewHeight, groupPlacement, groupPreviewHeight, hoveredItem, preview]);
 
   if (!preview) {
     return null;
@@ -154,6 +189,10 @@ export function HistoryPreviewWindow() {
   return (
     <HistoryGroupPreviewWindow
       hoveredItemId={hoveredItemId}
+      hoveredItem={hoveredItem}
+      detailSide={groupDetailSide}
+      detailPreviewHeight={detailPreviewHeight}
+      groupPreviewHeight={groupPreviewHeight ?? getGroupPreviewHeight(preview.items.length)}
       preview={preview}
       translations={t}
       onDeleteItem={(id) => {

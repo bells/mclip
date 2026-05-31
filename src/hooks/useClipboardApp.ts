@@ -36,12 +36,10 @@ import {
   getHistoryGroupItems,
   getHistoryGroups,
 } from "../utils/history";
-import { getItemPreviewHeight } from "../utils/preview";
+import { getGroupPreviewHeight, getItemPreviewHeight } from "../utils/preview";
 import { normalizeSettings } from "../utils/settings";
 
 const PREVIEW_CLOSE_DELAY_MS = 500;
-const GROUP_PREVIEW_BASE_HEIGHT = 62;
-const GROUP_PREVIEW_ROW_HEIGHT = 36;
 
 export function useClipboardApp() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -84,9 +82,6 @@ export function useClipboardApp() {
         : filteredHistory.find((item) => item.id === previewHistoryItemId) ?? null,
     [filteredHistory, previewHistoryItemId],
   );
-
-  const getGroupPreviewHeight = (itemCount: number) =>
-    GROUP_PREVIEW_BASE_HEIGHT + itemCount * GROUP_PREVIEW_ROW_HEIGHT;
 
   // 事件回调里要读取最新搜索词，用 ref 避免闭包拿到旧值。
   useEffect(() => {

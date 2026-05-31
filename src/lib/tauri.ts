@@ -106,6 +106,25 @@ export function showHistoryPreviewWindow(
   });
 }
 
+export function showHistoryGroupPreviewWithDetailWindow(
+  groupX: number,
+  groupY: number,
+  previewHeight: number,
+  groupWidth: number,
+  detailWidth: number,
+) {
+  return invoke<PreviewWindowPosition>(
+    "show_history_group_preview_with_detail_window",
+    {
+      detailWidth,
+      groupWidth,
+      groupX,
+      groupY,
+      previewHeight,
+    },
+  );
+}
+
 export function hideHistoryPreviewWindow() {
   return invoke<void>("hide_history_preview_window");
 }
@@ -117,10 +136,12 @@ export function hideHistoryPreviewDetailWindow() {
 export function showHistoryPreviewDetailWindow(
   detailHeight: number,
   detailWidth: number,
+  previewWidth: number,
 ) {
   return invoke<PreviewWindowPosition>("show_history_preview_detail_window", {
     detailHeight,
     detailWidth,
+    previewWidth,
   });
 }
 

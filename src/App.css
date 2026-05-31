@@ -771,11 +771,44 @@ button {
 }
 
 .app-history-group-preview-window {
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 0;
+}
+
+.app-history-group-preview-window.has-detail {
+  grid-template-columns: 320px 312px;
+}
+
+.app-history-group-preview-window.has-detail.is-detail-left {
+  grid-template-columns: 312px 320px;
 }
 
 .app-history-group-preview-window > .app-history-group-preview {
-  width: 100%;
+  width: 320px;
+  height: var(--group-preview-height, 100%);
+  min-width: 0;
+}
+
+.app-history-group-detail-pane {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.app-history-group-preview-window.is-detail-right .app-history-group-detail-pane {
+  padding-left: 8px;
+}
+
+.app-history-group-preview-window.is-detail-left .app-history-group-detail-pane {
+  padding-right: 8px;
+}
+
+.app-history-group-detail-pane > .app-history-detail-preview {
+  width: 304px;
+  height: var(--detail-preview-height, auto);
+  flex: 0 0 304px;
 }
 
 .app-history-preview-detail-window {

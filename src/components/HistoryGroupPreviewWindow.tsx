@@ -1,17 +1,22 @@
 // 历史分组 preview：只负责展示某个分组里的多条历史记录。
 
-import { useCallback, useEffect, useRef } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef } from "react";
 
 import { getTranslations } from "../i18n";
-import { getHistoryPreviewPointerPosition } from "../lib/tauri";
+import { getHistoryPreviewPointerPosition, type PreviewWindowSide } from "../lib/tauri";
 import type { HistoryGroupInfo, HistoryGroupPreviewPayload, HistoryListItem } from "../types";
+import { HistoryDetailPanel } from "./HistoryDetailPanel";
 import { ImageThumb } from "./ImageThumb";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
 const POINTER_POLL_INTERVAL_MS = 48;
 
 type HistoryGroupPreviewWindowProps = {
+  detailSide: PreviewWindowSide;
+  detailPreviewHeight: number | null;
+  groupPreviewHeight: number;
   hoveredItemId: string | null;
+  hoveredItem: HistoryListItem | null;
   preview: HistoryGroupPreviewPayload;
   translations: HistoryTranslations;
   onDeleteItem: (id: string) => void;
@@ -37,7 +42,11 @@ function findPreviewItemId(target: EventTarget | null) {
 }
 
 export function HistoryGroupPreviewWindow({
+  detailSide,
+  detailPreviewHeight,
+  groupPreviewHeight,
   hoveredItemId,
+  hoveredItem,
   preview,
   translations,
   onDeleteItem,
@@ -47,6 +56,24 @@ export function HistoryGroupPreviewWindow({
   onSelectItem,
 }: HistoryGroupPreviewWindowProps) {
   const hoveredItemIdRef = useRef(hoveredItemId);
+  const previewStyle = {
+    "--detail-preview-height":
+      detailPreviewHeight === null ? undefined : `${detailPreviewHeight}px`,
+    "--group-preview-height": `${groupPreviewHeight}px`,
+  } as CSSProperties;
+  const detailPanel =
+    hoveredItem === null ? null : (
+      <div className="app-history-group-detail-pane">
+        <HistoryDetailPanel
+          ariaLabel={translations.itemPreviewAriaLabel}
+          className="app-history-group-hover-detail"
+          item={hoveredItem}
+          language={preview.language}
+          role="region"
+          translations={translations}
+        />
+      </div>
+    );
 
   useEffect(() => {
     hoveredItemIdRef.current = hoveredItemId;
@@ -122,13 +149,17 @@ export function HistoryGroupPreviewWindow({
 
   return (
     <div
-      className="history-preview-window app-history-group-preview-window"
+      className={`history-preview-window app-history-group-preview-window ${
+        hoveredItem ? "has-detail" : ""
+      } ${detailSide === "left" ? "is-detail-left" : "is-detail-right"}`}
+      style={previewStyle}
       onMouseEnter={onPointerInside}
       onMouseMove={onPointerInside}
       onMouseLeave={() => {
         onRequestClose();
       }}
     >
+      {detailSide === "left" ? detailPanel : null}
       <div
         aria-label={translations.previewAriaLabel(
           preview.group.startPosition,
@@ -235,6 +266,7 @@ export function HistoryGroupPreviewWindow({
           </div>
         </div>
       </div>
+      {detailSide === "right" ? detailPanel : null}
     </div>
   );
 }
