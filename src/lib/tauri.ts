@@ -29,6 +29,11 @@ type TauriWindowMetadata = Window & {
   };
 };
 
+type WindowPointerPosition = {
+  x: number;
+  y: number;
+};
+
 export function getSettings() {
   return invoke<AppSettings>("get_settings");
 }
@@ -101,6 +106,12 @@ export function showPreferencesWindow() {
 
 export function isPointerOverHistoryPreviewWindow() {
   return invoke<boolean>("is_pointer_over_history_preview_window");
+}
+
+export function getHistoryPreviewPointerPosition() {
+  return invoke<WindowPointerPosition | null>(
+    "get_history_preview_pointer_position",
+  );
 }
 
 export function updateHistoryPreviewWindow(payload: HistoryPreviewPayload) {

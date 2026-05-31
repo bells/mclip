@@ -24,10 +24,10 @@ use crate::clipboard::{copy_history_item, get_image_base64, spawn_clipboard_watc
 use crate::history::{clear_history, delete_history_item, get_history};
 use crate::settings::{get_settings, save_settings};
 use crate::window::{
-    adjust_window_height, configure_main_window, hide_history_preview_window, hide_main_window,
-    is_pointer_over_history_preview_window, is_pointer_over_preview_window,
-    set_history_preview_window_width, show_about_window, show_history_preview_window,
-    show_preferences_window, toggle_main_window, WindowPlacement,
+    adjust_window_height, configure_main_window, get_history_preview_pointer_position,
+    hide_history_preview_window, hide_main_window, is_pointer_over_history_preview_window,
+    is_pointer_over_preview_window, set_history_preview_window_width, show_about_window,
+    show_history_preview_window, show_preferences_window, toggle_main_window, WindowPlacement,
 };
 
 const SHOW_GUARD_MS: u64 = 450;
@@ -155,7 +155,8 @@ pub fn run() {
             hide_history_preview_window,
             show_about_window,
             show_preferences_window,
-            is_pointer_over_history_preview_window
+            is_pointer_over_history_preview_window,
+            get_history_preview_pointer_position
         ])
         .setup({
             let show_guard_until = Arc::clone(&show_guard_until);

@@ -1,7 +1,12 @@
 // 历史分组 preview：只负责展示某个分组里的多条历史记录。
 
+import { useCallback, useEffect, useRef } from "react";
+
 import { getTranslations } from "../i18n";
-import { setHistoryPreviewWindowWidth } from "../lib/tauri";
+import {
+  getHistoryPreviewPointerPosition,
+  setHistoryPreviewWindowWidth,
+} from "../lib/tauri";
 import type { HistoryGroupInfo, HistoryGroupPreviewPayload, HistoryListItem } from "../types";
 import { ImageThumb } from "./ImageThumb";
 import { HistoryPreviewDetailContent } from "./HistoryPreviewDetailContent";
@@ -9,6 +14,7 @@ import { HistoryPreviewDetailContent } from "./HistoryPreviewDetailContent";
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
 const GROUP_PREVIEW_IDLE_WIDTH = 320;
 const GROUP_PREVIEW_DETAIL_WIDTH = 624;
+const POINTER_POLL_INTERVAL_MS = 48;
 
 type HistoryGroupPreviewWindowProps = {
   hoveredItemId: string | null;
@@ -27,6 +33,15 @@ function getLocalDisplayPosition(item: HistoryListItem, group: HistoryGroupInfo)
   return String(localPosition);
 }
 
+function findPreviewItemId(target: EventTarget | null) {
+  if (!(target instanceof Element)) {
+    return null;
+  }
+
+  return target.closest<HTMLElement>("[data-preview-item-id]")?.dataset
+    .previewItemId ?? null;
+}
+
 export function HistoryGroupPreviewWindow({
   hoveredItemId,
   preview,
@@ -41,22 +56,86 @@ export function HistoryGroupPreviewWindow({
     hoveredItemId === null
       ? null
       : preview.items.find((item) => item.id === hoveredItemId) ?? null;
-  const findPreviewItemId = (target: EventTarget | null) => {
-    if (!(target instanceof Element)) {
-      return null;
+  const hoveredItemIdRef = useRef(hoveredItemId);
+
+  useEffect(() => {
+    hoveredItemIdRef.current = hoveredItemId;
+  }, [hoveredItemId]);
+
+  const activateItem = useCallback((id: string) => {
+    const shouldOpenDetail = hoveredItemIdRef.current === null;
+
+    if (hoveredItemIdRef.current === id) {
+      return;
     }
 
-    return target.closest<HTMLElement>("[data-preview-item-id]")?.dataset
-      .previewItemId ?? null;
-  };
-  const activateItem = (id: string) => {
+    hoveredItemIdRef.current = id;
     onHoveredItemChange(id);
-    void setHistoryPreviewWindowWidth(GROUP_PREVIEW_DETAIL_WIDTH);
-  };
-  const clearActiveItem = () => {
+
+    if (shouldOpenDetail) {
+      void setHistoryPreviewWindowWidth(GROUP_PREVIEW_DETAIL_WIDTH);
+    }
+  }, [onHoveredItemChange]);
+
+  const clearActiveItem = useCallback(() => {
+    if (hoveredItemIdRef.current === null) {
+      return;
+    }
+
+    hoveredItemIdRef.current = null;
     onHoveredItemChange(null);
     void setHistoryPreviewWindowWidth(GROUP_PREVIEW_IDLE_WIDTH);
-  };
+  }, [onHoveredItemChange]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    let timerId: number | null = null;
+    let isPolling = false;
+
+    const pollPointerPosition = async () => {
+      if (isCancelled || isPolling) {
+        return;
+      }
+
+      isPolling = true;
+
+      try {
+        const position = await getHistoryPreviewPointerPosition();
+
+        if (!isCancelled && position) {
+          onPointerInside();
+
+          const itemId = findPreviewItemId(
+            document.elementFromPoint(position.x, position.y),
+          );
+
+          if (itemId) {
+            activateItem(itemId);
+          }
+        }
+      } catch (error) {
+        console.error("检测历史分组预览鼠标位置失败:", error);
+      } finally {
+        isPolling = false;
+
+        if (!isCancelled) {
+          timerId = window.setTimeout(() => {
+            void pollPointerPosition();
+          }, POINTER_POLL_INTERVAL_MS);
+        }
+      }
+    };
+
+    void pollPointerPosition();
+
+    return () => {
+      isCancelled = true;
+
+      if (timerId !== null) {
+        window.clearTimeout(timerId);
+      }
+    };
+  }, [activateItem, onPointerInside]);
 
   return (
     <div

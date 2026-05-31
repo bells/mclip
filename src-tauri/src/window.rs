@@ -1,6 +1,7 @@
 //! 主窗口与 preview 窗口的尺寸、定位和显示隐藏规则。
 //! 主窗口只承载左侧列表；分组预览拆到独立透明窗口，避免撑大主窗口。
 
+use serde::Serialize;
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Size};
 use tauri_plugin_positioner::{Position as TrayPosition, WindowExt};
 
@@ -135,6 +136,20 @@ pub fn is_pointer_over_history_preview_window(app_handle: AppHandle) -> Result<b
     is_pointer_over_preview_window(&app_handle)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowPointerPosition {
+    x: f64,
+    y: f64,
+}
+
+#[tauri::command]
+pub fn get_history_preview_pointer_position(
+    app_handle: AppHandle,
+) -> Result<Option<WindowPointerPosition>, String> {
+    get_pointer_position_in_window(&app_handle, "preview")
+}
+
 pub fn is_pointer_over_preview_window(app_handle: &AppHandle) -> Result<bool, String> {
     let Some(preview_window) = app_handle.get_webview_window("preview") else {
         return Ok(false);
@@ -164,6 +179,36 @@ pub fn is_pointer_over_preview_window(app_handle: &AppHandle) -> Result<bool, St
         f64::from(preview_position.y),
         f64::from(preview_size.width),
         f64::from(preview_size.height),
+    ))
+}
+
+fn get_pointer_position_in_window(
+    app_handle: &AppHandle,
+    label: &str,
+) -> Result<Option<WindowPointerPosition>, String> {
+    let Some(window) = app_handle.get_webview_window(label) else {
+        return Ok(None);
+    };
+
+    if !window.is_visible().unwrap_or(false) {
+        return Ok(None);
+    }
+
+    let cursor_position = window
+        .cursor_position()
+        .map_err(|error| error.to_string())?;
+    let window_position = window.outer_position().map_err(|error| error.to_string())?;
+    let window_size = window.outer_size().map_err(|error| error.to_string())?;
+    let scale_factor = window.scale_factor().map_err(|error| error.to_string())?;
+
+    Ok(physical_point_to_logical_window_position(
+        cursor_position.x,
+        cursor_position.y,
+        f64::from(window_position.x),
+        f64::from(window_position.y),
+        f64::from(window_size.width),
+        f64::from(window_size.height),
+        scale_factor,
     ))
 }
 
@@ -275,6 +320,25 @@ fn clamp_preview_height(height: f64) -> f64 {
 
 fn is_physical_point_in_rect(x: f64, y: f64, left: f64, top: f64, width: f64, height: f64) -> bool {
     x >= left && x <= left + width && y >= top && y <= top + height
+}
+
+fn physical_point_to_logical_window_position(
+    x: f64,
+    y: f64,
+    left: f64,
+    top: f64,
+    width: f64,
+    height: f64,
+    scale_factor: f64,
+) -> Option<WindowPointerPosition> {
+    if scale_factor <= 0.0 || !is_physical_point_in_rect(x, y, left, top, width, height) {
+        return None;
+    }
+
+    Some(WindowPointerPosition {
+        x: (x - left) / scale_factor,
+        y: (y - top) / scale_factor,
+    })
 }
 
 #[cfg(target_os = "macos")]
@@ -416,5 +480,25 @@ mod tests {
         assert!(!is_physical_point_in_rect(
             111.0, 100.0, 10.0, 20.0, 100.0, 80.0
         ));
+    }
+
+    #[test]
+    fn physical_pointer_position_is_converted_to_logical_window_position() {
+        assert_eq!(
+            super::physical_point_to_logical_window_position(
+                320.0, 260.0, 280.0, 220.0, 120.0, 100.0, 2.0,
+            ),
+            Some(super::WindowPointerPosition { x: 20.0, y: 20.0 }),
+        );
+    }
+
+    #[test]
+    fn physical_pointer_position_is_empty_outside_window() {
+        assert_eq!(
+            super::physical_point_to_logical_window_position(
+                401.0, 260.0, 280.0, 220.0, 120.0, 100.0, 2.0,
+            ),
+            None,
+        );
     }
 }
