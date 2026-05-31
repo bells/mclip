@@ -8,9 +8,25 @@ const ITEM_PREVIEW_BODY_MIN_HEIGHT = 48;
 const ITEM_PREVIEW_BODY_MAX_HEIGHT = 120;
 const ITEM_PREVIEW_TEXT_CHARS_PER_LINE = 32;
 const ITEM_PREVIEW_TEXT_LINE_HEIGHT = 21;
+const ITEM_PREVIEW_CONTENT_ANCHOR_OFFSET = 55;
 
 export function getGroupPreviewHeight(itemCount: number) {
   return GROUP_PREVIEW_BASE_HEIGHT + itemCount * GROUP_PREVIEW_ROW_HEIGHT;
+}
+
+export function getGroupDetailPreviewOffset(itemIndex: number) {
+  return Math.max(0, itemIndex) * GROUP_PREVIEW_ROW_HEIGHT;
+}
+
+export function getGroupPreviewHeightWithDetail(
+  itemCount: number,
+  detailHeight: number,
+  itemIndex: number,
+) {
+  return Math.max(
+    getGroupPreviewHeight(itemCount),
+    detailHeight + getGroupDetailPreviewOffset(itemIndex),
+  );
 }
 
 export function getItemPreviewHeight(item: HistoryListItem) {
@@ -34,4 +50,10 @@ export function getItemPreviewHeight(item: HistoryListItem) {
   })();
 
   return ITEM_PREVIEW_BASE_HEIGHT + bodyHeight + ITEM_PREVIEW_META_HEIGHT;
+}
+
+export function getItemPreviewAnchorTop(rowTop: number) {
+  // Align the detail content region with the hovered history row, not the
+  // whole detail panel title.
+  return rowTop - ITEM_PREVIEW_CONTENT_ANCHOR_OFFSET;
 }

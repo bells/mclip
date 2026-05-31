@@ -36,7 +36,11 @@ import {
   getHistoryGroupItems,
   getHistoryGroups,
 } from "../utils/history";
-import { getGroupPreviewHeight, getItemPreviewHeight } from "../utils/preview";
+import {
+  getGroupPreviewHeight,
+  getItemPreviewAnchorTop,
+  getItemPreviewHeight,
+} from "../utils/preview";
 import { normalizeSettings } from "../utils/settings";
 
 const PREVIEW_CLOSE_DELAY_MS = 500;
@@ -243,7 +247,7 @@ export function useClipboardApp() {
       })
         .then(() =>
           showHistoryPreviewWindow(
-            previewAnchorTop,
+            getItemPreviewAnchorTop(previewAnchorTop),
             getItemPreviewHeight(previewHistoryItem),
             ITEM_PREVIEW_WIDTH,
             ITEM_PREVIEW_WIDTH,

@@ -13,6 +13,7 @@ const POINTER_POLL_INTERVAL_MS = 48;
 
 type HistoryGroupPreviewWindowProps = {
   detailSide: PreviewWindowSide;
+  detailOffset: number;
   detailPreviewHeight: number | null;
   groupPreviewHeight: number;
   hoveredItemId: string | null;
@@ -43,6 +44,7 @@ function findPreviewItemId(target: EventTarget | null) {
 
 export function HistoryGroupPreviewWindow({
   detailSide,
+  detailOffset,
   detailPreviewHeight,
   groupPreviewHeight,
   hoveredItemId,
@@ -57,6 +59,7 @@ export function HistoryGroupPreviewWindow({
 }: HistoryGroupPreviewWindowProps) {
   const hoveredItemIdRef = useRef(hoveredItemId);
   const previewStyle = {
+    "--detail-preview-offset": `${detailOffset}px`,
     "--detail-preview-height":
       detailPreviewHeight === null ? undefined : `${detailPreviewHeight}px`,
     "--group-preview-height": `${groupPreviewHeight}px`,

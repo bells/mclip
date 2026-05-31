@@ -19,7 +19,12 @@ import {
   type PreviewWindowSide,
 } from "../lib/tauri";
 import type { HistoryPreviewPayload } from "../types";
-import { getGroupPreviewHeight, getItemPreviewHeight } from "../utils/preview";
+import {
+  getGroupDetailPreviewOffset,
+  getGroupPreviewHeight,
+  getGroupPreviewHeightWithDetail,
+  getItemPreviewHeight,
+} from "../utils/preview";
 import { HistoryGroupPreviewWindow } from "./HistoryGroupPreviewWindow";
 import { HistoryItemPreviewWindow } from "./HistoryItemPreviewWindow";
 
@@ -135,6 +140,12 @@ export function HistoryPreviewWindow() {
     preview?.kind === "group" && hoveredItemId !== null
       ? preview.items.find((item) => item.id === hoveredItemId) ?? null
       : null;
+  const hoveredItemIndex =
+    preview?.kind === "group" && hoveredItemId !== null
+      ? preview.items.findIndex((item) => item.id === hoveredItemId)
+      : -1;
+  const groupDetailOffset =
+    hoveredItemIndex < 0 ? 0 : getGroupDetailPreviewOffset(hoveredItemIndex);
   const groupPreviewHeight =
     preview?.kind === "group" ? getGroupPreviewHeight(preview.items.length) : null;
   const detailPreviewHeight =
@@ -157,7 +168,11 @@ export function HistoryPreviewWindow() {
     void showHistoryGroupPreviewWithDetailWindow(
       groupPlacement.x,
       groupPlacement.y,
-      Math.max(detailPreviewHeight, groupPreviewHeight),
+      getGroupPreviewHeightWithDetail(
+        preview.items.length,
+        detailPreviewHeight,
+        hoveredItemIndex,
+      ),
       GROUP_PREVIEW_WIDTH,
       GROUP_PREVIEW_DETAIL_WINDOW_WIDTH,
     )
@@ -165,7 +180,14 @@ export function HistoryPreviewWindow() {
       .catch((error) => {
         console.error("显示历史分组详情预览失败:", error);
       });
-  }, [detailPreviewHeight, groupPlacement, groupPreviewHeight, hoveredItem, preview]);
+  }, [
+    detailPreviewHeight,
+    groupPlacement,
+    groupPreviewHeight,
+    hoveredItem,
+    hoveredItemIndex,
+    preview,
+  ]);
 
   if (!preview) {
     return null;
@@ -191,6 +213,7 @@ export function HistoryPreviewWindow() {
       hoveredItemId={hoveredItemId}
       hoveredItem={hoveredItem}
       detailSide={groupDetailSide}
+      detailOffset={groupDetailOffset}
       detailPreviewHeight={detailPreviewHeight}
       groupPreviewHeight={groupPreviewHeight ?? getGroupPreviewHeight(preview.items.length)}
       preview={preview}

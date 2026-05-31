@@ -778,11 +778,11 @@ button {
 }
 
 .app-history-group-preview-window.has-detail {
-  grid-template-columns: 320px 312px;
+  grid-template-columns: 320px 304px;
 }
 
 .app-history-group-preview-window.has-detail.is-detail-left {
-  grid-template-columns: 312px 320px;
+  grid-template-columns: 304px 320px;
 }
 
 .app-history-group-preview-window > .app-history-group-preview {
@@ -795,20 +795,21 @@ button {
   display: flex;
   min-width: 0;
   align-items: flex-start;
-}
-
-.app-history-group-preview-window.is-detail-right .app-history-group-detail-pane {
-  padding-left: 8px;
-}
-
-.app-history-group-preview-window.is-detail-left .app-history-group-detail-pane {
-  padding-right: 8px;
+  border-radius: var(--app-radius-lg);
+  clip-path: inset(0 round var(--app-radius-lg));
+  overflow: hidden;
+  transform: translateY(var(--detail-preview-offset, 0));
 }
 
 .app-history-group-detail-pane > .app-history-detail-preview {
   width: 304px;
   height: var(--detail-preview-height, auto);
   flex: 0 0 304px;
+  border-radius: inherit;
+}
+
+.app-history-group-hover-detail {
+  gap: 8px;
 }
 
 .app-history-preview-detail-window {
