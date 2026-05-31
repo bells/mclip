@@ -3,6 +3,8 @@
 import type { AppTranslations } from "../i18n";
 import type { HistoryGroupInfo } from "../types";
 
+const MAX_VISIBLE_ARCHIVE_GROUPS = 5;
+
 // 主列表显示最新一组，后续分组通过这些入口打开右侧 preview 窗口。
 type HistoryGroupNavProps = {
   groups: HistoryGroupInfo[];
@@ -39,7 +41,12 @@ export function HistoryGroupNav({
     <div className="app-history-archive" onMouseLeave={onScheduleClosePreview}>
       <div className="app-history-archive-divider" />
 
-      <div className="app-history-archive-list" aria-label={translations.groupAriaLabel}>
+      <div
+        className={`app-history-archive-list ${
+          archiveGroups.length > MAX_VISIBLE_ARCHIVE_GROUPS ? "is-scrollable" : ""
+        }`}
+        aria-label={translations.groupAriaLabel}
+      >
         {archiveGroups.map((group) => {
           const isActive = group.index === previewGroupIndex;
 

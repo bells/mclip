@@ -6,6 +6,7 @@ import { AboutWindow } from "./components/AboutWindow";
 import { AppFooter } from "./components/AppFooter";
 import { AppHeader } from "./components/AppHeader";
 import { HistoryPreviewWindow } from "./components/HistoryPreviewWindow";
+import { HistoryPreviewDetailWindow } from "./components/HistoryPreviewDetailWindow";
 import { HistoryGroupNav } from "./components/HistoryGroupNav";
 import { HistoryList } from "./components/HistoryList";
 import { Modal } from "./components/Modal";
@@ -20,6 +21,10 @@ function App() {
   // Tauri 的每个窗口都会加载同一份前端入口，这里按窗口 label 决定实际渲染哪个组件。
   if (windowLabel === "preview") {
     return <HistoryPreviewWindow />;
+  }
+
+  if (windowLabel === "preview-detail") {
+    return <HistoryPreviewDetailWindow />;
   }
 
   if (windowLabel === "about") {

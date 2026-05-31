@@ -6,11 +6,18 @@ import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow, Window as TauriWindow } from "@tauri-apps/api/window";
 
 import { DEFAULT_APP_VERSION } from "../constants";
-import type { AppSettings, HistoryEntry, HistoryPreviewPayload } from "../types";
+import type {
+  AppSettings,
+  HistoryEntry,
+  HistoryItemPreviewPayload,
+  HistoryPreviewPayload,
+} from "../types";
 
 const HISTORY_UPDATED_EVENT = "history-updated";
 const SETTINGS_UPDATED_EVENT = "settings-updated";
 const HISTORY_PREVIEW_UPDATED_EVENT = "history-preview-updated";
+const HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT =
+  "history-preview-placement-updated";
 // Best-effort cross-window hover signals. Rust-side pointer hit testing covers
 // cases where separate transparent windows miss mouse events.
 const HISTORY_PREVIEW_CLOSE_REQUESTED_EVENT = "history-preview-close-requested";
@@ -18,6 +25,7 @@ const HISTORY_PREVIEW_POINTER_ENTERED_EVENT = "history-preview-pointer-entered";
 const MAIN_WINDOW_SHOWN_EVENT = "main-window-shown";
 const MAIN_WINDOW_LABEL = "main";
 const PREVIEW_WINDOW_LABEL = "preview";
+const PREVIEW_DETAIL_WINDOW_LABEL = "preview-detail";
 
 type TauriWindowMetadata = Window & {
   __TAURI_INTERNALS__?: {
@@ -32,6 +40,14 @@ type TauriWindowMetadata = Window & {
 type WindowPointerPosition = {
   x: number;
   y: number;
+};
+
+export type PreviewWindowSide = "left" | "right";
+
+export type PreviewWindowPosition = {
+  x: number;
+  y: number;
+  side: PreviewWindowSide;
 };
 
 export function getSettings() {
@@ -80,11 +96,13 @@ export function showHistoryPreviewWindow(
   anchorTop: number,
   previewHeight: number,
   previewWidth: number,
+  requiredPreviewWidth = previewWidth,
 ) {
-  return invoke<void>("show_history_preview_window", {
+  return invoke<PreviewWindowPosition>("show_history_preview_window", {
     anchorTop,
     previewHeight,
     previewWidth,
+    requiredPreviewWidth,
   });
 }
 
@@ -92,8 +110,18 @@ export function hideHistoryPreviewWindow() {
   return invoke<void>("hide_history_preview_window");
 }
 
-export function setHistoryPreviewWindowWidth(previewWidth: number) {
-  return invoke<void>("set_history_preview_window_width", { previewWidth });
+export function hideHistoryPreviewDetailWindow() {
+  return invoke<void>("hide_history_preview_detail_window");
+}
+
+export function showHistoryPreviewDetailWindow(
+  detailHeight: number,
+  detailWidth: number,
+) {
+  return invoke<PreviewWindowPosition>("show_history_preview_detail_window", {
+    detailHeight,
+    detailWidth,
+  });
 }
 
 export function showAboutWindow() {
@@ -116,6 +144,16 @@ export function getHistoryPreviewPointerPosition() {
 
 export function updateHistoryPreviewWindow(payload: HistoryPreviewPayload) {
   return emitTo(PREVIEW_WINDOW_LABEL, HISTORY_PREVIEW_UPDATED_EVENT, payload);
+}
+
+export function updateHistoryPreviewDetailWindow(
+  payload: HistoryItemPreviewPayload,
+) {
+  return emitTo(
+    PREVIEW_DETAIL_WINDOW_LABEL,
+    HISTORY_PREVIEW_UPDATED_EVENT,
+    payload,
+  );
 }
 
 export function requestHistoryPreviewClose() {
@@ -183,6 +221,17 @@ export function listenToHistoryPreviewUpdated(
   return listen<HistoryPreviewPayload>(HISTORY_PREVIEW_UPDATED_EVENT, (event) => {
     handler(event.payload);
   });
+}
+
+export function listenToHistoryPreviewPlacementUpdated(
+  handler: (placement: PreviewWindowPosition) => void,
+): Promise<UnlistenFn> {
+  return listen<PreviewWindowPosition>(
+    HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT,
+    (event) => {
+      handler(event.payload);
+    },
+  );
 }
 
 export function listenToHistoryPreviewCloseRequested(

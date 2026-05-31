@@ -39,6 +39,18 @@
         "skipTaskbar": true
       },
       {
+        "title": "mclip preview detail",
+        "label": "preview-detail",
+        "width": 312,
+        "height": 220,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "visible": false,
+        "skipTaskbar": true
+      },
+      {
         "title": "About mclip",
         "label": "about",
         "width": 360,

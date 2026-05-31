@@ -25,9 +25,10 @@ use crate::history::{clear_history, delete_history_item, get_history};
 use crate::settings::{get_settings, save_settings};
 use crate::window::{
     adjust_window_height, configure_main_window, get_history_preview_pointer_position,
-    hide_history_preview_window, hide_main_window, is_pointer_over_history_preview_window,
-    is_pointer_over_preview_window, set_history_preview_window_width, show_about_window,
-    show_history_preview_window, show_preferences_window, toggle_main_window, WindowPlacement,
+    hide_history_preview_detail_window, hide_history_preview_window, hide_main_window,
+    is_pointer_over_history_preview_window, is_pointer_over_preview_window, show_about_window,
+    show_history_preview_detail_window, show_history_preview_window, show_preferences_window,
+    toggle_main_window, WindowPlacement,
 };
 
 const SHOW_GUARD_MS: u64 = 450;
@@ -151,8 +152,9 @@ pub fn run() {
             delete_history_item,
             adjust_window_height,
             show_history_preview_window,
-            set_history_preview_window_width,
+            show_history_preview_detail_window,
             hide_history_preview_window,
+            hide_history_preview_detail_window,
             show_about_window,
             show_preferences_window,
             is_pointer_over_history_preview_window,

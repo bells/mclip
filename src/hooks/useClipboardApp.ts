@@ -5,7 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   DEFAULT_SETTINGS,
+  GROUP_PREVIEW_WIDTH,
+  GROUP_PREVIEW_WITH_DETAIL_WIDTH,
   HISTORY_GROUP_SIZE,
+  ITEM_PREVIEW_WIDTH,
 } from "../constants";
 import {
   adjustWindowHeight,
@@ -33,18 +36,12 @@ import {
   getHistoryGroupItems,
   getHistoryGroups,
 } from "../utils/history";
+import { getItemPreviewHeight } from "../utils/preview";
 import { normalizeSettings } from "../utils/settings";
 
 const PREVIEW_CLOSE_DELAY_MS = 500;
-const ITEM_PREVIEW_WIDTH = 304;
-const GROUP_PREVIEW_WIDTH = 320;
 const GROUP_PREVIEW_BASE_HEIGHT = 62;
 const GROUP_PREVIEW_ROW_HEIGHT = 36;
-const ITEM_PREVIEW_BASE_HEIGHT = 82;
-const ITEM_PREVIEW_BODY_MIN_HEIGHT = 48;
-const ITEM_PREVIEW_BODY_MAX_HEIGHT = 120;
-const ITEM_PREVIEW_TEXT_CHARS_PER_LINE = 32;
-const ITEM_PREVIEW_TEXT_LINE_HEIGHT = 21;
 
 export function useClipboardApp() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -87,29 +84,6 @@ export function useClipboardApp() {
         : filteredHistory.find((item) => item.id === previewHistoryItemId) ?? null,
     [filteredHistory, previewHistoryItemId],
   );
-
-  const getItemPreviewHeight = (item: HistoryListItem) => {
-    const bodyHeight = (() => {
-      if (item.kind === "image") {
-        return ITEM_PREVIEW_BODY_MAX_HEIGHT;
-      }
-
-      if (item.kind === "files") {
-        return Math.min(
-          ITEM_PREVIEW_BODY_MAX_HEIGHT,
-          Math.max(ITEM_PREVIEW_BODY_MIN_HEIGHT, item.filePaths.length * 34),
-        );
-      }
-
-      const lineCount = Math.ceil(item.text.length / ITEM_PREVIEW_TEXT_CHARS_PER_LINE);
-      return Math.min(
-        ITEM_PREVIEW_BODY_MAX_HEIGHT,
-        Math.max(ITEM_PREVIEW_BODY_MIN_HEIGHT, lineCount * ITEM_PREVIEW_TEXT_LINE_HEIGHT),
-      );
-    })();
-
-    return ITEM_PREVIEW_BASE_HEIGHT + bodyHeight;
-  };
 
   const getGroupPreviewHeight = (itemCount: number) =>
     GROUP_PREVIEW_BASE_HEIGHT + itemCount * GROUP_PREVIEW_ROW_HEIGHT;
@@ -202,7 +176,19 @@ export function useClipboardApp() {
     let unlistenPointerEntered: UnlistenFn | undefined;
 
     void listenToHistoryPreviewCloseRequested(() => {
-      closeHistoryGroupPreview();
+      void isPointerOverHistoryPreviewWindow()
+        .then((isPointerOverPreview) => {
+          if (isPointerOverPreview) {
+            scheduleHistoryGroupPreviewClose();
+            return;
+          }
+
+          closeHistoryGroupPreview();
+        })
+        .catch((error) => {
+          console.error("检测历史预览鼠标位置失败:", error);
+          closeHistoryGroupPreview();
+        });
     }).then((unsubscribe) => {
       unlistenCloseRequested = unsubscribe;
     });
@@ -265,6 +251,7 @@ export function useClipboardApp() {
             previewAnchorTop,
             getItemPreviewHeight(previewHistoryItem),
             ITEM_PREVIEW_WIDTH,
+            ITEM_PREVIEW_WIDTH,
           ),
         )
         .catch((error) => {
@@ -295,6 +282,7 @@ export function useClipboardApp() {
           previewAnchorTop,
           getGroupPreviewHeight(previewHistory.length),
           GROUP_PREVIEW_WIDTH,
+          GROUP_PREVIEW_WITH_DETAIL_WIDTH,
         ),
       )
       .catch((error) => {

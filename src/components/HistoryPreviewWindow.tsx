@@ -2,17 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { GROUP_PREVIEW_DETAIL_WINDOW_WIDTH } from "../constants";
 import { getTranslations } from "../i18n";
 import {
   copyHistoryItem,
   deleteHistoryItem,
+  hideHistoryPreviewDetailWindow,
   hideHistoryPreviewWindow,
   hideMainWindow,
   listenToHistoryPreviewUpdated,
   notifyHistoryPreviewPointerEntered,
   requestHistoryPreviewClose,
+  showHistoryPreviewDetailWindow,
+  updateHistoryPreviewDetailWindow,
 } from "../lib/tauri";
 import type { HistoryPreviewPayload } from "../types";
+import { getItemPreviewHeight } from "../utils/preview";
 import { HistoryGroupPreviewWindow } from "./HistoryGroupPreviewWindow";
 import { HistoryItemPreviewWindow } from "./HistoryItemPreviewWindow";
 
@@ -20,7 +25,6 @@ export function HistoryPreviewWindow() {
   // preview 为 null 时窗口没有可展示数据，组件会返回 null。
   const [preview, setPreview] = useState<HistoryPreviewPayload | null>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
-  const [isDetailMetaOpen, setIsDetailMetaOpen] = useState(false);
   // ref 适合保存不参与渲染的可变值；这里记录上次通知主窗口的时间。
   const lastPointerNotifyAtRef = useRef(0);
 
@@ -31,7 +35,6 @@ export function HistoryPreviewWindow() {
     void listenToHistoryPreviewUpdated((payload) => {
       setPreview(payload);
       setHoveredItemId(null);
-      setIsDetailMetaOpen(false);
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
     });
@@ -100,6 +103,35 @@ export function HistoryPreviewWindow() {
     void notifyHistoryPreviewPointerEntered();
   };
 
+  const hoveredItem =
+    preview?.kind === "group" && hoveredItemId !== null
+      ? preview.items.find((item) => item.id === hoveredItemId) ?? null
+      : null;
+
+  useEffect(() => {
+    if (!hoveredItem || preview?.kind !== "group") {
+      void hideHistoryPreviewDetailWindow().catch((error) => {
+        console.error("隐藏历史分组详情预览失败:", error);
+      });
+      return;
+    }
+
+    void updateHistoryPreviewDetailWindow({
+      item: hoveredItem,
+      kind: "item",
+      language: preview.language,
+    })
+      .then(() =>
+        showHistoryPreviewDetailWindow(
+          getItemPreviewHeight(hoveredItem),
+          GROUP_PREVIEW_DETAIL_WINDOW_WIDTH,
+        ),
+      )
+      .catch((error) => {
+        console.error("显示历史分组详情预览失败:", error);
+      });
+  }, [hoveredItem, preview]);
+
   if (!preview) {
     return null;
   }
@@ -109,14 +141,12 @@ export function HistoryPreviewWindow() {
   if (preview.kind === "item") {
     return (
       <HistoryItemPreviewWindow
-        isDetailMetaOpen={isDetailMetaOpen}
         preview={preview}
         translations={t}
         onPointerInside={notifyPointerInside}
         onRequestClose={() => {
           void requestHistoryPreviewClose();
         }}
-        onToggleDetailMeta={() => setIsDetailMetaOpen((prev) => !prev)}
       />
     );
   }

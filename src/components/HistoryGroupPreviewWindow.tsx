@@ -3,17 +3,11 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import { getTranslations } from "../i18n";
-import {
-  getHistoryPreviewPointerPosition,
-  setHistoryPreviewWindowWidth,
-} from "../lib/tauri";
+import { getHistoryPreviewPointerPosition } from "../lib/tauri";
 import type { HistoryGroupInfo, HistoryGroupPreviewPayload, HistoryListItem } from "../types";
 import { ImageThumb } from "./ImageThumb";
-import { HistoryPreviewDetailContent } from "./HistoryPreviewDetailContent";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
-const GROUP_PREVIEW_IDLE_WIDTH = 320;
-const GROUP_PREVIEW_DETAIL_WIDTH = 624;
 const POINTER_POLL_INTERVAL_MS = 48;
 
 type HistoryGroupPreviewWindowProps = {
@@ -52,10 +46,6 @@ export function HistoryGroupPreviewWindow({
   onRequestClose,
   onSelectItem,
 }: HistoryGroupPreviewWindowProps) {
-  const hoveredItem =
-    hoveredItemId === null
-      ? null
-      : preview.items.find((item) => item.id === hoveredItemId) ?? null;
   const hoveredItemIdRef = useRef(hoveredItemId);
 
   useEffect(() => {
@@ -63,18 +53,12 @@ export function HistoryGroupPreviewWindow({
   }, [hoveredItemId]);
 
   const activateItem = useCallback((id: string) => {
-    const shouldOpenDetail = hoveredItemIdRef.current === null;
-
     if (hoveredItemIdRef.current === id) {
       return;
     }
 
     hoveredItemIdRef.current = id;
     onHoveredItemChange(id);
-
-    if (shouldOpenDetail) {
-      void setHistoryPreviewWindowWidth(GROUP_PREVIEW_DETAIL_WIDTH);
-    }
   }, [onHoveredItemChange]);
 
   const clearActiveItem = useCallback(() => {
@@ -84,7 +68,6 @@ export function HistoryGroupPreviewWindow({
 
     hoveredItemIdRef.current = null;
     onHoveredItemChange(null);
-    void setHistoryPreviewWindowWidth(GROUP_PREVIEW_IDLE_WIDTH);
   }, [onHoveredItemChange]);
 
   useEffect(() => {
@@ -139,11 +122,10 @@ export function HistoryGroupPreviewWindow({
 
   return (
     <div
-      className="history-preview-window"
+      className="history-preview-window app-history-group-preview-window"
       onMouseEnter={onPointerInside}
       onMouseMove={onPointerInside}
       onMouseLeave={() => {
-        clearActiveItem();
         onRequestClose();
       }}
     >
@@ -164,11 +146,7 @@ export function HistoryGroupPreviewWindow({
           </span>
         </div>
 
-        <div
-          className={`app-history-group-preview-body ${
-            hoveredItem ? "has-detail" : ""
-          }`}
-        >
+        <div className="app-history-group-preview-body">
           <div
             className="app-history-preview-list"
             onPointerMove={(event) => {
@@ -242,6 +220,9 @@ export function HistoryGroupPreviewWindow({
                   className="app-history-preview-delete"
                   onClick={(event) => {
                     event.stopPropagation();
+                    if (hoveredItemIdRef.current === item.id) {
+                      clearActiveItem();
+                    }
                     onDeleteItem(item.id);
                   }}
                   title={translations.deleteItemAriaLabel}
@@ -252,15 +233,6 @@ export function HistoryGroupPreviewWindow({
               </div>
             ))}
           </div>
-
-          {hoveredItem ? (
-            <div className="app-history-group-preview-detail" aria-live="polite">
-              <HistoryPreviewDetailContent
-                item={hoveredItem}
-                translations={translations}
-              />
-            </div>
-          ) : null}
         </div>
       </div>
     </div>
