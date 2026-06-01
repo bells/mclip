@@ -13,6 +13,8 @@ import {
   listenToHistoryPreviewPlacementUpdated,
   listenToHistoryPreviewUpdated,
   notifyHistoryPreviewPointerEntered,
+  notifyHistoryPreviewSelectionCancelled,
+  notifyHistoryPreviewSelectionStarted,
   requestHistoryPreviewClose,
   showHistoryGroupPreviewWithDetailWindow,
   type PreviewWindowPosition,
@@ -79,10 +81,14 @@ export function HistoryPreviewWindow() {
 
   const selectPreviewItem = async (id: string) => {
     try {
-      await copyHistoryItem(id);
+      await notifyHistoryPreviewSelectionStarted();
       await hideHistoryPreviewWindow();
+      await copyHistoryItem(id);
       await hideMainWindow();
     } catch (error) {
+      void notifyHistoryPreviewSelectionCancelled().catch((notifyError) => {
+        console.error("恢复历史预览选择状态失败:", notifyError);
+      });
       console.error("复制历史分组记录失败:", error);
     }
   };

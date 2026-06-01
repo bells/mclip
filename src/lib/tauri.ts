@@ -22,6 +22,10 @@ const HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT =
 // cases where separate transparent windows miss mouse events.
 const HISTORY_PREVIEW_CLOSE_REQUESTED_EVENT = "history-preview-close-requested";
 const HISTORY_PREVIEW_POINTER_ENTERED_EVENT = "history-preview-pointer-entered";
+const HISTORY_PREVIEW_SELECTION_STARTED_EVENT =
+  "history-preview-selection-started";
+const HISTORY_PREVIEW_SELECTION_CANCELLED_EVENT =
+  "history-preview-selection-cancelled";
 const MAIN_WINDOW_SHOWN_EVENT = "main-window-shown";
 const MAIN_WINDOW_LABEL = "main";
 const PREVIEW_WINDOW_LABEL = "preview";
@@ -185,6 +189,14 @@ export function notifyHistoryPreviewPointerEntered() {
   return emitTo(MAIN_WINDOW_LABEL, HISTORY_PREVIEW_POINTER_ENTERED_EVENT);
 }
 
+export function notifyHistoryPreviewSelectionStarted() {
+  return emitTo(MAIN_WINDOW_LABEL, HISTORY_PREVIEW_SELECTION_STARTED_EVENT);
+}
+
+export function notifyHistoryPreviewSelectionCancelled() {
+  return emitTo(MAIN_WINDOW_LABEL, HISTORY_PREVIEW_SELECTION_CANCELLED_EVENT);
+}
+
 export function quitApp() {
   return invoke<void>("quit_app");
 }
@@ -267,6 +279,22 @@ export function listenToHistoryPreviewPointerEntered(
   handler: () => void,
 ): Promise<UnlistenFn> {
   return listen(HISTORY_PREVIEW_POINTER_ENTERED_EVENT, () => {
+    handler();
+  });
+}
+
+export function listenToHistoryPreviewSelectionStarted(
+  handler: () => void,
+): Promise<UnlistenFn> {
+  return listen(HISTORY_PREVIEW_SELECTION_STARTED_EVENT, () => {
+    handler();
+  });
+}
+
+export function listenToHistoryPreviewSelectionCancelled(
+  handler: () => void,
+): Promise<UnlistenFn> {
+  return listen(HISTORY_PREVIEW_SELECTION_CANCELLED_EVENT, () => {
     handler();
   });
 }
