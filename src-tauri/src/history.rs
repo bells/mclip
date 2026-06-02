@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, Manager};
 
+use crate::diagnostics::log_error;
 use crate::settings::load_settings;
 use crate::source_app::current_source_app_name;
 use crate::storage::write_text_atomically;
@@ -242,7 +243,11 @@ pub fn load_history(app_handle: &AppHandle) -> Result<Vec<HistoryEntry>, String>
             )),
             Err(error) => {
                 // 历史文件损坏不能影响应用启动；回退为空历史即可。
-                eprintln!("failed to parse clipboard history, using empty history: {error}");
+                log_error(
+                    app_handle,
+                    "history",
+                    &format!("failed to parse clipboard history, using empty history: {error}"),
+                );
                 Ok(Vec::new())
             }
         }

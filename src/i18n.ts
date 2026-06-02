@@ -7,8 +7,15 @@ export const translations = {
   zhCn: {
     about: {
       confirm: "确定",
+      copyDiagnostics: "复制诊断信息",
+      copyDiagnosticsError: "复制失败，请打开日志目录后手动反馈。",
+      copyDiagnosticsSuccess: "诊断信息已复制。",
       description: "一个轻量的跨平台剪贴板历史工具，基于 Tauri、React 和 Rust 构建。",
       githubLabel: "GitHub",
+      openLogs: "打开日志目录",
+      openLogsError: "无法打开日志目录。",
+      reportIssue: "报告问题",
+      reportIssueError: "无法打开问题反馈页面。",
       title: `关于${APP_NAME}`,
       version: (version: string) => `版本 ${version}`,
     },
@@ -83,8 +90,15 @@ export const translations = {
   en: {
     about: {
       confirm: "OK",
+      copyDiagnostics: "Copy Diagnostics",
+      copyDiagnosticsError: "Copy failed. Open the logs folder and report manually.",
+      copyDiagnosticsSuccess: "Diagnostics copied.",
       description: "A lightweight cross-platform clipboard history app built with Tauri, React, and Rust.",
       githubLabel: "GitHub",
+      openLogs: "Open Logs",
+      openLogsError: "Unable to open logs folder.",
+      reportIssue: "Report Issue",
+      reportIssueError: "Unable to open the issue report page.",
       title: `About ${APP_NAME}`,
       version: (version: string) => `Version ${version}`,
     },

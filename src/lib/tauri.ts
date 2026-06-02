@@ -157,6 +157,30 @@ export function showPreferencesWindow() {
   return invoke<void>("show_preferences_window");
 }
 
+export function openLogsDir() {
+  return invoke<void>("open_logs_dir");
+}
+
+export function copyDiagnosticReport() {
+  return invoke<void>("copy_diagnostic_report");
+}
+
+export function openIssueReport() {
+  return invoke<void>("open_issue_report");
+}
+
+export function writeClientLog(
+  level: "info" | "warn" | "error",
+  message: string,
+  context?: string,
+) {
+  return invoke<void>("write_client_log", {
+    context,
+    level,
+    message,
+  });
+}
+
 export function isPointerOverHistoryPreviewWindow() {
   return invoke<boolean>("is_pointer_over_history_preview_window");
 }

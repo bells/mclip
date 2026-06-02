@@ -146,7 +146,7 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 22px 22px 20px;
+  padding: 22px 22px 18px;
 }
 
 .app-about-window .app-modal-header {
@@ -1393,6 +1393,42 @@ button {
   white-space: nowrap;
 }
 
+.app-diagnostics-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.app-diagnostics-btn {
+  min-width: 0;
+  min-height: 32px;
+  border: 1px solid rgba(247, 241, 232, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--app-ink-soft);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.15;
+  padding: 6px 7px;
+  text-align: center;
+}
+
+.app-diagnostics-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.app-diagnostics-status {
+  min-height: 16px;
+  margin: 8px 0 0;
+  color: rgba(124, 199, 193, 0.92);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.35;
+  text-align: center;
+}
+
 .app-modal-footer {
   position: relative;
   z-index: 1;
@@ -1404,6 +1440,7 @@ button {
 
 .app-modal-btn,
 .app-modal-secondary-btn,
+.app-diagnostics-btn,
 .app-stepper-btn,
 .app-switch {
   transition:
@@ -1457,12 +1494,38 @@ button {
 
 .app-modal-btn:disabled,
 .app-modal-secondary-btn:disabled,
+.app-diagnostics-btn:disabled,
 .app-language-select:disabled,
 .app-stepper-btn:disabled,
 .app-switch:disabled,
 .app-history-type-row:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.app-error-panel {
+  display: flex;
+  min-height: 220px;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.app-error-title {
+  color: var(--app-ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.app-error-copy {
+  max-width: 220px;
+  color: var(--app-ink-dim);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .app-settings-content {

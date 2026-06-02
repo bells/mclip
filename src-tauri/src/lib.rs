@@ -2,6 +2,7 @@
 //! 这里负责托盘、快捷键、窗口焦点规则以及所有前端可调用命令的注册。
 
 mod clipboard;
+mod diagnostics;
 mod history;
 mod settings;
 mod source_app;
@@ -21,6 +22,10 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_positioner::on_tray_event;
 
 use crate::clipboard::{copy_history_item, get_image_base64, spawn_clipboard_watcher};
+use crate::diagnostics::{
+    copy_diagnostic_report, initialize_diagnostics, log_error, log_info, open_issue_report,
+    open_logs_dir, write_client_log,
+};
 use crate::history::{clear_history, delete_history_item, get_history};
 use crate::settings::{get_settings, save_settings};
 use crate::window::{
@@ -37,6 +42,7 @@ const TRAY_TOOLTIP: &str = "更好用的剪贴帮工具mclip";
 
 #[tauri::command]
 fn quit_app(app_handle: AppHandle) {
+    log_info(&app_handle, "app", "mclip exiting by user request");
     app_handle.exit(0);
 }
 
@@ -95,14 +101,22 @@ fn register_global_shortcuts(app: &App, show_guard_until: Arc<Mutex<Option<Insta
             if event.state == ShortcutState::Pressed {
                 protect_next_focus_loss(&show_guard_until);
                 if let Err(error) = toggle_main_window(app_handle, WindowPlacement::Center) {
-                    eprintln!("failed to toggle main window from shortcut: {error}");
+                    log_error(
+                        app_handle,
+                        "shortcut",
+                        &format!("failed to toggle main window from shortcut: {error}"),
+                    );
                 }
             }
         },
     );
 
     if let Err(error) = result {
-        eprintln!("failed to register global shortcut {TOGGLE_WINDOW_SHORTCUT}: {error}");
+        log_error(
+            app.handle(),
+            "shortcut",
+            &format!("failed to register global shortcut {TOGGLE_WINDOW_SHORTCUT}: {error}"),
+        );
     }
 }
 
@@ -159,7 +173,11 @@ pub fn run() {
             show_about_window,
             show_preferences_window,
             is_pointer_over_history_preview_window,
-            get_history_preview_pointer_position
+            get_history_preview_pointer_position,
+            open_logs_dir,
+            copy_diagnostic_report,
+            open_issue_report,
+            write_client_log
         ])
         .setup({
             let show_guard_until = Arc::clone(&show_guard_until);
@@ -171,10 +189,12 @@ pub fn run() {
                     app.set_dock_visibility(false);
                 }
 
+                initialize_diagnostics(app.handle())?;
                 configure_main_window(app.handle());
                 spawn_clipboard_watcher(app.handle().clone());
                 register_global_shortcuts(app, Arc::clone(&show_guard_until));
                 build_tray(app, show_guard_until)?;
+                log_info(app.handle(), "app", "mclip started");
 
                 Ok(())
             }

@@ -16,6 +16,9 @@ import {
   getSettings,
   hideCurrentWindow,
   listenToSettingsUpdated,
+  copyDiagnosticReport,
+  openIssueReport,
+  openLogsDir,
 } from "../lib/tauri";
 import type { AppSettings } from "../types";
 import { normalizeSettings } from "../utils/settings";
@@ -23,6 +26,7 @@ import { normalizeSettings } from "../utils/settings";
 export function AboutWindow() {
   const [appVersion, setAppVersion] = useState(DEFAULT_APP_VERSION);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [diagnosticMessage, setDiagnosticMessage] = useState("");
   // 根据当前语言取文案；settings 更新后组件会重新渲染，t 也会跟着切换语言。
   const t = getTranslations(settings.language).about;
 
@@ -77,6 +81,36 @@ export function AboutWindow() {
     };
   }, []);
 
+  const handleOpenLogs = async () => {
+    try {
+      setDiagnosticMessage("");
+      await openLogsDir();
+    } catch (error) {
+      console.error("打开日志目录失败:", error);
+      setDiagnosticMessage(t.openLogsError);
+    }
+  };
+
+  const handleCopyDiagnostics = async () => {
+    try {
+      await copyDiagnosticReport();
+      setDiagnosticMessage(t.copyDiagnosticsSuccess);
+    } catch (error) {
+      console.error("复制诊断信息失败:", error);
+      setDiagnosticMessage(t.copyDiagnosticsError);
+    }
+  };
+
+  const handleReportIssue = async () => {
+    try {
+      setDiagnosticMessage("");
+      await openIssueReport();
+    } catch (error) {
+      console.error("打开问题反馈页面失败:", error);
+      setDiagnosticMessage(t.reportIssueError);
+    }
+  };
+
   return (
     <div className="app-dialog-frame app-about-window">
       <div className="app-dialog-panel">
@@ -96,6 +130,32 @@ export function AboutWindow() {
             <span className="app-modal-github-label">{t.githubLabel}</span>
             <span className="app-modal-github-url">{APP_GITHUB_URL}</span>
           </div>
+          <div className="app-diagnostics-actions">
+            <button
+              className="app-diagnostics-btn"
+              onClick={handleOpenLogs}
+              type="button"
+            >
+              {t.openLogs}
+            </button>
+            <button
+              className="app-diagnostics-btn"
+              onClick={handleCopyDiagnostics}
+              type="button"
+            >
+              {t.copyDiagnostics}
+            </button>
+            <button
+              className="app-diagnostics-btn"
+              onClick={handleReportIssue}
+              type="button"
+            >
+              {t.reportIssue}
+            </button>
+          </div>
+          <p className="app-diagnostics-status" aria-live="polite">
+            {diagnosticMessage}
+          </p>
         </div>
 
         <div className="app-modal-footer">

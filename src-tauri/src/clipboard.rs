@@ -15,6 +15,7 @@ use std::thread;
 use std::time::Duration;
 use tauri::AppHandle;
 
+use crate::diagnostics::log_error;
 use crate::history::{
     emit_history_updated, find_history_item, hash_hex, process_new_history_item, HistoryEntry,
     NewHistoryItem,
@@ -61,12 +62,20 @@ fn process_clipboard_snapshot(
     match process_new_history_item(app_handle, snapshot.item) {
         Ok(Some(updated_history)) => {
             if let Err(error) = emit_history_updated(app_handle, &updated_history) {
-                eprintln!("failed to emit history update: {error}");
+                log_error(
+                    app_handle,
+                    "clipboard",
+                    &format!("failed to emit history update: {error}"),
+                );
             }
         }
         Ok(None) => {}
         Err(error) => {
-            eprintln!("failed to process clipboard history: {error}");
+            log_error(
+                app_handle,
+                "clipboard",
+                &format!("failed to process clipboard history: {error}"),
+            );
         }
     }
 }
@@ -264,6 +273,10 @@ fn text_to_history_item(text: String, enabled_types: &HistoryTypes) -> Option<Ne
         return None;
     }
 
+    if trimmed_text.starts_with("mclip diagnostics") {
+        return None;
+    }
+
     if enabled_types.text {
         Some(NewHistoryItem::Text(text))
     } else {
@@ -304,6 +317,7 @@ mod windows_clipboard_watcher {
 
     use tauri::AppHandle;
 
+    use crate::diagnostics::log_error;
     use crate::settings::load_settings;
 
     use super::{process_clipboard_snapshot, read_clipboard_signature, read_clipboard_snapshot};
@@ -398,8 +412,13 @@ mod windows_clipboard_watcher {
 
     pub fn spawn(app_handle: AppHandle) {
         thread::spawn(move || {
+            let diagnostics_handle = app_handle.clone();
             if let Err(error) = run_message_watcher(app_handle) {
-                eprintln!("failed to start Windows clipboard listener: {error}");
+                log_error(
+                    &diagnostics_handle,
+                    "clipboard",
+                    &format!("failed to start Windows clipboard listener: {error}"),
+                );
             }
         });
     }
@@ -575,6 +594,16 @@ mod tests {
                 image: true,
                 files: true,
             },
+        );
+
+        assert!(item.is_none());
+    }
+
+    #[test]
+    fn text_to_history_item_ignores_diagnostic_reports() {
+        let item = text_to_history_item(
+            "mclip diagnostics\n\nApp version: 0.1.0".to_string(),
+            &all_types(),
         );
 
         assert!(item.is_none());
