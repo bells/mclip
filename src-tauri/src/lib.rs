@@ -33,11 +33,13 @@ use crate::window::{
     hide_history_preview_detail_window, hide_history_preview_window, hide_main_window,
     is_pointer_over_history_preview_window, is_pointer_over_preview_window, show_about_window,
     show_history_group_preview_with_detail_window, show_history_preview_detail_window,
-    show_history_preview_window, show_preferences_window, toggle_main_window, WindowPlacement,
+    show_history_preview_window, show_preferences_window, toggle_main_window, TrayWindowAnchor,
+    WindowPlacement,
 };
 
 const SHOW_GUARD_MS: u64 = 450;
 const TOGGLE_WINDOW_SHORTCUT: &str = "CommandOrControl+Shift+V";
+const TRAY_ICON_ID: &str = "main";
 const TRAY_TOOLTIP: &str = "更好用的剪贴帮工具mclip";
 
 #[tauri::command]
@@ -66,7 +68,7 @@ fn build_tray(
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "missing default window icon"))?
         .clone();
 
-    TrayIconBuilder::new()
+    TrayIconBuilder::with_id(TRAY_ICON_ID)
         .icon(icon)
         .tooltip(TRAY_TOOLTIP)
         .menu(&menu)
@@ -75,13 +77,20 @@ fn build_tray(
             on_tray_event(tray.app_handle(), &event);
 
             if let TrayIconEvent::Click {
+                position,
+                rect,
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,
                 ..
             } = event
             {
                 protect_next_focus_loss(&show_guard_until);
-                let _ = toggle_main_window(tray.app_handle(), WindowPlacement::Tray);
+                // Use this click's rect directly; the positioner tray cache can
+                // produce a screen-level placement when the tray rect is stale.
+                let _ = toggle_main_window(
+                    tray.app_handle(),
+                    WindowPlacement::Tray(TrayWindowAnchor::from_event(position, rect)),
+                );
             }
         })
         .on_menu_event(|app, event| {
@@ -94,13 +103,54 @@ fn build_tray(
     Ok(())
 }
 
+fn main_window_placement_from_tray(app_handle: &AppHandle) -> WindowPlacement {
+    let Some(tray) = app_handle.tray_by_id(TRAY_ICON_ID) else {
+        log_error(
+            app_handle,
+            "tray",
+            "failed to find tray icon for shortcut placement",
+        );
+        return WindowPlacement::Center;
+    };
+
+    match tray.rect() {
+        Ok(Some(rect)) => TrayWindowAnchor::from_rect(rect)
+            .map(WindowPlacement::Tray)
+            .unwrap_or_else(|| {
+                log_error(
+                    app_handle,
+                    "tray",
+                    "tray rect was empty; falling back to centered shortcut placement",
+                );
+                WindowPlacement::Center
+            }),
+        Ok(None) => {
+            log_error(
+                app_handle,
+                "tray",
+                "tray rect was unavailable; falling back to centered shortcut placement",
+            );
+            WindowPlacement::Center
+        }
+        Err(error) => {
+            log_error(
+                app_handle,
+                "tray",
+                &format!("failed to read tray rect for shortcut placement: {error}"),
+            );
+            WindowPlacement::Center
+        }
+    }
+}
+
 fn register_global_shortcuts(app: &App, show_guard_until: Arc<Mutex<Option<Instant>>>) {
     let result = app.global_shortcut().on_shortcut(
         TOGGLE_WINDOW_SHORTCUT,
         move |app_handle, _shortcut, event| {
             if event.state == ShortcutState::Pressed {
                 protect_next_focus_loss(&show_guard_until);
-                if let Err(error) = toggle_main_window(app_handle, WindowPlacement::Center) {
+                let placement = main_window_placement_from_tray(app_handle);
+                if let Err(error) = toggle_main_window(app_handle, placement) {
                     log_error(
                         app_handle,
                         "shortcut",

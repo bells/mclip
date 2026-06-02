@@ -2,7 +2,10 @@
 //! 主窗口只承载左侧列表；分组预览拆到独立透明窗口，避免撑大主窗口。
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Monitor, Position, Size};
+use tauri::{
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Monitor, PhysicalPosition, Position,
+    Rect, Runtime, Size, WebviewWindow,
+};
 use tauri_plugin_positioner::{Position as TrayPosition, WindowExt};
 
 #[cfg(target_os = "macos")]
@@ -34,7 +37,39 @@ const FALLBACK_SCREEN_BOUNDS_SIZE: f64 = 200_000.0;
 #[derive(Debug, Clone, Copy)]
 pub enum WindowPlacement {
     Center,
-    Tray,
+    Tray(TrayWindowAnchor),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct TrayWindowAnchor {
+    x: f64,
+    y: f64,
+    monitor_probe_y: f64,
+}
+
+impl TrayWindowAnchor {
+    pub fn from_event(position: PhysicalPosition<f64>, rect: Rect) -> Self {
+        Self::from_rect(rect).unwrap_or(Self {
+            x: position.x,
+            y: position.y,
+            monitor_probe_y: position.y,
+        })
+    }
+
+    pub fn from_rect(rect: Rect) -> Option<Self> {
+        let rect_position = rect.position.to_physical::<f64>(1.0);
+        let rect_size = rect.size.to_physical::<f64>(1.0);
+
+        if rect_size.width <= 0.0 || rect_size.height <= 0.0 {
+            return None;
+        }
+
+        Some(Self {
+            x: rect_position.x + rect_size.width / 2.0,
+            y: rect_position.y,
+            monitor_probe_y: rect_position.y + rect_size.height / 2.0,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -90,6 +125,15 @@ struct GroupPreviewWithDetailWindowPositionInput {
     group_width: f64,
     detail_width: f64,
     preview_height: f64,
+    screen_bounds: ScreenBounds,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct TrayWindowPositionInput {
+    anchor_x: f64,
+    anchor_y: f64,
+    window_width: f64,
+    window_height: f64,
     screen_bounds: ScreenBounds,
 }
 
@@ -487,10 +531,11 @@ pub fn show_main_window(app_handle: &AppHandle, placement: WindowPlacement) -> R
         let _ = window.unminimize();
 
         match placement {
-            WindowPlacement::Center => window.move_window(TrayPosition::Center),
-            WindowPlacement::Tray => window.move_window_constrained(TrayPosition::TrayBottomCenter),
-        }
-        .map_err(|error| error.to_string())?;
+            WindowPlacement::Center => window
+                .move_window(TrayPosition::Center)
+                .map_err(|error| error.to_string())?,
+            WindowPlacement::Tray(anchor) => move_window_to_tray_anchor(&window, anchor)?,
+        };
 
         window.show().map_err(|error| error.to_string())?;
         window.set_focus().map_err(|error| error.to_string())?;
@@ -500,6 +545,34 @@ pub fn show_main_window(app_handle: &AppHandle, placement: WindowPlacement) -> R
     }
 
     Ok(())
+}
+
+fn move_window_to_tray_anchor<R: Runtime>(
+    window: &WebviewWindow<R>,
+    anchor: TrayWindowAnchor,
+) -> Result<(), String> {
+    let window_size = window.outer_size().map_err(|error| error.to_string())?;
+    let monitor = window
+        .monitor_from_point(anchor.x, anchor.monitor_probe_y)
+        .map_err(|error| error.to_string())?
+        .or(window
+            .current_monitor()
+            .map_err(|error| error.to_string())?);
+    let screen_bounds = monitor
+        .as_ref()
+        .map(monitor_physical_work_area_bounds)
+        .unwrap_or_else(|| fallback_screen_bounds(anchor.x, anchor.y));
+    let position = calculate_tray_bottom_center_window_position(TrayWindowPositionInput {
+        anchor_x: anchor.x,
+        anchor_y: anchor.y,
+        window_width: f64::from(window_size.width),
+        window_height: f64::from(window_size.height),
+        screen_bounds,
+    });
+
+    window
+        .set_position(Position::Physical(position))
+        .map_err(|error| error.to_string())
 }
 
 pub fn toggle_main_window(
@@ -561,6 +634,17 @@ fn monitor_work_area_bounds(monitor: &Monitor) -> ScreenBounds {
     }
 }
 
+fn monitor_physical_work_area_bounds(monitor: &Monitor) -> ScreenBounds {
+    let work_area = monitor.work_area();
+
+    ScreenBounds {
+        left: f64::from(work_area.position.x),
+        top: f64::from(work_area.position.y),
+        width: f64::from(work_area.size.width),
+        height: f64::from(work_area.size.height),
+    }
+}
+
 fn fallback_screen_bounds(main_x: f64, main_y: f64) -> ScreenBounds {
     let half_size = FALLBACK_SCREEN_BOUNDS_SIZE / 2.0;
 
@@ -570,6 +654,30 @@ fn fallback_screen_bounds(main_x: f64, main_y: f64) -> ScreenBounds {
         width: FALLBACK_SCREEN_BOUNDS_SIZE,
         height: FALLBACK_SCREEN_BOUNDS_SIZE,
     }
+}
+
+fn calculate_tray_bottom_center_window_position(
+    input: TrayWindowPositionInput,
+) -> PhysicalPosition<i32> {
+    let x = input.anchor_x - input.window_width / 2.0;
+    let y = input.anchor_y;
+
+    PhysicalPosition::new(
+        clamp_window_axis(
+            x,
+            input.window_width,
+            input.screen_bounds.left,
+            input.screen_bounds.right(),
+        )
+        .round() as i32,
+        clamp_window_axis(
+            y,
+            input.window_height,
+            input.screen_bounds.top,
+            input.screen_bounds.bottom(),
+        )
+        .round() as i32,
+    )
 }
 
 fn calculate_preview_window_position(input: PreviewWindowPositionInput) -> PreviewWindowPosition {
@@ -909,9 +1017,11 @@ mod macos_window {
 #[cfg(test)]
 mod tests {
     use super::{
-        calculate_window_height, clamp_preview_height, clamp_preview_width,
-        is_physical_point_in_rect, MAX_WINDOW_HEIGHT,
+        calculate_tray_bottom_center_window_position, calculate_window_height,
+        clamp_preview_height, clamp_preview_width, is_physical_point_in_rect, TrayWindowAnchor,
+        TrayWindowPositionInput, MAX_WINDOW_HEIGHT,
     };
+    use tauri::{PhysicalPosition, PhysicalSize, Rect};
 
     #[test]
     fn empty_state_height_has_expected_floor() {
@@ -932,6 +1042,57 @@ mod tests {
     #[test]
     fn list_height_is_capped_at_maximum() {
         assert_eq!(calculate_window_height(100, 10), MAX_WINDOW_HEIGHT);
+    }
+
+    #[test]
+    fn tray_window_position_uses_tray_anchor_x_instead_of_screen_center() {
+        let position = calculate_tray_bottom_center_window_position(TrayWindowPositionInput {
+            anchor_x: 1850.0,
+            anchor_y: 24.0,
+            window_width: 320.0,
+            window_height: 500.0,
+            screen_bounds: super::ScreenBounds {
+                left: 0.0,
+                top: 24.0,
+                width: 1920.0,
+                height: 1056.0,
+            },
+        });
+
+        assert_eq!(position.x, 1600);
+        assert_eq!(position.y, 24);
+    }
+
+    #[test]
+    fn tray_window_position_clamps_to_screen_edge_near_corner_icons() {
+        let position = calculate_tray_bottom_center_window_position(TrayWindowPositionInput {
+            anchor_x: 1910.0,
+            anchor_y: 24.0,
+            window_width: 320.0,
+            window_height: 500.0,
+            screen_bounds: super::ScreenBounds {
+                left: 0.0,
+                top: 24.0,
+                width: 1920.0,
+                height: 1056.0,
+            },
+        });
+
+        assert_eq!(position.x, 1600);
+        assert_eq!(position.y, 24);
+    }
+
+    #[test]
+    fn tray_anchor_can_be_created_from_tray_rect_without_click_position() {
+        let anchor = TrayWindowAnchor::from_rect(Rect {
+            position: PhysicalPosition::new(1800, 24).into(),
+            size: PhysicalSize::new(40, 24).into(),
+        })
+        .expect("tray rect should produce an anchor");
+
+        assert_eq!(anchor.x, 1820.0);
+        assert_eq!(anchor.y, 24.0);
+        assert_eq!(anchor.monitor_probe_y, 36.0);
     }
 
     #[test]
