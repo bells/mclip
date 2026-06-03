@@ -552,16 +552,20 @@ fn move_window_to_tray_anchor<R: Runtime>(
     anchor: TrayWindowAnchor,
 ) -> Result<(), String> {
     let window_size = window.outer_size().map_err(|error| error.to_string())?;
-    let monitor = window
-        .monitor_from_point(anchor.x, anchor.monitor_probe_y)
+    let monitor_bounds = window
+        .available_monitors()
         .map_err(|error| error.to_string())?
-        .or(window
-            .current_monitor()
-            .map_err(|error| error.to_string())?);
-    let screen_bounds = monitor
+        .iter()
+        .map(monitor_physical_work_area_bounds)
+        .collect::<Vec<_>>();
+    let fallback_bounds = window
+        .current_monitor()
+        .map_err(|error| error.to_string())?
         .as_ref()
         .map(monitor_physical_work_area_bounds)
         .unwrap_or_else(|| fallback_screen_bounds(anchor.x, anchor.y));
+    let screen_bounds =
+        choose_screen_bounds_for_tray_anchor(anchor, &monitor_bounds, fallback_bounds);
     let position = calculate_tray_bottom_center_window_position(TrayWindowPositionInput {
         anchor_x: anchor.x,
         anchor_y: anchor.y,
@@ -678,6 +682,18 @@ fn calculate_tray_bottom_center_window_position(
         )
         .round() as i32,
     )
+}
+
+fn choose_screen_bounds_for_tray_anchor(
+    anchor: TrayWindowAnchor,
+    screen_bounds: &[ScreenBounds],
+    fallback_bounds: ScreenBounds,
+) -> ScreenBounds {
+    screen_bounds
+        .iter()
+        .copied()
+        .find(|bounds| bounds.contains_point(anchor.x, anchor.monitor_probe_y))
+        .unwrap_or(fallback_bounds)
 }
 
 fn calculate_preview_window_position(input: PreviewWindowPositionInput) -> PreviewWindowPosition {
@@ -897,6 +913,10 @@ impl ScreenBounds {
     fn bottom(self) -> f64 {
         self.top + self.height
     }
+
+    fn contains_point(self, x: f64, y: f64) -> bool {
+        x >= self.left && x <= self.right() && y >= self.top && y <= self.bottom()
+    }
 }
 
 fn is_physical_point_in_rect(x: f64, y: f64, left: f64, top: f64, width: f64, height: f64) -> bool {
@@ -1018,8 +1038,8 @@ mod macos_window {
 mod tests {
     use super::{
         calculate_tray_bottom_center_window_position, calculate_window_height,
-        clamp_preview_height, clamp_preview_width, is_physical_point_in_rect, TrayWindowAnchor,
-        TrayWindowPositionInput, MAX_WINDOW_HEIGHT,
+        choose_screen_bounds_for_tray_anchor, clamp_preview_height, clamp_preview_width,
+        is_physical_point_in_rect, TrayWindowAnchor, TrayWindowPositionInput, MAX_WINDOW_HEIGHT,
     };
     use tauri::{PhysicalPosition, PhysicalSize, Rect};
 
@@ -1083,12 +1103,71 @@ mod tests {
     }
 
     #[test]
+    fn tray_position_uses_screen_bounds_that_contain_the_anchor() {
+        let primary = super::ScreenBounds {
+            left: 0.0,
+            top: 24.0,
+            width: 1920.0,
+            height: 1056.0,
+        };
+        let secondary = super::ScreenBounds {
+            left: 1920.0,
+            top: 24.0,
+            width: 1920.0,
+            height: 1056.0,
+        };
+
+        let bounds = choose_screen_bounds_for_tray_anchor(
+            TrayWindowAnchor {
+                x: 3700.0,
+                y: 24.0,
+                monitor_probe_y: 36.0,
+            },
+            &[primary, secondary],
+            primary,
+        );
+
+        assert_eq!(bounds.left, secondary.left);
+        assert_eq!(bounds.width, secondary.width);
+    }
+
+    #[test]
     fn tray_anchor_can_be_created_from_tray_rect_without_click_position() {
         let anchor = TrayWindowAnchor::from_rect(Rect {
             position: PhysicalPosition::new(1800, 24).into(),
             size: PhysicalSize::new(40, 24).into(),
         })
         .expect("tray rect should produce an anchor");
+
+        assert_eq!(anchor.x, 1820.0);
+        assert_eq!(anchor.y, 24.0);
+        assert_eq!(anchor.monitor_probe_y, 36.0);
+    }
+
+    #[test]
+    fn tray_anchor_uses_rect_center_when_click_position_is_inside_rect() {
+        let anchor = TrayWindowAnchor::from_event(
+            PhysicalPosition::new(1805.0, 36.0),
+            Rect {
+                position: PhysicalPosition::new(1800, 24).into(),
+                size: PhysicalSize::new(40, 24).into(),
+            },
+        );
+
+        assert_eq!(anchor.x, 1820.0);
+        assert_eq!(anchor.y, 24.0);
+        assert_eq!(anchor.monitor_probe_y, 36.0);
+    }
+
+    #[test]
+    fn tray_anchor_keeps_rect_center_when_click_position_is_on_another_screen() {
+        let anchor = TrayWindowAnchor::from_event(
+            PhysicalPosition::new(2500.0, 36.0),
+            Rect {
+                position: PhysicalPosition::new(1800, 24).into(),
+                size: PhysicalSize::new(40, 24).into(),
+            },
+        );
 
         assert_eq!(anchor.x, 1820.0);
         assert_eq!(anchor.y, 24.0);
