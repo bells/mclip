@@ -199,12 +199,14 @@ fn read_clipboard_image() -> Result<NewHistoryItem, String> {
         .and_then(|mut clipboard| clipboard.get_image())
         .map_err(|error| error.to_string())?;
 
-    let rgba = RgbaImage::from_raw(
+    let mut rgba = RgbaImage::from_raw(
         clipboard_image.width as u32,
         clipboard_image.height as u32,
         clipboard_image.bytes.as_ref().to_vec(),
     )
     .ok_or_else(|| "failed to create image from raw clipboard pixels".to_string())?;
+
+    normalize_suspicious_clipboard_alpha(&mut rgba);
 
     let (resized, final_width, final_height) = resize_if_large(rgba, MAX_IMAGE_DIMENSION);
     let png_bytes = encode_png_rgba(&resized)?;
@@ -216,6 +218,47 @@ fn read_clipboard_image() -> Result<NewHistoryItem, String> {
         height: final_height,
         content_hash,
     })
+}
+
+fn normalize_suspicious_clipboard_alpha(image: &mut RgbaImage) -> bool {
+    let raw = image.as_raw();
+    let pixel_count = raw.len() / 4;
+
+    if pixel_count == 0 {
+        return false;
+    }
+
+    let mut transparent_pixels = 0usize;
+    let mut visible_rgb_pixels = 0usize;
+
+    for pixel in raw.chunks_exact(4) {
+        let [red, green, blue, alpha] = pixel else {
+            continue;
+        };
+
+        if *alpha == 0 {
+            transparent_pixels += 1;
+        }
+
+        if *red > 8 || *green > 8 || *blue > 8 {
+            visible_rgb_pixels += 1;
+        }
+    }
+
+    let almost_all_transparent = transparent_pixels.saturating_mul(100) >= pixel_count * 99;
+    let has_meaningful_rgb = visible_rgb_pixels.saturating_mul(100) >= pixel_count;
+
+    if !almost_all_transparent || !has_meaningful_rgb {
+        return false;
+    }
+
+    for pixel in image.pixels_mut() {
+        if pixel.0[3] == 0 {
+            pixel.0[3] = 255;
+        }
+    }
+
+    true
 }
 
 fn read_image_from_file(path: &str) -> Result<NewHistoryItem, String> {
@@ -568,8 +611,12 @@ fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
 mod tests {
     use crate::settings::HistoryTypes;
 
-    use super::{clipboard_snapshot_from_candidates, text_to_history_item};
+    use super::{
+        clipboard_snapshot_from_candidates, normalize_suspicious_clipboard_alpha,
+        text_to_history_item,
+    };
     use crate::history::{HistoryKind, NewHistoryItem};
+    use image::RgbaImage;
 
     fn all_types() -> HistoryTypes {
         HistoryTypes {
@@ -624,5 +671,47 @@ mod tests {
         .unwrap();
 
         assert_eq!(snapshot.item.kind(), HistoryKind::Files);
+    }
+
+    #[test]
+    fn normalize_suspicious_clipboard_alpha_makes_hidden_rgb_opaque() {
+        let mut image = RgbaImage::from_raw(
+            2,
+            2,
+            vec![
+                240, 10, 10, 0, 20, 220, 20, 0, 30, 30, 210, 0, 200, 200, 200, 0,
+            ],
+        )
+        .unwrap();
+
+        assert!(normalize_suspicious_clipboard_alpha(&mut image));
+        assert_eq!(
+            image.into_raw(),
+            vec![240, 10, 10, 255, 20, 220, 20, 255, 30, 30, 210, 255, 200, 200, 200, 255,]
+        );
+    }
+
+    #[test]
+    fn normalize_suspicious_clipboard_alpha_leaves_empty_transparency_alone() {
+        let mut image = RgbaImage::from_raw(2, 2, vec![0; 16]).unwrap();
+
+        assert!(!normalize_suspicious_clipboard_alpha(&mut image));
+        assert_eq!(image.into_raw(), vec![0; 16]);
+    }
+
+    #[test]
+    fn normalize_suspicious_clipboard_alpha_preserves_partial_transparency() {
+        let mut image = RgbaImage::from_raw(
+            2,
+            2,
+            vec![
+                240, 10, 10, 0, 20, 220, 20, 0, 30, 30, 210, 0, 200, 200, 200, 128,
+            ],
+        )
+        .unwrap();
+        let original = image.clone().into_raw();
+
+        assert!(!normalize_suspicious_clipboard_alpha(&mut image));
+        assert_eq!(image.into_raw(), original);
     }
 }
