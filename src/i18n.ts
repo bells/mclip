@@ -63,7 +63,9 @@ export const translations = {
     },
     preferences: {
       cancel: "取消",
+      decreaseMaxHistoryCount: "减少最大记录条数",
       error: "保存失败，请重试。",
+      increaseMaxHistoryCount: "增加最大记录条数",
       languageDescription: "选择界面显示语言。",
       languageEnglish: "English",
       languageLabel: "语言",
@@ -146,7 +148,9 @@ export const translations = {
     },
     preferences: {
       cancel: "Cancel",
+      decreaseMaxHistoryCount: "Decrease maximum records",
       error: "Save failed. Please try again.",
+      increaseMaxHistoryCount: "Increase maximum records",
       languageDescription: "Choose the display language.",
       languageEnglish: "English",
       languageLabel: "Language",

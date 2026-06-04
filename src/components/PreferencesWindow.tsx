@@ -173,6 +173,7 @@ export function PreferencesWindow() {
               </div>
 
               <button
+                aria-label={t.launchAtLoginLabel}
                 aria-pressed={settingsDraft.launchAtLogin}
                 className={`app-switch ${settingsDraft.launchAtLogin ? "is-on" : ""}`}
                 disabled={isSavingSettings}
@@ -190,6 +191,7 @@ export function PreferencesWindow() {
               </div>
 
               <select
+                aria-label={t.languageLabel}
                 className="app-language-select"
                 disabled={isSavingSettings}
                 onChange={(event) => updateLanguage(event.target.value as AppLanguage)}
@@ -213,6 +215,7 @@ export function PreferencesWindow() {
 
               <div className="app-stepper">
                 <button
+                  aria-label={t.decreaseMaxHistoryCount}
                   className="app-stepper-btn"
                   disabled={isSavingSettings}
                   onClick={() => updateMaxHistoryCount(settingsDraft.maxHistoryCount - 1)}
@@ -237,6 +240,7 @@ export function PreferencesWindow() {
                   value={maxHistoryCountInput}
                 />
                 <button
+                  aria-label={t.increaseMaxHistoryCount}
                   className="app-stepper-btn"
                   disabled={isSavingSettings}
                   onClick={() => updateMaxHistoryCount(settingsDraft.maxHistoryCount + 1)}

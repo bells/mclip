@@ -1,10 +1,9 @@
 :root {
   color-scheme: dark;
   font-family:
-    "Avenir Next",
-    "Gill Sans",
-    "SF Pro Rounded",
+    "SF Pro Text",
     "Segoe UI Variable",
+    system-ui,
     sans-serif;
   font-size: 12px;
   font-synthesis: none;
@@ -27,11 +26,15 @@
   --app-danger: #ff756d;
   --app-selection: rgba(124, 199, 193, 0.18);
   --app-selection-strong: rgba(124, 199, 193, 0.28);
+  --app-focus-ring: rgba(124, 199, 193, 0.86);
+  --app-control-bg: rgba(255, 255, 255, 0.045);
+  --app-control-bg-hover: rgba(255, 255, 255, 0.08);
   --app-radius-lg: 20px;
   --app-radius-md: 14px;
   --app-radius-sm: 8px;
+  --app-z-modal: 30;
   --app-shadow:
-    0 18px 46px rgba(0, 0, 0, 0.54),
+    0 10px 14px rgba(0, 0, 0, 0.46),
     inset 0 0 0 1px rgba(247, 241, 232, 0.1);
 }
 
@@ -96,16 +99,9 @@ button {
 .app-panel::before,
 .app-dialog-panel::before {
   background:
-    linear-gradient(120deg, rgba(244, 184, 96, 0.14), transparent 28%),
-    linear-gradient(300deg, rgba(124, 199, 193, 0.12), transparent 34%),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.018) 0,
-      rgba(255, 255, 255, 0.018) 1px,
-      transparent 1px,
-      transparent 18px
-    );
-  opacity: 0.86;
+    linear-gradient(120deg, rgba(244, 184, 96, 0.1), transparent 30%),
+    linear-gradient(300deg, rgba(124, 199, 193, 0.08), transparent 36%);
+  opacity: 0.72;
 }
 
 .app-panel {
@@ -167,7 +163,7 @@ button {
   border-radius: 9px;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-    0 8px 18px rgba(0, 0, 0, 0.22);
+    0 4px 8px rgba(0, 0, 0, 0.22);
 }
 
 .app-settings-window-panel {
@@ -211,7 +207,7 @@ button {
     rgba(255, 255, 255, 0.04);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 8px 18px rgba(0, 0, 0, 0.22);
+    0 4px 8px rgba(0, 0, 0, 0.22);
 }
 
 .app-brand-mark {
@@ -298,7 +294,7 @@ button {
 }
 
 .app-search::placeholder {
-  color: rgba(222, 213, 199, 0.48);
+  color: rgba(222, 213, 199, 0.68);
 }
 
 .app-search-shell:focus-within .app-search {
@@ -344,17 +340,6 @@ button {
     transform 130ms ease;
 }
 
-.app-item-row::before {
-  position: absolute;
-  top: 8px;
-  bottom: 8px;
-  left: 0;
-  width: 3px;
-  border-radius: 999px;
-  background: transparent;
-  content: "";
-}
-
 .app-item-row:hover {
   background: rgba(255, 255, 255, 0.055);
 }
@@ -364,10 +349,6 @@ button {
     linear-gradient(90deg, rgba(124, 199, 193, 0.18), rgba(124, 199, 193, 0.07)),
     rgba(255, 255, 255, 0.03);
   box-shadow: inset 0 0 0 1px rgba(124, 199, 193, 0.16);
-}
-
-.app-item-row.is-selected::before {
-  background: var(--app-accent-cool);
 }
 
 .app-item-row:focus-within {
@@ -546,19 +527,12 @@ button {
   height: 100%;
   align-items: center;
   justify-content: center;
-  border: 1px dashed rgba(247, 241, 232, 0.14);
+  border: 1px solid rgba(247, 241, 232, 0.12);
   border-radius: 8px;
-  background:
-    repeating-linear-gradient(
-      -45deg,
-      rgba(255, 255, 255, 0.025) 0,
-      rgba(255, 255, 255, 0.025) 1px,
-      transparent 1px,
-      transparent 10px
-    );
-  color: var(--app-ink-dim);
+  background: rgba(255, 255, 255, 0.028);
+  color: var(--app-ink-soft);
   font-size: 13px;
-  font-style: italic;
+  font-weight: 750;
   text-align: center;
 }
 
@@ -639,7 +613,7 @@ button {
     linear-gradient(90deg, rgba(244, 184, 96, 0.19), rgba(124, 199, 193, 0.13)),
     rgba(255, 255, 255, 0.035);
   box-shadow:
-    0 10px 20px rgba(0, 0, 0, 0.24),
+    0 4px 8px rgba(0, 0, 0, 0.2),
     inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   color: #fffaf2;
 }
@@ -705,20 +679,13 @@ button {
     linear-gradient(140deg, rgba(244, 184, 96, 0.12), transparent 38%),
     linear-gradient(180deg, rgba(31, 33, 32, 0.98), rgba(15, 17, 18, 0.98));
   box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.48),
+    0 10px 14px rgba(0, 0, 0, 0.44),
     inset 0 0 0 1px rgba(0, 0, 0, 0.32);
   padding: 10px;
 }
 
 .app-history-preview::before {
-  background:
-    repeating-linear-gradient(
-      0deg,
-      rgba(255, 255, 255, 0.022) 0,
-      rgba(255, 255, 255, 0.022) 1px,
-      transparent 1px,
-      transparent 16px
-    );
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 42%);
 }
 
 .app-history-preview-header,
@@ -1266,7 +1233,7 @@ button {
 .app-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--app-z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1280,7 +1247,7 @@ button {
   border-radius: var(--app-radius-md);
   background:
     linear-gradient(180deg, rgba(42, 44, 43, 0.98), rgba(25, 27, 28, 0.98));
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 14px rgba(0, 0, 0, 0.38);
   padding: 18px;
 }
 
@@ -1405,7 +1372,7 @@ button {
   min-height: 32px;
   border: 1px solid rgba(247, 241, 232, 0.1);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.045);
+  background: var(--app-control-bg);
   color: var(--app-ink-soft);
   cursor: pointer;
   font-size: 11px;
@@ -1416,7 +1383,7 @@ button {
 }
 
 .app-diagnostics-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--app-control-bg-hover);
 }
 
 .app-diagnostics-status {
@@ -1468,7 +1435,7 @@ button {
 }
 
 .app-modal-btn:hover:not(:disabled) {
-  box-shadow: 0 8px 18px rgba(244, 184, 96, 0.2);
+  box-shadow: 0 4px 8px rgba(244, 184, 96, 0.2);
 }
 
 .app-modal-danger-btn {
@@ -1479,17 +1446,17 @@ button {
 }
 
 .app-modal-danger-btn:hover:not(:disabled) {
-  box-shadow: 0 8px 18px rgba(255, 117, 109, 0.2);
+  box-shadow: 0 4px 8px rgba(255, 117, 109, 0.2);
 }
 
 .app-modal-secondary-btn {
   border-color: rgba(247, 241, 232, 0.1);
-  background: rgba(255, 255, 255, 0.045);
+  background: var(--app-control-bg);
   color: var(--app-ink-soft);
 }
 
 .app-modal-secondary-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--app-control-bg-hover);
 }
 
 .app-modal-btn:disabled,
@@ -1630,7 +1597,7 @@ button {
   background:
     linear-gradient(90deg, rgba(124, 199, 193, 0.12), rgba(124, 199, 193, 0)),
     rgba(255, 255, 255, 0.025);
-  box-shadow: inset 2px 0 0 rgba(124, 199, 193, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(124, 199, 193, 0.28);
 }
 
 .app-history-type-label {
@@ -1799,4 +1766,40 @@ button {
   color: var(--app-ink);
   padding: 7px 8px;
   text-align: center;
+}
+
+.app-search:focus-visible,
+.app-item-delete:focus-visible,
+.app-history-preview-delete:focus-visible,
+.app-history-archive-row:focus-visible,
+.app-menu-item:focus-visible,
+.app-modal-btn:focus-visible,
+.app-modal-secondary-btn:focus-visible,
+.app-diagnostics-btn:focus-visible,
+.app-stepper-btn:focus-visible,
+.app-switch:focus-visible,
+.app-history-type-row:focus-visible,
+.app-language-select:focus-visible,
+.app-stepper-input:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(12, 14, 15, 0.98),
+    0 0 0 4px var(--app-focus-ring);
+}
+
+.app-item:focus-visible,
+.app-history-preview-item:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(124, 199, 193, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

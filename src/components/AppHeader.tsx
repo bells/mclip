@@ -28,6 +28,7 @@ export function AppHeader({
       <label className="app-search-shell">
         <span className="app-search-icon" aria-hidden="true" />
         <input
+          aria-label={translations.searchPlaceholder}
           autoComplete="off"
           className="app-search"
           // 受控组件：输入框的值来自 React state，用户输入后通过回调更新 state。
