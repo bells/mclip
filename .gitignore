@@ -44,3 +44,6 @@ Thumbs.db
 design/
 
 clear-history.sh
+
+# Local CodeGraph index
+.codegraph/
