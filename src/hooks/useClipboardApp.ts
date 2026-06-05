@@ -53,6 +53,7 @@ import {
   dismissPreviewForSelection,
   resetPreviewSelectionDismissal,
 } from "../utils/previewDismissal";
+import { getSearchQueryAfterHistorySelection } from "../utils/searchInteraction";
 import { normalizeSettings } from "../utils/settings";
 
 const PREVIEW_CLOSE_DELAY_MS = 500;
@@ -128,6 +129,12 @@ export function useClipboardApp() {
     previewDismissalStateRef.current = resetPreviewSelectionDismissal(
       previewDismissalStateRef.current,
     );
+  }
+
+  function clearSearchQueryAfterHistorySelection() {
+    const nextSearchQuery = getSearchQueryAfterHistorySelection(searchQueryRef.current);
+    searchQueryRef.current = nextSearchQuery;
+    setSearchQuery(nextSearchQuery);
   }
 
   // 事件回调里要读取最新搜索词，用 ref 避免闭包拿到旧值。
@@ -430,6 +437,7 @@ export function useClipboardApp() {
       beginSelectionPreviewDismissal();
       await hideHistoryPreviewWindow();
       await copyHistoryItem(id);
+      clearSearchQueryAfterHistorySelection();
       await hideCurrentWindow();
     } catch (error) {
       resetSelectionPreviewDismissal();
