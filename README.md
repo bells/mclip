@@ -97,7 +97,7 @@ git push origin v0.1.0
 
 ### 当前限制
 
-- macOS 剪贴板监听仍使用轮询。
+- macOS 剪贴板监听仍使用轮询，但只轮询 `NSPasteboard.changeCount`，检测到变化后才读取完整剪贴板内容。
 - macOS 未做 Developer ID 签名和 notarization。
 - Windows 未做代码签名，可能触发 SmartScreen。
 - 当前没有云同步，历史只保存在本机。
@@ -193,7 +193,7 @@ The tag version must match `package.json`. For example, package version `0.1.0` 
 
 ### Known Limitations
 
-- macOS clipboard watching still uses polling.
+- macOS clipboard watching still uses polling, but it only polls `NSPasteboard.changeCount` and reads full clipboard contents after a detected change.
 - macOS builds are not Developer ID signed or notarized.
 - Windows builds are unsigned and may trigger SmartScreen.
 - There is no cloud sync. History stays on the local machine.

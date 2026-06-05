@@ -1,5 +1,6 @@
 //! 剪贴板读写与监听。
-//! Windows 使用系统剪贴板事件；其它平台保留轻量轮询，并且每次读取都重新打开剪贴板以降低句柄失效风险。
+//! Windows 使用系统剪贴板事件；macOS 轻量轮询 NSPasteboard.changeCount；
+//! 其它平台保留完整轮询，并且每次读取都重新打开剪贴板以降低句柄失效风险。
 
 use std::borrow::Cow;
 use std::path::PathBuf;
@@ -9,9 +10,9 @@ use base64::prelude::*;
 use image::imageops::{self, FilterType};
 use image::RgbaImage;
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 use std::thread;
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 use std::time::Duration;
 use tauri::AppHandle;
 
@@ -20,12 +21,14 @@ use crate::history::{
     emit_history_updated, find_history_item, hash_hex, process_new_history_item, HistoryEntry,
     NewHistoryItem,
 };
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 use crate::settings::load_settings;
 use crate::settings::HistoryTypes;
 
 #[cfg(not(target_os = "windows"))]
 const CLIPBOARD_POLL_INTERVAL_MS: u64 = 500;
+#[cfg(target_os = "macos")]
+const CLIPBOARD_CHANGE_SETTLE_DELAY_MS: u64 = 75;
 const MAX_IMAGE_DIMENSION: u32 = 1200;
 
 #[tauri::command]
@@ -174,6 +177,22 @@ fn read_clipboard_signature(enabled_types: &HistoryTypes) -> String {
     read_clipboard_snapshot(enabled_types)
         .map(|snapshot| snapshot.signature)
         .unwrap_or_default()
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn read_snapshot_after_change_token_update(
+    last_change_token: &mut i64,
+    current_change_token: Option<i64>,
+    read_snapshot: impl FnOnce() -> Option<ClipboardSnapshot>,
+) -> Option<ClipboardSnapshot> {
+    match current_change_token {
+        Some(change_token) if change_token == *last_change_token => None,
+        Some(change_token) => {
+            *last_change_token = change_token;
+            read_snapshot()
+        }
+        None => read_snapshot(),
+    }
 }
 
 fn read_clipboard_text() -> Result<String, String> {
@@ -327,7 +346,7 @@ fn text_to_history_item(text: String, enabled_types: &HistoryTypes) -> Option<Ne
     }
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
     thread::spawn(move || {
         let mut last_signature = load_settings(&app_handle)
@@ -335,7 +354,7 @@ fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
             .unwrap_or_default();
 
         loop {
-            // macOS 当前仍采用轮询。每轮独立读取，避免长时间持有 Clipboard 导致后续读取不稳定。
+            // 其它平台保留完整轮询。每轮独立读取，避免长时间持有 Clipboard 导致后续读取不稳定。
             if let Ok(settings) = load_settings(&app_handle) {
                 if let Some(snapshot) = read_clipboard_snapshot(&settings.enabled_history_types) {
                     process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
@@ -345,6 +364,99 @@ fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
             thread::sleep(Duration::from_millis(CLIPBOARD_POLL_INTERVAL_MS));
         }
     });
+}
+
+#[cfg(target_os = "macos")]
+mod macos_clipboard_watcher {
+    //! macOS 没有等价于 Windows WM_CLIPBOARDUPDATE 的公开全局事件。
+    //! 这里轻量轮询 NSPasteboard.changeCount，只有计数变化时才读取完整剪贴板。
+
+    use std::ffi::{c_char, c_void};
+    use std::thread;
+    use std::time::Duration;
+
+    use tauri::AppHandle;
+
+    use crate::settings::load_settings;
+
+    use super::{
+        process_clipboard_snapshot, read_clipboard_signature, read_clipboard_snapshot,
+        read_snapshot_after_change_token_update, CLIPBOARD_CHANGE_SETTLE_DELAY_MS,
+        CLIPBOARD_POLL_INTERVAL_MS,
+    };
+
+    pub fn spawn(app_handle: AppHandle) {
+        thread::spawn(move || {
+            let mut last_signature = load_settings(&app_handle)
+                .map(|settings| read_clipboard_signature(&settings.enabled_history_types))
+                .unwrap_or_default();
+            let mut last_change_token = general_pasteboard_change_count().unwrap_or_default();
+
+            loop {
+                if let Ok(settings) = load_settings(&app_handle) {
+                    let current_change_token = general_pasteboard_change_count();
+                    if current_change_token
+                        .map(|change_token| change_token != last_change_token)
+                        .unwrap_or(false)
+                    {
+                        thread::sleep(Duration::from_millis(CLIPBOARD_CHANGE_SETTLE_DELAY_MS));
+                    }
+
+                    if let Some(snapshot) = read_snapshot_after_change_token_update(
+                        &mut last_change_token,
+                        current_change_token,
+                        || read_clipboard_snapshot(&settings.enabled_history_types),
+                    ) {
+                        process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
+                    }
+                }
+
+                thread::sleep(Duration::from_millis(CLIPBOARD_POLL_INTERVAL_MS));
+            }
+        });
+    }
+
+    fn general_pasteboard_change_count() -> Option<i64> {
+        unsafe {
+            let pasteboard_class = objc_getClass(c"NSPasteboard".as_ptr());
+            if pasteboard_class.is_null() {
+                return None;
+            }
+
+            let pasteboard = msg_send_id(pasteboard_class, sel(c"generalPasteboard".as_ptr()));
+            if pasteboard.is_null() {
+                return None;
+            }
+
+            Some(msg_send_integer(pasteboard, sel(c"changeCount".as_ptr())) as i64)
+        }
+    }
+
+    type ObjcId = *mut c_void;
+
+    #[link(name = "AppKit", kind = "framework")]
+    unsafe extern "C" {}
+
+    #[allow(clashing_extern_declarations)]
+    #[link(name = "objc", kind = "dylib")]
+    unsafe extern "C" {
+        #[link_name = "sel_registerName"]
+        fn sel(name: *const c_char) -> ObjcId;
+
+        #[link_name = "objc_getClass"]
+        fn objc_getClass(name: *const c_char) -> ObjcId;
+
+        #[link_name = "objc_msgSend"]
+        fn msg_send_id(receiver: ObjcId, selector: ObjcId) -> ObjcId;
+
+        #[link_name = "objc_msgSend"]
+        fn msg_send_integer(receiver: ObjcId, selector: ObjcId) -> isize;
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
+    macos_clipboard_watcher::spawn(app_handle);
 }
 
 #[cfg(target_os = "windows")]
@@ -613,7 +725,7 @@ mod tests {
 
     use super::{
         clipboard_snapshot_from_candidates, normalize_suspicious_clipboard_alpha,
-        text_to_history_item,
+        read_snapshot_after_change_token_update, text_to_history_item, ClipboardSnapshot,
     };
     use crate::history::{HistoryKind, NewHistoryItem};
     use image::RgbaImage;
@@ -671,6 +783,62 @@ mod tests {
         .unwrap();
 
         assert_eq!(snapshot.item.kind(), HistoryKind::Files);
+    }
+
+    #[test]
+    fn unchanged_clipboard_change_token_skips_snapshot_read() {
+        let mut last_change_token = 7;
+        let mut read_count = 0;
+        let snapshot =
+            read_snapshot_after_change_token_update(&mut last_change_token, Some(7), || {
+                read_count += 1;
+                Some(ClipboardSnapshot {
+                    signature: "new-text".to_string(),
+                    item: NewHistoryItem::Text("hello".to_string()),
+                })
+            });
+
+        assert!(snapshot.is_none());
+        assert_eq!(read_count, 0);
+        assert_eq!(last_change_token, 7);
+    }
+
+    #[test]
+    fn changed_clipboard_change_token_reads_snapshot_once() {
+        let mut last_change_token = 7;
+        let mut read_count = 0;
+        let snapshot =
+            read_snapshot_after_change_token_update(&mut last_change_token, Some(8), || {
+                read_count += 1;
+                Some(ClipboardSnapshot {
+                    signature: "new-text".to_string(),
+                    item: NewHistoryItem::Text("hello".to_string()),
+                })
+            })
+            .unwrap();
+
+        assert_eq!(snapshot.signature, "new-text");
+        assert_eq!(read_count, 1);
+        assert_eq!(last_change_token, 8);
+    }
+
+    #[test]
+    fn unavailable_clipboard_change_token_falls_back_to_snapshot_read() {
+        let mut last_change_token = 7;
+        let mut read_count = 0;
+        let snapshot =
+            read_snapshot_after_change_token_update(&mut last_change_token, None, || {
+                read_count += 1;
+                Some(ClipboardSnapshot {
+                    signature: "fallback-text".to_string(),
+                    item: NewHistoryItem::Text("hello".to_string()),
+                })
+            })
+            .unwrap();
+
+        assert_eq!(snapshot.signature, "fallback-text");
+        assert_eq!(read_count, 1);
+        assert_eq!(last_change_token, 7);
     }
 
     #[test]

@@ -86,7 +86,7 @@ src-tauri/
   src/main.rs                         发布版 Windows 隐藏控制台，转入 lib.rs
   src/lib.rs                          Tauri 应用入口、托盘、快捷键、命令注册
   src/window.rs                       主窗口和 preview/about/preferences 的尺寸、定位、显示隐藏
-  src/clipboard.rs                    剪贴板读写、图片处理、Windows 事件监听、非 Windows 轮询
+  src/clipboard.rs                    剪贴板读写、图片处理、Windows 事件监听、macOS changeCount 轮询
   src/history.rs                      历史持久化、去重、裁剪、图片资源清理
   src/settings.rs                     设置持久化、登录启动、系统语言默认值
   src/source_app.rs                   macOS/Windows 当前来源应用 best-effort 识别
@@ -170,7 +170,8 @@ preview 必须保持独立窗口：
 平台策略：
 
 - Windows：使用 Win32 `AddClipboardFormatListener` 和 message-only window 监听 `WM_CLIPBOARDUPDATE`。
-- 非 Windows：使用轮询，每 500ms 读取一次剪贴板。
+- macOS：每 500ms 轻量读取 `NSPasteboard.changeCount`，只有计数变化后才读取完整剪贴板。
+- 其它非 Windows：使用轮询，每 500ms 读取一次剪贴板。
 
 内容策略：
 
@@ -382,7 +383,7 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 
 ## 当前已知限制
 
-- macOS 剪贴板监听仍是轮询。
+- macOS 剪贴板监听仍是轮询，但只轮询 `NSPasteboard.changeCount`，变化后才读取完整内容。
 - macOS 未 notarize，GitHub 下载后可能需要手动解除 quarantine。
 - Windows 未签名，可能触发 SmartScreen。
 - 当前没有云同步，历史只保存在本机。
