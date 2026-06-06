@@ -1,0 +1,30 @@
+---
+interface Props {
+  lang: "zh" | "en";
+}
+
+const { lang } = Astro.props;
+---
+
+<footer class="site-footer">
+  <div>
+    <a class="brand footer-brand" href={lang === "zh" ? "/zh/" : "/en/"}>
+      <img src="/app-icon.png" alt="" />
+      <span>mclip</span>
+    </a>
+    <p>
+      {
+        lang === "zh"
+          ? "轻量、本地优先的剪贴板历史工具。"
+          : "A lightweight, local-first clipboard history tool."
+      }
+    </p>
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/bells/mclip">GitHub</a>
+    <a href="https://github.com/bells/mclip/releases">Releases</a>
+    <a href={lang === "zh" ? "/zh/changelog/" : "/en/changelog/"}>
+      {lang === "zh" ? "更新日志" : "Changelog"}
+    </a>
+  </div>
+</footer>

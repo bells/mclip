@@ -1,0 +1,51 @@
+<svg width="1360" height="900" viewBox="0 0 1360 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1360" height="900" fill="#eef5e8"/>
+  <circle cx="1090" cy="96" r="330" fill="#cde6bd"/>
+  <circle cx="184" cy="774" r="290" fill="#dcefd3"/>
+  <rect x="210" y="92" width="350" height="628" rx="24" fill="#161a14"/>
+  <rect x="226" y="108" width="318" height="596" rx="18" fill="#f8faf4"/>
+  <rect x="250" y="132" width="270" height="46" rx="14" fill="#e8f2df"/>
+  <text x="274" y="162" fill="#52614a" font-family="Avenir Next, Arial, sans-serif" font-size="18" font-weight="600">Search clipboard history</text>
+  <circle cx="504" cy="155" r="8" fill="#5d8f1d"/>
+  <g font-family="Avenir Next, Arial, sans-serif">
+    <rect x="250" y="204" width="270" height="64" rx="14" fill="#ffffff"/>
+    <text x="272" y="231" fill="#182114" font-size="16" font-weight="700">Release notes draft</text>
+    <text x="272" y="253" fill="#74806f" font-size="13">Copied 2 minutes ago</text>
+    <rect x="250" y="280" width="270" height="64" rx="14" fill="#f0f7ea"/>
+    <text x="272" y="307" fill="#182114" font-size="16" font-weight="700">Screenshot 2026-06-06</text>
+    <text x="272" y="329" fill="#74806f" font-size="13">PNG image, 284 KB</text>
+    <rect x="250" y="356" width="270" height="64" rx="14" fill="#ffffff"/>
+    <text x="272" y="383" fill="#182114" font-size="16" font-weight="700">/Users/watson/work/mclip</text>
+    <text x="272" y="405" fill="#74806f" font-size="13">File path from Finder</text>
+    <rect x="250" y="432" width="270" height="64" rx="14" fill="#ffffff"/>
+    <text x="272" y="459" fill="#182114" font-size="16" font-weight="700">CommandOrControl+Shift+V</text>
+    <text x="272" y="481" fill="#74806f" font-size="13">Keyboard shortcut</text>
+    <rect x="250" y="528" width="270" height="42" rx="12" fill="#e8f2df"/>
+    <text x="272" y="554" fill="#426b12" font-size="14" font-weight="700">11-20 older items</text>
+    <rect x="250" y="580" width="270" height="42" rx="12" fill="#f4f8f0"/>
+    <text x="272" y="606" fill="#52614a" font-size="14" font-weight="700">21-30 older items</text>
+  </g>
+  <rect x="560" y="298" width="330" height="306" rx="24" fill="#151a14"/>
+  <rect x="576" y="314" width="298" height="274" rx="18" fill="#f8faf4"/>
+  <text x="602" y="354" fill="#182114" font-family="Avenir Next, Arial, sans-serif" font-size="20" font-weight="800">11-20 older items</text>
+  <g font-family="Avenir Next, Arial, sans-serif">
+    <rect x="602" y="382" width="246" height="42" rx="12" fill="#eef7e8"/>
+    <text x="620" y="408" fill="#182114" font-size="14" font-weight="700">App launch checklist</text>
+    <rect x="602" y="432" width="246" height="42" rx="12" fill="#ffffff"/>
+    <text x="620" y="458" fill="#52614a" font-size="14" font-weight="700">GitHub release URL</text>
+    <rect x="602" y="482" width="246" height="42" rx="12" fill="#ffffff"/>
+    <text x="620" y="508" fill="#52614a" font-size="14" font-weight="700">Design notes</text>
+    <rect x="602" y="532" width="246" height="28" rx="10" fill="#e6f0dd"/>
+  </g>
+  <rect x="890" y="238" width="330" height="426" rx="24" fill="#151a14"/>
+  <rect x="906" y="254" width="298" height="394" rx="18" fill="#fffdf8"/>
+  <rect x="932" y="284" width="64" height="64" rx="16" fill="#d9efc9"/>
+  <path d="M948 332 C954 295 979 285 990 292 C974 296 966 315 948 332Z" fill="#5d8f1d"/>
+  <text x="932" y="382" fill="#182114" font-family="Avenir Next, Arial, sans-serif" font-size="22" font-weight="800">App launch checklist</text>
+  <text x="932" y="416" fill="#52614a" font-family="Avenir Next, Arial, sans-serif" font-size="15">1. Download release assets</text>
+  <text x="932" y="444" fill="#52614a" font-family="Avenir Next, Arial, sans-serif" font-size="15">2. Verify local history stays private</text>
+  <text x="932" y="472" fill="#52614a" font-family="Avenir Next, Arial, sans-serif" font-size="15">3. Open preview without stealing focus</text>
+  <rect x="932" y="526" width="198" height="42" rx="12" fill="#2f5d08"/>
+  <text x="958" y="552" fill="white" font-family="Avenir Next, Arial, sans-serif" font-size="15" font-weight="800">Copy to clipboard</text>
+  <path d="M210 752 C420 844 744 832 1014 742 C1120 707 1196 704 1250 728" stroke="#87b85b" stroke-width="12" stroke-linecap="round"/>
+</svg>

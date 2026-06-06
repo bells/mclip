@@ -1,0 +1,24 @@
+---
+import SiteFooter from "../../components/SiteFooter.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+---
+
+<SiteLayout
+  lang="en"
+  path="/en/changelog/"
+  title="mclip Changelog"
+  description="Public release notes for mclip."
+>
+  <main class="text-page">
+    <a class="back-link" href="/en/">Back home</a>
+    <h1>Changelog</h1>
+    <article class="release-note">
+      <p class="eyebrow">0.1.0</p>
+      <h2>First public release</h2>
+      <p>
+        Adds tray clipboard history for macOS and Windows, text/image/file-path history, search, independent preview windows, preferences, and Chinese/English UI.
+      </p>
+    </article>
+  </main>
+  <SiteFooter lang="en" />
+</SiteLayout>

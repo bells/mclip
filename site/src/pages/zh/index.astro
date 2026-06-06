@@ -1,0 +1,120 @@
+---
+import Faq from "../../components/Faq.astro";
+import FeatureGrid from "../../components/FeatureGrid.astro";
+import Hero from "../../components/Hero.astro";
+import InstallGuide from "../../components/InstallGuide.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+
+const features = [
+  {
+    title: "托盘优先",
+    body: "点击菜单栏或系统托盘图标，或者按 CommandOrControl+Shift+V，主窗口会轻轻出现，用完立刻收起。",
+  },
+  {
+    title: "文本、图片、文件都能找回",
+    body: "保存常见复制场景：一段文字、一张截图、一个 Finder 或资源管理器里的文件路径。",
+  },
+  {
+    title: "独立预览窗口",
+    body: "最新 10 条保持紧凑，更多历史按组浏览；历史分组和单条详情都用独立透明 preview，不撑宽主窗口。",
+  },
+  {
+    title: "搜索和键盘操作",
+    body: "输入关键词即可过滤历史，方向键移动，回车复制，Esc 收起，适合频繁复制粘贴的桌面工作流。",
+  },
+  {
+    title: "本地优先",
+    body: "剪贴板历史、设置和图片资源只保存在本机。mclip 不上传剪贴板内容。",
+  },
+  {
+    title: "中英文和跨平台",
+    body: "支持 macOS 和 Windows，首次启动会按系统语言选择中文或英文。",
+  },
+];
+
+const installItems = [
+  {
+    title: "macOS",
+    body: "从 GitHub Releases 下载 DMG，把 mclip.app 拖入应用程序。当前版本未 notarize，如系统提示应用已损坏，可在确认信任后解除 quarantine。",
+  },
+  {
+    title: "Windows",
+    body: "下载 MSI 或 EXE 安装包后按向导安装。当前版本未代码签名，Windows SmartScreen 可能提示未知发布者。",
+  },
+  {
+    title: "开发者",
+    body: "源码在 GitHub 开放。项目使用 Tauri 2、React 19、TypeScript 和 Rust，可通过 npm run tauri:dev 本地运行。",
+  },
+];
+
+const faqItems = [
+  {
+    question: "mclip 会上传我的剪贴板内容吗？",
+    answer: "不会。历史记录、设置和图片历史资源只保存在本机系统配置目录里。Windows 安装器仅在缺少 WebView2 运行时时可能联网下载运行时组件。",
+  },
+  {
+    question: "macOS 首次打开提示应用已损坏怎么办？",
+    answer: "当前 macOS 包使用 ad-hoc 签名，没有 Apple Developer ID notarization。把 mclip.app 拖入应用程序后，如果你信任该 Release，可以执行 xattr -dr com.apple.quarantine /Applications/mclip.app。",
+  },
+  {
+    question: "Windows SmartScreen 提示未知发布者正常吗？",
+    answer: "正常。当前 Windows 包还没有代码签名证书，所以 SmartScreen 可能提示未知发布者。请只安装你信任的 GitHub Release。",
+  },
+  {
+    question: "历史能保存多少条？",
+    answer: "可以在偏好设置里调整最大历史条数，也可以选择只保存文本、图片或文件路径中的一部分类型。",
+  },
+];
+---
+
+<SiteLayout
+  lang="zh-CN"
+  path="/zh/"
+  title="mclip - 轻量、本地优先的剪贴板历史工具"
+  description="mclip 是面向 macOS 和 Windows 的轻量、本地优先剪贴板历史工具，支持文本、图片、文件路径、搜索、预览和托盘快捷唤起。"
+>
+  <Hero
+    lang="zh"
+    eyebrow="macOS 和 Windows 剪贴板历史"
+    title="轻量、本地优先的剪贴板历史工具"
+    description="mclip 常驻菜单栏或系统托盘。需要时一键唤起，快速搜索文字、图片和文件路径历史，用完继续回到手头工作。"
+    primaryCta="下载 mclip"
+    secondaryCta="查看 GitHub"
+    note="当前版本 0.1.0，下载入口指向 GitHub Releases。"
+    stats={[
+      { value: "10", label: "主窗口默认最新条目" },
+      { value: "3", label: "文本、图片、文件类型" },
+      { value: "0", label: "云同步和上传" },
+    ]}
+  />
+
+  <FeatureGrid
+    id="features"
+    eyebrow="为什么做它"
+    title="把复制历史放在手边，但不打扰你"
+    features={features}
+  />
+
+  <section class="privacy-band">
+    <div>
+      <p class="eyebrow">隐私边界</p>
+      <h2>你的剪贴板历史只保存在本机。</h2>
+    </div>
+    <p>
+      mclip 的目标是做一个可信的小工具，而不是云服务。历史文件、设置文件和图片资源都保存在本机应用配置目录。
+    </p>
+  </section>
+
+  <InstallGuide
+    id="install"
+    eyebrow="安装"
+    title="先从 GitHub Release 开始"
+    intro="第一版官网保持诚实：直接告诉用户如何下载，也明确当前 macOS 未 notarize、Windows 未签名。"
+    items={installItems}
+  />
+
+  <Faq id="faq" eyebrow="FAQ" title="安装前常见问题" items={faqItems} />
+
+  <SiteFooter lang="zh" />
+</SiteLayout>

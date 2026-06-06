@@ -1,0 +1,34 @@
+---
+interface InstallItem {
+  title: string;
+  body: string;
+}
+
+interface Props {
+  id: string;
+  eyebrow: string;
+  title: string;
+  intro: string;
+  items: InstallItem[];
+}
+
+const { id, eyebrow, title, intro, items } = Astro.props;
+---
+
+<section class="section install-section" id={id}>
+  <div class="section-heading narrow">
+    <p class="eyebrow">{eyebrow}</p>
+    <h2>{title}</h2>
+    <p>{intro}</p>
+  </div>
+  <div class="install-grid">
+    {
+      items.map((item) => (
+        <article class="install-card">
+          <h3>{item.title}</h3>
+          <p>{item.body}</p>
+        </article>
+      ))
+    }
+  </div>
+</section>

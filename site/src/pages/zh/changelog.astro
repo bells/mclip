@@ -1,0 +1,24 @@
+---
+import SiteFooter from "../../components/SiteFooter.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+---
+
+<SiteLayout
+  lang="zh-CN"
+  path="/zh/changelog/"
+  title="mclip 更新日志"
+  description="mclip 的公开版本更新记录。"
+>
+  <main class="text-page">
+    <a class="back-link" href="/zh/">返回首页</a>
+    <h1>更新日志</h1>
+    <article class="release-note">
+      <p class="eyebrow">0.1.0</p>
+      <h2>首个公开版本</h2>
+      <p>
+        支持 macOS 和 Windows 的托盘剪贴板历史、文本/图片/文件路径保存、搜索、独立预览窗口、偏好设置和中英文界面。
+      </p>
+    </article>
+  </main>
+  <SiteFooter lang="zh" />
+</SiteLayout>

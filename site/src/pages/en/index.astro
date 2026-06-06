@@ -1,0 +1,120 @@
+---
+import Faq from "../../components/Faq.astro";
+import FeatureGrid from "../../components/FeatureGrid.astro";
+import Hero from "../../components/Hero.astro";
+import InstallGuide from "../../components/InstallGuide.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+
+const features = [
+  {
+    title: "Tray-first",
+    body: "Click the menu bar or system tray icon, or press CommandOrControl+Shift+V. The window appears when needed and gets out of the way after.",
+  },
+  {
+    title: "Text, images, and files",
+    body: "mclip keeps the everyday things you copy: text snippets, screenshots, and file paths from Finder or File Explorer.",
+  },
+  {
+    title: "Separate preview windows",
+    body: "The latest 10 items stay compact. Older history is grouped, and details open in independent transparent preview windows.",
+  },
+  {
+    title: "Search and keyboard flow",
+    body: "Type to filter, use arrow keys to move, press Enter to copy, and hit Escape to hide the window.",
+  },
+  {
+    title: "Local-first privacy",
+    body: "Clipboard history, settings, and image assets stay on your computer. mclip does not upload clipboard contents.",
+  },
+  {
+    title: "Bilingual and cross-platform",
+    body: "mclip supports macOS and Windows, with Chinese and English UI selected from the system language on first launch.",
+  },
+];
+
+const installItems = [
+  {
+    title: "macOS",
+    body: "Download the DMG from GitHub Releases and drag mclip.app into Applications. The current build is not notarized, so macOS may quarantine it after browser download.",
+  },
+  {
+    title: "Windows",
+    body: "Download the MSI or EXE installer and follow the setup wizard. The current installer is unsigned, so Windows SmartScreen may show an unknown-publisher warning.",
+  },
+  {
+    title: "Developers",
+    body: "The source code is open on GitHub. The app uses Tauri 2, React 19, TypeScript, and Rust, and runs locally with npm run tauri:dev.",
+  },
+];
+
+const faqItems = [
+  {
+    question: "Does mclip upload my clipboard contents?",
+    answer: "No. History, settings, and generated image assets stay on your computer in the local app configuration directory. The Windows installer may only access the network to install WebView2 when it is missing.",
+  },
+  {
+    question: "What if macOS says the app is damaged?",
+    answer: "The current macOS build uses ad-hoc signing and is not notarized with an Apple Developer ID. After dragging mclip.app into Applications, you can run xattr -dr com.apple.quarantine /Applications/mclip.app if you trust the release.",
+  },
+  {
+    question: "Is the Windows SmartScreen warning expected?",
+    answer: "Yes for now. The Windows package is not code-signed yet, so SmartScreen may warn about an unknown publisher. Install only GitHub Releases you trust.",
+  },
+  {
+    question: "How many items can mclip keep?",
+    answer: "You can adjust the maximum history count in Preferences, and you can choose whether mclip saves text, images, file paths, or only some of them.",
+  },
+];
+---
+
+<SiteLayout
+  lang="en"
+  path="/en/"
+  title="mclip - Lightweight, local-first clipboard history"
+  description="mclip is a lightweight, local-first clipboard history app for macOS and Windows, with text, image, file-path history, search, previews, and tray shortcuts."
+>
+  <Hero
+    lang="en"
+    eyebrow="Clipboard history for macOS and Windows"
+    title="Lightweight, local-first clipboard history"
+    description="mclip lives in the menu bar or system tray. Open it when you need a previous text snippet, image, or file path, then return to work without a large window taking over."
+    primaryCta="Download mclip"
+    secondaryCta="View on GitHub"
+    note="Current version 0.1.0. Downloads are served from GitHub Releases."
+    stats={[
+      { value: "10", label: "latest items in the main window" },
+      { value: "3", label: "history types: text, image, files" },
+      { value: "0", label: "cloud sync or uploads" },
+    ]}
+  />
+
+  <FeatureGrid
+    id="features"
+    eyebrow="Why it exists"
+    title="Keep copy history close without adding noise"
+    features={features}
+  />
+
+  <section class="privacy-band">
+    <div>
+      <p class="eyebrow">Privacy boundary</p>
+      <h2>Your clipboard history stays on your computer.</h2>
+    </div>
+    <p>
+      mclip is a desktop utility, not a cloud service. History files, settings, and image assets live in the local app configuration directory.
+    </p>
+  </section>
+
+  <InstallGuide
+    id="install"
+    eyebrow="Install"
+    title="Start with GitHub Releases"
+    intro="The first public site stays honest: download is direct, and the current macOS notarization and Windows signing limitations are visible before install."
+    items={installItems}
+  />
+
+  <Faq id="faq" eyebrow="FAQ" title="Common questions before installing" items={faqItems} />
+
+  <SiteFooter lang="en" />
+</SiteLayout>

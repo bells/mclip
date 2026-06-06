@@ -80,9 +80,13 @@ npm ci
 npm run tauri:dev
 npm run check
 npm run tauri:build
+npm run site:dev
+npm run site:build
 ```
 
 `npm run check` 会执行前端构建、Rust 格式检查、Rust 单元测试、Rust 编译检查和 clippy。
+
+官网位于 `site/`，使用 Astro 生成静态页面。`npm run site:dev` 用于本地预览官网，`npm run site:build` 会输出到 `site/dist/`。
 
 ### 发布
 
@@ -176,9 +180,13 @@ npm ci
 npm run tauri:dev
 npm run check
 npm run tauri:build
+npm run site:dev
+npm run site:build
 ```
 
 `npm run check` runs the frontend build, Rust formatting check, Rust tests, Rust compile check, and clippy.
+
+The product site lives in `site/` and uses Astro to generate static pages. Use `npm run site:dev` to preview it locally and `npm run site:build` to write `site/dist/`.
 
 ### Release
 

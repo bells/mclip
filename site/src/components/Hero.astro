@@ -1,0 +1,71 @@
+---
+interface Stat {
+  value: string;
+  label: string;
+}
+
+interface Props {
+  lang: "zh" | "en";
+  eyebrow: string;
+  title: string;
+  description: string;
+  primaryCta: string;
+  secondaryCta: string;
+  note: string;
+  stats: Stat[];
+}
+
+const { lang, eyebrow, title, description, primaryCta, secondaryCta, note, stats } =
+  Astro.props;
+const switchHref = lang === "zh" ? "/en/" : "/zh/";
+const switchLabel = lang === "zh" ? "English" : "中文";
+---
+
+<header class="site-hero">
+  <nav class="topbar" aria-label={lang === "zh" ? "主导航" : "Main navigation"}>
+    <a class="brand" href={lang === "zh" ? "/zh/" : "/en/"} aria-label="mclip">
+      <img src="/app-icon.png" alt="" />
+      <span>mclip</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">{lang === "zh" ? "功能" : "Features"}</a>
+      <a href="#install">{lang === "zh" ? "安装" : "Install"}</a>
+      <a href="#faq">{lang === "zh" ? "FAQ" : "FAQ"}</a>
+      <a href={switchHref}>{switchLabel}</a>
+    </div>
+  </nav>
+
+  <img
+    class="hero-product"
+    src="/screenshots/mclip-product-preview.png"
+    alt={lang === "zh" ? "mclip 主窗口与历史预览界面" : "mclip main window and history preview"}
+    width="1360"
+    height="1360"
+  />
+
+  <div class="hero-content">
+    <p class="eyebrow">{eyebrow}</p>
+    <h1>{title}</h1>
+    <p class="hero-copy">{description}</p>
+    <div class="hero-actions">
+      <a class="button primary" href="https://github.com/bells/mclip/releases">
+        {primaryCta}
+      </a>
+      <a class="button secondary" href="https://github.com/bells/mclip">
+        {secondaryCta}
+      </a>
+    </div>
+    <p class="hero-note">{note}</p>
+  </div>
+
+  <dl class="hero-stats" aria-label={lang === "zh" ? "产品摘要" : "Product summary"}>
+    {
+      stats.map((stat) => (
+        <div>
+          <dt>{stat.value}</dt>
+          <dd>{stat.label}</dd>
+        </div>
+      ))
+    }
+  </dl>
+</header>
