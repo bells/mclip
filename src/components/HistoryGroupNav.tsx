@@ -2,6 +2,7 @@
 
 import type { AppTranslations } from "../i18n";
 import type { HistoryGroupInfo } from "../types";
+import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
 
 const MAX_VISIBLE_ARCHIVE_GROUPS = 5;
 
@@ -57,6 +58,10 @@ export function HistoryGroupNav({
                 aria-expanded={isActive}
                 aria-haspopup="menu"
                 className={`app-history-archive-row ${isActive ? "is-active" : ""}`}
+                data-main-keyboard-target={serializeMainKeyboardNavigationTarget({
+                  groupIndex: group.index,
+                  kind: "history-group",
+                })}
                 onClick={(event) => openPreview(group.index, event.currentTarget)}
                 onFocus={(event) => openPreview(group.index, event.currentTarget)}
                 onMouseEnter={(event) => openPreview(group.index, event.currentTarget)}

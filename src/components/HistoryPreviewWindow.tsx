@@ -10,6 +10,7 @@ import {
   hideHistoryPreviewDetailWindow,
   hideHistoryPreviewWindow,
   hideMainWindow,
+  listenToHistoryPreviewKeyboardNavigation,
   listenToHistoryPreviewPlacementUpdated,
   listenToHistoryPreviewUpdated,
   notifyHistoryPreviewPointerEntered,
@@ -21,6 +22,7 @@ import {
   type PreviewWindowSide,
 } from "../lib/tauri";
 import type { HistoryPreviewPayload } from "../types";
+import { getNextGroupPreviewItemIndex } from "../utils/keyboardNavigation";
 import {
   getGroupDetailPreviewOffset,
   getGroupPreviewHeight,
@@ -40,7 +42,61 @@ export function HistoryPreviewWindow() {
   // ref 适合保存不参与渲染的可变值；这里记录上次通知主窗口的时间。
   const lastPointerNotifyAtRef = useRef(0);
   const latestPlacementRef = useRef<PreviewWindowPosition | null>(null);
+  const previewRef = useRef<HistoryPreviewPayload | null>(null);
+  const hoveredItemIdRef = useRef<string | null>(null);
+  const pendingKeyboardActivationGroupIndexRef = useRef<number | null>(null);
   const previewKindRef = useRef<HistoryPreviewPayload["kind"] | null>(null);
+
+  function setActiveGroupPreviewItemId(id: string | null) {
+    hoveredItemIdRef.current = id;
+    setHoveredItemId(id);
+  }
+
+  function getKeyboardGroupPreview(groupIndex: number) {
+    const currentPreview = previewRef.current;
+
+    if (
+      currentPreview?.kind !== "group" ||
+      currentPreview.group.index !== groupIndex
+    ) {
+      return null;
+    }
+
+    return currentPreview;
+  }
+
+  function activateFirstKeyboardGroupPreviewItem(groupIndex: number) {
+    const currentPreview = getKeyboardGroupPreview(groupIndex);
+
+    if (!currentPreview) {
+      pendingKeyboardActivationGroupIndexRef.current = groupIndex;
+      return;
+    }
+
+    pendingKeyboardActivationGroupIndexRef.current = null;
+    setActiveGroupPreviewItemId(currentPreview.items[0]?.id ?? null);
+  }
+
+  function moveKeyboardGroupPreviewItem(groupIndex: number, offset: -1 | 1) {
+    const currentPreview = getKeyboardGroupPreview(groupIndex);
+
+    if (!currentPreview) {
+      return;
+    }
+
+    const currentIndex = currentPreview.items.findIndex(
+      (item) => item.id === hoveredItemIdRef.current,
+    );
+    const nextIndex = getNextGroupPreviewItemIndex(
+      currentIndex < 0 ? null : currentIndex,
+      offset,
+      currentPreview.items.length,
+    );
+
+    setActiveGroupPreviewItemId(
+      nextIndex === null ? null : currentPreview.items[nextIndex]?.id ?? null,
+    );
+  }
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -48,8 +104,17 @@ export function HistoryPreviewWindow() {
     // preview 窗口不主动读取历史，由主窗口通过事件推送当前分组数据。
     void listenToHistoryPreviewUpdated((payload) => {
       previewKindRef.current = payload.kind;
+      previewRef.current = payload;
       setPreview(payload);
-      setHoveredItemId(null);
+      if (
+        payload.kind === "group" &&
+        pendingKeyboardActivationGroupIndexRef.current === payload.group.index
+      ) {
+        pendingKeyboardActivationGroupIndexRef.current = null;
+        setActiveGroupPreviewItemId(payload.items[0]?.id ?? null);
+      } else {
+        setActiveGroupPreviewItemId(null);
+      }
       setGroupPlacement(payload.kind === "group" ? latestPlacementRef.current : null);
       setGroupDetailSide("right");
       void hideHistoryPreviewDetailWindow();
@@ -63,12 +128,60 @@ export function HistoryPreviewWindow() {
   }, []);
 
   useEffect(() => {
+    previewRef.current = preview;
+  }, [preview]);
+
+  useEffect(() => {
+    hoveredItemIdRef.current = hoveredItemId;
+  }, [hoveredItemId]);
+
+  useEffect(() => {
     let unlisten: (() => void) | undefined;
 
     void listenToHistoryPreviewPlacementUpdated((placement) => {
       latestPlacementRef.current = placement;
       if (previewKindRef.current === "group") {
         setGroupPlacement(placement);
+      }
+    }).then((unsubscribe) => {
+      unlisten = unsubscribe;
+    });
+
+    return () => {
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    void listenToHistoryPreviewKeyboardNavigation((payload) => {
+      switch (payload.kind) {
+        case "activate-first-group-item":
+          activateFirstKeyboardGroupPreviewItem(payload.groupIndex);
+          break;
+        case "move-group-item":
+          moveKeyboardGroupPreviewItem(payload.groupIndex, payload.offset);
+          break;
+        case "clear-group-item":
+          pendingKeyboardActivationGroupIndexRef.current = null;
+          if (getKeyboardGroupPreview(payload.groupIndex)) {
+            setActiveGroupPreviewItemId(null);
+          }
+          break;
+        case "select-group-item": {
+          const currentPreview = getKeyboardGroupPreview(payload.groupIndex);
+          const activeItemId = hoveredItemIdRef.current;
+
+          if (
+            currentPreview &&
+            activeItemId &&
+            currentPreview.items.some((item) => item.id === activeItemId)
+          ) {
+            void selectPreviewItem(activeItemId);
+          }
+          break;
+        }
       }
     }).then((unsubscribe) => {
       unlisten = unsubscribe;

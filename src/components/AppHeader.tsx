@@ -4,12 +4,14 @@ import type { RefObject } from "react";
 
 import { APP_NAME } from "../constants";
 import type { AppTranslations } from "../i18n";
+import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
 
 // Props 类型描述父组件必须传入哪些数据和回调；TypeScript 会在使用组件时检查。
 type AppHeaderProps = {
   inputRef?: RefObject<HTMLInputElement | null>;
   searchQuery: string;
   translations: AppTranslations["header"];
+  onSearchFocus?: (targetId: string) => void;
   onSearchQueryChange: (value: string) => void;
 };
 
@@ -17,6 +19,7 @@ export function AppHeader({
   inputRef,
   searchQuery,
   translations,
+  onSearchFocus,
   onSearchQueryChange,
 }: AppHeaderProps) {
   return (
@@ -31,8 +34,14 @@ export function AppHeader({
           aria-label={translations.searchPlaceholder}
           autoComplete="off"
           className="app-search"
+          data-main-keyboard-target={serializeMainKeyboardNavigationTarget({
+            kind: "search",
+          })}
           // 受控组件：输入框的值来自 React state，用户输入后通过回调更新 state。
           onChange={(event) => onSearchQueryChange(event.target.value)}
+          onFocus={(event) => {
+            onSearchFocus?.(event.currentTarget.dataset.mainKeyboardTarget ?? "");
+          }}
           placeholder={translations.searchPlaceholder}
           ref={inputRef}
           type="text"

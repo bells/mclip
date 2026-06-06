@@ -2,6 +2,7 @@
 
 import type { AppTranslations } from "../i18n";
 import type { HistoryListItem } from "../types";
+import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
 import { ImageThumb } from "./ImageThumb";
 
 // Props 类型让组件的输入更清晰：数据在父组件中维护，列表只发出用户操作。
@@ -39,7 +40,7 @@ export function HistoryList({
 
   return (
     <div className="app-history-group">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <div
           className={`app-item-row ${selectedItemId === item.id ? "is-selected" : ""}`}
           // key 不会作为 prop 传给子组件；它只给 React 的列表 diff 算法使用。
@@ -52,7 +53,14 @@ export function HistoryList({
         >
           <button
             className="app-item"
+            data-main-keyboard-target={serializeMainKeyboardNavigationTarget({
+              index,
+              kind: "history-item",
+            })}
             onClick={() => onSelectItem(item.id)}
+            onFocus={(event) => {
+              onOpenItemPreview(item, event.currentTarget.getBoundingClientRect().top);
+            }}
             type="button"
           >
             <span className="app-item-index">{item.position}.</span>

@@ -10,6 +10,7 @@ import type {
   AppSettings,
   HistoryEntry,
   HistoryItemPreviewPayload,
+  HistoryPreviewKeyboardNavigationPayload,
   HistoryPreviewPayload,
 } from "../types";
 
@@ -18,6 +19,8 @@ const SETTINGS_UPDATED_EVENT = "settings-updated";
 const HISTORY_PREVIEW_UPDATED_EVENT = "history-preview-updated";
 const HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT =
   "history-preview-placement-updated";
+const HISTORY_PREVIEW_KEYBOARD_NAVIGATION_EVENT =
+  "history-preview-keyboard-navigation";
 // Best-effort cross-window hover signals. Rust-side pointer hit testing covers
 // cases where separate transparent windows miss mouse events.
 const HISTORY_PREVIEW_CLOSE_REQUESTED_EVENT = "history-preview-close-requested";
@@ -205,6 +208,12 @@ export function updateHistoryPreviewDetailWindow(
   );
 }
 
+export function sendHistoryPreviewKeyboardNavigation(
+  payload: HistoryPreviewKeyboardNavigationPayload,
+) {
+  return emitTo(PREVIEW_WINDOW_LABEL, HISTORY_PREVIEW_KEYBOARD_NAVIGATION_EVENT, payload);
+}
+
 export function requestHistoryPreviewClose() {
   return emitTo(MAIN_WINDOW_LABEL, HISTORY_PREVIEW_CLOSE_REQUESTED_EVENT);
 }
@@ -285,6 +294,17 @@ export function listenToHistoryPreviewPlacementUpdated(
 ): Promise<UnlistenFn> {
   return listen<PreviewWindowPosition>(
     HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT,
+    (event) => {
+      handler(event.payload);
+    },
+  );
+}
+
+export function listenToHistoryPreviewKeyboardNavigation(
+  handler: (payload: HistoryPreviewKeyboardNavigationPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<HistoryPreviewKeyboardNavigationPayload>(
+    HISTORY_PREVIEW_KEYBOARD_NAVIGATION_EVENT,
     (event) => {
       handler(event.payload);
     },

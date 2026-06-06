@@ -73,3 +73,22 @@ export type HistoryItemPreviewPayload = {
 export type HistoryPreviewPayload =
   | HistoryGroupPreviewPayload
   | HistoryItemPreviewPayload;
+
+export type HistoryPreviewKeyboardNavigationPayload =
+  | {
+      groupIndex: number;
+      kind: "activate-first-group-item";
+    }
+  | {
+      groupIndex: number;
+      kind: "move-group-item";
+      offset: -1 | 1;
+    }
+  | {
+      groupIndex: number;
+      kind: "clear-group-item";
+    }
+  | {
+      groupIndex: number;
+      kind: "select-group-item";
+    };

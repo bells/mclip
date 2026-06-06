@@ -1,6 +1,6 @@
 // 应用根组件。根据 Tauri 当前窗口 label，在主界面和独立 preview 窗口之间切换渲染。
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AboutWindow } from "./components/AboutWindow";
 import { AppFooter } from "./components/AppFooter";
@@ -13,7 +13,19 @@ import { Modal } from "./components/Modal";
 import { PreferencesWindow } from "./components/PreferencesWindow";
 import { useClipboardApp } from "./hooks/useClipboardApp";
 import { getTranslations } from "./i18n";
-import { getCurrentWindowLabel, listenToMainWindowShown } from "./lib/tauri";
+import {
+  getCurrentWindowLabel,
+  listenToMainWindowShown,
+  sendHistoryPreviewKeyboardNavigation,
+} from "./lib/tauri";
+import {
+  getGroupPreviewEntryKey,
+  getGroupPreviewReturnKey,
+  getNextMainKeyboardNavigationTarget,
+  parseMainKeyboardNavigationTarget,
+  serializeMainKeyboardNavigationTarget,
+  shouldClearPreviewForMainKeyboardTarget,
+} from "./utils/keyboardNavigation";
 
 function App() {
   const windowLabel = getCurrentWindowLabel();
@@ -44,20 +56,21 @@ function MainWindow() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   // useState 适合保存会影响界面的状态。这里的 boolean 控制确认弹窗是否显示。
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+  const [keyboardPreviewGroupIndex, setKeyboardPreviewGroupIndex] =
+    useState<number | null>(null);
   // 自定义 Hook 把剪贴板历史、设置、窗口命令等逻辑集中起来，组件只负责组装界面。
   const {
     visibleHistory,
     historyGroups,
     hasHistory,
     previewHistoryGroupIndex,
+    previewWindowSide,
     searchQuery,
-    selectedHistoryItem,
     settings,
     clearHistory,
     closeHistoryGroupPreview,
     deleteHistoryItem,
     hideWindow,
-    moveSelection,
     openAboutDialog,
     openHistoryGroupPreview,
     openHistoryItemPreview,
@@ -69,6 +82,101 @@ function MainWindow() {
     scheduleHistoryGroupPreviewClose,
   } = useClipboardApp();
   const t = getTranslations(settings.language);
+
+  const focusKeyboardNavigationTarget = useCallback((targetId: string) => {
+    const targetElement = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-main-keyboard-target]"),
+    ).find((element) => element.dataset.mainKeyboardTarget === targetId);
+
+    targetElement?.focus();
+    targetElement?.scrollIntoView({ block: "nearest" });
+  }, []);
+
+  const clearKeyboardPreviewGroup = useCallback((groupIndex: number | null) => {
+    setKeyboardPreviewGroupIndex(null);
+
+    if (groupIndex !== null) {
+      void sendHistoryPreviewKeyboardNavigation({
+        groupIndex,
+        kind: "clear-group-item",
+      });
+    }
+  }, []);
+
+  const activePreviewSide = previewWindowSide;
+
+  const enterKeyboardPreviewGroup = useCallback((groupIndex: number) => {
+    setKeyboardPreviewGroupIndex(groupIndex);
+    void sendHistoryPreviewKeyboardNavigation({
+      groupIndex,
+      kind: "activate-first-group-item",
+    });
+  }, []);
+
+  const moveKeyboardPreviewGroupItem = useCallback(
+    (groupIndex: number, offset: -1 | 1) => {
+      void sendHistoryPreviewKeyboardNavigation({
+        groupIndex,
+        kind: "move-group-item",
+        offset,
+      });
+    },
+    [],
+  );
+
+  const selectKeyboardPreviewGroupItem = useCallback((groupIndex: number) => {
+    void sendHistoryPreviewKeyboardNavigation({
+      groupIndex,
+      kind: "select-group-item",
+    });
+  }, []);
+
+  const handleSearchFocus = useCallback(
+    (targetId: string) => {
+      if (!shouldClearPreviewForMainKeyboardTarget(targetId)) {
+        return;
+      }
+
+      clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
+      closeHistoryGroupPreview();
+    },
+    [
+      clearKeyboardPreviewGroup,
+      closeHistoryGroupPreview,
+      keyboardPreviewGroupIndex,
+    ],
+  );
+
+  const moveKeyboardNavigationFocus = useCallback(
+    (direction: -1 | 1) => {
+      const activeElement =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+      const nextTarget = getNextMainKeyboardNavigationTarget(
+        activeElement?.dataset.mainKeyboardTarget ?? null,
+        direction,
+        {
+          canClearHistory: hasHistory,
+          historyGroupCount: historyGroups.length,
+          visibleHistoryCount: visibleHistory.length,
+        },
+      );
+
+      if (nextTarget === null) {
+        return;
+      }
+
+      focusKeyboardNavigationTarget(
+        serializeMainKeyboardNavigationTarget(nextTarget),
+      );
+    },
+    [
+      focusKeyboardNavigationTarget,
+      hasHistory,
+      historyGroups.length,
+      visibleHistory.length,
+    ],
+  );
 
   useEffect(() => {
     // 第二个参数是空数组，表示这个 effect 只在组件首次挂载后执行一次。
@@ -92,10 +200,21 @@ function MainWindow() {
   }, []);
 
   useEffect(() => {
+    if (previewHistoryGroupIndex === null) {
+      setKeyboardPreviewGroupIndex(null);
+    }
+  }, [previewHistoryGroupIndex]);
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // 浏览器键盘事件来自 DOM，不是 React 的合成事件，所以类型是 KeyboardEvent。
       const hasMetaModifier = event.metaKey || event.ctrlKey;
       const normalizedKey = event.key.toLowerCase();
+      const activeElement =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const activeTarget = parseMainKeyboardNavigationTarget(
+        activeElement?.dataset.mainKeyboardTarget,
+      );
 
       if (event.key === "Escape") {
         event.preventDefault();
@@ -107,6 +226,7 @@ function MainWindow() {
 
         // 主窗口内只保留分组 preview 这一层浮层；偏好设置和关于已拆到独立窗口。
         if (previewHistoryGroupIndex !== null) {
+          clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
           closeHistoryGroupPreview();
           return;
         }
@@ -128,19 +248,69 @@ function MainWindow() {
         return;
       }
 
+      if (keyboardPreviewGroupIndex !== null) {
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          moveKeyboardPreviewGroupItem(keyboardPreviewGroupIndex, 1);
+          return;
+        }
+
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          moveKeyboardPreviewGroupItem(keyboardPreviewGroupIndex, -1);
+          return;
+        }
+
+        if (
+          activePreviewSide !== null &&
+          event.key === getGroupPreviewReturnKey(activePreviewSide)
+        ) {
+          event.preventDefault();
+          clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
+          focusKeyboardNavigationTarget(
+            serializeMainKeyboardNavigationTarget({
+              groupIndex: keyboardPreviewGroupIndex,
+              kind: "history-group",
+            }),
+          );
+          return;
+        }
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+          selectKeyboardPreviewGroupItem(keyboardPreviewGroupIndex);
+          return;
+        }
+      }
+
+      if (
+        activeTarget?.kind === "history-group" &&
+        activePreviewSide !== null &&
+        previewHistoryGroupIndex === activeTarget.groupIndex &&
+        event.key === getGroupPreviewEntryKey(activePreviewSide)
+      ) {
+        event.preventDefault();
+        enterKeyboardPreviewGroup(activeTarget.groupIndex);
+        return;
+      }
+
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        moveSelection(1);
+        moveKeyboardNavigationFocus(1);
         return;
       }
 
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        moveSelection(-1);
+        moveKeyboardNavigationFocus(-1);
         return;
       }
 
       if (event.key === "Enter") {
+        if (event.target instanceof HTMLButtonElement) {
+          return;
+        }
+
         event.preventDefault();
         void selectHighlightedHistoryItem();
       }
@@ -153,11 +323,18 @@ function MainWindow() {
     };
   }, [
     closeHistoryGroupPreview,
+    clearKeyboardPreviewGroup,
+    activePreviewSide,
+    enterKeyboardPreviewGroup,
+    focusKeyboardNavigationTarget,
     hideWindow,
     isClearConfirmOpen,
-    moveSelection,
+    keyboardPreviewGroupIndex,
+    moveKeyboardPreviewGroupItem,
+    moveKeyboardNavigationFocus,
     openPreferencesDialog,
     previewHistoryGroupIndex,
+    selectKeyboardPreviewGroupItem,
     selectHighlightedHistoryItem,
   ]);
 
@@ -183,6 +360,7 @@ function MainWindow() {
           inputRef={searchInputRef}
           searchQuery={searchQuery}
           translations={t.header}
+          onSearchFocus={handleSearchFocus}
           onSearchQueryChange={setSearchQuery}
         />
 
@@ -195,7 +373,6 @@ function MainWindow() {
             onOpenItemPreview={openHistoryItemPreview}
             onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
             onSelectItem={selectHistoryItem}
-            selectedItemId={selectedHistoryItem?.id}
           />
         </div>
 
@@ -213,7 +390,7 @@ function MainWindow() {
           onClearHistory={openClearHistoryConfirm}
           onOpenAbout={openAboutDialog}
           onOpenPreferences={openPreferencesDialog}
-          onPointerEnter={closeHistoryGroupPreview}
+          onPreviewDismissRequest={closeHistoryGroupPreview}
           onQuit={quit}
         />
 

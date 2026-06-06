@@ -31,6 +31,7 @@ import {
   showAboutWindow,
   showHistoryPreviewWindow,
   showPreferencesWindow,
+  type PreviewWindowSide,
   updateHistoryPreviewWindow,
 } from "../lib/tauri";
 import type { AppSettings, HistoryEntry, HistoryListItem } from "../types";
@@ -65,6 +66,8 @@ export function useClipboardApp() {
   const [previewHistoryGroupIndex, setPreviewHistoryGroupIndex] = useState<number | null>(null);
   const [previewHistoryItemId, setPreviewHistoryItemId] = useState<string | null>(null);
   const [previewAnchorTop, setPreviewAnchorTop] = useState<number | null>(null);
+  const [previewWindowSide, setPreviewWindowSide] =
+    useState<PreviewWindowSide | null>(null);
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(-1);
   const previewCloseTimerRef = useRef<number | null>(null);
   const previewDismissalStateRef = useRef(createPreviewDismissalState());
@@ -113,6 +116,7 @@ export function useClipboardApp() {
     setPreviewHistoryGroupIndex(null);
     setPreviewHistoryItemId(null);
     setPreviewAnchorTop(null);
+    setPreviewWindowSide(null);
   }
 
   function beginSelectionPreviewDismissal() {
@@ -123,6 +127,7 @@ export function useClipboardApp() {
     setPreviewHistoryGroupIndex(null);
     setPreviewHistoryItemId(null);
     setPreviewAnchorTop(null);
+    setPreviewWindowSide(null);
   }
 
   function resetSelectionPreviewDismissal() {
@@ -329,7 +334,7 @@ export function useClipboardApp() {
             return;
           }
 
-          await showHistoryPreviewWindow(
+          const placement = await showHistoryPreviewWindow(
             getItemPreviewAnchorTop(previewAnchorTop),
             getItemPreviewHeight(previewHistoryItem),
             ITEM_PREVIEW_WIDTH,
@@ -338,7 +343,10 @@ export function useClipboardApp() {
 
           if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
             await hideHistoryPreviewWindow();
+            return;
           }
+
+          setPreviewWindowSide(placement.side);
         })
         .catch((error) => {
           console.error("显示历史条目预览失败:", error);
@@ -375,7 +383,7 @@ export function useClipboardApp() {
           return;
         }
 
-        await showHistoryPreviewWindow(
+        const placement = await showHistoryPreviewWindow(
           previewAnchorTop,
           getGroupPreviewHeight(previewHistory.length),
           GROUP_PREVIEW_WIDTH,
@@ -384,7 +392,10 @@ export function useClipboardApp() {
 
         if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
           await hideHistoryPreviewWindow();
+          return;
         }
+
+        setPreviewWindowSide(placement.side);
       })
       .catch((error) => {
         console.error("显示历史分组预览失败:", error);
@@ -589,6 +600,7 @@ export function useClipboardApp() {
     hasHistory: history.length > 0,
     previewHistory,
     previewHistoryGroupIndex,
+    previewWindowSide,
     searchQuery,
     selectedHistoryItem,
     settings,
