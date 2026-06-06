@@ -257,6 +257,7 @@ pub fn run() {
 mod tests {
     use std::str::FromStr;
 
+    use serde_json::Value;
     use tauri_plugin_global_shortcut::Shortcut;
 
     use super::TOGGLE_WINDOW_SHORTCUT;
@@ -264,5 +265,25 @@ mod tests {
     #[test]
     fn toggle_window_shortcut_can_be_parsed() {
         assert!(Shortcut::from_str(TOGGLE_WINDOW_SHORTCUT).is_ok());
+    }
+
+    #[test]
+    fn csp_allows_data_url_image_previews() {
+        let config: Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let security = &config["app"]["security"];
+
+        for key in ["csp", "devCsp"] {
+            let csp = security[key].as_str().unwrap();
+            let img_src = csp
+                .split(';')
+                .map(str::trim)
+                .find(|directive| directive.starts_with("img-src "))
+                .unwrap_or_else(|| panic!("{key} is missing img-src"));
+
+            assert!(
+                img_src.split_whitespace().any(|source| source == "data:"),
+                "{key} img-src must allow data: because ImageThumb renders PNG previews as data URLs"
+            );
+        }
     }
 }
