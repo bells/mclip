@@ -170,6 +170,14 @@ pub fn show_history_preview_window(
         return Ok(default_preview_window_position());
     };
 
+    if !main_window
+        .is_visible()
+        .map_err(|error| error.to_string())?
+    {
+        hide_history_preview_window(app_handle)?;
+        return Ok(default_preview_window_position());
+    }
+
     let scale_factor = main_window
         .scale_factor()
         .map_err(|error| error.to_string())?;
@@ -214,6 +222,15 @@ pub fn show_history_preview_window(
     preview_window
         .emit(HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT, position)
         .map_err(|error| error.to_string())?;
+
+    if !main_window
+        .is_visible()
+        .map_err(|error| error.to_string())?
+    {
+        hide_history_preview_window(app_handle)?;
+        return Ok(default_preview_window_position());
+    }
+
     preview_window.show().map_err(|error| error.to_string())?;
 
     Ok(position)
@@ -234,6 +251,17 @@ pub fn show_history_group_preview_with_detail_window(
     let Some(preview_window) = app_handle.get_webview_window(PREVIEW_WINDOW_LABEL) else {
         return Ok(default_preview_window_position());
     };
+
+    if !main_window
+        .is_visible()
+        .map_err(|error| error.to_string())?
+        || !preview_window
+            .is_visible()
+            .map_err(|error| error.to_string())?
+    {
+        hide_history_preview_detail_window(app_handle)?;
+        return Ok(default_preview_window_position());
+    }
 
     hide_history_preview_detail_window(app_handle.clone())?;
 
@@ -276,6 +304,18 @@ pub fn show_history_group_preview_with_detail_window(
             y: position.y,
         }))
         .map_err(|error| error.to_string())?;
+
+    if !main_window
+        .is_visible()
+        .map_err(|error| error.to_string())?
+        || !preview_window
+            .is_visible()
+            .map_err(|error| error.to_string())?
+    {
+        hide_history_preview_window(app_handle)?;
+        return Ok(default_preview_window_position());
+    }
+
     preview_window.show().map_err(|error| error.to_string())?;
 
     Ok(position)
@@ -319,6 +359,18 @@ pub fn show_history_preview_detail_window(
     else {
         return Ok(default_preview_window_position());
     };
+
+    if !main_window
+        .is_visible()
+        .map_err(|error| error.to_string())?
+        || !preview_window
+            .is_visible()
+            .map_err(|error| error.to_string())?
+    {
+        hide_history_preview_detail_window(app_handle)?;
+        return Ok(default_preview_window_position());
+    }
+
     let preview_scale_factor = preview_window
         .scale_factor()
         .map_err(|error| error.to_string())?;
@@ -371,6 +423,18 @@ pub fn show_history_preview_detail_window(
     preview_detail_window
         .emit(HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT, position)
         .map_err(|error| error.to_string())?;
+
+    if !main_window
+        .is_visible()
+        .map_err(|error| error.to_string())?
+        || !preview_window
+            .is_visible()
+            .map_err(|error| error.to_string())?
+    {
+        hide_history_preview_detail_window(app_handle)?;
+        return Ok(default_preview_window_position());
+    }
+
     preview_detail_window
         .show()
         .map_err(|error| error.to_string())?;
