@@ -1,6 +1,6 @@
 # mclip Project Memory
 
-Last refreshed: 2026-06-03
+Last refreshed: 2026-06-06
 
 This file records working memory for future maintainers and agents. It is not a replacement for `AGENTS.md` or `README.md`: use those for the live project map, commands, and release-facing docs. Use this file to remember prior decisions, accepted behavior, repeated failure modes, and the user's preferences.
 
@@ -55,7 +55,9 @@ For group preview behavior, accepted UX is:
 - It does not preselect the first row.
 - It expands or opens detail only after a real hover.
 - Row highlight should follow real pointer movement.
+- Main-window row highlight and group-preview row highlight should use the same active/hover visual rules for mouse and keyboard. Do not let stale DOM focus draw a second highlighted row.
 - Selecting/copying from preview must dismiss the preview completely, with no late reopen.
+- Preview detail must never appear by itself after the main window or group preview has hidden. Guard late async show requests in `src-tauri/src/window.rs`, not just in React state.
 
 Important implementation anchors:
 
@@ -72,6 +74,7 @@ Past failure modes:
 - DOM event wiring alone was not reliable in transparent, non-focusable Tauri preview windows.
 - Hiding the window alone was not enough when async `update -> show` completed late.
 - A preview that disappears briefly and then reopens usually means the request lifecycle or selection suppression is wrong.
+- A row can look stuck if CSS uses `:focus-within` or item-button `:focus-visible` as the same visual treatment as active selection. Keep keyboard accessibility cues from creating a second row-level highlight.
 
 ## Clipboard And History Memory
 
@@ -136,6 +139,14 @@ Windows coverage should include:
 - About and Preferences windows.
 - Launch at login.
 - Chinese/English UI and system-language default.
+
+2026-06-06 Windows audit notes:
+
+- Latest `main` CI run checked at the time of this refresh was `27053563047` (`统一高亮`), and both `check (windows-2022)` and `check (macos-latest)` passed.
+- Local full gate `npm run check` passed on macOS.
+- Local `cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc` reached the Tauri build script and failed on missing `llvm-rc`; treat this as host tooling on this macOS machine unless code-specific Windows errors appear before that point.
+- Existing draft `v0.1.0` release was verified to contain Windows installer assets `mclip_0.1.0_x64-setup.exe` and `mclip_0.1.0_x64_en-US.msi`; the corresponding `publish (windows-2022)` release job succeeded. This does not replace creating a fresh tag for later commits.
+- Windows installability remains unsigned/SmartScreen-limited, with WebView2 `downloadBootstrapper` configured for missing runtime installs.
 
 Current release constraints:
 
