@@ -8,6 +8,7 @@ type AppFooterProps = {
   canClearHistory: boolean;
   translations: AppTranslations["footer"];
   onClearHistory: () => void;
+  onKeyboardTargetChange?: (targetId: string) => void;
   onOpenAbout: () => void;
   onOpenPreferences: () => void;
   onPreviewDismissRequest?: () => void;
@@ -18,11 +19,16 @@ export function AppFooter({
   canClearHistory,
   translations,
   onClearHistory,
+  onKeyboardTargetChange,
   onOpenAbout,
   onOpenPreferences,
   onPreviewDismissRequest,
   onQuit,
 }: AppFooterProps) {
+  const updateKeyboardTarget = (element: HTMLButtonElement) => {
+    onKeyboardTargetChange?.(element.dataset.mainKeyboardTarget ?? "");
+  };
+
   return (
     <footer
       className="app-footer"
@@ -38,6 +44,8 @@ export function AppFooter({
         // disabled 会同时禁用点击行为和键盘触发，适合空历史时避免误操作。
         disabled={!canClearHistory}
         onClick={onClearHistory}
+        onFocus={(event) => updateKeyboardTarget(event.currentTarget)}
+        onMouseEnter={(event) => updateKeyboardTarget(event.currentTarget)}
         type="button"
       >
         <span className="app-menu-action">
@@ -54,6 +62,8 @@ export function AppFooter({
           kind: "footer-action",
         })}
         onClick={onOpenPreferences}
+        onFocus={(event) => updateKeyboardTarget(event.currentTarget)}
+        onMouseEnter={(event) => updateKeyboardTarget(event.currentTarget)}
         type="button"
       >
         <span className="app-menu-action">
@@ -70,6 +80,8 @@ export function AppFooter({
           kind: "footer-action",
         })}
         onClick={onOpenAbout}
+        onFocus={(event) => updateKeyboardTarget(event.currentTarget)}
+        onMouseEnter={(event) => updateKeyboardTarget(event.currentTarget)}
         type="button"
       >
         <span className="app-menu-action">
@@ -86,6 +98,8 @@ export function AppFooter({
           kind: "footer-action",
         })}
         onClick={onQuit}
+        onFocus={(event) => updateKeyboardTarget(event.currentTarget)}
+        onMouseEnter={(event) => updateKeyboardTarget(event.currentTarget)}
         type="button"
       >
         <span className="app-menu-action">

@@ -11,7 +11,11 @@ type HistoryGroupNavProps = {
   groups: HistoryGroupInfo[];
   previewGroupIndex: number | null;
   translations: AppTranslations["history"];
-  onOpenPreview: (groupIndex: number, anchorTop: number) => void;
+  onOpenPreview: (
+    groupIndex: number,
+    anchorTop: number,
+    targetId: string,
+  ) => void;
   onScheduleClosePreview: () => void;
 };
 
@@ -33,9 +37,10 @@ export function HistoryGroupNav({
   const openPreview = (
     groupIndex: number,
     element: HTMLButtonElement,
+    targetId: string,
   ) => {
     // anchorTop 是当前分组按钮在主窗口内的顶部位置，Rust 用它对齐 preview 窗口。
-    onOpenPreview(groupIndex, element.getBoundingClientRect().top);
+    onOpenPreview(groupIndex, element.getBoundingClientRect().top, targetId);
   };
 
   return (
@@ -50,6 +55,10 @@ export function HistoryGroupNav({
       >
         {archiveGroups.map((group) => {
           const isActive = group.index === previewGroupIndex;
+          const targetId = serializeMainKeyboardNavigationTarget({
+            groupIndex: group.index,
+            kind: "history-group",
+          });
 
           // map 渲染列表时必须给稳定的 key，React 用它识别哪些节点需要复用。
           return (
@@ -58,13 +67,10 @@ export function HistoryGroupNav({
                 aria-expanded={isActive}
                 aria-haspopup="menu"
                 className={`app-history-archive-row ${isActive ? "is-active" : ""}`}
-                data-main-keyboard-target={serializeMainKeyboardNavigationTarget({
-                  groupIndex: group.index,
-                  kind: "history-group",
-                })}
-                onClick={(event) => openPreview(group.index, event.currentTarget)}
-                onFocus={(event) => openPreview(group.index, event.currentTarget)}
-                onMouseEnter={(event) => openPreview(group.index, event.currentTarget)}
+                data-main-keyboard-target={targetId}
+                onClick={(event) => openPreview(group.index, event.currentTarget, targetId)}
+                onFocus={(event) => openPreview(group.index, event.currentTarget, targetId)}
+                onMouseEnter={(event) => openPreview(group.index, event.currentTarget, targetId)}
                 type="button"
               >
                 <span className="app-history-folder-icon" aria-hidden="true" />

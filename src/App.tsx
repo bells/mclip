@@ -15,6 +15,7 @@ import { useClipboardApp } from "./hooks/useClipboardApp";
 import { getTranslations } from "./i18n";
 import {
   getCurrentWindowLabel,
+  listenToHistoryPreviewGroupItemActivated,
   listenToMainWindowShown,
   sendHistoryPreviewKeyboardNavigation,
 } from "./lib/tauri";
@@ -58,6 +59,9 @@ function MainWindow() {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [keyboardPreviewGroupIndex, setKeyboardPreviewGroupIndex] =
     useState<number | null>(null);
+  const [activeMainKeyboardTargetId, setActiveMainKeyboardTargetId] =
+    useState<string | null>(null);
+  const activeMainKeyboardTargetIdRef = useRef<string | null>(null);
   // 自定义 Hook 把剪贴板历史、设置、窗口命令等逻辑集中起来，组件只负责组装界面。
   const {
     visibleHistory,
@@ -83,14 +87,21 @@ function MainWindow() {
   } = useClipboardApp();
   const t = getTranslations(settings.language);
 
+  const updateActiveMainKeyboardTarget = useCallback((targetId: string | null) => {
+    activeMainKeyboardTargetIdRef.current = targetId;
+    setActiveMainKeyboardTargetId(targetId);
+  }, []);
+
   const focusKeyboardNavigationTarget = useCallback((targetId: string) => {
+    updateActiveMainKeyboardTarget(targetId);
+
     const targetElement = Array.from(
       document.querySelectorAll<HTMLElement>("[data-main-keyboard-target]"),
     ).find((element) => element.dataset.mainKeyboardTarget === targetId);
 
     targetElement?.focus();
     targetElement?.scrollIntoView({ block: "nearest" });
-  }, []);
+  }, [updateActiveMainKeyboardTarget]);
 
   const clearKeyboardPreviewGroup = useCallback((groupIndex: number | null) => {
     setKeyboardPreviewGroupIndex(null);
@@ -133,6 +144,8 @@ function MainWindow() {
 
   const handleSearchFocus = useCallback(
     (targetId: string) => {
+      updateActiveMainKeyboardTarget(targetId);
+
       if (!shouldClearPreviewForMainKeyboardTarget(targetId)) {
         return;
       }
@@ -144,6 +157,7 @@ function MainWindow() {
       clearKeyboardPreviewGroup,
       closeHistoryGroupPreview,
       keyboardPreviewGroupIndex,
+      updateActiveMainKeyboardTarget,
     ],
   );
 
@@ -151,9 +165,13 @@ function MainWindow() {
     (direction: -1 | 1) => {
       const activeElement =
         document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const currentTargetId =
+        activeMainKeyboardTargetIdRef.current ??
+        activeElement?.dataset.mainKeyboardTarget ??
+        null;
 
       const nextTarget = getNextMainKeyboardNavigationTarget(
-        activeElement?.dataset.mainKeyboardTarget ?? null,
+        currentTargetId,
         direction,
         {
           canClearHistory: hasHistory,
@@ -180,14 +198,20 @@ function MainWindow() {
 
   useEffect(() => {
     // 第二个参数是空数组，表示这个 effect 只在组件首次挂载后执行一次。
+    updateActiveMainKeyboardTarget(
+      serializeMainKeyboardNavigationTarget({ kind: "search" }),
+    );
     searchInputRef.current?.focus();
-  }, []);
+  }, [updateActiveMainKeyboardTarget]);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
 
     // Tauri 事件监听是异步注册的，所以先保存取消监听函数，卸载组件时再调用。
     void listenToMainWindowShown(() => {
+      updateActiveMainKeyboardTarget(
+        serializeMainKeyboardNavigationTarget({ kind: "search" }),
+      );
       searchInputRef.current?.focus();
       searchInputRef.current?.select();
     }).then((unsubscribe) => {
@@ -197,12 +221,28 @@ function MainWindow() {
     return () => {
       unlisten?.();
     };
-  }, []);
+  }, [updateActiveMainKeyboardTarget]);
 
   useEffect(() => {
     if (previewHistoryGroupIndex === null) {
       setKeyboardPreviewGroupIndex(null);
     }
+  }, [previewHistoryGroupIndex]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    void listenToHistoryPreviewGroupItemActivated(({ groupIndex }) => {
+      if (previewHistoryGroupIndex === groupIndex) {
+        setKeyboardPreviewGroupIndex(groupIndex);
+      }
+    }).then((unsubscribe) => {
+      unlisten = unsubscribe;
+    });
+
+    return () => {
+      unlisten?.();
+    };
   }, [previewHistoryGroupIndex]);
 
   useEffect(() => {
@@ -212,8 +252,11 @@ function MainWindow() {
       const normalizedKey = event.key.toLowerCase();
       const activeElement =
         document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const activeTargetId =
+        activeMainKeyboardTargetIdRef.current ??
+        activeElement?.dataset.mainKeyboardTarget;
       const activeTarget = parseMainKeyboardNavigationTarget(
-        activeElement?.dataset.mainKeyboardTarget,
+        activeTargetId,
       );
 
       if (event.key === "Escape") {
@@ -353,6 +396,39 @@ function MainWindow() {
     void clearHistory();
   };
 
+  const activeMainKeyboardTarget = parseMainKeyboardNavigationTarget(
+    activeMainKeyboardTargetId,
+  );
+  const activeHistoryItemId =
+    activeMainKeyboardTarget?.kind === "history-item"
+      ? visibleHistory[activeMainKeyboardTarget.index]?.id ?? null
+      : null;
+
+  const openHistoryItemPreviewFromTarget = (
+    item: (typeof visibleHistory)[number],
+    anchorTop: number,
+    targetId: string,
+  ) => {
+    clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
+    updateActiveMainKeyboardTarget(targetId);
+    openHistoryItemPreview(item, anchorTop);
+  };
+
+  const openHistoryGroupPreviewFromTarget = (
+    groupIndex: number,
+    anchorTop: number,
+    targetId: string,
+  ) => {
+    clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
+    updateActiveMainKeyboardTarget(targetId);
+    openHistoryGroupPreview(groupIndex, anchorTop);
+  };
+
+  const handleFooterKeyboardTargetChange = (targetId: string) => {
+    clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
+    updateActiveMainKeyboardTarget(targetId);
+  };
+
   return (
     <div className="app-frame">
       <div className="app-panel">
@@ -370,9 +446,10 @@ function MainWindow() {
             items={visibleHistory}
             translations={t.history}
             onDeleteItem={deleteHistoryItem}
-            onOpenItemPreview={openHistoryItemPreview}
+            onOpenItemPreview={openHistoryItemPreviewFromTarget}
             onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
             onSelectItem={selectHistoryItem}
+            selectedItemId={activeHistoryItemId ?? undefined}
           />
         </div>
 
@@ -380,7 +457,7 @@ function MainWindow() {
           groups={historyGroups}
           previewGroupIndex={previewHistoryGroupIndex}
           translations={t.history}
-          onOpenPreview={openHistoryGroupPreview}
+          onOpenPreview={openHistoryGroupPreviewFromTarget}
           onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
         />
 
@@ -388,6 +465,7 @@ function MainWindow() {
           canClearHistory={hasHistory}
           translations={t.footer}
           onClearHistory={openClearHistoryConfirm}
+          onKeyboardTargetChange={handleFooterKeyboardTargetChange}
           onOpenAbout={openAboutDialog}
           onOpenPreferences={openPreferencesDialog}
           onPreviewDismissRequest={closeHistoryGroupPreview}

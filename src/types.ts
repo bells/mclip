@@ -92,3 +92,7 @@ export type HistoryPreviewKeyboardNavigationPayload =
       groupIndex: number;
       kind: "select-group-item";
     };
+
+export type HistoryPreviewGroupItemActivatedPayload = {
+  groupIndex: number;
+};

@@ -2,6 +2,7 @@
 
 import type { RefObject } from "react";
 
+import appIconUrl from "../../app-icon.png";
 import { APP_NAME } from "../constants";
 import type { AppTranslations } from "../i18n";
 import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
@@ -25,7 +26,13 @@ export function AppHeader({
   return (
     <header className="app-header">
       <div className="app-brand" aria-label={APP_NAME}>
-        <span className="app-brand-mark" aria-hidden="true" />
+        <img
+          alt=""
+          aria-hidden="true"
+          className="app-brand-icon"
+          draggable={false}
+          src={appIconUrl}
+        />
         <span className="app-kicker">{APP_NAME}</span>
       </div>
       <label className="app-search-shell">

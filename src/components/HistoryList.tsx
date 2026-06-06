@@ -11,7 +11,11 @@ type HistoryListProps = {
   items: HistoryListItem[];
   translations: AppTranslations["history"];
   onDeleteItem: (id: string) => void;
-  onOpenItemPreview: (item: HistoryListItem, anchorTop: number) => void;
+  onOpenItemPreview: (
+    item: HistoryListItem,
+    anchorTop: number,
+    targetId: string,
+  ) => void;
   onScheduleClosePreview: () => void;
   onSelectItem: (id: string) => void;
   selectedItemId?: string;
@@ -40,58 +44,70 @@ export function HistoryList({
 
   return (
     <div className="app-history-group">
-      {items.map((item, index) => (
-        <div
-          className={`app-item-row ${selectedItemId === item.id ? "is-selected" : ""}`}
-          // key 不会作为 prop 传给子组件；它只给 React 的列表 diff 算法使用。
-          key={item.renderId}
-          onMouseEnter={(event) => {
-            // currentTarget 是绑定事件的这行元素，用它测量位置比 target 更稳定。
-            onOpenItemPreview(item, event.currentTarget.getBoundingClientRect().top);
-          }}
-          onMouseLeave={onScheduleClosePreview}
-        >
-          <button
-            className="app-item"
-            data-main-keyboard-target={serializeMainKeyboardNavigationTarget({
-              index,
-              kind: "history-item",
-            })}
-            onClick={() => onSelectItem(item.id)}
-            onFocus={(event) => {
-              onOpenItemPreview(item, event.currentTarget.getBoundingClientRect().top);
+      {items.map((item, index) => {
+        const targetId = serializeMainKeyboardNavigationTarget({
+          index,
+          kind: "history-item",
+        });
+
+        return (
+          <div
+            className={`app-item-row ${selectedItemId === item.id ? "is-selected" : ""}`}
+            // key 不会作为 prop 传给子组件；它只给 React 的列表 diff 算法使用。
+            key={item.renderId}
+            onMouseEnter={(event) => {
+              // currentTarget 是绑定事件的这行元素，用它测量位置比 target 更稳定。
+              onOpenItemPreview(
+                item,
+                event.currentTarget.getBoundingClientRect().top,
+                targetId,
+              );
             }}
-            type="button"
+            onMouseLeave={onScheduleClosePreview}
           >
-            <span className="app-item-index">{item.position}.</span>
-            {item.kind === "image" ? (
-              <span className="app-item-thumbnail-wrap">
-                <ImageThumb
-                  alt={item.displayText}
-                  className="app-item-thumbnail"
-                  imagePath={item.imagePath}
-                />
+            <button
+              className="app-item"
+              data-main-keyboard-target={targetId}
+              onClick={() => onSelectItem(item.id)}
+              onFocus={(event) => {
+                onOpenItemPreview(
+                  item,
+                  event.currentTarget.getBoundingClientRect().top,
+                  targetId,
+                );
+              }}
+              type="button"
+            >
+              <span className="app-item-index">{item.position}.</span>
+              {item.kind === "image" ? (
+                <span className="app-item-thumbnail-wrap">
+                  <ImageThumb
+                    alt={item.displayText}
+                    className="app-item-thumbnail"
+                    imagePath={item.imagePath}
+                  />
+                  <span className="app-item-text">{item.displayText}</span>
+                </span>
+              ) : (
                 <span className="app-item-text">{item.displayText}</span>
-              </span>
-            ) : (
-              <span className="app-item-text">{item.displayText}</span>
-            )}
-          </button>
-          <button
-            aria-label={translations.deleteItemAriaLabel}
-            className="app-item-delete"
-            onClick={(event) => {
-              // 阻止删除按钮的点击继续冒泡到外层行，避免同时触发选择/复制。
-              event.stopPropagation();
-              onDeleteItem(item.id);
-            }}
-            title={translations.deleteItemAriaLabel}
-            type="button"
-          >
-            <span className="app-item-delete-icon" aria-hidden="true" />
-          </button>
-        </div>
-      ))}
+              )}
+            </button>
+            <button
+              aria-label={translations.deleteItemAriaLabel}
+              className="app-item-delete"
+              onClick={(event) => {
+                // 阻止删除按钮的点击继续冒泡到外层行，避免同时触发选择/复制。
+                event.stopPropagation();
+                onDeleteItem(item.id);
+              }}
+              title={translations.deleteItemAriaLabel}
+              type="button"
+            >
+              <span className="app-item-delete-icon" aria-hidden="true" />
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }

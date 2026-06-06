@@ -13,6 +13,7 @@ import {
   listenToHistoryPreviewKeyboardNavigation,
   listenToHistoryPreviewPlacementUpdated,
   listenToHistoryPreviewUpdated,
+  notifyHistoryPreviewGroupItemActivated,
   notifyHistoryPreviewPointerEntered,
   notifyHistoryPreviewSelectionCancelled,
   notifyHistoryPreviewSelectionStarted,
@@ -47,9 +48,19 @@ export function HistoryPreviewWindow() {
   const pendingKeyboardActivationGroupIndexRef = useRef<number | null>(null);
   const previewKindRef = useRef<HistoryPreviewPayload["kind"] | null>(null);
 
-  function setActiveGroupPreviewItemId(id: string | null) {
+  function setActiveGroupPreviewItemId(
+    id: string | null,
+    source: "keyboard" | "pointer" = "keyboard",
+  ) {
     hoveredItemIdRef.current = id;
     setHoveredItemId(id);
+
+    const currentPreview = previewRef.current;
+    if (source === "pointer" && id && currentPreview?.kind === "group") {
+      void notifyHistoryPreviewGroupItemActivated({
+        groupIndex: currentPreview.group.index,
+      });
+    }
   }
 
   function getKeyboardGroupPreview(groupIndex: number) {
@@ -340,7 +351,7 @@ export function HistoryPreviewWindow() {
       onDeleteItem={(id) => {
         void deletePreviewItem(id);
       }}
-      onHoveredItemChange={setHoveredItemId}
+      onHoveredItemChange={(id) => setActiveGroupPreviewItemId(id, "pointer")}
       onPointerInside={notifyPointerInside}
       onRequestClose={() => {
         void requestHistoryPreviewClose();
