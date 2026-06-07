@@ -11,7 +11,7 @@ interface Props {
 import "../styles/global.css";
 
 const { title, description, lang, path } = Astro.props;
-const site = Astro.site?.toString().replace(/\/$/, "") ?? "https://mclip.app";
+const site = Astro.site?.toString().replace(/\/$/, "") ?? "https://mclip.vercel.app";
 const canonicalUrl = `${site}${path}`;
 const alternateZh = `${site}/zh/`;
 const alternateEn = `${site}/en/`;

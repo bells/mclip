@@ -29,8 +29,11 @@ test("site includes trust, installation, and FAQ content", async () => {
 });
 
 test("shared SEO metadata declares bilingual routes and social image", async () => {
+  const config = await read("astro.config.mjs");
   const layout = await read("src/layouts/SiteLayout.astro");
 
+  assert.match(config, /site: "https:\/\/mclip\.vercel\.app"/);
+  assert.match(layout, /https:\/\/mclip\.vercel\.app/);
   assert.match(layout, /hreflang/);
   assert.match(layout, /og:image/);
   assert.match(layout, /twitter:card/);
@@ -42,11 +45,11 @@ test("public SEO files expose crawl and sitemap hints", async () => {
 
   assert.match(robots, /User-agent: \*/);
   assert.match(robots, /Allow: \//);
-  assert.match(robots, /Sitemap: https:\/\/mclip\.app\/sitemap\.xml/);
-  assert.match(sitemap, /<loc>https:\/\/mclip\.app\/zh\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/mclip\.app\/en\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/mclip\.app\/zh\/changelog\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/mclip\.app\/en\/changelog\/<\/loc>/);
+  assert.match(robots, /Sitemap: https:\/\/mclip\.vercel\.app\/sitemap\.xml/);
+  assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/zh\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/en\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/zh\/changelog\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/en\/changelog\/<\/loc>/);
   assert.match(sitemap, /hreflang="x-default"/);
 });
 

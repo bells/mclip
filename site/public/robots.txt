@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://mclip.app/sitemap.xml
+Sitemap: https://mclip.vercel.app/sitemap.xml
