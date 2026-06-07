@@ -36,6 +36,20 @@ test("shared SEO metadata declares bilingual routes and social image", async () 
   assert.match(layout, /twitter:card/);
 });
 
+test("public SEO files expose crawl and sitemap hints", async () => {
+  const robots = await read("public/robots.txt");
+  const sitemap = await read("public/sitemap.xml");
+
+  assert.match(robots, /User-agent: \*/);
+  assert.match(robots, /Allow: \//);
+  assert.match(robots, /Sitemap: https:\/\/mclip\.app\/sitemap\.xml/);
+  assert.match(sitemap, /<loc>https:\/\/mclip\.app\/zh\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/mclip\.app\/en\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/mclip\.app\/zh\/changelog\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/mclip\.app\/en\/changelog\/<\/loc>/);
+  assert.match(sitemap, /hreflang="x-default"/);
+});
+
 test("layout bundles the site stylesheet through Astro", async () => {
   const layout = await read("src/layouts/SiteLayout.astro");
 
