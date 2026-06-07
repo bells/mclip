@@ -76,29 +76,28 @@ const faqItems = [
 >
   <Hero
     lang="zh"
-    eyebrow="macOS 和 Windows 剪贴板历史"
     title="轻量、本地优先的剪贴板历史工具"
     description="mclip 常驻菜单栏或系统托盘。需要时一键唤起，快速搜索文字、图片和文件路径历史，用完继续回到手头工作。"
     primaryCta="下载 mclip"
     secondaryCta="查看 GitHub"
     note="当前版本 0.1.0，下载入口指向 GitHub Releases。"
-    stats={[
-      { value: "10", label: "主窗口默认最新条目" },
-      { value: "3", label: "文本、图片、文件类型" },
-      { value: "0", label: "云同步和上传" },
+    utilityLabel="macOS 和 Windows 菜单栏工具"
+    proofItems={[
+      "主窗口默认只显示最新 10 条",
+      "支持文本、图片、文件路径",
+      "历史和设置只保存在本机",
     ]}
   />
 
   <FeatureGrid
     id="features"
-    eyebrow="为什么做它"
     title="把复制历史放在手边，但不打扰你"
+    summary="mclip 的界面按真实使用路径组织：唤起、搜索、预览、复制，然后回到原来的工作。"
     features={features}
   />
 
   <section class="privacy-band">
     <div>
-      <p class="eyebrow">隐私边界</p>
       <h2>你的剪贴板历史只保存在本机。</h2>
     </div>
     <p>
@@ -108,13 +107,17 @@ const faqItems = [
 
   <InstallGuide
     id="install"
-    eyebrow="安装"
     title="先从 GitHub Release 开始"
     intro="第一版官网保持诚实：直接告诉用户如何下载，也明确当前 macOS 未 notarize、Windows 未签名。"
     items={installItems}
   />
 
-  <Faq id="faq" eyebrow="FAQ" title="安装前常见问题" items={faqItems} />
+  <Faq
+    id="faq"
+    title="安装前常见问题"
+    summary="这些问题不藏在脚注里。签名、公证、WebView2 和本地数据边界都应该在下载前看得到。"
+    items={faqItems}
+  />
 
   <SiteFooter lang="zh" />
 </SiteLayout>

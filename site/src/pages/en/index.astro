@@ -76,29 +76,28 @@ const faqItems = [
 >
   <Hero
     lang="en"
-    eyebrow="Clipboard history for macOS and Windows"
     title="Lightweight, local-first clipboard history"
     description="mclip lives in the menu bar or system tray. Open it when you need a previous text snippet, image, or file path, then return to work without a large window taking over."
     primaryCta="Download mclip"
     secondaryCta="View on GitHub"
     note="Current version 0.1.0. Downloads are served from GitHub Releases."
-    stats={[
-      { value: "10", label: "latest items in the main window" },
-      { value: "3", label: "history types: text, image, files" },
-      { value: "0", label: "cloud sync or uploads" },
+    utilityLabel="Menu bar utility for macOS and Windows"
+    proofItems={[
+      "Main window shows the latest 10 items",
+      "Keeps text, images, and file paths",
+      "History and settings stay local",
     ]}
   />
 
   <FeatureGrid
     id="features"
-    eyebrow="Why it exists"
     title="Keep copy history close without adding noise"
+    summary="The page mirrors the product flow: open the tray window, search, preview, copy, then get back to the task you were doing."
     features={features}
   />
 
   <section class="privacy-band">
     <div>
-      <p class="eyebrow">Privacy boundary</p>
       <h2>Your clipboard history stays on your computer.</h2>
     </div>
     <p>
@@ -108,13 +107,17 @@ const faqItems = [
 
   <InstallGuide
     id="install"
-    eyebrow="Install"
     title="Start with GitHub Releases"
     intro="The first public site stays honest: download is direct, and the current macOS notarization and Windows signing limitations are visible before install."
     items={installItems}
   />
 
-  <Faq id="faq" eyebrow="FAQ" title="Common questions before installing" items={faqItems} />
+  <Faq
+    id="faq"
+    title="Common questions before installing"
+    summary="Signing, notarization, WebView2, and the local data boundary are visible before anyone downloads the app."
+    items={faqItems}
+  />
 
   <SiteFooter lang="en" />
 </SiteLayout>

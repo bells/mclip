@@ -1,22 +1,25 @@
 ---
-interface Stat {
-  value: string;
-  label: string;
-}
-
 interface Props {
   lang: "zh" | "en";
-  eyebrow: string;
   title: string;
   description: string;
   primaryCta: string;
   secondaryCta: string;
   note: string;
-  stats: Stat[];
+  utilityLabel: string;
+  proofItems: string[];
 }
 
-const { lang, eyebrow, title, description, primaryCta, secondaryCta, note, stats } =
-  Astro.props;
+const {
+  lang,
+  title,
+  description,
+  primaryCta,
+  secondaryCta,
+  note,
+  utilityLabel,
+  proofItems,
+} = Astro.props;
 const switchHref = lang === "zh" ? "/en/" : "/zh/";
 const switchLabel = lang === "zh" ? "English" : "中文";
 ---
@@ -35,37 +38,41 @@ const switchLabel = lang === "zh" ? "English" : "中文";
     </div>
   </nav>
 
-  <img
-    class="hero-product"
-    src="/screenshots/mclip-product-preview.png"
-    alt={lang === "zh" ? "mclip 主窗口与历史预览界面" : "mclip main window and history preview"}
-    width="1360"
-    height="1360"
-  />
-
-  <div class="hero-content">
-    <p class="eyebrow">{eyebrow}</p>
-    <h1>{title}</h1>
-    <p class="hero-copy">{description}</p>
-    <div class="hero-actions">
-      <a class="button primary" href="https://github.com/bells/mclip/releases">
-        {primaryCta}
-      </a>
-      <a class="button secondary" href="https://github.com/bells/mclip">
-        {secondaryCta}
-      </a>
+  <div class="hero-shell">
+    <div class="hero-content">
+      <p class="utility-label">{utilityLabel}</p>
+      <h1>{title}</h1>
+      <p class="hero-copy">{description}</p>
+      <div class="hero-actions">
+        <a class="button primary" href="https://github.com/bells/mclip/releases">
+          {primaryCta}
+        </a>
+        <a class="button secondary" href="https://github.com/bells/mclip">
+          {secondaryCta}
+        </a>
+      </div>
+      <p class="hero-note">{note}</p>
     </div>
-    <p class="hero-note">{note}</p>
+
+    <figure class="hero-figure">
+      <img
+        class="hero-product"
+        src="/screenshots/mclip-product-preview.png"
+        alt={lang === "zh" ? "mclip 主窗口与历史预览界面" : "mclip main window and history preview"}
+        width="640"
+        height="672"
+      />
+      <figcaption>
+        {
+          lang === "zh"
+            ? "主窗口、分组预览、单条详情分别保持独立。"
+            : "Main window, grouped preview, and item detail stay separate."
+        }
+      </figcaption>
+    </figure>
   </div>
 
-  <dl class="hero-stats" aria-label={lang === "zh" ? "产品摘要" : "Product summary"}>
-    {
-      stats.map((stat) => (
-        <div>
-          <dt>{stat.value}</dt>
-          <dd>{stat.label}</dd>
-        </div>
-      ))
-    }
-  </dl>
+  <ul class="proof-strip" aria-label={lang === "zh" ? "产品摘要" : "Product summary"}>
+    {proofItems.map((item) => <li>{item}</li>)}
+  </ul>
 </header>

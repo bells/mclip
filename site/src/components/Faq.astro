@@ -6,18 +6,18 @@ interface FaqItem {
 
 interface Props {
   id: string;
-  eyebrow: string;
   title: string;
+  summary: string;
   items: FaqItem[];
 }
 
-const { id, eyebrow, title, items } = Astro.props;
+const { id, title, summary, items } = Astro.props;
 ---
 
 <section class="section faq-section" id={id}>
   <div class="section-heading">
-    <p class="eyebrow">{eyebrow}</p>
     <h2>{title}</h2>
+    <p>{summary}</p>
   </div>
   <div class="faq-list">
     {

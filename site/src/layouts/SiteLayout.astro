@@ -8,6 +8,8 @@ interface Props {
   path: string;
 }
 
+import "../styles/global.css";
+
 const { title, description, lang, path } = Astro.props;
 const site = Astro.site?.toString().replace(/\/$/, "") ?? "https://mclip.app";
 const canonicalUrl = `${site}${path}`;
@@ -24,8 +26,8 @@ const ogImage = `${site}/og-image.png`;
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="application-name" content="mclip" />
-    <meta name="theme-color" content="#f3f7ee" />
-    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#0b100d" />
+    <meta name="color-scheme" content="dark" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="alternate" hreflang="zh-CN" href={alternateZh} />
@@ -48,7 +50,6 @@ const ogImage = `${site}/og-image.png`;
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
-    <link rel="stylesheet" href="/styles/global.css" />
   </head>
   <body>
     <slot />

@@ -6,23 +6,24 @@ interface Feature {
 
 interface Props {
   id: string;
-  eyebrow: string;
   title: string;
+  summary: string;
   features: Feature[];
 }
 
-const { id, eyebrow, title, features } = Astro.props;
+const { id, title, summary, features } = Astro.props;
 ---
 
 <section class="section" id={id}>
   <div class="section-heading">
-    <p class="eyebrow">{eyebrow}</p>
     <h2>{title}</h2>
+    <p>{summary}</p>
   </div>
-  <div class="feature-grid">
+  <div class="feature-list">
     {
       features.map((feature) => (
-        <article class="feature-card">
+        <article class="feature-row">
+          <span aria-hidden="true"></span>
           <h3>{feature.title}</h3>
           <p>{feature.body}</p>
         </article>

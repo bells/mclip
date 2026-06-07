@@ -35,3 +35,24 @@ test("shared SEO metadata declares bilingual routes and social image", async () 
   assert.match(layout, /og:image/);
   assert.match(layout, /twitter:card/);
 });
+
+test("layout bundles the site stylesheet through Astro", async () => {
+  const layout = await read("src/layouts/SiteLayout.astro");
+
+  assert.match(layout, /import "\.\.\/styles\/global\.css";/);
+  assert.doesNotMatch(layout, /href="\/styles\/global\.css"/);
+});
+
+test("hero preview image uses the real PNG aspect ratio", async () => {
+  const hero = await read("src/components/Hero.astro");
+  const css = await read("src/styles/global.css");
+  const png = await readFile(
+    new URL("../public/screenshots/mclip-product-preview.png", import.meta.url),
+  );
+  const width = png.readUInt32BE(16);
+  const height = png.readUInt32BE(20);
+
+  assert.match(hero, new RegExp(`width="${width}"`));
+  assert.match(hero, new RegExp(`height="${height}"`));
+  assert.match(css, /\.hero-product\s*{[^}]*height:\s*auto;/s);
+});
