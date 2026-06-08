@@ -33,8 +33,8 @@ use crate::window::{
     hide_history_preview_detail_window, hide_history_preview_window, hide_main_window,
     is_pointer_over_history_preview_window, is_pointer_over_preview_window, show_about_window,
     show_history_group_preview_with_detail_window, show_history_preview_detail_window,
-    show_history_preview_window, show_preferences_window, toggle_main_window, TrayWindowAnchor,
-    WindowPlacement,
+    show_history_preview_window, show_main_window, show_preferences_window, toggle_main_window,
+    TrayWindowAnchor, WindowPlacement,
 };
 
 const SHOW_GUARD_MS: u64 = 450;
@@ -170,6 +170,46 @@ fn register_global_shortcuts(app: &App, show_guard_until: Arc<Mutex<Option<Insta
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SingleInstanceLaunchAction {
+    ShowMainWindow,
+}
+
+fn single_instance_launch_action(_args: &[String], _cwd: &str) -> SingleInstanceLaunchAction {
+    SingleInstanceLaunchAction::ShowMainWindow
+}
+
+fn handle_single_instance_launch(
+    app_handle: &AppHandle,
+    args: &[String],
+    cwd: &str,
+    show_guard_until: &Arc<Mutex<Option<Instant>>>,
+) {
+    match single_instance_launch_action(args, cwd) {
+        SingleInstanceLaunchAction::ShowMainWindow => {
+            log_info(
+                app_handle,
+                "app",
+                &format!(
+                    "reused existing mclip instance after repeated launch; cwd={cwd}; args={}",
+                    args.len()
+                ),
+            );
+            protect_next_focus_loss(show_guard_until);
+
+            if let Err(error) =
+                show_main_window(app_handle, main_window_placement_from_tray(app_handle))
+            {
+                log_error(
+                    app_handle,
+                    "app",
+                    &format!("failed to show main window after repeated launch: {error}"),
+                );
+            }
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let show_guard_until = Arc::new(Mutex::new(None::<Instant>));
@@ -203,6 +243,13 @@ pub fn run() {
                 }
             }
         })
+        .plugin(tauri_plugin_single_instance::init({
+            let show_guard_until = Arc::clone(&show_guard_until);
+
+            move |app_handle, args, cwd| {
+                handle_single_instance_launch(app_handle, &args, &cwd, &show_guard_until);
+            }
+        }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_positioner::init())
         .invoke_handler(tauri::generate_handler![
@@ -260,11 +307,23 @@ mod tests {
     use serde_json::Value;
     use tauri_plugin_global_shortcut::Shortcut;
 
-    use super::TOGGLE_WINDOW_SHORTCUT;
+    use super::{
+        single_instance_launch_action, SingleInstanceLaunchAction, TOGGLE_WINDOW_SHORTCUT,
+    };
 
     #[test]
     fn toggle_window_shortcut_can_be_parsed() {
         assert!(Shortcut::from_str(TOGGLE_WINDOW_SHORTCUT).is_ok());
+    }
+
+    #[test]
+    fn repeated_launch_requests_existing_window_to_show() {
+        let args = vec!["mclip".to_string()];
+
+        assert_eq!(
+            single_instance_launch_action(&args, "C:\\Users\\Watson"),
+            SingleInstanceLaunchAction::ShowMainWindow
+        );
     }
 
     #[test]
