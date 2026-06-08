@@ -24,7 +24,7 @@
 - 去重后最新内容在最前，同一内容重复复制会更新次数和时间。
 - 主窗口只显示最新 10 条，更多历史按每 10 条分组。
 - 历史分组和单条详情都使用独立透明 preview 窗口，不把预览塞回主窗口 DOM。
-- 支持偏好设置：登录时启动、语言、最大历史条数、保存类型。
+- 支持偏好设置：登录时启动、语言、自动粘贴、最大历史条数、保存类型。
 - 支持 About 独立窗口，展示版本、GitHub 地址和真实应用图标。
 
 ## 常用命令
@@ -76,6 +76,7 @@ src/
   components/Modal.tsx                主窗口内确认弹窗
   utils/history.ts                    历史过滤、分组、分页纯函数
   utils/preview.ts                    preview 高度和偏移计算
+  utils/selectionBehavior.ts          历史选择后的附加行为判断
   utils/settings.ts                   前端设置 normalize
 
 src-tauri/
@@ -111,7 +112,7 @@ src-tauri/
 - 维护 `previewHistoryGroupIndex`、`previewHistoryItemId`、`previewAnchorTop`。
 - 调用 `adjust_window_height` 让 Rust 调整主窗口高度。
 - 推送 item/group preview payload 到独立 `preview` 窗口。
-- 处理复制、删除、清空历史、打开 About、打开 Preferences、退出应用等操作。
+- 处理复制、自动粘贴、删除、清空历史、打开 About、打开 Preferences、退出应用等操作。
 
 维护注意：
 
@@ -202,7 +203,7 @@ Windows 监听注意：
 
 - 由 `src-tauri/src/settings.rs` 管理。
 - 存在系统 app config 目录的 `settings.json`。
-- 字段包括 `launchAtLogin`、`language`、`maxHistoryCount`、`enabledHistoryTypes`。
+- 字段包括 `launchAtLogin`、`language`、`autoPaste`、`maxHistoryCount`、`enabledHistoryTypes`。
 - 前端有 `normalizeSettings`，后端有 `AppSettings::sanitize`，改边界时两边都要同步考虑。
 
 语言规则：

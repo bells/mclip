@@ -22,7 +22,7 @@
 - 历史分组使用独立透明 preview 窗口，不会撑宽主窗口。
 - 支持单条历史详情、分组 hover 详情、图片缩略图和文件路径详情。
 - 支持搜索、方向键选择、回车复制、`Esc` 收起窗口。
-- 支持偏好设置：登录时启动、界面语言、最大历史条数、保存类型。
+- 支持偏好设置：登录时启动、界面语言、自动粘贴、最大历史条数、保存类型。
 - 支持中英文界面，首次启动会根据系统语言选择中文或英文。
 
 ### 安装使用
@@ -124,7 +124,7 @@ Current version: `0.1.0`
 - Uses a separate transparent preview window for grouped history, so the main window stays compact.
 - Supports item details, grouped hover details, image thumbnails, and file-path details.
 - Supports search, arrow-key selection, Enter-to-copy, and Escape-to-hide.
-- Preferences include launch at login, display language, maximum history count, and enabled content types.
+- Preferences include launch at login, display language, auto paste, maximum history count, and enabled content types.
 - Supports Chinese and English UI. The first launch follows the system language when possible.
 
 ### Installation

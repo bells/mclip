@@ -94,6 +94,10 @@ export function copyHistoryItem(id: string) {
   return invoke<void>("copy_history_item", { id });
 }
 
+export function pasteClipboard() {
+  return invoke<void>("paste_current_clipboard");
+}
+
 export function getAssetUrl(path: string) {
   return convertFileSrc(path);
 }

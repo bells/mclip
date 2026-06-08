@@ -19,9 +19,12 @@ import {
 import type { AppLanguage, AppSettings, HistoryKind } from "../types";
 import { normalizeSettings } from "../utils/settings";
 
+type PreferencesTab = "general" | "storage";
+
 export function PreferencesWindow() {
   // settingsDraft 是本窗口里的“草稿”，保存前不会直接写入后端。
   const [settingsDraft, setSettingsDraft] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [activeTab, setActiveTab] = useState<PreferencesTab>("general");
   const [settingsError, setSettingsError] = useState("");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   // 数字输入框单独保存字符串，允许用户编辑中间态，比如暂时清空输入框。
@@ -86,6 +89,13 @@ export function PreferencesWindow() {
     setSettingsDraft((current) => ({
       ...current,
       launchAtLogin: !current.launchAtLogin,
+    }));
+  };
+
+  const toggleAutoPaste = () => {
+    setSettingsDraft((current) => ({
+      ...current,
+      autoPaste: !current.autoPaste,
     }));
   };
 
@@ -164,122 +174,173 @@ export function PreferencesWindow() {
 
         <div className="app-modal-content">
           <div className="app-settings-content">
-            <div className="app-settings-row">
-              <div className="app-settings-copy">
-                <div className="app-settings-label">{t.launchAtLoginLabel}</div>
-                <div className="app-settings-description">
-                  {t.launchAtLoginDescription}
-                </div>
-              </div>
-
-              <button
-                aria-label={t.launchAtLoginLabel}
-                aria-pressed={settingsDraft.launchAtLogin}
-                className={`app-switch ${settingsDraft.launchAtLogin ? "is-on" : ""}`}
-                disabled={isSavingSettings}
-                onClick={toggleLaunchAtLogin}
-                type="button"
-              >
-                <span className="app-switch-thumb" />
-              </button>
-            </div>
-
-            <div className="app-settings-row">
-              <div className="app-settings-copy">
-                <div className="app-settings-label">{t.languageLabel}</div>
-                <div className="app-settings-description">{t.languageDescription}</div>
-              </div>
-
-              <select
-                aria-label={t.languageLabel}
-                className="app-language-select"
-                disabled={isSavingSettings}
-                onChange={(event) => updateLanguage(event.target.value as AppLanguage)}
-                value={settingsDraft.language}
-              >
-                <option value="zhCn">{t.languageChinese}</option>
-                <option value="en">{t.languageEnglish}</option>
-              </select>
-            </div>
-
-            <div className="app-settings-row">
-              <div className="app-settings-copy">
-                <div className="app-settings-label">{t.maxHistoryCountLabel}</div>
-                <div className="app-settings-description">
-                  {t.maxHistoryCountDescription}
-                </div>
-                <div className="app-settings-note">
-                  {t.rangeNote(MIN_MAX_HISTORY_COUNT, MAX_MAX_HISTORY_COUNT)}
-                </div>
-              </div>
-
-              <div className="app-stepper">
+            <div aria-label={t.tabsLabel} className="app-settings-tabs" role="tablist">
+              {([
+                ["general", t.generalTab],
+                ["storage", t.storageTab],
+              ] as const).map(([tab, label]) => (
                 <button
-                  aria-label={t.decreaseMaxHistoryCount}
-                  className="app-stepper-btn"
+                  aria-selected={activeTab === tab}
+                  className={`app-settings-tab ${activeTab === tab ? "is-active" : ""}`}
                   disabled={isSavingSettings}
-                  onClick={() => updateMaxHistoryCount(settingsDraft.maxHistoryCount - 1)}
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  role="tab"
                   type="button"
                 >
-                  -
+                  {label}
                 </button>
-                <input
-                  aria-label={t.maxHistoryCountAriaLabel}
-                  className="app-stepper-input"
-                  disabled={isSavingSettings}
-                  max={MAX_MAX_HISTORY_COUNT}
-                  min={MIN_MAX_HISTORY_COUNT}
-                  onBlur={commitMaxHistoryCountInput}
-                  onChange={(event) => updateMaxHistoryCountInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.currentTarget.blur();
-                    }
-                  }}
-                  type="number"
-                  value={maxHistoryCountInput}
-                />
-                <button
-                  aria-label={t.increaseMaxHistoryCount}
-                  className="app-stepper-btn"
-                  disabled={isSavingSettings}
-                  onClick={() => updateMaxHistoryCount(settingsDraft.maxHistoryCount + 1)}
-                  type="button"
-                >
-                  +
-                </button>
-              </div>
+              ))}
             </div>
 
-            <div className="app-settings-section">
-              <div className="app-settings-section-heading">
-                <div className="app-settings-label">{t.typesLabel}</div>
-                <div className="app-settings-description">{t.typesDescription}</div>
-              </div>
+            {activeTab === "general" ? (
+              <div className="app-settings-tab-panel" role="tabpanel">
+                <div className="app-settings-row">
+                  <div className="app-settings-copy">
+                    <div className="app-settings-label">{t.launchAtLoginLabel}</div>
+                    <div className="app-settings-description">
+                      {t.launchAtLoginDescription}
+                    </div>
+                  </div>
 
-              <div className="app-history-type-list">
-                {/* `as const` 让 TypeScript 把 kind 推断成字面量类型，而不是普通 string。 */}
-                {([
-                  ["text", t.typeText],
-                  ["image", t.typeImage],
-                  ["files", t.typeFiles],
-                ] as const).map(([kind, label]) => (
                   <button
-                    aria-pressed={settingsDraft.enabledHistoryTypes[kind]}
-                    className={`app-history-type-row ${
-                      settingsDraft.enabledHistoryTypes[kind] ? "is-on" : ""
-                    }`}
+                    aria-label={t.launchAtLoginLabel}
+                    aria-pressed={settingsDraft.launchAtLogin}
+                    className={`app-switch ${settingsDraft.launchAtLogin ? "is-on" : ""}`}
                     disabled={isSavingSettings}
-                    key={kind}
-                    onClick={() => toggleHistoryType(kind)}
+                    onClick={toggleLaunchAtLogin}
                     type="button"
                   >
-                    <span className="app-history-type-label">{label}</span>
-                    <span className="app-history-type-check" />
+                    <span className="app-switch-thumb" />
                   </button>
-                ))}
+                </div>
+
+                <div className="app-settings-row">
+                  <div className="app-settings-copy">
+                    <div className="app-settings-label">{t.languageLabel}</div>
+                    <div className="app-settings-description">{t.languageDescription}</div>
+                  </div>
+
+                  <select
+                    aria-label={t.languageLabel}
+                    className="app-language-select"
+                    disabled={isSavingSettings}
+                    onChange={(event) => updateLanguage(event.target.value as AppLanguage)}
+                    value={settingsDraft.language}
+                  >
+                    <option value="zhCn">{t.languageChinese}</option>
+                    <option value="en">{t.languageEnglish}</option>
+                  </select>
+                </div>
+
+                <div className="app-settings-group-label">{t.behaviorLabel}</div>
+
+                <div className="app-settings-row">
+                  <div className="app-settings-copy">
+                    <div className="app-settings-label">{t.autoPasteLabel}</div>
+                    <div className="app-settings-description">
+                      {t.autoPasteDescription}
+                    </div>
+                  </div>
+
+                  <button
+                    aria-label={t.autoPasteLabel}
+                    aria-pressed={settingsDraft.autoPaste}
+                    className={`app-switch ${settingsDraft.autoPaste ? "is-on" : ""}`}
+                    disabled={isSavingSettings}
+                    onClick={toggleAutoPaste}
+                    type="button"
+                  >
+                    <span className="app-switch-thumb" />
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="app-settings-tab-panel" role="tabpanel">
+                <div className="app-settings-row">
+                  <div className="app-settings-copy">
+                    <div className="app-settings-label">{t.maxHistoryCountLabel}</div>
+                    <div className="app-settings-description">
+                      {t.maxHistoryCountDescription}
+                    </div>
+                    <div className="app-settings-note">
+                      {t.rangeNote(MIN_MAX_HISTORY_COUNT, MAX_MAX_HISTORY_COUNT)}
+                    </div>
+                  </div>
+
+                  <div className="app-stepper">
+                    <button
+                      aria-label={t.decreaseMaxHistoryCount}
+                      className="app-stepper-btn"
+                      disabled={isSavingSettings}
+                      onClick={() =>
+                        updateMaxHistoryCount(settingsDraft.maxHistoryCount - 1)
+                      }
+                      type="button"
+                    >
+                      -
+                    </button>
+                    <input
+                      aria-label={t.maxHistoryCountAriaLabel}
+                      className="app-stepper-input"
+                      disabled={isSavingSettings}
+                      max={MAX_MAX_HISTORY_COUNT}
+                      min={MIN_MAX_HISTORY_COUNT}
+                      onBlur={commitMaxHistoryCountInput}
+                      onChange={(event) => updateMaxHistoryCountInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
+                      }}
+                      type="number"
+                      value={maxHistoryCountInput}
+                    />
+                    <button
+                      aria-label={t.increaseMaxHistoryCount}
+                      className="app-stepper-btn"
+                      disabled={isSavingSettings}
+                      onClick={() =>
+                        updateMaxHistoryCount(settingsDraft.maxHistoryCount + 1)
+                      }
+                      type="button"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="app-settings-section">
+                  <div className="app-settings-section-heading">
+                    <div className="app-settings-label">{t.typesLabel}</div>
+                    <div className="app-settings-description">{t.typesDescription}</div>
+                  </div>
+
+                  <div className="app-history-type-list">
+                    {/* `as const` 让 TypeScript 把 kind 推断成字面量类型，而不是普通 string。 */}
+                    {([
+                      ["text", t.typeText],
+                      ["image", t.typeImage],
+                      ["files", t.typeFiles],
+                    ] as const).map(([kind, label]) => (
+                      <button
+                        aria-pressed={settingsDraft.enabledHistoryTypes[kind]}
+                        className={`app-history-type-row ${
+                          settingsDraft.enabledHistoryTypes[kind] ? "is-on" : ""
+                        }`}
+                        disabled={isSavingSettings}
+                        key={kind}
+                        onClick={() => toggleHistoryType(kind)}
+                        type="button"
+                      >
+                        <span className="app-history-type-label">{label}</span>
+                        <span className="app-history-type-check" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {settingsError ? (
               <div className="app-settings-error">{settingsError}</div>

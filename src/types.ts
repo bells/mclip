@@ -6,6 +6,7 @@ export type HistoryKind = "text" | "image" | "files";
 export type EnabledHistoryTypes = Record<HistoryKind, boolean>;
 
 export type AppSettings = {
+  autoPaste: boolean;
   enabledHistoryTypes: EnabledHistoryTypes;
   language: AppLanguage;
   launchAtLogin: boolean;

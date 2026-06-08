@@ -24,6 +24,8 @@ pub enum AppLanguage {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
+    #[serde(default)]
+    pub auto_paste: bool,
     pub launch_at_login: bool,
     #[serde(default = "default_language")]
     pub language: AppLanguage,
@@ -63,6 +65,7 @@ impl HistoryTypes {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
+            auto_paste: false,
             launch_at_login: false,
             language: default_language(),
             max_history_count: DEFAULT_MAX_HISTORY_COUNT,
@@ -309,6 +312,7 @@ mod tests {
     #[test]
     fn sanitize_clamps_history_count_to_lower_bound() {
         let settings = AppSettings {
+            auto_paste: false,
             launch_at_login: false,
             language: AppLanguage::En,
             max_history_count: 1,
@@ -322,6 +326,7 @@ mod tests {
     #[test]
     fn sanitize_clamps_history_count_to_upper_bound() {
         let settings = AppSettings {
+            auto_paste: false,
             launch_at_login: false,
             language: AppLanguage::En,
             max_history_count: 999,
@@ -362,5 +367,29 @@ mod tests {
         assert!(!types.is_enabled(HistoryKind::Text));
         assert!(!types.is_enabled(HistoryKind::Image));
         assert!(!types.is_enabled(HistoryKind::Files));
+    }
+
+    #[test]
+    fn auto_paste_is_disabled_by_default() {
+        assert!(!AppSettings::default().auto_paste);
+    }
+
+    #[test]
+    fn legacy_settings_without_auto_paste_default_to_disabled() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{
+              "launchAtLogin": false,
+              "language": "en",
+              "maxHistoryCount": 50,
+              "enabledHistoryTypes": {
+                "text": true,
+                "image": true,
+                "files": true
+              }
+            }"#,
+        )
+        .unwrap();
+
+        assert!(!settings.auto_paste);
     }
 }

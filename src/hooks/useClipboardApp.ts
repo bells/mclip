@@ -27,6 +27,7 @@ import {
   listenToHistoryUpdated,
   listenToMainWindowShown,
   listenToSettingsUpdated,
+  pasteClipboard,
   quitApp,
   showAboutWindow,
   showHistoryPreviewWindow,
@@ -55,6 +56,7 @@ import {
   resetPreviewSelectionDismissal,
 } from "../utils/previewDismissal";
 import { getSearchQueryAfterHistorySelection } from "../utils/searchInteraction";
+import { shouldAutoPasteAfterHistorySelection } from "../utils/selectionBehavior";
 import { normalizeSettings } from "../utils/settings";
 
 const PREVIEW_CLOSE_DELAY_MS = 500;
@@ -450,6 +452,10 @@ export function useClipboardApp() {
       await copyHistoryItem(id);
       clearSearchQueryAfterHistorySelection();
       await hideCurrentWindow();
+
+      if (shouldAutoPasteAfterHistorySelection(settings)) {
+        await pasteClipboard();
+      }
     } catch (error) {
       resetSelectionPreviewDismissal();
       console.error("复制历史记录失败:", error);

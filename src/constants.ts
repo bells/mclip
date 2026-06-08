@@ -16,6 +16,7 @@ export const MIN_MAX_HISTORY_COUNT = 10;
 export const MAX_MAX_HISTORY_COUNT = 200;
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  autoPaste: false,
   enabledHistoryTypes: {
     files: true,
     image: true,

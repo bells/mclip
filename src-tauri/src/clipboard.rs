@@ -4,16 +4,14 @@
 
 use std::borrow::Cow;
 use std::path::PathBuf;
+use std::thread;
+use std::time::Duration;
 
 use arboard::{Clipboard, ImageData};
 use base64::prelude::*;
 use image::imageops::{self, FilterType};
 use image::RgbaImage;
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
-use std::thread;
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
-use std::time::Duration;
 use tauri::AppHandle;
 
 use crate::diagnostics::log_error;
@@ -29,6 +27,7 @@ use crate::settings::HistoryTypes;
 const CLIPBOARD_POLL_INTERVAL_MS: u64 = 500;
 #[cfg(target_os = "macos")]
 const CLIPBOARD_CHANGE_SETTLE_DELAY_MS: u64 = 75;
+const AUTO_PASTE_DELAY_MS: u64 = 120;
 const MAX_IMAGE_DIMENSION: u32 = 1200;
 
 #[tauri::command]
@@ -38,6 +37,23 @@ pub fn copy_history_item(app_handle: AppHandle, id: String) -> Result<(), String
     };
 
     write_history_item_to_clipboard(history_item)
+}
+
+#[tauri::command]
+pub fn paste_current_clipboard(app_handle: AppHandle) -> Result<(), String> {
+    thread::spawn(move || {
+        thread::sleep(Duration::from_millis(AUTO_PASTE_DELAY_MS));
+
+        if let Err(error) = trigger_system_paste() {
+            log_error(
+                &app_handle,
+                "clipboard",
+                &format!("failed to auto paste clipboard content: {error}"),
+            );
+        }
+    });
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -113,6 +129,80 @@ fn write_history_item_to_clipboard(history_item: HistoryEntry) -> Result<(), Str
                 .map_err(|error| error.to_string())
         }
     }
+}
+
+#[cfg(target_os = "macos")]
+fn trigger_system_paste() -> Result<(), String> {
+    use core_graphics::event::{CGEvent, CGEventFlags, CGEventTapLocation};
+    use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
+
+    const V_KEY_CODE: u16 = 9;
+
+    let source = CGEventSource::new(CGEventSourceStateID::HIDSystemState)
+        .map_err(|_| "failed to create macOS event source".to_string())?;
+    let key_down = CGEvent::new_keyboard_event(source.clone(), V_KEY_CODE, true)
+        .map_err(|_| "failed to create macOS paste key down event".to_string())?;
+    let key_up = CGEvent::new_keyboard_event(source, V_KEY_CODE, false)
+        .map_err(|_| "failed to create macOS paste key up event".to_string())?;
+
+    key_down.set_flags(CGEventFlags::CGEventFlagCommand);
+    key_up.set_flags(CGEventFlags::CGEventFlagCommand);
+    key_down.post(CGEventTapLocation::HID);
+    key_up.post(CGEventTapLocation::HID);
+
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn trigger_system_paste() -> Result<(), String> {
+    use std::mem::size_of;
+
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+        SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VK_CONTROL, VK_V,
+    };
+
+    fn keyboard_input(virtual_key: u16, flags: u32) -> INPUT {
+        INPUT {
+            r#type: INPUT_KEYBOARD,
+            Anonymous: INPUT_0 {
+                ki: KEYBDINPUT {
+                    wVk: virtual_key,
+                    wScan: 0,
+                    dwFlags: flags,
+                    time: 0,
+                    dwExtraInfo: 0,
+                },
+            },
+        }
+    }
+
+    let inputs = [
+        keyboard_input(VK_CONTROL, 0),
+        keyboard_input(VK_V, 0),
+        keyboard_input(VK_V, KEYEVENTF_KEYUP),
+        keyboard_input(VK_CONTROL, KEYEVENTF_KEYUP),
+    ];
+    let sent_count = unsafe {
+        SendInput(
+            inputs.len() as u32,
+            inputs.as_ptr(),
+            size_of::<INPUT>() as i32,
+        )
+    };
+
+    if sent_count == inputs.len() as u32 {
+        Ok(())
+    } else {
+        Err(format!(
+            "Windows SendInput sent {sent_count} of {} events",
+            inputs.len()
+        ))
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn trigger_system_paste() -> Result<(), String> {
+    Err("auto paste is not supported on this platform".to_string())
 }
 
 struct ClipboardSnapshot {
