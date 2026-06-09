@@ -1,6 +1,6 @@
-// 独立偏好设置窗口：编辑配置后由后端广播 settings-updated，主窗口同步刷新。
+// 独立偏好设置窗口：配置变更后立即写入，后端广播 settings-updated，主窗口同步刷新。
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
 import {
@@ -18,20 +18,29 @@ import {
 } from "../lib/tauri";
 import type { AppLanguage, AppSettings, HistoryKind } from "../types";
 import { normalizeSettings } from "../utils/settings";
+import { DialogWindowControls } from "./DialogWindowControls";
 
 type PreferencesTab = "general" | "storage";
 
 export function PreferencesWindow() {
-  // settingsDraft 是本窗口里的“草稿”，保存前不会直接写入后端。
+  // settingsDraft 保留了旧命名，但现在每次控件变更都会立即写入后端。
   const [settingsDraft, setSettingsDraft] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [activeTab, setActiveTab] = useState<PreferencesTab>("general");
   const [settingsError, setSettingsError] = useState("");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const latestSettingsRef = useRef<AppSettings>(DEFAULT_SETTINGS);
   // 数字输入框单独保存字符串，允许用户编辑中间态，比如暂时清空输入框。
   const [maxHistoryCountInput, setMaxHistoryCountInput] = useState(
     String(DEFAULT_SETTINGS.maxHistoryCount),
   );
-  const t = getTranslations(settingsDraft.language).preferences;
+  const translations = getTranslations(settingsDraft.language);
+  const t = translations.preferences;
+
+  const syncSettingsState = (nextSettings: AppSettings) => {
+    latestSettingsRef.current = nextSettings;
+    setSettingsDraft(nextSettings);
+    setMaxHistoryCountInput(String(nextSettings.maxHistoryCount));
+  };
 
   useEffect(() => {
     let isActive = true;
@@ -46,9 +55,8 @@ export function PreferencesWindow() {
           return;
         }
 
-        setSettingsDraft(loadedSettings);
+        syncSettingsState(loadedSettings);
         setSettingsError("");
-        setMaxHistoryCountInput(String(loadedSettings.maxHistoryCount));
       } catch (error) {
         console.error("加载偏好设置失败:", error);
       }
@@ -57,9 +65,8 @@ export function PreferencesWindow() {
     void loadSettings();
     void listenToSettingsUpdated((updatedSettings) => {
       const normalizedSettings = normalizeSettings(updatedSettings);
-      setSettingsDraft(normalizedSettings);
+      syncSettingsState(normalizedSettings);
       setSettingsError("");
-      setMaxHistoryCountInput(String(normalizedSettings.maxHistoryCount));
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
     });
@@ -72,7 +79,7 @@ export function PreferencesWindow() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isSavingSettings) {
+      if (event.key === "Escape") {
         event.preventDefault();
         void hideCurrentWindow();
       }
@@ -83,31 +90,57 @@ export function PreferencesWindow() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isSavingSettings]);
+  }, []);
+
+  const applySettings = async (nextSettings: AppSettings) => {
+    const previousSettings = latestSettingsRef.current;
+    const normalizedSettings = normalizeSettings(nextSettings);
+
+    syncSettingsState(normalizedSettings);
+    setSettingsError("");
+    setIsSavingSettings(true);
+
+    try {
+      const savedSettings = normalizeSettings(await saveSettings(normalizedSettings));
+      syncSettingsState(savedSettings);
+    } catch (error) {
+      console.error("保存设置失败:", error);
+      syncSettingsState(previousSettings);
+      setSettingsError(t.error);
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const applySettingsPatch = (
+    updater: (currentSettings: AppSettings) => AppSettings,
+  ) => {
+    void applySettings(updater(latestSettingsRef.current));
+  };
 
   const toggleLaunchAtLogin = () => {
-    setSettingsDraft((current) => ({
+    applySettingsPatch((current) => ({
       ...current,
       launchAtLogin: !current.launchAtLogin,
     }));
   };
 
   const toggleAutoPaste = () => {
-    setSettingsDraft((current) => ({
+    applySettingsPatch((current) => ({
       ...current,
       autoPaste: !current.autoPaste,
     }));
   };
 
   const updateLanguage = (language: AppLanguage) => {
-    setSettingsDraft((current) => ({
+    applySettingsPatch((current) => ({
       ...current,
       language,
     }));
   };
 
   const toggleHistoryType = (kind: HistoryKind) => {
-    setSettingsDraft((current) => ({
+    applySettingsPatch((current) => ({
       ...current,
       enabledHistoryTypes: {
         ...current.enabledHistoryTypes,
@@ -120,11 +153,11 @@ export function PreferencesWindow() {
   const updateMaxHistoryCount = (nextValue: number) => {
     const clampedValue = clampHistoryCount(nextValue);
 
-    setSettingsDraft((current) => ({
+    setMaxHistoryCountInput(String(clampedValue));
+    applySettingsPatch((current) => ({
       ...current,
       maxHistoryCount: clampedValue,
     }));
-    setMaxHistoryCountInput(String(clampedValue));
   };
 
   const commitMaxHistoryCountInput = () => {
@@ -142,34 +175,33 @@ export function PreferencesWindow() {
   const updateMaxHistoryCountInput = (value: string) => {
     if (/^\d*$/.test(value)) {
       setMaxHistoryCountInput(value);
-    }
-  };
 
-  const savePreferences = async () => {
-    try {
-      setIsSavingSettings(true);
-      setSettingsError("");
+      const parsedValue = Number(value);
 
-      const savedSettings = normalizeSettings(
-        await saveSettings(normalizeSettings(settingsDraft)),
-      );
+      if (
+        value !== "" &&
+        Number.isFinite(parsedValue) &&
+        parsedValue >= MIN_MAX_HISTORY_COUNT &&
+        parsedValue <= MAX_MAX_HISTORY_COUNT
+      ) {
+        const nextValue = Math.trunc(parsedValue);
 
-      setSettingsDraft(savedSettings);
-      setMaxHistoryCountInput(String(savedSettings.maxHistoryCount));
-      await hideCurrentWindow();
-    } catch (error) {
-      console.error("保存设置失败:", error);
-      setSettingsError(t.error);
-    } finally {
-      setIsSavingSettings(false);
+        if (nextValue !== latestSettingsRef.current.maxHistoryCount) {
+          applySettingsPatch((current) => ({
+            ...current,
+            maxHistoryCount: nextValue,
+          }));
+        }
+      }
     }
   };
 
   return (
     <div className="app-dialog-frame app-preferences-window">
       <div className="app-dialog-panel app-settings-window-panel">
-        <div className="app-modal-header">
+        <div className="app-dialog-titlebar" data-tauri-drag-region>
           <span className="app-modal-title">{t.title}</span>
+          <DialogWindowControls labels={translations.windowControls} />
         </div>
 
         <div className="app-modal-content">
@@ -344,31 +376,12 @@ export function PreferencesWindow() {
 
             {settingsError ? (
               <div className="app-settings-error">{settingsError}</div>
+            ) : isSavingSettings ? (
+              <div className="app-settings-status" aria-live="polite">
+                {t.saving}
+              </div>
             ) : null}
           </div>
-        </div>
-
-        <div className="app-modal-footer">
-          <button
-            className="app-modal-secondary-btn"
-            disabled={isSavingSettings}
-            onClick={() => {
-              void hideCurrentWindow();
-            }}
-            type="button"
-          >
-            {t.cancel}
-          </button>
-          <button
-            className="app-modal-btn"
-            disabled={isSavingSettings}
-            onClick={() => {
-              void savePreferences();
-            }}
-            type="button"
-          >
-            {isSavingSettings ? t.saving : t.save}
-          </button>
         </div>
       </div>
     </div>

@@ -26,7 +26,7 @@ use crate::clipboard::{
 };
 use crate::diagnostics::{
     copy_diagnostic_report, initialize_diagnostics, log_error, log_info, open_issue_report,
-    open_logs_dir, write_client_log,
+    open_logs_dir, open_project_link, write_client_log,
 };
 use crate::history::{clear_history, delete_history_item, get_history};
 use crate::settings::{get_settings, save_settings};
@@ -277,6 +277,7 @@ pub fn run() {
             open_logs_dir,
             copy_diagnostic_report,
             open_issue_report,
+            open_project_link,
             write_client_log
         ])
         .setup({

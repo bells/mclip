@@ -141,25 +141,14 @@ button {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 22px 22px 18px;
-}
-
-.app-about-window .app-modal-header {
-  margin-bottom: 8px;
-}
-
-.app-about-window .app-modal-footer {
-  justify-content: center;
-  margin-top: 16px;
+  padding: 16px 18px;
 }
 
 .app-about-icon {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  width: 34px;
-  height: 34px;
+  display: block;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
   border-radius: 9px;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.1),
@@ -169,6 +158,7 @@ button {
 .app-settings-window-panel {
   display: flex;
   flex-direction: column;
+  padding: 16px 18px 18px;
 }
 
 .app-settings-window-panel .app-modal-content {
@@ -1259,6 +1249,67 @@ button {
   margin-bottom: 14px;
 }
 
+.app-dialog-titlebar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 13px;
+  user-select: none;
+}
+
+.app-window-controls {
+  position: absolute;
+  top: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.app-window-controls.is-left {
+  left: 0;
+}
+
+.app-window-controls.is-right {
+  right: 0;
+}
+
+.app-window-control {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.28);
+  border-radius: 999px;
+  padding: 0;
+}
+
+.app-window-control-close {
+  background: linear-gradient(180deg, #ff7770, #e64d48);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 1px 2px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+}
+
+.app-window-control-close:hover {
+  filter: brightness(1.08);
+}
+
+.app-window-control-minimize {
+  background: linear-gradient(180deg, #ffd066, #e3a928);
+}
+
+.app-window-control-maximize {
+  background: linear-gradient(180deg, #71dc78, #33b94e);
+}
+
+.app-window-control:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.55);
+  opacity: 0.42;
+}
+
 .app-modal-title {
   display: block;
   color: var(--app-ink);
@@ -1295,9 +1346,9 @@ button {
 .app-modal-identity {
   display: flex;
   max-width: 100%;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
-  gap: 9px;
+  gap: 8px;
 }
 
 .app-modal-app-name {
@@ -1326,35 +1377,42 @@ button {
   text-align: center;
 }
 
-.app-modal-github {
+.app-about-links {
   display: grid;
-  max-width: 100%;
-  justify-items: center;
-  gap: 5px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
   margin-top: 14px;
-  padding: 9px 10px;
-  border: 1px solid rgba(124, 199, 193, 0.22);
-  border-radius: 8px;
-  background: rgba(124, 199, 193, 0.07);
 }
 
-.app-modal-github-label {
-  color: rgba(124, 199, 193, 0.9);
+.app-about-link-btn {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(124, 199, 193, 0.24);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(124, 199, 193, 0.12), rgba(124, 199, 193, 0.045)),
+    rgba(255, 255, 255, 0.025);
+  color: var(--app-ink-soft);
+  cursor: pointer;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.app-about-link-btn:hover {
+  border-color: rgba(124, 199, 193, 0.42);
+  background:
+    linear-gradient(180deg, rgba(124, 199, 193, 0.18), rgba(124, 199, 193, 0.07)),
+    rgba(255, 255, 255, 0.04);
+}
+
+.app-about-link-label {
+  color: rgba(124, 199, 193, 0.95);
   font-size: 11px;
   font-weight: 900;
   line-height: 1;
-}
-
-.app-modal-github-url {
-  max-width: 100%;
-  overflow: hidden;
-  color: var(--app-ink-soft);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .app-diagnostics-actions {
@@ -1405,6 +1463,8 @@ button {
 .app-modal-btn,
 .app-modal-secondary-btn,
 .app-diagnostics-btn,
+.app-about-link-btn,
+.app-window-control-close,
 .app-stepper-btn,
 .app-switch,
 .app-settings-tab {
@@ -1600,6 +1660,16 @@ button {
   background: rgba(255, 117, 109, 0.09);
   color: #ffc4bf;
   padding: 10px 12px;
+}
+
+.app-settings-status {
+  border: 1px solid rgba(124, 199, 193, 0.2);
+  border-radius: 8px;
+  background: rgba(124, 199, 193, 0.07);
+  color: rgba(124, 199, 193, 0.95);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 9px 12px;
 }
 
 .app-history-type-list {
@@ -1818,6 +1888,8 @@ button {
 .app-modal-btn:focus-visible,
 .app-modal-secondary-btn:focus-visible,
 .app-diagnostics-btn:focus-visible,
+.app-about-link-btn:focus-visible,
+.app-window-control-close:focus-visible,
 .app-stepper-btn:focus-visible,
 .app-switch:focus-visible,
 .app-settings-tab:focus-visible,

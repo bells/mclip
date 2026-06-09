@@ -60,6 +60,8 @@ export type PreviewWindowPosition = {
   side: PreviewWindowSide;
 };
 
+export type ProjectLinkTarget = "github" | "homepage";
+
 export function getSettings() {
   return invoke<AppSettings>("get_settings");
 }
@@ -177,6 +179,10 @@ export function copyDiagnosticReport() {
 
 export function openIssueReport() {
   return invoke<void>("open_issue_report");
+}
+
+export function openProjectLink(target: ProjectLinkTarget) {
+  return invoke<void>("open_project_link", { target });
 }
 
 export function writeClientLog(

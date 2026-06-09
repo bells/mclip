@@ -6,12 +6,14 @@ import type { AppLanguage } from "./types";
 export const translations = {
   zhCn: {
     about: {
-      confirm: "确定",
       copyDiagnostics: "复制诊断信息",
       copyDiagnosticsError: "复制失败，请打开日志目录后手动反馈。",
       copyDiagnosticsSuccess: "诊断信息已复制。",
       description: "一个轻量的跨平台剪贴板历史工具，基于 Tauri、React 和 Rust 构建。",
       githubLabel: "GitHub",
+      homepageLabel: "官网",
+      linksLabel: "项目链接",
+      openLinkError: "无法打开链接。",
       openLogs: "打开日志目录",
       openLogsError: "无法打开日志目录。",
       reportIssue: "报告问题",
@@ -94,15 +96,22 @@ export const translations = {
       typesLabel: "保存类型",
       title: "偏好设置",
     },
+    windowControls: {
+      close: "关闭",
+      maximizeUnavailable: "最大化不可用",
+      minimizeUnavailable: "最小化不可用",
+    },
   },
   en: {
     about: {
-      confirm: "OK",
       copyDiagnostics: "Copy Diagnostics",
       copyDiagnosticsError: "Copy failed. Open the logs folder and report manually.",
       copyDiagnosticsSuccess: "Diagnostics copied.",
       description: "A lightweight cross-platform clipboard history app built with Tauri, React, and Rust.",
       githubLabel: "GitHub",
+      homepageLabel: "Website",
+      linksLabel: "Project links",
+      openLinkError: "Unable to open link.",
       openLogs: "Open Logs",
       openLogsError: "Unable to open logs folder.",
       reportIssue: "Report Issue",
@@ -184,6 +193,11 @@ export const translations = {
       typesDescription: "Choose which clipboard content is saved to history.",
       typesLabel: "Saved Types",
       title: "Preferences",
+    },
+    windowControls: {
+      close: "Close",
+      maximizeUnavailable: "Maximize unavailable",
+      minimizeUnavailable: "Minimize unavailable",
     },
   },
 } as const;

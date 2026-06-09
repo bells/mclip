@@ -15,6 +15,8 @@ use arboard::Clipboard;
 use tauri::{AppHandle, Manager};
 
 const ISSUE_URL: &str = "https://github.com/bells/mclip/issues/new";
+const PROJECT_GITHUB_URL: &str = "https://github.com/bells/mclip";
+const PROJECT_HOMEPAGE_URL: &str = "https://mclip.vercel.app/";
 const LOG_FILE_NAME: &str = "mclip.log";
 const MAX_CLIENT_LOG_CHARS: usize = 1_200;
 const MAX_ISSUE_REPORT_CHARS: usize = 5_000;
@@ -83,6 +85,22 @@ pub fn open_issue_report(app_handle: AppHandle) -> Result<(), String> {
 
     log_info(&app_handle, "diagnostics", "opening issue report url");
     open_url(&url)
+}
+
+#[tauri::command]
+pub fn open_project_link(app_handle: AppHandle, target: String) -> Result<(), String> {
+    let url = match target.as_str() {
+        "github" => PROJECT_GITHUB_URL,
+        "homepage" => PROJECT_HOMEPAGE_URL,
+        _ => return Err(format!("unknown project link target: {target}")),
+    };
+
+    log_info(
+        &app_handle,
+        "diagnostics",
+        &format!("opening project link: {target}"),
+    );
+    open_url(url)
 }
 
 #[tauri::command]
