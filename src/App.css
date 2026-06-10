@@ -900,16 +900,18 @@ button {
 }
 
 .app-history-detail-file {
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(247, 241, 232, 0.08);
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.035);
   color: var(--app-ink-soft);
   font-size: 11px;
   font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
   padding: 6px 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .app-history-group-preview-body {

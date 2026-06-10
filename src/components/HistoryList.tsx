@@ -2,6 +2,7 @@
 
 import type { AppTranslations } from "../i18n";
 import type { HistoryListItem } from "../types";
+import { getHistoryListDisplayText } from "../utils/history";
 import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
 import { ImageThumb } from "./ImageThumb";
 
@@ -45,6 +46,7 @@ export function HistoryList({
   return (
     <div className="app-history-group">
       {items.map((item, index) => {
+        const displayText = getHistoryListDisplayText(item);
         const targetId = serializeMainKeyboardNavigationTarget({
           index,
           kind: "history-item",
@@ -82,14 +84,14 @@ export function HistoryList({
               {item.kind === "image" ? (
                 <span className="app-item-thumbnail-wrap">
                   <ImageThumb
-                    alt={item.displayText}
+                    alt={displayText}
                     className="app-item-thumbnail"
                     imagePath={item.imagePath}
                   />
-                  <span className="app-item-text">{item.displayText}</span>
+                  <span className="app-item-text">{displayText}</span>
                 </span>
               ) : (
-                <span className="app-item-text">{item.displayText}</span>
+                <span className="app-item-text">{displayText}</span>
               )}
             </button>
             <button

@@ -2,6 +2,9 @@
 
 import type { HistoryEntry, HistoryGroupInfo, HistoryListItem } from "../types";
 
+const FILE_LIST_DISPLAY_MAX_LENGTH = 29;
+const FILE_LIST_DISPLAY_PREFIX_LENGTH = 14;
+
 export function getHistoryItemSearchText(item: HistoryEntry): string {
   const commonText = `${item.displayText} ${item.sourceApp ?? ""}`;
 
@@ -13,6 +16,59 @@ export function getHistoryItemSearchText(item: HistoryEntry): string {
     case "image":
       return `${commonText} image ${item.width}x${item.height}`;
   }
+}
+
+export function getHistoryListDisplayText(item: HistoryEntry): string {
+  if (item.kind !== "files") {
+    return item.displayText;
+  }
+
+  return getFileHistoryListDisplayText(item.filePaths);
+}
+
+function getFileHistoryListDisplayText(filePaths: string[]): string {
+  const firstFilePath = filePaths[0];
+
+  if (!firstFilePath) {
+    return "Files";
+  }
+
+  const countSuffix = filePaths.length > 1 ? ` +${filePaths.length - 1}` : "";
+  const availableLength = FILE_LIST_DISPLAY_MAX_LENGTH - countSuffix.length;
+
+  return `${middleEllipsizeFileName(
+    getFileName(firstFilePath),
+    availableLength,
+  )}${countSuffix}`;
+}
+
+function getFileName(filePath: string): string {
+  const lastSeparatorIndex = Math.max(
+    filePath.lastIndexOf("/"),
+    filePath.lastIndexOf("\\"),
+  );
+
+  return filePath.slice(lastSeparatorIndex + 1) || filePath;
+}
+
+function middleEllipsizeFileName(fileName: string, maxLength: number): string {
+  if (fileName.length <= maxLength) {
+    return fileName;
+  }
+
+  if (maxLength <= 3) {
+    return fileName.slice(0, maxLength);
+  }
+
+  const startLength = Math.min(
+    FILE_LIST_DISPLAY_PREFIX_LENGTH,
+    Math.max(1, maxLength - 4),
+  );
+  const endLength = Math.max(1, maxLength - startLength - 3);
+
+  return `${fileName.slice(0, startLength)}...${fileName.slice(
+    fileName.length - endLength,
+  )}`;
 }
 
 export function filterHistoryItems(

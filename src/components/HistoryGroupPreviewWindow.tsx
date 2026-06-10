@@ -5,6 +5,7 @@ import { type CSSProperties, useCallback, useEffect, useRef } from "react";
 import { getTranslations } from "../i18n";
 import { getHistoryPreviewPointerPosition, type PreviewWindowSide } from "../lib/tauri";
 import type { HistoryGroupInfo, HistoryGroupPreviewPayload, HistoryListItem } from "../types";
+import { getHistoryListDisplayText } from "../utils/history";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
 import { ImageThumb } from "./ImageThumb";
 
@@ -191,31 +192,16 @@ export function HistoryGroupPreviewWindow({
               }
             }}
           >
-            {preview.items.map((item) => (
-              <div
-                className={`app-history-preview-item-row ${
-                  item.id === hoveredItemId ? "is-selected" : ""
-                }`}
-                data-preview-item-id={item.id}
-                key={item.id}
-                onMouseEnter={() => {
-                  activateItem(item.id);
-                }}
-                onMouseMove={() => {
-                  activateItem(item.id);
-                }}
-                onPointerEnter={() => {
-                  activateItem(item.id);
-                }}
-                onPointerMove={() => {
-                  activateItem(item.id);
-                }}
-              >
-                <button
-                  className="app-history-preview-item"
-                  onFocus={() => {
-                    activateItem(item.id);
-                  }}
+            {preview.items.map((item) => {
+              const displayText = getHistoryListDisplayText(item);
+
+              return (
+                <div
+                  className={`app-history-preview-item-row ${
+                    item.id === hoveredItemId ? "is-selected" : ""
+                  }`}
+                  data-preview-item-id={item.id}
+                  key={item.id}
                   onMouseEnter={() => {
                     activateItem(item.id);
                   }}
@@ -228,44 +214,63 @@ export function HistoryGroupPreviewWindow({
                   onPointerMove={() => {
                     activateItem(item.id);
                   }}
-                  onClick={() => {
-                    onSelectItem(item.id);
-                  }}
-                  type="button"
                 >
-                  <span className="app-history-preview-index">
-                    {getLocalDisplayPosition(item, preview.group)}.
-                  </span>
-                  {item.kind === "image" ? (
-                    <span className="app-item-thumbnail-wrap">
-                      <ImageThumb
-                        alt={item.displayText}
-                        className="app-item-thumbnail"
-                        imagePath={item.imagePath}
-                      />
-                      <span className="app-history-preview-text">{item.displayText}</span>
+                  <button
+                    className="app-history-preview-item"
+                    onFocus={() => {
+                      activateItem(item.id);
+                    }}
+                    onMouseEnter={() => {
+                      activateItem(item.id);
+                    }}
+                    onMouseMove={() => {
+                      activateItem(item.id);
+                    }}
+                    onPointerEnter={() => {
+                      activateItem(item.id);
+                    }}
+                    onPointerMove={() => {
+                      activateItem(item.id);
+                    }}
+                    onClick={() => {
+                      onSelectItem(item.id);
+                    }}
+                    type="button"
+                  >
+                    <span className="app-history-preview-index">
+                      {getLocalDisplayPosition(item, preview.group)}.
                     </span>
-                  ) : (
-                    <span className="app-history-preview-text">{item.displayText}</span>
-                  )}
-                </button>
-                <button
-                  aria-label={translations.deleteItemAriaLabel}
-                  className="app-history-preview-delete"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    if (hoveredItemIdRef.current === item.id) {
-                      clearActiveItem();
-                    }
-                    onDeleteItem(item.id);
-                  }}
-                  title={translations.deleteItemAriaLabel}
-                  type="button"
-                >
-                  <span className="app-item-delete-icon" aria-hidden="true" />
-                </button>
-              </div>
-            ))}
+                    {item.kind === "image" ? (
+                      <span className="app-item-thumbnail-wrap">
+                        <ImageThumb
+                          alt={displayText}
+                          className="app-item-thumbnail"
+                          imagePath={item.imagePath}
+                        />
+                        <span className="app-history-preview-text">{displayText}</span>
+                      </span>
+                    ) : (
+                      <span className="app-history-preview-text">{displayText}</span>
+                    )}
+                  </button>
+                  <button
+                    aria-label={translations.deleteItemAriaLabel}
+                    className="app-history-preview-delete"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (hoveredItemIdRef.current === item.id) {
+                        clearActiveItem();
+                      }
+                      onDeleteItem(item.id);
+                    }}
+                    title={translations.deleteItemAriaLabel}
+                    type="button"
+                  >
+                    <span className="app-item-delete-icon" aria-hidden="true" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

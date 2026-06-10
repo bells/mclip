@@ -107,7 +107,7 @@ fn write_history_item_to_clipboard(history_item: HistoryEntry) -> Result<(), Str
             clipboard.set_text(text).map_err(|error| error.to_string())
         }
         HistoryEntry::Files { file_paths, .. } => {
-            let paths: Vec<PathBuf> = file_paths.into_iter().map(PathBuf::from).collect();
+            let paths = clipboard_file_list_paths(file_paths);
             clipboard
                 .set()
                 .file_list(&paths)
@@ -238,7 +238,7 @@ fn read_clipboard_snapshot(enabled_types: &HistoryTypes) -> Option<ClipboardSnap
         }
     }
 
-    if enabled_types.text {
+    if enabled_types.text || enabled_types.files {
         if let Ok(text) = read_clipboard_text() {
             if let Some(item) = text_to_history_item(text, enabled_types) {
                 return clipboard_snapshot_from_candidates(None, None, Some(item));
@@ -301,6 +301,14 @@ fn read_clipboard_files() -> Result<Vec<String>, String> {
                 .collect()
         })
         .map_err(|error| error.to_string())
+}
+
+fn clipboard_file_list_paths(file_paths: Vec<String>) -> Vec<PathBuf> {
+    file_paths
+        .into_iter()
+        .map(|path| file_url_to_path(&path).unwrap_or(path))
+        .map(PathBuf::from)
+        .collect()
 }
 
 fn read_clipboard_image() -> Result<NewHistoryItem, String> {
@@ -429,10 +437,93 @@ fn text_to_history_item(text: String, enabled_types: &HistoryTypes) -> Option<Ne
         return None;
     }
 
+    if enabled_types.files {
+        if let Some(file_paths) = file_url_text_to_paths(trimmed_text) {
+            return Some(NewHistoryItem::Files(file_paths));
+        }
+    }
+
     if enabled_types.text {
         Some(NewHistoryItem::Text(text))
     } else {
         None
+    }
+}
+
+fn file_url_text_to_paths(text: &str) -> Option<Vec<String>> {
+    let mut file_paths = Vec::new();
+
+    for line in text.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        file_paths.push(file_url_to_path(line)?);
+    }
+
+    if file_paths.is_empty() {
+        None
+    } else {
+        Some(file_paths)
+    }
+}
+
+fn file_url_to_path(value: &str) -> Option<String> {
+    let value = value.trim();
+    if !value.get(..5)?.eq_ignore_ascii_case("file:") {
+        return None;
+    }
+
+    let after_scheme = value.get(5..)?;
+    let path_part = match after_scheme.strip_prefix("//") {
+        Some(after_slashes) if after_slashes.starts_with('/') => after_slashes,
+        Some(after_slashes) => {
+            if let Some(local_path) = after_slashes.strip_prefix("localhost/") {
+                return percent_decode_file_path(&format!("/{local_path}"))
+                    .map(normalize_file_url_path);
+            }
+
+            return percent_decode_file_path(&format!("//{after_slashes}"))
+                .map(normalize_file_url_path);
+        }
+        None => after_scheme,
+    };
+
+    percent_decode_file_path(path_part).map(normalize_file_url_path)
+}
+
+fn percent_decode_file_path(value: &str) -> Option<String> {
+    let bytes = value.as_bytes();
+    let mut decoded = Vec::with_capacity(bytes.len());
+    let mut index = 0;
+
+    while index < bytes.len() {
+        if bytes[index] == b'%' {
+            let high = hex_value(*bytes.get(index + 1)?)?;
+            let low = hex_value(*bytes.get(index + 2)?)?;
+            decoded.push((high << 4) | low);
+            index += 3;
+        } else {
+            decoded.push(bytes[index]);
+            index += 1;
+        }
+    }
+
+    String::from_utf8(decoded).ok()
+}
+
+fn hex_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
+}
+
+fn normalize_file_url_path(path: String) -> String {
+    let bytes = path.as_bytes();
+
+    if bytes.len() >= 3 && bytes[0] == b'/' && bytes[2] == b':' {
+        path[1..].to_string()
+    } else {
+        path
     }
 }
 
@@ -814,8 +905,9 @@ mod tests {
     use crate::settings::HistoryTypes;
 
     use super::{
-        clipboard_snapshot_from_candidates, normalize_suspicious_clipboard_alpha,
-        read_snapshot_after_change_token_update, text_to_history_item, ClipboardSnapshot,
+        clipboard_file_list_paths, clipboard_snapshot_from_candidates,
+        normalize_suspicious_clipboard_alpha, read_snapshot_after_change_token_update,
+        text_to_history_item, ClipboardSnapshot,
     };
     use crate::history::{HistoryKind, NewHistoryItem};
     use image::RgbaImage;
@@ -856,6 +948,79 @@ mod tests {
         );
 
         assert!(item.is_none());
+    }
+
+    #[test]
+    fn text_to_history_item_converts_file_url_to_files() {
+        let item = text_to_history_item(
+            "file:///Users/watson/Documents/report.pdf".to_string(),
+            &all_types(),
+        )
+        .unwrap();
+
+        match item {
+            NewHistoryItem::Files(file_paths) => {
+                assert_eq!(
+                    file_paths,
+                    vec!["/Users/watson/Documents/report.pdf".to_string()]
+                );
+            }
+            _ => panic!("expected file URL text to become files history"),
+        }
+    }
+
+    #[test]
+    fn text_to_history_item_converts_file_url_lines_to_files() {
+        let item = text_to_history_item(
+            "file:///Users/watson/Documents/report%202026.pdf\nfile:///Users/watson/Desktop/icon.png"
+                .to_string(),
+            &all_types(),
+        )
+        .unwrap();
+
+        match item {
+            NewHistoryItem::Files(file_paths) => {
+                assert_eq!(
+                    file_paths,
+                    vec![
+                        "/Users/watson/Documents/report 2026.pdf".to_string(),
+                        "/Users/watson/Desktop/icon.png".to_string(),
+                    ]
+                );
+            }
+            _ => panic!("expected file URL text to become files history"),
+        }
+    }
+
+    #[test]
+    fn text_to_history_item_converts_file_url_when_text_type_is_disabled() {
+        let item = text_to_history_item(
+            "file:///Users/watson/Documents/report.pdf".to_string(),
+            &HistoryTypes {
+                text: false,
+                image: true,
+                files: true,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(item.kind(), HistoryKind::Files);
+    }
+
+    #[test]
+    fn clipboard_file_list_paths_normalizes_file_urls() {
+        let paths = clipboard_file_list_paths(vec![
+            "file:///Users/watson/Documents/report%202026.pdf".to_string(),
+            "/Users/watson/Desktop/icon.png".to_string(),
+        ]);
+
+        assert_eq!(
+            paths,
+            vec![
+                std::path::PathBuf::from("/Users/watson/Documents/report 2026.pdf"),
+                std::path::PathBuf::from("/Users/watson/Desktop/icon.png"),
+            ]
+        );
     }
 
     #[test]
