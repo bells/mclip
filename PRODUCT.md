@@ -10,7 +10,7 @@ mclip is for people who copy text, screenshots, and files during normal desktop 
 
 ## Product Purpose
 
-mclip is a tray-first clipboard history tool for macOS and Windows. It keeps local clipboard history for text, images, and file paths, deduplicates repeated content, and lets users search, preview, copy, delete, and configure history behavior from compact desktop windows. Success means the user can restore the right clipboard item with minimal reading and minimal interruption.
+mclip is a tray-first clipboard history tool for macOS and Windows. It keeps local clipboard history for text, images, and files, deduplicates repeated content, and lets users search, preview, copy, delete, and configure history behavior from compact desktop windows. File history should restore files as files rather than as path-only text. Success means the user can restore the right clipboard item with minimal reading and minimal interruption.
 
 ## Brand Personality
 

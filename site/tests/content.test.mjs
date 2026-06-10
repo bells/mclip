@@ -28,6 +28,22 @@ test("site includes trust, installation, and FAQ content", async () => {
   assert.match(en, /Windows SmartScreen/);
 });
 
+test("site describes file history as restorable files, not path-only text", async () => {
+  const zh = await read("src/pages/zh/index.astro");
+  const en = await read("src/pages/en/index.astro");
+  const zhChangelog = await read("src/pages/zh/changelog.astro");
+  const enChangelog = await read("src/pages/en/changelog.astro");
+
+  assert.match(zh, /系统文件列表/);
+  assert.match(zh, /完整绝对路径/);
+  assert.doesNotMatch(zh, /文件路径/);
+  assert.match(en, /system file list/);
+  assert.match(en, /full absolute path/);
+  assert.doesNotMatch(en, /file-path|file paths/);
+  assert.match(zhChangelog, /文件保存与回填/);
+  assert.match(enChangelog, /file history with file restore/);
+});
+
 test("shared SEO metadata declares bilingual routes and social image", async () => {
   const config = await read("astro.config.mjs");
   const layout = await read("src/layouts/SiteLayout.astro");

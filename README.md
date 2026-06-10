@@ -16,11 +16,12 @@
 
 - 托盘常驻，点击托盘图标显示或隐藏主窗口。
 - 全局快捷键 `CommandOrControl+Shift+V` 唤起或隐藏主窗口。
-- 支持文本、图片、文件路径三类剪贴板历史。
+- 支持文本、图片、文件三类剪贴板历史；文件历史可回填为系统文件列表，方便继续粘贴文件本身。
 - 历史记录本地保存，重复内容会合并并移动到最前。
 - 主窗口默认展示最新 10 条，更多记录按每 10 条分组。
 - 历史分组使用独立透明 preview 窗口，不会撑宽主窗口。
-- 支持单条历史详情、分组 hover 详情、图片缩略图和文件路径详情。
+- 支持单条历史详情、分组 hover 详情、图片缩略图和文件详情。
+- 文件列表会对过长文件名做中间省略并保留扩展名；文件详情会显示完整绝对路径和完整文件名。
 - 支持搜索、方向键选择、回车复制、`Esc` 收起窗口。
 - 支持偏好设置：登录时启动、界面语言、自动粘贴、最大历史条数、保存类型。
 - 支持中英文界面，首次启动会根据系统语言选择中文或英文。
@@ -118,11 +119,12 @@ Current version: `0.1.0`
 
 - Runs from the tray or menu bar.
 - Toggle the main window with `CommandOrControl+Shift+V`.
-- Saves text, image, and file-path clipboard history.
+- Saves text, image, and file clipboard history. File history is restored as a system file list, so files can be pasted again as files.
 - Keeps history locally, deduplicates repeated content, and moves reused items to the top.
 - Shows the latest 10 items in the main window, with older items grouped by 10.
 - Uses a separate transparent preview window for grouped history, so the main window stays compact.
-- Supports item details, grouped hover details, image thumbnails, and file-path details.
+- Supports item details, grouped hover details, image thumbnails, and file details.
+- Long file names are middle-ellipsized in lists to preserve extensions, while file details show the full absolute path and full file name.
 - Supports search, arrow-key selection, Enter-to-copy, and Escape-to-hide.
 - Preferences include launch at login, display language, auto paste, maximum history count, and enabled content types.
 - Supports Chinese and English UI. The first launch follows the system language when possible.

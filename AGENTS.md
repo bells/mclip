@@ -20,7 +20,7 @@
 
 - 托盘或菜单栏常驻，点击托盘图标显示或隐藏主窗口。
 - 全局快捷键 `CommandOrControl+Shift+V` 唤起或隐藏主窗口。
-- 保存文本、图片、文件路径三类剪贴板历史。
+- 保存文本、图片、文件三类剪贴板历史；文件历史选择后应回填系统文件列表，而不是普通路径文本。
 - 去重后最新内容在最前，同一内容重复复制会更新次数和时间。
 - 主窗口只显示最新 10 条，更多历史按每 10 条分组。
 - 历史分组和单条详情都使用独立透明 preview 窗口，不把预览塞回主窗口 DOM。
@@ -58,7 +58,7 @@ src/
   hooks/useClipboardApp.ts            主窗口状态中心和 preview 联动
   lib/tauri.ts                        前端 Tauri invoke/event 封装
   components/AppHeader.tsx            搜索栏
-  components/HistoryList.tsx          最新历史列表
+  components/HistoryList.tsx          最新历史列表，文件名列表展示使用中间省略以保留扩展名
   components/HistoryGroupNav.tsx      历史分组按钮
   components/HistoryPreviewWindow.tsx 独立 preview 容器，按 payload kind 分发
   components/HistoryGroupPreviewWindow.tsx
@@ -74,7 +74,7 @@ src/
   components/AboutWindow.tsx          关于窗口
   components/PreferencesWindow.tsx    偏好设置窗口
   components/Modal.tsx                主窗口内确认弹窗
-  utils/history.ts                    历史过滤、分组、分页纯函数
+  utils/history.ts                    历史过滤、分组、分页和文件名列表展示纯函数
   utils/preview.ts                    preview 高度和偏移计算
   utils/selectionBehavior.ts          历史选择后的附加行为判断
   utils/settings.ts                   前端设置 normalize
@@ -87,7 +87,7 @@ src-tauri/
   src/main.rs                         发布版 Windows 隐藏控制台，转入 lib.rs
   src/lib.rs                          Tauri 应用入口、托盘、快捷键、命令注册
   src/window.rs                       主窗口和 preview/about/preferences 的尺寸、定位、显示隐藏
-  src/clipboard.rs                    剪贴板读写、图片处理、Windows 事件监听、macOS changeCount 轮询
+  src/clipboard.rs                    剪贴板读写、文件列表回填、图片处理、Windows 事件监听、macOS changeCount 轮询
   src/history.rs                      历史持久化、去重、裁剪、图片资源清理
   src/settings.rs                     设置持久化、登录启动、系统语言默认值
   src/source_app.rs                   macOS/Windows 当前来源应用 best-effort 识别
@@ -178,6 +178,8 @@ preview 必须保持独立窗口：
 
 - 按偏好设置里的 `enabledHistoryTypes` 判断保存文本、图片、文件。
 - 文件列表优先于图片数据，避免复制文件时被误判。
+- 如果剪贴板文本完整由 `file://` URL 行组成，且文件类型启用，应转换为文件历史，而不是保存成普通文本。
+- 回填 `HistoryEntry::Files` 时必须写入系统文件列表格式，支持 Finder/Explorer 继续把它当文件粘贴；不要退化成写入绝对路径字符串。
 - 单个常见图片文件会读取并存成图片历史，方便展示缩略图和回填图片。
 - 图片会限制最大边长并编码为 PNG，资源保存在 `history-assets/images/`。
 - 文本会过滤空白内容。
@@ -198,6 +200,7 @@ Windows 监听注意：
 - 超过最大条数会截断。
 - 删除和裁剪历史后要清理未使用图片资源。
 - Rust 序列化字段必须保持前端需要的 camelCase，例如 `filePaths`、`imagePath`、`byteSize`、`contentHash`。
+- 文件历史详情必须显示完整绝对路径和完整文件名；主列表和分组 preview 列表可以对长文件名做中间省略，但要保留扩展名。
 
 设置文件：
 
@@ -376,6 +379,8 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - 改 preview 尺寸时，同步检查 `src/constants.ts`、`src/utils/preview.ts`、`src-tauri/src/window.rs` 和 Rust 单元测试。
 - 改历史条数逻辑时，前端 clamp 和后端 sanitize 都要同步考虑。
 - 改保存类型时，同步检查 `HistoryKind`、`HistoryTypes`、`PreferencesWindow`、`clipboard.rs` 和 `history.rs`。
+- 改文件历史展示时，同步检查 `src/utils/history.ts`、`HistoryList.tsx`、`HistoryGroupPreviewWindow.tsx` 和 `HistoryPreviewDetailContent.tsx`；列表可省略，详情不能省略。
+- 改文件复制/粘贴语义时，同步检查 `src-tauri/src/clipboard.rs` 的文件列表读取、`file://` 文本兼容和 `HistoryEntry::Files` 写回逻辑。
 - 改语言文案时，中文和英文都要补齐。
 - 改 Tauri 命令或事件名时，要同步更新 `src/lib/tauri.ts` 和 Rust `generate_handler!`。
 - 新增窗口时，同步更新 `tauri.conf.json`、两个 capability 文件、`src/App.tsx` 和 AGENTS 代码地图。
