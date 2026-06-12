@@ -12,8 +12,9 @@ use base64::prelude::*;
 use image::imageops::{self, FilterType};
 use image::RgbaImage;
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
-use tauri::AppHandle;
+use tauri::{AppHandle, State};
 
+use crate::auto_paste::{activate_paste_target_on_main_thread, AutoPasteTargetState};
 use crate::diagnostics::log_error;
 use crate::history::{
     emit_history_updated, find_history_item, hash_hex, process_new_history_item, HistoryEntry,
@@ -28,6 +29,7 @@ const CLIPBOARD_POLL_INTERVAL_MS: u64 = 500;
 #[cfg(target_os = "macos")]
 const CLIPBOARD_CHANGE_SETTLE_DELAY_MS: u64 = 75;
 const AUTO_PASTE_DELAY_MS: u64 = 120;
+const AUTO_PASTE_AFTER_ACTIVATION_DELAY_MS: u64 = 80;
 const MAX_IMAGE_DIMENSION: u32 = 1200;
 
 #[tauri::command]
@@ -40,9 +42,25 @@ pub fn copy_history_item(app_handle: AppHandle, id: String) -> Result<(), String
 }
 
 #[tauri::command]
-pub fn paste_current_clipboard(app_handle: AppHandle) -> Result<(), String> {
+pub fn paste_current_clipboard(
+    app_handle: AppHandle,
+    paste_target_state: State<'_, AutoPasteTargetState>,
+) -> Result<(), String> {
+    let paste_target = paste_target_state.take();
+
     thread::spawn(move || {
         thread::sleep(Duration::from_millis(AUTO_PASTE_DELAY_MS));
+
+        if let Err(error) = activate_paste_target_on_main_thread(&app_handle, paste_target) {
+            log_error(
+                &app_handle,
+                "clipboard",
+                &format!("failed to activate auto paste target: {error}"),
+            );
+            return;
+        }
+
+        thread::sleep(Duration::from_millis(AUTO_PASTE_AFTER_ACTIVATION_DELAY_MS));
 
         if let Err(error) = trigger_system_paste() {
             log_error(

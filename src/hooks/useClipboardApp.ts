@@ -327,6 +327,7 @@ export function useClipboardApp() {
       const request = beginPreviewOpenRequest(previewDismissalStateRef.current);
 
       void updateHistoryPreviewWindow({
+        autoPaste: settings.autoPaste,
         item: previewHistoryItem,
         kind: "item",
         language: settings.language,
@@ -375,6 +376,7 @@ export function useClipboardApp() {
     const request = beginPreviewOpenRequest(previewDismissalStateRef.current);
 
     void updateHistoryPreviewWindow({
+      autoPaste: settings.autoPaste,
       group: previewGroup,
       items: previewHistory,
       kind: "group",
@@ -408,6 +410,7 @@ export function useClipboardApp() {
     previewHistory,
     previewHistoryItem,
     previewHistoryGroupIndex,
+    settings.autoPaste,
     settings.language,
   ]);
 

@@ -3,3 +3,9 @@
 export function shouldAutoPasteAfterHistorySelection(settings: { autoPaste: boolean }) {
   return settings.autoPaste;
 }
+
+export function shouldAutoPasteAfterHistoryPreviewSelection(
+  preview: { autoPaste: boolean } | null,
+) {
+  return preview?.autoPaste ?? false;
+}
