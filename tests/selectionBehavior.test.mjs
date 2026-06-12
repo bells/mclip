@@ -25,11 +25,24 @@ async function importTypeScriptModule(sourcePath) {
   return import(compiledPath);
 }
 
-const { shouldAutoPasteAfterHistorySelection } = await importTypeScriptModule(
-  "src/utils/selectionBehavior.ts",
-);
+const {
+  shouldAutoPasteAfterHistoryPreviewSelection,
+  shouldAutoPasteAfterHistorySelection,
+} = await importTypeScriptModule("src/utils/selectionBehavior.ts");
 
 test("history selection auto-pastes only when the behavior is enabled", () => {
   assert.equal(shouldAutoPasteAfterHistorySelection({ autoPaste: true }), true);
   assert.equal(shouldAutoPasteAfterHistorySelection({ autoPaste: false }), false);
+});
+
+test("history preview selection auto-pastes only when the preview payload enables it", () => {
+  assert.equal(
+    shouldAutoPasteAfterHistoryPreviewSelection({ autoPaste: true }),
+    true,
+  );
+  assert.equal(
+    shouldAutoPasteAfterHistoryPreviewSelection({ autoPaste: false }),
+    false,
+  );
+  assert.equal(shouldAutoPasteAfterHistoryPreviewSelection(null), false);
 });

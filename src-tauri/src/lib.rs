@@ -1,6 +1,7 @@
 //! Tauri 应用入口与全局生命周期管理。
 //! 这里负责托盘、快捷键、窗口焦点规则以及所有前端可调用命令的注册。
 
+mod auto_paste;
 mod clipboard;
 mod diagnostics;
 mod history;
@@ -21,6 +22,7 @@ use tauri::{
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_positioner::on_tray_event;
 
+use crate::auto_paste::{remember_current_paste_target, AutoPasteTargetState};
 use crate::clipboard::{
     copy_history_item, get_image_base64, paste_current_clipboard, spawn_clipboard_watcher,
 };
@@ -86,6 +88,7 @@ fn build_tray(
                 ..
             } = event
             {
+                remember_current_paste_target(tray.app_handle());
                 protect_next_focus_loss(&show_guard_until);
                 // Use this click's rect directly; the positioner tray cache can
                 // produce a screen-level placement when the tray rect is stale.
@@ -150,6 +153,7 @@ fn register_global_shortcuts(app: &App, show_guard_until: Arc<Mutex<Option<Insta
         TOGGLE_WINDOW_SHORTCUT,
         move |app_handle, _shortcut, event| {
             if event.state == ShortcutState::Pressed {
+                remember_current_paste_target(app_handle);
                 protect_next_focus_loss(&show_guard_until);
                 let placement = main_window_placement_from_tray(app_handle);
                 if let Err(error) = toggle_main_window(app_handle, placement) {
@@ -189,6 +193,7 @@ fn handle_single_instance_launch(
 ) {
     match single_instance_launch_action(args, cwd) {
         SingleInstanceLaunchAction::ShowMainWindow => {
+            remember_current_paste_target(app_handle);
             log_info(
                 app_handle,
                 "app",
@@ -217,6 +222,7 @@ pub fn run() {
     let show_guard_until = Arc::new(Mutex::new(None::<Instant>));
 
     tauri::Builder::default()
+        .manage(AutoPasteTargetState::default())
         .on_window_event({
             let show_guard_until = Arc::clone(&show_guard_until);
 

@@ -1,4 +1,16 @@
 User-agent: *
 Allow: /
 
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
 Sitemap: https://mclip.vercel.app/sitemap.xml

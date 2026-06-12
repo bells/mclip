@@ -55,18 +55,50 @@ test("shared SEO metadata declares bilingual routes and social image", async () 
   assert.match(layout, /twitter:card/);
 });
 
+test("layout exposes structured data for search and AI summaries", async () => {
+  const layout = await read("src/layouts/SiteLayout.astro");
+  const zh = await read("src/pages/zh/index.astro");
+  const en = await read("src/pages/en/index.astro");
+
+  assert.match(layout, /application\/ld\+json/);
+  assert.match(layout, /@graph/);
+  assert.match(layout, /WebSite/);
+  assert.match(layout, /Organization/);
+  assert.match(layout, /SoftwareApplication/);
+  assert.match(layout, /FAQPage/);
+  assert.match(layout, /https:\/\/github\.com\/bells\/mclip\/releases/);
+  assert.match(zh, /faqItems=\{faqItems\}/);
+  assert.match(en, /faqItems=\{faqItems\}/);
+});
+
 test("public SEO files expose crawl and sitemap hints", async () => {
   const robots = await read("public/robots.txt");
   const sitemap = await read("public/sitemap.xml");
 
   assert.match(robots, /User-agent: \*/);
   assert.match(robots, /Allow: \//);
+  assert.match(robots, /User-agent: OAI-SearchBot/);
+  assert.match(robots, /User-agent: GPTBot/);
+  assert.match(robots, /User-agent: Googlebot/);
+  assert.match(robots, /User-agent: Baiduspider/);
   assert.match(robots, /Sitemap: https:\/\/mclip\.vercel\.app\/sitemap\.xml/);
   assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/zh\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/en\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/zh\/changelog\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/en\/changelog\/<\/loc>/);
   assert.match(sitemap, /hreflang="x-default"/);
+});
+
+test("public AI discovery file describes canonical mclip facts", async () => {
+  const llms = await read("public/llms.txt");
+
+  assert.match(llms, /# mclip/);
+  assert.match(llms, /https:\/\/mclip\.vercel\.app\/zh\//);
+  assert.match(llms, /https:\/\/mclip\.vercel\.app\/en\//);
+  assert.match(llms, /https:\/\/github\.com\/bells\/mclip\/releases/);
+  assert.match(llms, /local-first clipboard history/);
+  assert.match(llms, /macOS and Windows/);
+  assert.match(llms, /does not upload clipboard contents/);
 });
 
 test("layout bundles the site stylesheet through Astro", async () => {

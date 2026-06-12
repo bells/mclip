@@ -17,6 +17,7 @@ import {
   notifyHistoryPreviewPointerEntered,
   notifyHistoryPreviewSelectionCancelled,
   notifyHistoryPreviewSelectionStarted,
+  pasteClipboard,
   requestHistoryPreviewClose,
   showHistoryGroupPreviewWithDetailWindow,
   type PreviewWindowPosition,
@@ -30,6 +31,7 @@ import {
   getGroupPreviewHeightWithDetail,
   getItemPreviewHeight,
 } from "../utils/preview";
+import { shouldAutoPasteAfterHistoryPreviewSelection } from "../utils/selectionBehavior";
 import { HistoryGroupPreviewWindow } from "./HistoryGroupPreviewWindow";
 import { HistoryItemPreviewWindow } from "./HistoryItemPreviewWindow";
 
@@ -205,10 +207,18 @@ export function HistoryPreviewWindow() {
 
   const selectPreviewItem = async (id: string) => {
     try {
+      const shouldAutoPaste = shouldAutoPasteAfterHistoryPreviewSelection(
+        previewRef.current,
+      );
+
       await notifyHistoryPreviewSelectionStarted();
       await hideHistoryPreviewWindow();
       await copyHistoryItem(id);
       await hideMainWindow();
+
+      if (shouldAutoPaste) {
+        await pasteClipboard();
+      }
     } catch (error) {
       void notifyHistoryPreviewSelectionCancelled().catch((notifyError) => {
         console.error("恢复历史预览选择状态失败:", notifyError);

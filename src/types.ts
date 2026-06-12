@@ -59,6 +59,7 @@ export type HistoryGroupInfo = {
 };
 
 export type HistoryGroupPreviewPayload = {
+  autoPaste: boolean;
   kind: "group";
   group: HistoryGroupInfo;
   items: HistoryListItem[];
@@ -66,6 +67,7 @@ export type HistoryGroupPreviewPayload = {
 };
 
 export type HistoryItemPreviewPayload = {
+  autoPaste: boolean;
   kind: "item";
   item: HistoryListItem;
   language: AppLanguage;
