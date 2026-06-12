@@ -1,21 +1,114 @@
 ---
 type Locale = "zh-CN" | "en";
 
+interface FaqItem {
+  question: string;
+  answer: string;
+}
+
 interface Props {
   title: string;
   description: string;
   lang: Locale;
   path: string;
+  faqItems?: FaqItem[];
 }
 
 import "../styles/global.css";
 
-const { title, description, lang, path } = Astro.props;
+const { title, description, lang, path, faqItems = [] } = Astro.props;
 const site = Astro.site?.toString().replace(/\/$/, "") ?? "https://mclip.vercel.app";
 const canonicalUrl = `${site}${path}`;
 const alternateZh = `${site}/zh/`;
 const alternateEn = `${site}/en/`;
 const ogImage = `${site}/og-image.png`;
+const githubUrl = "https://github.com/bells/mclip";
+const releasesUrl = "https://github.com/bells/mclip/releases";
+const publisherId = `${site}/#organization`;
+const softwareId = `${site}/#software`;
+const productUrl = lang === "zh-CN" ? alternateZh : alternateEn;
+const productDescription =
+  lang === "zh-CN"
+    ? "mclip 是面向 macOS 和 Windows 的轻量、本地优先剪贴板历史工具，支持文本、图片、文件历史、搜索、预览和托盘快捷唤起。"
+    : "mclip is a lightweight, local-first clipboard history app for macOS and Windows, with text, image, file history, search, previews, and tray shortcuts.";
+
+const jsonLdGraph = [
+  {
+    "@type": "WebSite",
+    "@id": `${site}/#website`,
+    name: "mclip",
+    url: `${site}/`,
+    inLanguage: ["zh-CN", "en"],
+    publisher: { "@id": publisherId },
+  },
+  {
+    "@type": "Organization",
+    "@id": publisherId,
+    name: "mclip",
+    url: `${site}/`,
+    logo: {
+      "@type": "ImageObject",
+      url: `${site}/app-icon.png`,
+    },
+    sameAs: [githubUrl],
+  },
+  {
+    "@type": "SoftwareApplication",
+    "@id": softwareId,
+    name: "mclip",
+    applicationCategory: "UtilitiesApplication",
+    operatingSystem: ["macOS", "Windows"],
+    softwareVersion: "0.1.0",
+    url: productUrl,
+    mainEntityOfPage: canonicalUrl,
+    downloadUrl: releasesUrl,
+    codeRepository: githubUrl,
+    description: productDescription,
+    image: ogImage,
+    screenshot: `${site}/screenshots/mclip-product-preview.png`,
+    inLanguage: lang,
+    publisher: { "@id": publisherId },
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+      url: releasesUrl,
+    },
+    featureList: [
+      "Local-first clipboard history",
+      "Text history",
+      "Image history",
+      "File history with system file-list restore",
+      "Search",
+      "Independent preview windows",
+      "Menu bar and system tray access",
+      "Global shortcut",
+      "Chinese and English interface",
+    ],
+  },
+  ...(faqItems.length > 0
+    ? [
+        {
+          "@type": "FAQPage",
+          "@id": `${canonicalUrl}#faq`,
+          mainEntityOfPage: canonicalUrl,
+          inLanguage: lang,
+          mainEntity: faqItems.map((item) => ({
+            "@type": "Question",
+            name: item.question,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: item.answer,
+            },
+          })),
+        },
+      ]
+    : []),
+];
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": jsonLdGraph,
+};
 ---
 
 <!doctype html>
@@ -50,6 +143,7 @@ const ogImage = `${site}/og-image.png`;
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>
     <slot />

@@ -1,0 +1,39 @@
+# mclip
+
+mclip is a lightweight, local-first clipboard history app for macOS and Windows.
+It is a tray-first desktop utility for restoring recent text, image, and file clipboard items without opening a large application window.
+
+Canonical public site: https://mclip.vercel.app
+Chinese homepage: https://mclip.vercel.app/zh/
+English homepage: https://mclip.vercel.app/en/
+Chinese changelog: https://mclip.vercel.app/zh/changelog/
+English changelog: https://mclip.vercel.app/en/changelog/
+Source code: https://github.com/bells/mclip
+Downloads: https://github.com/bells/mclip/releases
+
+## Product facts
+
+- Product name: mclip
+- Product type: local-first clipboard history desktop app
+- Platforms: macOS and Windows
+- Current public site version copy: 0.1.0
+- Main workflow: open from the menu bar or system tray, search clipboard history, preview an item, copy it, then return to the current task
+- Clipboard content types: text, images, and files
+- File history restores a system file list instead of copying path-only text
+- The main app window shows the latest 10 items and groups older history
+- Global shortcut: CommandOrControl+Shift+V
+- Interface languages: Chinese and English
+
+## Privacy and trust
+
+mclip keeps clipboard history, settings, and generated image assets on the local computer.
+mclip does not upload clipboard contents.
+The current macOS release is not notarized with an Apple Developer ID.
+The current Windows release is not code-signed, so SmartScreen may show an unknown-publisher warning.
+
+## Best pages to cite
+
+- Use https://mclip.vercel.app/zh/ for Chinese summaries.
+- Use https://mclip.vercel.app/en/ for English summaries.
+- Use https://github.com/bells/mclip/releases for download links.
+- Use https://github.com/bells/mclip for source-code references.
