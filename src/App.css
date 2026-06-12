@@ -1526,7 +1526,9 @@ button {
 .app-stepper-btn:disabled,
 .app-switch:disabled,
 .app-settings-tab:disabled,
-.app-history-type-row:disabled {
+.app-history-type-row:disabled,
+.app-cli-action-btn:disabled,
+.app-cli-copy-btn:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -1672,6 +1674,81 @@ button {
   font-size: 11px;
   font-weight: 800;
   padding: 9px 12px;
+}
+
+.app-cli-install-section {
+  gap: 9px;
+}
+
+.app-cli-status-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.app-cli-status-copy {
+  min-width: 0;
+}
+
+.app-cli-status-badge {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  border: 1px solid rgba(255, 117, 109, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 117, 109, 0.1);
+  color: #ffc4bf;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 0 9px;
+}
+
+.app-cli-status-badge.is-installed {
+  border-color: rgba(124, 199, 193, 0.3);
+  background: rgba(124, 199, 193, 0.1);
+  color: rgba(124, 199, 193, 0.96);
+}
+
+.app-cli-command-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-cli-command {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(247, 241, 232, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(247, 241, 232, 0.78);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  padding: 8px 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-cli-action-btn,
+.app-cli-copy-btn {
+  min-height: 30px;
+  border: 1px solid var(--app-line-strong);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--app-ink);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+  padding: 0 10px;
+}
+
+.app-cli-action-btn:hover:not(:disabled),
+.app-cli-copy-btn:hover:not(:disabled) {
+  border-color: rgba(124, 199, 193, 0.38);
+  background: rgba(124, 199, 193, 0.13);
 }
 
 .app-history-type-list {
@@ -1896,6 +1973,8 @@ button {
 .app-switch:focus-visible,
 .app-settings-tab:focus-visible,
 .app-history-type-row:focus-visible,
+.app-cli-action-btn:focus-visible,
+.app-cli-copy-btn:focus-visible,
 .app-language-select:focus-visible,
 .app-stepper-input:focus-visible {
   outline: none;

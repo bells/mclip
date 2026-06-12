@@ -35,6 +35,33 @@
 
 安装后，`mclip` 会在系统托盘或菜单栏运行。可以点击托盘图标，也可以使用 `CommandOrControl+Shift+V` 打开主窗口。
 
+### AI Agent 与 CLI
+
+第一阶段 CLI 提供只读历史访问，方便 Codex、Claude Code、Cursor、Cline 等工具通过命令读取最近剪贴板上下文。开发环境中可以这样调用：
+
+```bash
+npm run cli -- list --limit 5 --json
+npm run cli -- get --index 1 --raw
+npm run cli -- search "panic" --json
+npm run cli -- context --last 3 --format markdown
+```
+
+CLI 默认读取本机 mclip 配置目录中的 `history.json`。排查或测试时可以显式指定路径：
+
+```bash
+npm run cli -- --history-path /path/to/history.json list --json
+```
+
+偏好设置的“通用”页会显示 `mclip-cli` 是否已安装，并提供一键安装按钮。默认安装到用户目录下的 `~/.local/bin/mclip-cli`，不会使用 `sudo` 写系统目录。
+
+也可以直接从命令行安装：
+
+```bash
+curl -fsSL https://mclip.vercel.app/install.sh | sh
+```
+
+当前 CLI 不启动桌面 UI，也不会修改剪贴板历史；它只读取本地历史并输出 text、JSON、raw 或 Markdown。安装脚本第一版会从源码构建 `mclip-cli`，因此需要本机已有 Rust/Cargo 和 Git。
+
 ### Windows 注意事项
 
 Windows 安装包当前未配置代码签名，所以 Windows SmartScreen 可能提示“未知发布者”。如果你信任该 Release，可以在提示里选择继续安装。
@@ -81,6 +108,10 @@ npm ci
 npm run tauri:dev
 npm run check
 npm run tauri:build
+npm run cli -- list --limit 5 --json
+npm run cli:test
+npm run cli:build
+npm run cli:install
 npm run site:dev
 npm run site:build
 ```
@@ -138,6 +169,33 @@ Download the installer for your platform from GitHub Releases:
 
 After installation, `mclip` runs in the system tray or menu bar. Click the tray icon or press `CommandOrControl+Shift+V` to open the main window.
 
+### AI Agent And CLI
+
+The first CLI phase provides read-only history access so tools such as Codex, Claude Code, Cursor, and Cline can read recent clipboard context from the terminal. In development, run:
+
+```bash
+npm run cli -- list --limit 5 --json
+npm run cli -- get --index 1 --raw
+npm run cli -- search "panic" --json
+npm run cli -- context --last 3 --format markdown
+```
+
+By default, the CLI reads `history.json` from the local mclip app configuration directory. For troubleshooting or tests, pass an explicit path:
+
+```bash
+npm run cli -- --history-path /path/to/history.json list --json
+```
+
+The General tab in Preferences shows whether `mclip-cli` is installed and provides a one-click install button. It installs to the user directory at `~/.local/bin/mclip-cli` by default and does not use `sudo` to write system directories.
+
+You can also install directly from the terminal:
+
+```bash
+curl -fsSL https://mclip.vercel.app/install.sh | sh
+```
+
+The current CLI does not start the desktop UI and does not modify clipboard history. It only reads local history and emits text, JSON, raw, or Markdown output. The first install script builds `mclip-cli` from source, so Rust/Cargo and Git must be available locally.
+
 ### Windows Notes
 
 The Windows installer is currently unsigned, so Windows SmartScreen may warn about an unknown publisher. Continue only if you trust the release.
@@ -182,6 +240,10 @@ npm ci
 npm run tauri:dev
 npm run check
 npm run tauri:build
+npm run cli -- list --limit 5 --json
+npm run cli:test
+npm run cli:build
+npm run cli:install
 npm run site:dev
 npm run site:build
 ```

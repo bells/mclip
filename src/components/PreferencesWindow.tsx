@@ -11,12 +11,19 @@ import {
 } from "../constants";
 import { getTranslations } from "../i18n";
 import {
+  getCliInstallStatus,
   getSettings,
   hideCurrentWindow,
+  installCli,
   listenToSettingsUpdated,
   saveSettings,
 } from "../lib/tauri";
-import type { AppLanguage, AppSettings, HistoryKind } from "../types";
+import type {
+  AppLanguage,
+  AppSettings,
+  CliInstallStatus,
+  HistoryKind,
+} from "../types";
 import { normalizeSettings } from "../utils/settings";
 import { DialogWindowControls } from "./DialogWindowControls";
 
@@ -28,6 +35,10 @@ export function PreferencesWindow() {
   const [activeTab, setActiveTab] = useState<PreferencesTab>("general");
   const [settingsError, setSettingsError] = useState("");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [cliStatus, setCliStatus] = useState<CliInstallStatus | null>(null);
+  const [cliStatusError, setCliStatusError] = useState("");
+  const [cliInstallMessage, setCliInstallMessage] = useState("");
+  const [isInstallingCli, setIsInstallingCli] = useState(false);
   const latestSettingsRef = useRef<AppSettings>(DEFAULT_SETTINGS);
   // 数字输入框单独保存字符串，允许用户编辑中间态，比如暂时清空输入框。
   const [maxHistoryCountInput, setMaxHistoryCountInput] = useState(
@@ -74,6 +85,35 @@ export function PreferencesWindow() {
     return () => {
       isActive = false;
       unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadCliStatus = async () => {
+      try {
+        const status = await getCliInstallStatus();
+
+        if (!isActive) {
+          return;
+        }
+
+        setCliStatus(status);
+        setCliStatusError("");
+      } catch (error) {
+        console.error("读取 mclip-cli 安装状态失败:", error);
+
+        if (isActive) {
+          setCliStatusError(t.cliStatusError);
+        }
+      }
+    };
+
+    void loadCliStatus();
+
+    return () => {
+      isActive = false;
     };
   }, []);
 
@@ -196,6 +236,40 @@ export function PreferencesWindow() {
     }
   };
 
+  const handleInstallCli = async () => {
+    setCliInstallMessage("");
+    setCliStatusError("");
+    setIsInstallingCli(true);
+
+    try {
+      const status = await installCli();
+      setCliStatus(status);
+      setCliInstallMessage(t.cliInstallSuccess(status.installPath));
+    } catch (error) {
+      console.error("安装 mclip-cli 失败:", error);
+      setCliStatusError(t.cliInstallError);
+    } finally {
+      setIsInstallingCli(false);
+    }
+  };
+
+  const copyCliInstallCommand = async () => {
+    if (!cliStatus) {
+      return;
+    }
+
+    setCliInstallMessage("");
+    setCliStatusError("");
+
+    try {
+      await navigator.clipboard.writeText(cliStatus.installCommand);
+      setCliInstallMessage(t.cliCommandCopied);
+    } catch (error) {
+      console.error("复制 mclip-cli 安装命令失败:", error);
+      setCliStatusError(t.cliCommandCopyError);
+    }
+  };
+
   return (
     <div className="app-dialog-frame app-preferences-window">
       <div className="app-dialog-panel app-settings-window-panel">
@@ -285,6 +359,87 @@ export function PreferencesWindow() {
                   >
                     <span className="app-switch-thumb" />
                   </button>
+                </div>
+
+                <div className="app-settings-section app-cli-install-section">
+                  <div className="app-settings-section-heading">
+                    <div className="app-settings-label">{t.cliSectionLabel}</div>
+                    <div className="app-settings-description">
+                      {t.cliSectionDescription}
+                    </div>
+                  </div>
+
+                  <div className="app-cli-status-row">
+                    <div className="app-cli-status-copy">
+                      <span
+                        className={`app-cli-status-badge ${
+                          cliStatus?.isInstalled ? "is-installed" : "is-missing"
+                        }`}
+                      >
+                        {cliStatus
+                          ? cliStatus.isInstalled
+                            ? t.cliInstalled
+                            : t.cliNotInstalled
+                          : t.cliChecking}
+                      </span>
+                      <div className="app-settings-note">
+                        {cliStatus
+                          ? t.cliInstallPath(cliStatus.installPath)
+                          : t.cliCheckingDescription}
+                      </div>
+                      {cliStatus && !cliStatus.isOnPath ? (
+                        <div className="app-settings-note">
+                          {t.cliPathNotOnPath(cliStatus.installDir)}
+                        </div>
+                      ) : null}
+                      {cliStatus && !cliStatus.sourceAvailable ? (
+                        <div className="app-settings-note">
+                          {t.cliSourceUnavailable}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <button
+                      className="app-cli-action-btn"
+                      disabled={
+                        isInstallingCli ||
+                        !cliStatus ||
+                        !cliStatus.sourceAvailable
+                      }
+                      onClick={handleInstallCli}
+                      type="button"
+                    >
+                      {isInstallingCli
+                        ? t.cliInstalling
+                        : cliStatus?.sourceAvailable
+                          ? cliStatus.isInstalled
+                            ? t.cliReinstall
+                            : t.cliInstall
+                          : t.cliInstallUnavailable}
+                    </button>
+                  </div>
+
+                  <div className="app-cli-command-row">
+                    <code className="app-cli-command">
+                      {cliStatus?.installCommand ?? t.cliChecking}
+                    </code>
+                    <button
+                      className="app-cli-copy-btn"
+                      disabled={!cliStatus}
+                      onClick={copyCliInstallCommand}
+                      type="button"
+                    >
+                      {t.cliCopyCommand}
+                    </button>
+                  </div>
+
+                  {cliStatusError ? (
+                    <div className="app-settings-error">{cliStatusError}</div>
+                  ) : cliInstallMessage ? (
+                    <div className="app-settings-status" aria-live="polite">
+                      {cliInstallMessage}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ) : (

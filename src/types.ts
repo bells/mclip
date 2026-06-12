@@ -13,6 +13,16 @@ export type AppSettings = {
   maxHistoryCount: number;
 };
 
+export type CliInstallStatus = {
+  executableName: string;
+  installCommand: string;
+  installDir: string;
+  installPath: string;
+  isInstalled: boolean;
+  isOnPath: boolean;
+  sourceAvailable: boolean;
+};
+
 export type HistoryEntryBase = {
   copyCount: number;
   displayText: string;

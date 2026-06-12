@@ -34,6 +34,10 @@ npm ci
 npm run tauri:dev
 npm run check
 npm run tauri:build
+npm run cli -- list --limit 5 --json
+npm run cli:test
+npm run cli:build
+npm run cli:install
 ```
 
 `npm run check` 会执行：
@@ -46,9 +50,14 @@ npm run tauri:build
 
 提交前优先跑 `npm run check`。如果只改 TSX/CSS 文档化小界面，可以先跑 `npm run build` 快速确认，再跑完整检查。
 
+CLI 第一阶段是只读 Agent 入口。`npm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。`npm run cli:test` 是 CLI 的快速回归测试，`npm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
+
 ## 代码地图
 
 ```text
+install.sh                             mclip-cli 的 curl | sh 安装脚本，默认安装到用户目录
+site/public/install.sh                 Vercel 官网公开的安装脚本副本，必须和根目录 install.sh 保持一致
+
 src/
   App.tsx                             根据 Tauri window label 分流 main/preview/about/preferences
   App.css                             全局样式、透明窗口裁剪、主窗口和所有弹窗视觉
@@ -84,8 +93,11 @@ src-tauri/
   capabilities/default.json           全窗口默认权限
   capabilities/desktop.json           桌面端 positioner 权限
   build.rs                            Tauri build script
+  src/bin/mclip-cli.rs                独立 CLI 入口，供 AI Agent/终端只读访问历史
   src/main.rs                         发布版 Windows 隐藏控制台，转入 lib.rs
   src/lib.rs                          Tauri 应用入口、托盘、快捷键、命令注册
+  src/agent_cli.rs                    CLI 参数解析、历史筛选和 text/json/raw/markdown 输出
+  src/cli_install.rs                  mclip-cli 安装状态检测和一键安装命令
   src/window.rs                       主窗口和 preview/about/preferences 的尺寸、定位、显示隐藏
   src/clipboard.rs                    剪贴板读写、文件列表回填、图片处理、Windows 事件监听、macOS changeCount 轮询
   src/history.rs                      历史持久化、去重、裁剪、图片资源清理
@@ -96,6 +108,10 @@ src-tauri/
 .github/workflows/
   ci.yml                              macOS 和 Windows 检查
   release.yml                         tag 发布打包，生成 draft release
+
+src-tauri/tests/
+  agent_cli.rs                        CLI 真实二进制集成测试，覆盖 list/get/search/context
+  cli_install.rs                      CLI 安装检测、复制和安装命令回归测试
 ```
 
 ## 前端状态流
@@ -196,6 +212,9 @@ Windows 监听注意：
 
 - 由 `src-tauri/src/history.rs` 管理。
 - 存在系统 app config 目录的 `history.json`。
+- CLI 通过 `load_history_from_path` 只读复用同一份历史解析逻辑；桌面端历史损坏时仍回退为空并写日志，CLI 会把解析错误输出到 stderr。
+- CLI 安装第一版默认复制/构建到用户目录，例如 macOS/Linux 的 `~/.local/bin/mclip-cli`；不要在未明确确认前写 `/usr/local/bin` 或使用 `sudo`。
+- 公开安装命令使用 `curl -fsSL https://mclip.vercel.app/install.sh | sh`；`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
 - 新内容先生成稳定 id，再与已有历史合并。
 - 超过最大条数会截断。
 - 删除和裁剪历史后要清理未使用图片资源。

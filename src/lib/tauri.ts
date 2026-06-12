@@ -8,6 +8,7 @@ import { getCurrentWindow, Window as TauriWindow } from "@tauri-apps/api/window"
 import { DEFAULT_APP_VERSION } from "../constants";
 import type {
   AppSettings,
+  CliInstallStatus,
   HistoryEntry,
   HistoryPreviewGroupItemActivatedPayload,
   HistoryItemPreviewPayload,
@@ -68,6 +69,14 @@ export function getSettings() {
 
 export function saveSettings(settings: AppSettings) {
   return invoke<AppSettings>("save_settings", { settings });
+}
+
+export function getCliInstallStatus() {
+  return invoke<CliInstallStatus>("get_cli_install_status");
+}
+
+export function installCli() {
+  return invoke<CliInstallStatus>("install_cli");
 }
 
 export function getHistory() {

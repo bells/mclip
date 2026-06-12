@@ -226,34 +226,43 @@ pub fn emit_history_updated(
 pub fn load_history(app_handle: &AppHandle) -> Result<Vec<HistoryEntry>, String> {
     let path = history_path(app_handle)?;
 
-    if path.exists() {
-        let content = fs::read_to_string(path).map_err(|error| error.to_string())?;
-        if let Ok(history) = serde_json::from_str::<Vec<HistoryEntry>>(&content) {
-            return Ok(history);
+    match load_history_from_path(&path) {
+        Ok(history) => Ok(history),
+        Err(error) => {
+            // 历史文件损坏不能影响应用启动；回退为空历史即可。
+            log_error(
+                app_handle,
+                "history",
+                &format!("failed to parse clipboard history, using empty history: {error}"),
+            );
+            Ok(Vec::new())
         }
-
-        if let Ok(legacy_history) = serde_json::from_str::<Vec<LegacyTextHistoryEntry>>(&content) {
-            return Ok(migrate_structured_text_history(legacy_history));
-        }
-
-        match serde_json::from_str::<Vec<String>>(&content) {
-            Ok(legacy_history) => Ok(migrate_legacy_text_history(
-                legacy_history,
-                current_timestamp_millis(),
-            )),
-            Err(error) => {
-                // 历史文件损坏不能影响应用启动；回退为空历史即可。
-                log_error(
-                    app_handle,
-                    "history",
-                    &format!("failed to parse clipboard history, using empty history: {error}"),
-                );
-                Ok(Vec::new())
-            }
-        }
-    } else {
-        Ok(Vec::new())
     }
+}
+
+pub fn load_history_from_path(path: &Path) -> Result<Vec<HistoryEntry>, String> {
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+
+    let content = fs::read_to_string(path).map_err(|error| error.to_string())?;
+    parse_history_content(&content)
+}
+
+fn parse_history_content(content: &str) -> Result<Vec<HistoryEntry>, String> {
+    if let Ok(history) = serde_json::from_str::<Vec<HistoryEntry>>(content) {
+        return Ok(history);
+    }
+
+    if let Ok(legacy_history) = serde_json::from_str::<Vec<LegacyTextHistoryEntry>>(content) {
+        return Ok(migrate_structured_text_history(legacy_history));
+    }
+
+    serde_json::from_str::<Vec<String>>(content)
+        .map(|legacy_history| {
+            migrate_legacy_text_history(legacy_history, current_timestamp_millis())
+        })
+        .map_err(|error| error.to_string())
 }
 
 fn persist_history(app_handle: &AppHandle, history: &[HistoryEntry]) -> Result<(), String> {

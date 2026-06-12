@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Cross-platform clipboard history app built with Tauri"
 authors = ["Watson"]
 edition = "2021"
+default-run = "mclip"
 
 [lib]
 name = "m_clip_lib"

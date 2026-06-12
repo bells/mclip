@@ -1,7 +1,9 @@
 //! Tauri 应用入口与全局生命周期管理。
 //! 这里负责托盘、快捷键、窗口焦点规则以及所有前端可调用命令的注册。
 
+pub mod agent_cli;
 mod auto_paste;
+pub mod cli_install;
 mod clipboard;
 mod diagnostics;
 mod history;
@@ -23,6 +25,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_positioner::on_tray_event;
 
 use crate::auto_paste::{remember_current_paste_target, AutoPasteTargetState};
+use crate::cli_install::{get_cli_install_status, install_cli};
 use crate::clipboard::{
     copy_history_item, get_image_base64, paste_current_clipboard, spawn_clipboard_watcher,
 };
@@ -267,6 +270,8 @@ pub fn run() {
             quit_app,
             get_settings,
             save_settings,
+            get_cli_install_status,
+            install_cli,
             get_history,
             clear_history,
             delete_history_item,

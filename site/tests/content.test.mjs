@@ -101,6 +101,15 @@ test("public AI discovery file describes canonical mclip facts", async () => {
   assert.match(llms, /does not upload clipboard contents/);
 });
 
+test("public install script mirrors the root mclip-cli installer", async () => {
+  const rootInstaller = await read("../install.sh");
+  const publicInstaller = await read("public/install.sh");
+
+  assert.equal(publicInstaller, rootInstaller);
+  assert.match(publicInstaller, /BIN_NAME="mclip-cli"/);
+  assert.match(publicInstaller, /https:\/\/github\.com\/bells\/mclip\.git/);
+});
+
 test("layout bundles the site stylesheet through Astro", async () => {
   const layout = await read("src/layouts/SiteLayout.astro");
 
