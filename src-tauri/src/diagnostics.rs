@@ -16,7 +16,7 @@ use tauri::{AppHandle, Manager};
 
 const ISSUE_URL: &str = "https://github.com/bells/mclip/issues/new";
 const PROJECT_GITHUB_URL: &str = "https://github.com/bells/mclip";
-const PROJECT_HOMEPAGE_URL: &str = "https://mclip.vercel.app/";
+const PROJECT_HOMEPAGE_URL: &str = "https://www.mclip.cn/";
 const PROJECT_LATEST_RELEASE_URL: &str = "https://github.com/bells/mclip/releases/latest";
 const LOG_FILE_NAME: &str = "mclip.log";
 const MAX_CLIENT_LOG_CHARS: usize = 1_200;

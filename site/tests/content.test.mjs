@@ -65,7 +65,7 @@ test("site introduces AI Agent and mclip-cli workflows", async () => {
   assert.match(hero, /#agents/);
   assert.match(zh, /AI Agent 与 CLI/);
   assert.match(zh, /Codex、Claude Code、Cursor、Cline/);
-  assert.match(zh, /curl -fsSL https:\/\/mclip\.vercel\.app\/install\.sh \| sh/);
+  assert.match(zh, /curl -fsSL https:\/\/www\.mclip\.cn\/install\.sh \| sh/);
   assert.match(zh, /mclip-cli list --limit 5 --json/);
   assert.match(zh, /mclip-cli context --last 3 --format markdown/);
   assert.match(en, /AI Agent and CLI/);
@@ -73,18 +73,21 @@ test("site introduces AI Agent and mclip-cli workflows", async () => {
   assert.match(en, /read-only terminal entry/);
   assert.match(en, /mclip-cli list --limit 5 --json/);
   assert.match(llms, /mclip-cli/);
-  assert.match(llms, /https:\/\/mclip\.vercel\.app\/install\.sh/);
+  assert.match(llms, /https:\/\/www\.mclip\.cn\/install\.sh/);
 });
 
 test("shared SEO metadata declares bilingual routes and social image", async () => {
   const config = await read("astro.config.mjs");
   const layout = await read("src/layouts/SiteLayout.astro");
 
-  assert.match(config, /site: "https:\/\/mclip\.vercel\.app"/);
-  assert.match(layout, /https:\/\/mclip\.vercel\.app/);
+  assert.match(config, /site: "https:\/\/www\.mclip\.cn"/);
+  assert.match(layout, /https:\/\/www\.mclip\.cn/);
   assert.match(layout, /hreflang/);
+  assert.match(layout, /alternateZhPath/);
   assert.match(layout, /og:image/);
+  assert.match(layout, /og:image:alt/);
   assert.match(layout, /twitter:card/);
+  assert.match(layout, /twitter:url/);
 });
 
 test("layout exposes structured data for search and AI summaries", async () => {
@@ -95,9 +98,12 @@ test("layout exposes structured data for search and AI summaries", async () => {
   assert.match(layout, /application\/ld\+json/);
   assert.match(layout, /@graph/);
   assert.match(layout, /WebSite/);
+  assert.match(layout, /WebPage/);
   assert.match(layout, /Organization/);
   assert.match(layout, /SoftwareApplication/);
   assert.match(layout, /FAQPage/);
+  assert.match(layout, /installUrl/);
+  assert.match(layout, /AI Agent clipboard context/);
   assert.match(layout, /https:\/\/github\.com\/bells\/mclip\/releases/);
   assert.match(zh, /faqItems=\{faqItems\}/);
   assert.match(en, /faqItems=\{faqItems\}/);
@@ -110,14 +116,19 @@ test("public SEO files expose crawl and sitemap hints", async () => {
   assert.match(robots, /User-agent: \*/);
   assert.match(robots, /Allow: \//);
   assert.match(robots, /User-agent: OAI-SearchBot/);
+  assert.match(robots, /User-agent: ChatGPT-User/);
   assert.match(robots, /User-agent: GPTBot/);
+  assert.match(robots, /User-agent: PerplexityBot/);
+  assert.match(robots, /User-agent: ClaudeBot/);
+  assert.match(robots, /User-agent: Claude-SearchBot/);
   assert.match(robots, /User-agent: Googlebot/);
+  assert.match(robots, /User-agent: Bingbot/);
   assert.match(robots, /User-agent: Baiduspider/);
-  assert.match(robots, /Sitemap: https:\/\/mclip\.vercel\.app\/sitemap\.xml/);
-  assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/zh\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/en\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/zh\/changelog\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/mclip\.vercel\.app\/en\/changelog\/<\/loc>/);
+  assert.match(robots, /Sitemap: https:\/\/www\.mclip\.cn\/sitemap\.xml/);
+  assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/zh\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/en\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/zh\/changelog\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/en\/changelog\/<\/loc>/);
   assert.match(sitemap, /hreflang="x-default"/);
 });
 
@@ -125,12 +136,20 @@ test("public AI discovery file describes canonical mclip facts", async () => {
   const llms = await read("public/llms.txt");
 
   assert.match(llms, /# mclip/);
-  assert.match(llms, /https:\/\/mclip\.vercel\.app\/zh\//);
-  assert.match(llms, /https:\/\/mclip\.vercel\.app\/en\//);
+  assert.match(llms, /https:\/\/www\.mclip\.cn\/zh\//);
+  assert.match(llms, /https:\/\/www\.mclip\.cn\/en\//);
   assert.match(llms, /https:\/\/github\.com\/bells\/mclip\/releases/);
   assert.match(llms, /local-first clipboard history/);
+  assert.match(llms, /中文摘要/);
   assert.match(llms, /macOS and Windows/);
   assert.match(llms, /does not upload clipboard contents/);
+  assert.match(llms, /Do not claim that mclip has cloud sync/);
+});
+
+test("footer exposes the AI-readable llms.txt file", async () => {
+  const footer = await read("src/components/SiteFooter.astro");
+
+  assert.match(footer, /href="\/llms\.txt"/);
 });
 
 test("public install script mirrors the root mclip-cli installer", async () => {

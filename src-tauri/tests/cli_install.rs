@@ -77,6 +77,6 @@ fn install_cli_from_source_copies_binary_into_install_dir() {
 fn cli_install_command_points_to_public_script() {
     assert_eq!(
         cli_install_command(),
-        "curl -fsSL https://mclip.vercel.app/install.sh | sh"
+        "curl -fsSL https://www.mclip.cn/install.sh | sh"
     );
 }

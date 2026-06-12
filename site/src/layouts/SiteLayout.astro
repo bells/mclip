@@ -17,16 +17,20 @@ interface Props {
 import "../styles/global.css";
 
 const { title, description, lang, path, faqItems = [] } = Astro.props;
-const site = Astro.site?.toString().replace(/\/$/, "") ?? "https://mclip.vercel.app";
+const site = Astro.site?.toString().replace(/\/$/, "") ?? "https://www.mclip.cn";
 const canonicalUrl = `${site}${path}`;
-const alternateZh = `${site}/zh/`;
-const alternateEn = `${site}/en/`;
+const alternateZhPath = path.replace(/^\/en\//, "/zh/");
+const alternateEnPath = path.replace(/^\/zh\//, "/en/");
+const alternateZh = `${site}${alternateZhPath}`;
+const alternateEn = `${site}${alternateEnPath}`;
 const ogImage = `${site}/og-image.png`;
 const githubUrl = "https://github.com/bells/mclip";
 const releasesUrl = "https://github.com/bells/mclip/releases";
+const installUrl = `${site}/install.sh`;
 const publisherId = `${site}/#organization`;
 const softwareId = `${site}/#software`;
 const productUrl = lang === "zh-CN" ? alternateZh : alternateEn;
+const pageId = `${canonicalUrl}#webpage`;
 const productDescription =
   lang === "zh-CN"
     ? "mclip 是面向 macOS 和 Windows 的轻量、本地优先剪贴板历史工具，支持文本、图片、文件历史、搜索、预览、托盘快捷唤起和只读 mclip-cli。"
@@ -40,6 +44,23 @@ const jsonLdGraph = [
     url: `${site}/`,
     inLanguage: ["zh-CN", "en"],
     publisher: { "@id": publisherId },
+  },
+  {
+    "@type": "WebPage",
+    "@id": pageId,
+    url: canonicalUrl,
+    name: title,
+    description,
+    inLanguage: lang,
+    isPartOf: { "@id": `${site}/#website` },
+    about: { "@id": softwareId },
+    mainEntity: { "@id": softwareId },
+    primaryImageOfPage: {
+      "@type": "ImageObject",
+      url: ogImage,
+      width: 1200,
+      height: 630,
+    },
   },
   {
     "@type": "Organization",
@@ -62,11 +83,13 @@ const jsonLdGraph = [
     url: productUrl,
     mainEntityOfPage: canonicalUrl,
     downloadUrl: releasesUrl,
+    installUrl,
     codeRepository: githubUrl,
     description: productDescription,
     image: ogImage,
     screenshot: `${site}/screenshots/mclip-product-preview.png`,
     inLanguage: lang,
+    isAccessibleForFree: true,
     publisher: { "@id": publisherId },
     offers: {
       "@type": "Offer",
@@ -85,6 +108,16 @@ const jsonLdGraph = [
       "Global shortcut",
       "Read-only mclip-cli for AI Agent workflows",
       "Chinese and English interface",
+    ],
+    keywords: [
+      "clipboard history",
+      "local-first clipboard manager",
+      "macOS clipboard manager",
+      "Windows clipboard manager",
+      "AI Agent clipboard context",
+      "mclip-cli",
+      "剪贴板历史",
+      "本地优先剪贴板工具",
     ],
   },
   ...(faqItems.length > 0
@@ -122,11 +155,12 @@ const jsonLd = {
     <meta name="application-name" content="mclip" />
     <meta name="theme-color" content="#0b100d" />
     <meta name="color-scheme" content="dark" />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="alternate" hreflang="zh-CN" href={alternateZh} />
     <link rel="alternate" hreflang="en" href={alternateEn} />
     <link rel="alternate" hreflang="x-default" href={alternateZh} />
+    <link rel="sitemap" type="application/xml" href={`${site}/sitemap.xml`} />
     <link rel="icon" type="image/png" href="/app-icon.png" />
     <link rel="apple-touch-icon" href="/app-icon.png" />
 
@@ -136,14 +170,18 @@ const jsonLd = {
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:site_name" content="mclip" />
     <meta property="og:locale" content={lang === "zh-CN" ? "zh_CN" : "en_US"} />
+    <meta property="og:locale:alternate" content={lang === "zh-CN" ? "en_US" : "zh_CN"} />
     <meta property="og:image" content={ogImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={lang === "zh-CN" ? "mclip 剪贴板历史主窗口与预览窗口" : "mclip clipboard history main window and preview window"} />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    <meta name="twitter:url" content={canonicalUrl} />
     <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={lang === "zh-CN" ? "mclip 剪贴板历史主窗口与预览窗口" : "mclip clipboard history main window and preview window"} />
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>

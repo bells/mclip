@@ -215,7 +215,7 @@ Windows 监听注意：
 - 存在系统 app config 目录的 `history.json`。
 - CLI 通过 `load_history_from_path` 只读复用同一份历史解析逻辑；桌面端历史损坏时仍回退为空并写日志，CLI 会把解析错误输出到 stderr。
 - CLI 安装第一版默认复制/构建到用户目录，例如 macOS/Linux 的 `~/.local/bin/mclip-cli`；不要在未明确确认前写 `/usr/local/bin` 或使用 `sudo`。
-- 公开安装命令使用 `curl -fsSL https://mclip.vercel.app/install.sh | sh`；`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
+- 公开安装命令使用 `curl -fsSL https://www.mclip.cn/install.sh | sh`；`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
 - 新内容先生成稳定 id，再与已有历史合并。
 - 超过最大条数会截断。
 - 删除和裁剪历史后要清理未使用图片资源。

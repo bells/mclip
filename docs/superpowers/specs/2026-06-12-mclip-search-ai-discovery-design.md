@@ -1,7 +1,7 @@
 # mclip Search And AI Discovery Design
 
 Date: 2026-06-12
-Site: https://mclip.vercel.app
+Site: https://www.mclip.cn
 
 ## Goal
 
@@ -9,11 +9,11 @@ Make the mclip public site easier for search engines and AI search tools to craw
 
 ## Scope
 
-This design covers the site in `site/` only. It keeps the existing bilingual homepage structure:
+This design primarily covers the site in `site/`. It keeps the existing bilingual homepage structure and keeps app-facing public URL constants aligned with the official domain:
 
-- Chinese default page: `https://mclip.vercel.app/zh/`
-- English page: `https://mclip.vercel.app/en/`
-- Root redirect: `https://mclip.vercel.app/`
+- Chinese default page: `https://www.mclip.cn/zh/`
+- English page: `https://www.mclip.cn/en/`
+- Root redirect: `https://www.mclip.cn/`
 - Changelog pages under `/zh/changelog/` and `/en/changelog/`
 
 The implementation will not add broad comparison pages, blog posts, or programmatic keyword pages in this pass.
@@ -22,7 +22,7 @@ The implementation will not add broad comparison pages, blog posts, or programma
 
 The current site already has a solid first layer:
 
-- Static Astro output with `site: "https://mclip.vercel.app"`
+- Static Astro output with `site: "https://www.mclip.cn"`
 - Bilingual homepages
 - Canonical URLs
 - `hreflang` alternates
@@ -55,7 +55,7 @@ The site should expose a small set of canonical facts:
 - Privacy boundary: clipboard history and settings stay local; mclip does not upload clipboard contents
 - Source code: https://github.com/bells/mclip
 - Releases: https://github.com/bells/mclip/releases
-- Current site URL: https://mclip.vercel.app
+- Current site URL: https://www.mclip.cn
 - Current version in site copy: 0.1.0
 
 These facts should appear in user-visible copy and machine-readable files. If the product version changes later, the visible copy, JSON-LD, `llms.txt`, and tests should be updated together.
@@ -90,7 +90,7 @@ This is additive. It does not replace `robots.txt`, `sitemap.xml`, or visible pa
 Keep `robots.txt` open:
 
 - Allow normal web crawlers.
-- Keep the sitemap pointer to `https://mclip.vercel.app/sitemap.xml`.
+- Keep the sitemap pointer to `https://www.mclip.cn/sitemap.xml`.
 - Avoid blocking AI search crawlers such as OpenAI search crawlers unless there is a future privacy or licensing reason to do so.
 
 Update tests so the official domain remains consistent in `astro.config.mjs`, layout metadata, robots, sitemap, and `llms.txt`.
@@ -119,7 +119,7 @@ Update `site/tests/content.test.mjs` to cover:
 - `robots.txt` points to the canonical sitemap.
 - JSON-LD contains `SoftwareApplication`, `WebSite`, `Organization`, and `FAQPage`.
 - FAQ structured data is present for both Chinese and English pages.
-- The canonical domain is consistently `https://mclip.vercel.app`.
+- The canonical domain is consistently `https://www.mclip.cn`.
 
 Run:
 
@@ -128,15 +128,15 @@ npm --prefix site test
 npm --prefix site run build
 ```
 
-If the broader app is touched accidentally, run the repo-level check before finishing. The intended scope is site-only.
+If app-facing public URL constants are updated, run the relevant Rust checks before finishing.
 
 ## Acceptance Criteria
 
 The work is complete when:
 
 - The public site still builds as a static Astro site.
-- `https://mclip.vercel.app/robots.txt` and `/sitemap.xml` remain valid crawl hints.
+- `https://www.mclip.cn/robots.txt` and `/sitemap.xml` remain valid crawl hints.
 - `/llms.txt` exists and gives AI tools a concise product map.
 - Homepage HTML includes structured data that matches visible page content.
 - Tests protect the new discovery layer.
-- No app runtime code under `src/` or `src-tauri/` is changed.
+- App-facing public URL constants, if changed, point to `https://www.mclip.cn`.

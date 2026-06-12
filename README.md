@@ -58,7 +58,7 @@ npm run cli -- --history-path /path/to/history.json list --json
 也可以直接从命令行安装：
 
 ```bash
-curl -fsSL https://mclip.vercel.app/install.sh | sh
+curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
 当前 CLI 不启动桌面 UI，也不会修改剪贴板历史；它只读取本地历史并输出 text、JSON、raw 或 Markdown。安装脚本第一版会从源码构建 `mclip-cli`，因此需要本机已有 Rust/Cargo 和 Git。
@@ -195,7 +195,7 @@ The General tab in Preferences shows whether `mclip-cli` is installed and provid
 You can also install directly from the terminal:
 
 ```bash
-curl -fsSL https://mclip.vercel.app/install.sh | sh
+curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
 The current CLI does not start the desktop UI and does not modify clipboard history. It only reads local history and emits text, JSON, raw, or Markdown output. The first install script builds `mclip-cli` from source, so Rust/Cargo and Git must be available locally.

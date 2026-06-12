@@ -10,7 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 
-const CLI_INSTALL_COMMAND: &str = "curl -fsSL https://mclip.vercel.app/install.sh | sh";
+const CLI_INSTALL_COMMAND: &str = "curl -fsSL https://www.mclip.cn/install.sh | sh";
 const MCLIP_REPO_URL: &str = "https://github.com/bells/mclip.git";
 const MCLIP_REPO_REF: &str = "main";
 
