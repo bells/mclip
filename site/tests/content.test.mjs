@@ -28,6 +28,18 @@ test("site includes trust, installation, and FAQ content", async () => {
   assert.match(en, /Windows SmartScreen/);
 });
 
+test("root path redirects at the Vercel edge instead of rendering a temporary page", async () => {
+  const config = JSON.parse(await read("vercel.json"));
+  const redirects = config.redirects ?? [];
+
+  assert.deepEqual(redirects[0], {
+    source: "/",
+    destination: "/zh/",
+    permanent: false,
+  });
+  await assert.rejects(read("src/pages/index.astro"), { code: "ENOENT" });
+});
+
 test("site describes file history as restorable files, not path-only text", async () => {
   const zh = await read("src/pages/zh/index.astro");
   const en = await read("src/pages/en/index.astro");
@@ -42,6 +54,26 @@ test("site describes file history as restorable files, not path-only text", asyn
   assert.doesNotMatch(en, /file-path|file paths/);
   assert.match(zhChangelog, /文件保存与回填/);
   assert.match(enChangelog, /file history with file restore/);
+});
+
+test("site introduces AI Agent and mclip-cli workflows", async () => {
+  const hero = await read("src/components/Hero.astro");
+  const zh = await read("src/pages/zh/index.astro");
+  const en = await read("src/pages/en/index.astro");
+  const llms = await read("public/llms.txt");
+
+  assert.match(hero, /#agents/);
+  assert.match(zh, /AI Agent 与 CLI/);
+  assert.match(zh, /Codex、Claude Code、Cursor、Cline/);
+  assert.match(zh, /curl -fsSL https:\/\/mclip\.vercel\.app\/install\.sh \| sh/);
+  assert.match(zh, /mclip-cli list --limit 5 --json/);
+  assert.match(zh, /mclip-cli context --last 3 --format markdown/);
+  assert.match(en, /AI Agent and CLI/);
+  assert.match(en, /Codex, Claude Code, Cursor, and Cline/);
+  assert.match(en, /read-only terminal entry/);
+  assert.match(en, /mclip-cli list --limit 5 --json/);
+  assert.match(llms, /mclip-cli/);
+  assert.match(llms, /https:\/\/mclip\.vercel\.app\/install\.sh/);
 });
 
 test("shared SEO metadata declares bilingual routes and social image", async () => {

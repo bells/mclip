@@ -1,4 +1,5 @@
 ---
+import AgentCliSection from "../../components/AgentCliSection.astro";
 import Faq from "../../components/Faq.astro";
 import FeatureGrid from "../../components/FeatureGrid.astro";
 import Hero from "../../components/Hero.astro";
@@ -30,6 +31,21 @@ const features = [
   {
     title: "Bilingual and cross-platform",
     body: "mclip supports macOS and Windows, with Chinese and English UI selected from the system language on first launch.",
+  },
+];
+
+const agentCliPoints = [
+  {
+    title: "Give agents local context",
+    body: "mclip-cli list --limit 5 --json exposes recent history as structured JSON for Codex, Claude Code, Cursor, and Cline.",
+  },
+  {
+    title: "Read-only and quiet",
+    body: "The first CLI phase only reads the local history.json file. It does not open the desktop UI or modify clipboard history.",
+  },
+  {
+    title: "Built for errors, code, and prompts",
+    body: "Text, JSON, raw, and Markdown output make copied errors, code snippets, and recent context easier to pass into an AI Agent.",
   },
 ];
 
@@ -95,6 +111,22 @@ const faqItems = [
     title="Keep copy history close without adding noise"
     summary="The page mirrors the product flow: open the tray window, search, preview, copy, then get back to the task you were doing."
     features={features}
+  />
+
+  <AgentCliSection
+    id="agents"
+    eyebrow="For developers and AI agents"
+    title="AI Agent and CLI"
+    summary="mclip-cli gives Codex, Claude Code, Cursor, and Cline a read-only terminal entry into local clipboard history. Agents can fetch recent context without asking you to paste the same error or snippet again."
+    installLabel="Install mclip-cli"
+    installCommand="curl -fsSL https://mclip.vercel.app/install.sh | sh"
+    exampleLabel="Common commands"
+    examples={[
+      "mclip-cli list --limit 5 --json",
+      "mclip-cli context --last 3 --format markdown",
+    ]}
+    points={agentCliPoints}
+    note="The current installer builds mclip-cli from source, so Rust/Cargo and Git are required for now."
   />
 
   <section class="privacy-band">

@@ -1,4 +1,5 @@
 ---
+import AgentCliSection from "../../components/AgentCliSection.astro";
 import Faq from "../../components/Faq.astro";
 import FeatureGrid from "../../components/FeatureGrid.astro";
 import Hero from "../../components/Hero.astro";
@@ -30,6 +31,21 @@ const features = [
   {
     title: "中英文和跨平台",
     body: "支持 macOS 和 Windows，首次启动会按系统语言选择中文或英文。",
+  },
+];
+
+const agentCliPoints = [
+  {
+    title: "给 Agent 读上下文",
+    body: "mclip-cli list --limit 5 --json 可以把最近历史以结构化 JSON 输出给 Codex、Claude Code、Cursor、Cline。",
+  },
+  {
+    title: "只读，不打扰桌面",
+    body: "CLI 第一阶段只读取本机 history.json，不启动桌面 UI，也不修改剪贴板历史。",
+  },
+  {
+    title: "适合错误、代码和 Prompt",
+    body: "支持 text、JSON、raw、Markdown 输出，适合把报错、代码片段和最近上下文交给 AI Agent。",
   },
 ];
 
@@ -95,6 +111,22 @@ const faqItems = [
     title="把复制历史放在手边，但不打扰你"
     summary="mclip 的界面按真实使用路径组织：唤起、搜索、预览、复制，然后回到原来的工作。"
     features={features}
+  />
+
+  <AgentCliSection
+    id="agents"
+    eyebrow="面向开发者和 AI Agent"
+    title="AI Agent 与 CLI"
+    summary="mclip-cli 是给 Codex、Claude Code、Cursor、Cline 等 AI Agent 使用的本地入口。它把最近剪贴板历史变成可搜索、可结构化读取的上下文，不需要你反复手动粘贴。"
+    installLabel="安装 mclip-cli"
+    installCommand="curl -fsSL https://mclip.vercel.app/install.sh | sh"
+    exampleLabel="常用命令"
+    examples={[
+      "mclip-cli list --limit 5 --json",
+      "mclip-cli context --last 3 --format markdown",
+    ]}
+    points={agentCliPoints}
+    note="当前安装脚本会从源码构建 mclip-cli，因此需要本机已有 Rust/Cargo 和 Git。"
   />
 
   <section class="privacy-band">

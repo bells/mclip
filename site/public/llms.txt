@@ -10,6 +10,7 @@ Chinese changelog: https://mclip.vercel.app/zh/changelog/
 English changelog: https://mclip.vercel.app/en/changelog/
 Source code: https://github.com/bells/mclip
 Downloads: https://github.com/bells/mclip/releases
+mclip-cli installer: https://mclip.vercel.app/install.sh
 
 ## Product facts
 
@@ -23,6 +24,9 @@ Downloads: https://github.com/bells/mclip/releases
 - The main app window shows the latest 10 items and groups older history
 - Global shortcut: CommandOrControl+Shift+V
 - Interface languages: Chinese and English
+- AI Agent support: mclip-cli provides read-only terminal access to local clipboard history
+- Typical CLI commands: mclip-cli list --limit 5 --json and mclip-cli context --last 3 --format markdown
+- The public mclip-cli install command is curl -fsSL https://mclip.vercel.app/install.sh | sh
 
 ## Privacy and trust
 

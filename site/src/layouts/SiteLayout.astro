@@ -29,8 +29,8 @@ const softwareId = `${site}/#software`;
 const productUrl = lang === "zh-CN" ? alternateZh : alternateEn;
 const productDescription =
   lang === "zh-CN"
-    ? "mclip 是面向 macOS 和 Windows 的轻量、本地优先剪贴板历史工具，支持文本、图片、文件历史、搜索、预览和托盘快捷唤起。"
-    : "mclip is a lightweight, local-first clipboard history app for macOS and Windows, with text, image, file history, search, previews, and tray shortcuts.";
+    ? "mclip 是面向 macOS 和 Windows 的轻量、本地优先剪贴板历史工具，支持文本、图片、文件历史、搜索、预览、托盘快捷唤起和只读 mclip-cli。"
+    : "mclip is a lightweight, local-first clipboard history app for macOS and Windows, with text, image, file history, search, previews, tray shortcuts, and a read-only mclip-cli.";
 
 const jsonLdGraph = [
   {
@@ -83,6 +83,7 @@ const jsonLdGraph = [
       "Independent preview windows",
       "Menu bar and system tray access",
       "Global shortcut",
+      "Read-only mclip-cli for AI Agent workflows",
       "Chinese and English interface",
     ],
   },

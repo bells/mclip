@@ -1,0 +1,60 @@
+---
+interface AgentCliPoint {
+  title: string;
+  body: string;
+}
+
+interface Props {
+  id: string;
+  eyebrow: string;
+  title: string;
+  summary: string;
+  installLabel: string;
+  installCommand: string;
+  exampleLabel: string;
+  examples: string[];
+  points: AgentCliPoint[];
+  note: string;
+}
+
+const {
+  id,
+  eyebrow,
+  title,
+  summary,
+  installLabel,
+  installCommand,
+  exampleLabel,
+  examples,
+  points,
+  note,
+} = Astro.props;
+---
+
+<section class="section agent-cli-section" id={id}>
+  <div class="agent-cli-board">
+    <div class="agent-cli-copy">
+      <p class="eyebrow">{eyebrow}</p>
+      <h2>{title}</h2>
+      <p>{summary}</p>
+      <div class="agent-points">
+        {
+          points.map((point) => (
+            <article>
+              <h3>{point.title}</h3>
+              <p>{point.body}</p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+
+    <div class="agent-terminal" aria-label={title}>
+      <p class="terminal-label">{installLabel}</p>
+      <pre><code>{installCommand}</code></pre>
+      <p class="terminal-label">{exampleLabel}</p>
+      {examples.map((example) => <pre><code>{example}</code></pre>)}
+      <p class="agent-cli-note">{note}</p>
+    </div>
+  </div>
+</section>

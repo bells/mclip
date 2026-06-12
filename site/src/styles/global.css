@@ -418,6 +418,91 @@ h3 {
   border-radius: var(--radius);
 }
 
+.agent-cli-section {
+  padding-bottom: clamp(60px, 8vw, 108px);
+}
+
+.agent-cli-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.78fr);
+  gap: clamp(28px, 5vw, 70px);
+  align-items: stretch;
+  padding: clamp(28px, 5vw, 58px);
+  background:
+    linear-gradient(135deg, oklch(0.24 0.034 138 / 0.94), oklch(0.16 0.018 138 / 0.98)),
+    radial-gradient(circle at 92% 8%, oklch(0.72 0.16 128 / 0.16), transparent 20rem);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.agent-cli-copy > p {
+  max-width: 68ch;
+}
+
+.agent-points {
+  margin-top: clamp(26px, 4vw, 44px);
+  border-top: 1px solid var(--line);
+}
+
+.agent-points article {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.32fr) minmax(0, 1fr);
+  gap: 22px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.agent-points h3,
+.agent-points p {
+  margin-bottom: 0;
+}
+
+.agent-terminal {
+  align-self: center;
+  padding: 20px;
+  color: var(--text);
+  background: oklch(0.11 0.014 138 / 0.92);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 22px 46px oklch(0.05 0.01 138 / 0.34);
+}
+
+.terminal-label {
+  margin: 0 0 9px;
+  color: var(--leaf-bright);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.agent-terminal pre {
+  overflow-x: auto;
+  margin: 0 0 18px;
+  padding: 13px 14px;
+  color: var(--ink);
+  line-height: 1.55;
+  background: oklch(0.18 0.018 138);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.agent-terminal code {
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    monospace;
+  font-size: 0.9rem;
+  white-space: pre;
+}
+
+.agent-cli-note {
+  margin-bottom: 0;
+  color: var(--dim);
+  font-size: 0.9rem;
+}
+
 .privacy-band h2 {
   max-width: 720px;
 }
@@ -550,6 +635,7 @@ h3 {
 @media (max-width: 980px) {
   .hero-shell,
   .section-heading,
+  .agent-cli-board,
   .privacy-band {
     grid-template-columns: 1fr;
   }
@@ -597,6 +683,10 @@ h3 {
     padding-left: 0;
     border-left: 0;
   }
+
+  .agent-terminal {
+    align-self: stretch;
+  }
 }
 
 @media (max-width: 620px) {
@@ -632,6 +722,7 @@ h3 {
   }
 
   .feature-row,
+  .agent-points article,
   .install-row {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -643,6 +734,10 @@ h3 {
 
   .privacy-band {
     padding: 26px;
+  }
+
+  .agent-cli-board {
+    padding: 24px;
   }
 
   .site-footer {
