@@ -66,6 +66,7 @@ pub(crate) fn activate_paste_target_on_main_thread(
         .map_err(|error| error.to_string())?
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn choose_paste_target(
     frontmost_process_id: i32,
     current_process_id: i32,

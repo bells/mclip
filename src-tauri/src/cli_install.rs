@@ -298,11 +298,11 @@ fn default_install_dir() -> Result<PathBuf, String> {
 
     #[cfg(target_os = "windows")]
     {
-        return env::var_os("LOCALAPPDATA")
+        env::var_os("LOCALAPPDATA")
             .or_else(|| env::var_os("USERPROFILE"))
             .map(PathBuf::from)
             .map(|base| base.join("mclip").join("bin"))
-            .ok_or_else(|| "failed to locate a user install directory".to_string());
+            .ok_or_else(|| "failed to locate a user install directory".to_string())
     }
 
     #[cfg(not(target_os = "windows"))]
