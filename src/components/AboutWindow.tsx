@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import appIconUrl from "../../src-tauri/icons/128x128.png";
 
-import { APP_NAME, DEFAULT_APP_VERSION, DEFAULT_SETTINGS } from "../constants";
+import {
+  APP_NAME,
+  DEFAULT_APP_VERSION,
+  DEFAULT_SETTINGS,
+  GITHUB_LATEST_RELEASE_API_URL,
+} from "../constants";
 import { DialogWindowControls } from "./DialogWindowControls";
 import { getTranslations } from "../i18n";
 import {
@@ -20,14 +25,29 @@ import {
 } from "../lib/tauri";
 import type { AppSettings } from "../types";
 import { normalizeSettings } from "../utils/settings";
+import {
+  isReleaseNewer,
+  parseGitHubLatestReleaseResponse,
+} from "../utils/updateCheck";
+
+type UpdateStatus =
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "available"; latestVersion: string }
+  | { kind: "upToDate"; latestVersion: string }
+  | { kind: "notFound" }
+  | { kind: "error"; reason: "check" | "openRelease" };
 
 export function AboutWindow() {
   const [appVersion, setAppVersion] = useState(DEFAULT_APP_VERSION);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [diagnosticMessage, setDiagnosticMessage] = useState("");
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ kind: "idle" });
   // 根据当前语言取文案；settings 更新后组件会重新渲染，t 也会跟着切换语言。
   const translations = getTranslations(settings.language);
   const t = translations.about;
+  const isCheckingUpdates = updateStatus.kind === "checking";
+  const isUpdateAvailable = updateStatus.kind === "available";
 
   useEffect(() => {
     let isActive = true;
@@ -120,6 +140,76 @@ export function AboutWindow() {
     }
   };
 
+  const handleCheckUpdates = async () => {
+    if (isCheckingUpdates) {
+      return;
+    }
+
+    try {
+      setDiagnosticMessage("");
+      setUpdateStatus({ kind: "checking" });
+
+      const response = await fetch(GITHUB_LATEST_RELEASE_API_URL, {
+        headers: {
+          Accept: "application/vnd.github+json",
+        },
+      });
+
+      if (response.status === 404) {
+        setUpdateStatus({ kind: "notFound" });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`GitHub release check failed: ${response.status}`);
+      }
+
+      const release = parseGitHubLatestReleaseResponse(await response.json());
+
+      if (!release) {
+        setUpdateStatus({ kind: "notFound" });
+        return;
+      }
+
+      setUpdateStatus(
+        isReleaseNewer(release.version, appVersion)
+          ? { kind: "available", latestVersion: release.version }
+          : { kind: "upToDate", latestVersion: release.version },
+      );
+    } catch (error) {
+      console.error("检查更新失败:", error);
+      setUpdateStatus({ kind: "error", reason: "check" });
+    }
+  };
+
+  const handleOpenLatestRelease = async () => {
+    try {
+      await openProjectLink("latestRelease");
+    } catch (error) {
+      console.error("打开最新版本下载页失败:", error);
+      setUpdateStatus({ kind: "error", reason: "openRelease" });
+    }
+  };
+
+  const getUpdateStatusMessage = () => {
+    switch (updateStatus.kind) {
+      case "checking":
+        return t.updateChecking;
+      case "available":
+        return t.updateAvailable(updateStatus.latestVersion);
+      case "upToDate":
+        return t.updateUpToDate(updateStatus.latestVersion);
+      case "notFound":
+        return t.updateNotFound;
+      case "error":
+        return updateStatus.reason === "openRelease"
+          ? t.updateOpenReleaseError
+          : t.updateCheckError;
+      default:
+        return "";
+    }
+  };
+
   return (
     <div className="app-dialog-frame app-about-window">
       <div className="app-dialog-panel">
@@ -152,6 +242,37 @@ export function AboutWindow() {
               </button>
             ))}
           </div>
+          <div className="app-update-actions">
+            <button
+              className="app-diagnostics-btn"
+              disabled={isCheckingUpdates}
+              onClick={() => {
+                void handleCheckUpdates();
+              }}
+              type="button"
+            >
+              {isCheckingUpdates ? t.updateChecking : t.updateCheck}
+            </button>
+            {isUpdateAvailable ? (
+              <button
+                className="app-diagnostics-btn"
+                onClick={() => {
+                  void handleOpenLatestRelease();
+                }}
+                type="button"
+              >
+                {t.updateOpenRelease}
+              </button>
+            ) : null}
+          </div>
+          <p
+            className={`app-update-status ${
+              updateStatus.kind === "error" ? "is-error" : ""
+            }`}
+            aria-live="polite"
+          >
+            {getUpdateStatusMessage()}
+          </p>
           <div className="app-diagnostics-actions">
             <button
               className="app-diagnostics-btn"

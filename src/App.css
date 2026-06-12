@@ -1424,6 +1424,13 @@ button {
   margin-top: 12px;
 }
 
+.app-update-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
 .app-diagnostics-btn {
   min-width: 0;
   min-height: 32px;
@@ -1441,6 +1448,20 @@ button {
 
 .app-diagnostics-btn:hover {
   background: var(--app-control-bg-hover);
+}
+
+.app-update-status {
+  min-height: 16px;
+  margin: 7px 0 0;
+  color: rgba(124, 199, 193, 0.92);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.app-update-status.is-error {
+  color: rgba(255, 117, 109, 0.92);
 }
 
 .app-diagnostics-status {

@@ -339,8 +339,6 @@ export function PreferencesWindow() {
                   </select>
                 </div>
 
-                <div className="app-settings-group-label">{t.behaviorLabel}</div>
-
                 <div className="app-settings-row">
                   <div className="app-settings-copy">
                     <div className="app-settings-label">{t.autoPasteLabel}</div>

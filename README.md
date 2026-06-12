@@ -24,6 +24,7 @@
 - 文件列表会对过长文件名做中间省略并保留扩展名；文件详情会显示完整绝对路径和完整文件名。
 - 支持搜索、方向键选择、回车复制、`Esc` 收起窗口。
 - 支持偏好设置：登录时启动、界面语言、自动粘贴、最大历史条数、保存类型。
+- 关于窗口支持手动检查 GitHub Releases 上的新版本。
 - 支持中英文界面，首次启动会根据系统语言选择中文或英文。
 
 ### 安装使用
@@ -90,7 +91,7 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - `settings.json`：偏好设置。
 - `history-assets/images/`：图片历史生成的 PNG 资源。
 
-应用本身不会上传剪贴板内容。Windows 安装器仅在缺少 WebView2 运行时时可能联网下载运行时组件。
+应用本身不会上传剪贴板内容。只有在你手动点击“检查更新”时，应用会请求 GitHub Releases 的最新版本信息。Windows 安装器仅在缺少 WebView2 运行时时可能联网下载运行时组件。
 
 ### 本地开发
 
@@ -158,6 +159,7 @@ Current version: `0.1.0`
 - Long file names are middle-ellipsized in lists to preserve extensions, while file details show the full absolute path and full file name.
 - Supports search, arrow-key selection, Enter-to-copy, and Escape-to-hide.
 - Preferences include launch at login, display language, auto paste, maximum history count, and enabled content types.
+- The About window can manually check GitHub Releases for a newer version.
 - Supports Chinese and English UI. The first launch follows the system language when possible.
 
 ### Installation
@@ -222,7 +224,7 @@ Open `mclip` again after removing the quarantine attribute.
 - `settings.json`: preferences.
 - `history-assets/images/`: PNG assets generated for image history.
 
-The app does not upload clipboard contents. On Windows, the installer may access the network only to download WebView2 when the runtime is missing.
+The app does not upload clipboard contents. It requests the latest GitHub Releases version only when you manually click “Check for Updates”. On Windows, the installer may access the network only to download WebView2 when the runtime is missing.
 
 ### Development
 

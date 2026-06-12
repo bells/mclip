@@ -61,7 +61,7 @@ export type PreviewWindowPosition = {
   side: PreviewWindowSide;
 };
 
-export type ProjectLinkTarget = "github" | "homepage";
+export type ProjectLinkTarget = "github" | "homepage" | "latestRelease";
 
 export function getSettings() {
   return invoke<AppSettings>("get_settings");

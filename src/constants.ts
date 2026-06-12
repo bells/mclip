@@ -4,6 +4,8 @@ import type { AppSettings } from "./types";
 
 export const APP_NAME = "mclip";
 export const DEFAULT_APP_VERSION = "0.1.0";
+export const GITHUB_LATEST_RELEASE_API_URL =
+  "https://api.github.com/repos/bells/mclip/releases/latest";
 export const HISTORY_GROUP_SIZE = 10;
 export const ITEM_PREVIEW_WIDTH = 304;
 export const GROUP_PREVIEW_WIDTH = 320;
