@@ -249,6 +249,86 @@ pub fn load_history_from_path(path: &Path) -> Result<Vec<HistoryEntry>, String> 
     parse_history_content(&content)
 }
 
+pub fn persist_history_to_path(path: &Path, history: &[HistoryEntry]) -> Result<(), String> {
+    let content = serde_json::to_string_pretty(history).map_err(|error| error.to_string())?;
+    write_text_atomically(path, &content)
+}
+
+pub fn merge_text_history_item(
+    history: Vec<HistoryEntry>,
+    text: String,
+    source_app: Option<String>,
+    max_history_count: usize,
+) -> (Vec<HistoryEntry>, HistoryEntry) {
+    let copied_at = current_timestamp_millis();
+    let new_entry = create_text_entry(text, copied_at, copied_at, source_app, 1);
+    let next_history = merge_history(history, new_entry.clone(), max_history_count);
+    let saved_entry = next_history.first().cloned().unwrap_or(new_entry);
+
+    (next_history, saved_entry)
+}
+
+pub fn remove_history_item_by_id(
+    history: Vec<HistoryEntry>,
+    id: &str,
+) -> (Vec<HistoryEntry>, bool) {
+    remove_history_item(history, id)
+}
+
+pub fn clear_history_from_path(path: &Path) -> Result<(), String> {
+    if path.exists() {
+        fs::remove_file(path).map_err(|error| error.to_string())?;
+    }
+
+    remove_history_assets_for_history_path(path)
+}
+
+pub fn cleanup_unused_image_assets_for_history_path(
+    history_path: &Path,
+    history: &[HistoryEntry],
+) -> Result<(), String> {
+    let image_dir = history_assets_dir_for_history_path(history_path).join("images");
+
+    if !image_dir.exists() {
+        return Ok(());
+    }
+
+    let used_paths: HashSet<PathBuf> = history
+        .iter()
+        .filter_map(|item| item.image_path().map(PathBuf::from))
+        .collect();
+
+    for entry in fs::read_dir(&image_dir).map_err(|error| error.to_string())? {
+        let entry = entry.map_err(|error| error.to_string())?;
+        let path = entry.path();
+
+        if path.extension().and_then(|extension| extension.to_str()) == Some("png")
+            && !used_paths.contains(&path)
+        {
+            fs::remove_file(path).map_err(|error| error.to_string())?;
+        }
+    }
+
+    Ok(())
+}
+
+fn remove_history_assets_for_history_path(history_path: &Path) -> Result<(), String> {
+    let assets_dir = history_assets_dir_for_history_path(history_path);
+
+    if assets_dir.exists() {
+        fs::remove_dir_all(assets_dir).map_err(|error| error.to_string())?;
+    }
+
+    Ok(())
+}
+
+fn history_assets_dir_for_history_path(history_path: &Path) -> PathBuf {
+    history_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("history-assets")
+}
+
 fn parse_history_content(content: &str) -> Result<Vec<HistoryEntry>, String> {
     if let Ok(history) = serde_json::from_str::<Vec<HistoryEntry>>(content) {
         return Ok(history);
@@ -267,8 +347,7 @@ fn parse_history_content(content: &str) -> Result<Vec<HistoryEntry>, String> {
 
 fn persist_history(app_handle: &AppHandle, history: &[HistoryEntry]) -> Result<(), String> {
     let path = history_path(app_handle)?;
-    let content = serde_json::to_string_pretty(history).map_err(|error| error.to_string())?;
-    write_text_atomically(&path, &content)
+    persist_history_to_path(&path, history)
 }
 
 fn history_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
@@ -501,7 +580,7 @@ fn current_timestamp_millis() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::{
-        create_text_entry, files_display_text, hash_hex, merge_history,
+        create_text_entry, files_display_text, hash_hex, merge_history, merge_text_history_item,
         migrate_legacy_text_history, migrate_structured_text_history, remove_history_item,
         HistoryEntry, HistoryKind, LegacyTextHistoryEntry, NewHistoryItem,
     };
@@ -571,6 +650,23 @@ mod tests {
         assert_eq!(merged[0].common().display_text, "latest");
         assert_eq!(merged[1].common().display_text, "first");
         assert_eq!(merged.len(), 2);
+    }
+
+    #[test]
+    fn merge_text_history_item_reuses_text_dedupe_rules() {
+        let history = vec![
+            text_entry("first", 1000, None),
+            text_entry("second", 2000, Some("Notes")),
+        ];
+
+        let (merged, saved_entry) =
+            merge_text_history_item(history, "second".to_string(), Some("CLI".to_string()), 10);
+
+        assert_eq!(saved_entry.id(), merged[0].id());
+        assert_eq!(merged[0].common().display_text, "second");
+        assert_eq!(merged[0].common().first_copied_at, 2000);
+        assert_eq!(merged[0].common().source_app.as_deref(), Some("CLI"));
+        assert_eq!(merged[0].common().copy_count, 2);
     }
 
     #[test]

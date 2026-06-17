@@ -40,8 +40,8 @@ const agentCliPoints = [
     body: "mclip-cli list --limit 5 --json 可以把最近历史以结构化 JSON 输出给 Codex、Claude Code、Cursor、Cline。",
   },
   {
-    title: "只读，不打扰桌面",
-    body: "CLI 第一阶段只读取本机 history.json，不启动桌面 UI，也不修改剪贴板历史。",
+    title: "受控操作，不抢桌面",
+    body: "list/get/search/context 只读；add 只写入历史不覆盖系统剪贴板；copy 才会把指定历史项写回剪贴板。",
   },
   {
     title: "适合错误、代码和 Prompt",
@@ -88,7 +88,7 @@ const faqItems = [
   lang="zh-CN"
   path="/zh/"
   title="mclip - 轻量、本地优先的剪贴板历史工具"
-  description="mclip 是面向 macOS 和 Windows 的本地优先剪贴板历史工具，支持文本、图片、文件历史、搜索、独立预览、托盘快捷唤起和只读 AI Agent CLI。"
+  description="mclip 是面向 macOS 和 Windows 的本地优先剪贴板历史工具，支持文本、图片、文件历史、搜索、独立预览、托盘快捷唤起和 AI Agent CLI。"
   faqItems={faqItems}
 >
   <Hero
@@ -117,13 +117,15 @@ const faqItems = [
     id="agents"
     eyebrow="面向开发者和 AI Agent"
     title="AI Agent 与 CLI"
-    summary="mclip-cli 是给 Codex、Claude Code、Cursor、Cline 等 AI Agent 使用的本地入口。它把最近剪贴板历史变成可搜索、可结构化读取的上下文，不需要你反复手动粘贴。"
+    summary="mclip-cli 是给 Codex、Claude Code、Cursor、Cline 等 AI Agent 使用的本地入口。它把最近剪贴板历史变成可搜索、可结构化读取、可受控操作的上下文，不需要你反复手动粘贴。"
     installLabel="安装 mclip-cli"
     installCommand="curl -fsSL https://www.mclip.cn/install.sh | sh"
     exampleLabel="常用命令"
     examples={[
       "mclip-cli list --limit 5 --json",
       "mclip-cli context --last 3 --format markdown",
+      "mclip-cli add \"note from agent\"",
+      "mclip-cli copy --index 1",
     ]}
     points={agentCliPoints}
     note="当前安装脚本会从源码构建 mclip-cli，因此需要本机已有 Rust/Cargo 和 Git。"

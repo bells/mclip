@@ -40,8 +40,8 @@ const agentCliPoints = [
     body: "mclip-cli list --limit 5 --json exposes recent history as structured JSON for Codex, Claude Code, Cursor, and Cline.",
   },
   {
-    title: "Read-only and quiet",
-    body: "The first CLI phase only reads the local history.json file. It does not open the desktop UI or modify clipboard history.",
+    title: "Controlled actions, no desktop noise",
+    body: "list/get/search/context are read-only. add writes history without replacing the system clipboard; copy writes one selected item back to the clipboard.",
   },
   {
     title: "Built for errors, code, and prompts",
@@ -88,7 +88,7 @@ const faqItems = [
   lang="en"
   path="/en/"
   title="mclip - Lightweight, local-first clipboard history"
-  description="mclip is a local-first clipboard history app for macOS and Windows, with text, image, and file history, independent previews, tray shortcuts, and a read-only AI Agent CLI."
+  description="mclip is a local-first clipboard history app for macOS and Windows, with text, image, and file history, independent previews, tray shortcuts, and an AI Agent CLI."
   faqItems={faqItems}
 >
   <Hero
@@ -117,13 +117,15 @@ const faqItems = [
     id="agents"
     eyebrow="For developers and AI agents"
     title="AI Agent and CLI"
-    summary="mclip-cli gives Codex, Claude Code, Cursor, and Cline a read-only terminal entry into local clipboard history. Agents can fetch recent context without asking you to paste the same error or snippet again."
+    summary="mclip-cli gives Codex, Claude Code, Cursor, and Cline a local terminal entry into clipboard history. Agents can fetch recent context, add important output, or copy a selected item without asking you to paste the same snippet again."
     installLabel="Install mclip-cli"
     installCommand="curl -fsSL https://www.mclip.cn/install.sh | sh"
     exampleLabel="Common commands"
     examples={[
       "mclip-cli list --limit 5 --json",
       "mclip-cli context --last 3 --format markdown",
+      "mclip-cli add \"note from agent\"",
+      "mclip-cli copy --index 1",
     ]}
     points={agentCliPoints}
     note="The current installer builds mclip-cli from source, so Rust/Cargo and Git are required for now."

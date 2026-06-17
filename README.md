@@ -38,13 +38,17 @@
 
 ### AI Agent 与 CLI
 
-第一阶段 CLI 提供只读历史访问，方便 Codex、Claude Code、Cursor、Cline 等工具通过命令读取最近剪贴板上下文。开发环境中可以这样调用：
+CLI 提供本地历史访问和受控操作能力，方便 Codex、Claude Code、Cursor、Cline 等工具通过命令读取最近剪贴板上下文，或把重要输出写入 mclip 历史。开发环境中可以这样调用：
 
 ```bash
 npm run cli -- list --limit 5 --json
 npm run cli -- get --index 1 --raw
 npm run cli -- search "panic" --json
 npm run cli -- context --last 3 --format markdown
+npm run cli -- add "note from agent"
+npm run cli -- copy --index 1
+npm run cli -- delete --id h_xxx
+npm run cli -- clear --yes
 ```
 
 CLI 默认读取本机 mclip 配置目录中的 `history.json`。排查或测试时可以显式指定路径：
@@ -61,7 +65,7 @@ npm run cli -- --history-path /path/to/history.json list --json
 curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
-当前 CLI 不启动桌面 UI，也不会修改剪贴板历史；它只读取本地历史并输出 text、JSON、raw 或 Markdown。安装脚本第一版会从源码构建 `mclip-cli`，因此需要本机已有 Rust/Cargo 和 Git。
+当前 CLI 不启动桌面 UI。`list/get/search/context` 只读取历史并输出 text、JSON、raw 或 Markdown；`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy` 会把指定历史项写回系统剪贴板；`delete` 和 `clear --yes` 会修改本地 `history.json`。安装脚本第一版会从源码构建 `mclip-cli`，因此需要本机已有 Rust/Cargo 和 Git。
 
 ### Windows 注意事项
 
@@ -175,13 +179,17 @@ After installation, `mclip` runs in the system tray or menu bar. Click the tray 
 
 ### AI Agent And CLI
 
-The first CLI phase provides read-only history access so tools such as Codex, Claude Code, Cursor, and Cline can read recent clipboard context from the terminal. In development, run:
+The CLI provides local history access and controlled actions so tools such as Codex, Claude Code, Cursor, and Cline can read recent clipboard context or write important output back into mclip history. In development, run:
 
 ```bash
 npm run cli -- list --limit 5 --json
 npm run cli -- get --index 1 --raw
 npm run cli -- search "panic" --json
 npm run cli -- context --last 3 --format markdown
+npm run cli -- add "note from agent"
+npm run cli -- copy --index 1
+npm run cli -- delete --id h_xxx
+npm run cli -- clear --yes
 ```
 
 By default, the CLI reads `history.json` from the local mclip app configuration directory. For troubleshooting or tests, pass an explicit path:
@@ -198,7 +206,7 @@ You can also install directly from the terminal:
 curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
-The current CLI does not start the desktop UI and does not modify clipboard history. It only reads local history and emits text, JSON, raw, or Markdown output. The first install script builds `mclip-cli` from source, so Rust/Cargo and Git must be available locally.
+The current CLI does not start the desktop UI. `list/get/search/context` only read history and emit text, JSON, raw, or Markdown output; `add` writes text into history without replacing the current system clipboard; `copy` writes a selected history item back to the system clipboard; `delete` and `clear --yes` modify the local `history.json`. The first install script builds `mclip-cli` from source, so Rust/Cargo and Git must be available locally.
 
 ### Windows Notes
 

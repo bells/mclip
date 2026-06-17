@@ -117,7 +117,7 @@ fn process_clipboard_snapshot(
     }
 }
 
-fn write_history_item_to_clipboard(history_item: HistoryEntry) -> Result<(), String> {
+pub(crate) fn write_history_item_to_clipboard(history_item: HistoryEntry) -> Result<(), String> {
     let mut clipboard = Clipboard::new().map_err(|error| error.to_string())?;
 
     match history_item {

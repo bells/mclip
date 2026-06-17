@@ -50,7 +50,7 @@ npm run cli:install
 
 提交前优先跑 `npm run check`。如果只改 TSX/CSS 文档化小界面，可以先跑 `npm run build` 快速确认，再跑完整检查。
 
-CLI 第一阶段是只读 Agent 入口。`npm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。`npm run cli:test` 是 CLI 的快速回归测试，`npm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
+CLI 是 AI Agent/终端入口。`npm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持只读命令 `list/get/search/context`，以及操作命令 `add/copy/delete/clear`。`add` 只写历史不覆盖系统剪贴板，`copy` 才会写回系统剪贴板，`clear` 必须带 `--yes`。`npm run cli:test` 是 CLI 的快速回归测试，`npm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
 
 ## 代码地图
 
@@ -94,10 +94,10 @@ src-tauri/
   capabilities/default.json           全窗口默认权限
   capabilities/desktop.json           桌面端 positioner 权限
   build.rs                            Tauri build script
-  src/bin/mclip-cli.rs                独立 CLI 入口，供 AI Agent/终端只读访问历史
+  src/bin/mclip-cli.rs                独立 CLI 入口，供 AI Agent/终端访问和操作历史
   src/main.rs                         发布版 Windows 隐藏控制台，转入 lib.rs
   src/lib.rs                          Tauri 应用入口、托盘、快捷键、命令注册
-  src/agent_cli.rs                    CLI 参数解析、历史筛选和 text/json/raw/markdown 输出
+  src/agent_cli.rs                    CLI 参数解析、历史筛选、操作命令和 text/json/raw/markdown 输出
   src/cli_install.rs                  mclip-cli 安装状态检测和一键安装命令
   src/window.rs                       主窗口和 preview/about/preferences 的尺寸、定位、显示隐藏
   src/clipboard.rs                    剪贴板读写、文件列表回填、图片处理、Windows 事件监听、macOS changeCount 轮询
@@ -213,7 +213,7 @@ Windows 监听注意：
 
 - 由 `src-tauri/src/history.rs` 管理。
 - 存在系统 app config 目录的 `history.json`。
-- CLI 通过 `load_history_from_path` 只读复用同一份历史解析逻辑；桌面端历史损坏时仍回退为空并写日志，CLI 会把解析错误输出到 stderr。
+- CLI 通过 `load_history_from_path` 复用同一份历史解析逻辑；桌面端历史损坏时仍回退为空并写日志，CLI 会把解析错误输出到 stderr。CLI 写入通过 path-based helper 复用稳定 id、去重、原子写入和图片资源清理逻辑。
 - CLI 安装第一版默认复制/构建到用户目录，例如 macOS/Linux 的 `~/.local/bin/mclip-cli`；不要在未明确确认前写 `/usr/local/bin` 或使用 `sudo`。
 - 公开安装命令使用 `curl -fsSL https://www.mclip.cn/install.sh | sh`；`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
 - 新内容先生成稳定 id，再与已有历史合并。

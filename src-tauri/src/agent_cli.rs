@@ -1,8 +1,16 @@
 use std::env;
-use std::io::{self, Write};
-use std::path::PathBuf;
+use std::io::{self, IsTerminal, Read, Write};
+use std::path::{Path, PathBuf};
 
-use crate::history::{load_history_from_path, HistoryEntry, HistoryKind};
+use serde::Serialize;
+
+use crate::clipboard::write_history_item_to_clipboard;
+use crate::history::{
+    cleanup_unused_image_assets_for_history_path, clear_history_from_path, load_history_from_path,
+    merge_text_history_item, persist_history_to_path, remove_history_item_by_id, HistoryEntry,
+    HistoryKind,
+};
+use crate::settings::MAX_MAX_HISTORY_COUNT;
 
 const APP_IDENTIFIER: &str = "com.watson.mclip";
 
@@ -19,6 +27,15 @@ enum CliError {
     Help,
     Usage(String),
     Runtime(String),
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ActionResult {
+    action: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    id: Option<String>,
+    history_count: usize,
 }
 
 pub fn run_from_env() -> i32 {
@@ -65,6 +82,10 @@ fn run(args: Vec<String>) -> Result<String, CliError> {
         "get" => run_get(&history, command_args),
         "search" => run_search(&history, command_args),
         "context" => run_context(&history, command_args),
+        "add" => run_add(&path, history, command_args),
+        "copy" => run_copy(&history, command_args),
+        "delete" | "remove" => run_delete(&path, &history, command_args),
+        "clear" => run_clear(&path, command_args),
         other => Err(CliError::Usage(format!("unknown command: {other}"))),
     }
 }
@@ -268,6 +289,165 @@ fn run_context(history: &[HistoryEntry], args: &[String]) -> Result<String, CliE
     format_entries(&entries, format)
 }
 
+fn run_add(path: &Path, history: Vec<HistoryEntry>, args: &[String]) -> Result<String, CliError> {
+    let mut source_app = Some("mclip-cli".to_string());
+    let mut max_history_count = MAX_MAX_HISTORY_COUNT as usize;
+    let mut json = false;
+    let mut text_parts = Vec::new();
+    let mut index = 0;
+
+    while index < args.len() {
+        match args[index].as_str() {
+            "--source-app" => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| CliError::Usage("--source-app requires a value".to_string()))?;
+                source_app = if value == "none" {
+                    None
+                } else {
+                    Some(value.to_string())
+                };
+                index += 2;
+            }
+            "--max-history" => {
+                max_history_count = parse_usize_option(args, index, "--max-history")?;
+                index += 2;
+            }
+            "--json" => {
+                json = true;
+                index += 1;
+            }
+            "--help" | "-h" => return Err(CliError::Help),
+            other if other.starts_with('-') => {
+                return Err(CliError::Usage(format!("unknown add option: {other}")));
+            }
+            value => {
+                text_parts.push(value.to_string());
+                index += 1;
+            }
+        }
+    }
+
+    let text = if text_parts.is_empty() {
+        read_stdin_text()?
+    } else {
+        text_parts.join(" ")
+    };
+
+    if text.trim().is_empty() {
+        return Err(CliError::Usage(
+            "add requires non-empty text from arguments or stdin".to_string(),
+        ));
+    }
+
+    let (next_history, saved_entry) =
+        merge_text_history_item(history, text, source_app, max_history_count);
+    persist_history_to_path(path, &next_history).map_err(CliError::Runtime)?;
+    cleanup_unused_image_assets_for_history_path(path, &next_history).map_err(CliError::Runtime)?;
+
+    format_action_result(
+        ActionResult {
+            action: "add",
+            id: Some(saved_entry.id().to_string()),
+            history_count: next_history.len(),
+        },
+        json,
+    )
+}
+
+fn run_copy(history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
+    run_copy_with_writer(history, args, write_history_item_to_clipboard)
+}
+
+fn run_copy_with_writer<F>(
+    history: &[HistoryEntry],
+    args: &[String],
+    mut write_clipboard: F,
+) -> Result<String, CliError>
+where
+    F: FnMut(HistoryEntry) -> Result<(), String>,
+{
+    let (selector, json) = parse_selector_action_args(args, "copy")?;
+    let entry = find_entry(history, selector)?.clone();
+    let id = entry.id().to_string();
+    write_clipboard(entry).map_err(CliError::Runtime)?;
+
+    format_action_result(
+        ActionResult {
+            action: "copy",
+            id: Some(id),
+            history_count: history.len(),
+        },
+        json,
+    )
+}
+
+fn run_delete(path: &Path, history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
+    let (selector, json) = parse_selector_action_args(args, "delete")?;
+    let id = find_entry(history, selector)?.id().to_string();
+    let (next_history, did_delete) = remove_history_item_by_id(history.to_vec(), &id);
+
+    if !did_delete {
+        return Err(CliError::Runtime(format!(
+            "history item {id} was not found"
+        )));
+    }
+
+    if next_history.is_empty() {
+        clear_history_from_path(path).map_err(CliError::Runtime)?;
+    } else {
+        persist_history_to_path(path, &next_history).map_err(CliError::Runtime)?;
+        cleanup_unused_image_assets_for_history_path(path, &next_history)
+            .map_err(CliError::Runtime)?;
+    }
+
+    format_action_result(
+        ActionResult {
+            action: "delete",
+            id: Some(id),
+            history_count: next_history.len(),
+        },
+        json,
+    )
+}
+
+fn run_clear(path: &Path, args: &[String]) -> Result<String, CliError> {
+    let mut confirmed = false;
+    let mut json = false;
+    let mut index = 0;
+
+    while index < args.len() {
+        match args[index].as_str() {
+            "--yes" | "--force" => {
+                confirmed = true;
+                index += 1;
+            }
+            "--json" => {
+                json = true;
+                index += 1;
+            }
+            "--help" | "-h" => return Err(CliError::Help),
+            other => return Err(CliError::Usage(format!("unknown clear option: {other}"))),
+        }
+    }
+
+    if !confirmed {
+        return Err(CliError::Usage(
+            "clear requires --yes to remove clipboard history".to_string(),
+        ));
+    }
+
+    clear_history_from_path(path).map_err(CliError::Runtime)?;
+    format_action_result(
+        ActionResult {
+            action: "clear",
+            id: None,
+            history_count: 0,
+        },
+        json,
+    )
+}
+
 #[derive(Debug)]
 enum EntrySelector {
     Index(usize),
@@ -291,6 +471,93 @@ fn find_entry(
             .iter()
             .find(|entry| entry.id() == id)
             .ok_or_else(|| CliError::Runtime(format!("history item {id} was not found"))),
+    }
+}
+
+fn parse_selector_action_args(
+    args: &[String],
+    command_name: &str,
+) -> Result<(EntrySelector, bool), CliError> {
+    let mut selector = None;
+    let mut json = false;
+    let mut index = 0;
+
+    while index < args.len() {
+        match args[index].as_str() {
+            "--index" => {
+                selector = Some(EntrySelector::Index(parse_usize_option(
+                    args, index, "--index",
+                )?));
+                index += 2;
+            }
+            "--id" => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| CliError::Usage("--id requires a value".to_string()))?;
+                selector = Some(EntrySelector::Id(value.to_string()));
+                index += 2;
+            }
+            "--json" => {
+                json = true;
+                index += 1;
+            }
+            "--help" | "-h" => return Err(CliError::Help),
+            other => {
+                return Err(CliError::Usage(format!(
+                    "unknown {command_name} option: {other}"
+                )));
+            }
+        }
+    }
+
+    selector
+        .map(|selector| (selector, json))
+        .ok_or_else(|| CliError::Usage(format!("{command_name} requires --index or --id")))
+}
+
+fn read_stdin_text() -> Result<String, CliError> {
+    let mut stdin = io::stdin();
+
+    if stdin.is_terminal() {
+        return Err(CliError::Usage(
+            "add requires text arguments or piped stdin".to_string(),
+        ));
+    }
+
+    let mut text = String::new();
+    stdin
+        .read_to_string(&mut text)
+        .map_err(|error| CliError::Runtime(error.to_string()))?;
+    Ok(text)
+}
+
+fn format_action_result(result: ActionResult, json: bool) -> Result<String, CliError> {
+    if json {
+        return serde_json::to_string(&result)
+            .map(|json| format!("{json}\n"))
+            .map_err(|error| CliError::Runtime(error.to_string()));
+    }
+
+    let id_suffix = result
+        .id
+        .as_deref()
+        .map(|id| format!(" {id}"))
+        .unwrap_or_default();
+
+    Ok(format!(
+        "{} history item{id_suffix}. History count: {}\n",
+        past_tense_action(result.action),
+        result.history_count
+    ))
+}
+
+fn past_tense_action(action: &str) -> &'static str {
+    match action {
+        "add" => "Added",
+        "copy" => "Copied",
+        "delete" => "Deleted",
+        "clear" => "Cleared",
+        _ => "Updated",
     }
 }
 
@@ -522,8 +789,70 @@ fn usage() -> &'static str {
   mclip-cli [--history-path PATH] get (--index N|--id ID) [--raw|--json|--format text|json|raw|markdown]
   mclip-cli [--history-path PATH] search QUERY [--limit N] [--kind text|image|files] [--json|--format text|json|raw|markdown]
   mclip-cli [--history-path PATH] context [--last N] [--kind text|image|files] [--json|--format text|json|raw|markdown]
+  mclip-cli [--history-path PATH] add [--source-app NAME] [--max-history N] [--json] [TEXT...]
+  mclip-cli [--history-path PATH] copy (--index N|--id ID) [--json]
+  mclip-cli [--history-path PATH] delete (--index N|--id ID) [--json]
+  mclip-cli [--history-path PATH] clear --yes [--json]
 
 Environment:
   MCLIP_HISTORY_PATH  Override the default local mclip history.json path.
 "#
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{run_copy_with_writer, CliError};
+    use crate::history::{HistoryEntry, HistoryEntryCommon};
+
+    fn text_entry(id: &str, text: &str) -> HistoryEntry {
+        HistoryEntry::Text {
+            common: HistoryEntryCommon {
+                id: id.to_string(),
+                display_text: text.to_string(),
+                first_copied_at: 100,
+                last_copied_at: 200,
+                source_app: Some("Codex".to_string()),
+                copy_count: 1,
+            },
+            text: text.to_string(),
+        }
+    }
+
+    #[test]
+    fn copy_selects_history_item_and_delegates_clipboard_write() {
+        let history = vec![text_entry("first", "alpha"), text_entry("second", "beta")];
+        let mut copied = None;
+
+        let output = run_copy_with_writer(
+            &history,
+            &[
+                "--id".to_string(),
+                "second".to_string(),
+                "--json".to_string(),
+            ],
+            |entry| {
+                copied = Some(entry.id().to_string());
+                Ok(())
+            },
+        )
+        .expect("copy should succeed");
+
+        assert_eq!(copied.as_deref(), Some("second"));
+        assert!(output.contains(r#""action":"copy""#));
+        assert!(output.contains(r#""id":"second""#));
+    }
+
+    #[test]
+    fn copy_reports_clipboard_write_errors() {
+        let history = vec![text_entry("first", "alpha")];
+
+        let error = run_copy_with_writer(
+            &history,
+            &["--index".to_string(), "1".to_string()],
+            |_entry| Err("clipboard unavailable".to_string()),
+        )
+        .expect_err("copy should fail");
+
+        assert!(matches!(error, CliError::Runtime(message) if message == "clipboard unavailable"));
+    }
 }

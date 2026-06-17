@@ -70,8 +70,11 @@ test("site introduces AI Agent and mclip-cli workflows", async () => {
   assert.match(zh, /mclip-cli context --last 3 --format markdown/);
   assert.match(en, /AI Agent and CLI/);
   assert.match(en, /Codex, Claude Code, Cursor, and Cline/);
-  assert.match(en, /read-only terminal entry/);
+  assert.match(en, /local terminal entry/);
   assert.match(en, /mclip-cli list --limit 5 --json/);
+  assert.match(zh, /mclip-cli add/);
+  assert.match(en, /mclip-cli copy --index 1/);
+  assert.match(llms, /mclip-cli clear --yes/);
   assert.match(llms, /mclip-cli/);
   assert.match(llms, /https:\/\/www\.mclip\.cn\/install\.sh/);
 });
