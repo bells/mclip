@@ -189,6 +189,80 @@ fn context_outputs_markdown_for_recent_history() {
 }
 
 #[test]
+fn agent_mode_outputs_markdown_bundle_for_agents() {
+    let history_path = write_history_fixture("agent-markdown");
+
+    let output = run_cli(&[
+        "--history-path",
+        history_path.to_str().expect("history path should be utf-8"),
+        "agent",
+        "--last",
+        "2",
+    ]);
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("# mclip Agent Mode"));
+    assert!(stdout.contains("## Safety Contract"));
+    assert!(stdout.contains("add writes text into history without replacing the system clipboard"));
+    assert!(stdout.contains("copy writes one selected history item back to the system clipboard"));
+    assert!(stdout.contains("mclip-cli copy --index 1"));
+    assert!(stdout.contains("thread 'main' panicked at database unavailable"));
+    assert!(stdout.contains("/tmp/report.txt"));
+    assert!(!stdout.contains("remember to update docs"));
+}
+
+#[test]
+fn agent_mode_outputs_json_bundle_with_commands_and_context() {
+    let history_path = write_history_fixture("agent-json");
+
+    let output = run_cli(&[
+        "--history-path",
+        history_path.to_str().expect("history path should be utf-8"),
+        "agent",
+        "--last",
+        "2",
+        "--json",
+    ]);
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("stdout should be json");
+    assert_eq!(stdout["schemaVersion"], 1);
+    assert_eq!(stdout["mode"], "agent");
+    assert_eq!(stdout["historyCount"], 3);
+    assert_eq!(stdout["selectedCount"], 2);
+    assert_eq!(stdout["context"][0]["id"], "text-panic");
+    assert_eq!(stdout["context"][1]["id"], "files-report");
+    assert!(stdout["commands"]
+        .as_array()
+        .expect("commands should be an array")
+        .iter()
+        .any(|command| command["name"] == "add" && command["mutatesHistory"] == true));
+    assert!(stdout["commands"]
+        .as_array()
+        .expect("commands should be an array")
+        .iter()
+        .any(|command| command["name"] == "copy" && command["writesClipboard"] == true));
+    assert!(stdout["safety"]
+        .as_array()
+        .expect("safety should be an array")
+        .iter()
+        .any(|note| note
+            .as_str()
+            .unwrap_or_default()
+            .contains("clear requires --yes")));
+}
+
+#[test]
 fn add_writes_piped_text_to_history_without_touching_existing_items() {
     let history_path = write_history_fixture("add-stdin");
 

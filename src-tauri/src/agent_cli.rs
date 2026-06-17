@@ -38,6 +38,29 @@ struct ActionResult {
     history_count: usize,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentCommand {
+    name: &'static str,
+    purpose: &'static str,
+    example: &'static str,
+    mutates_history: bool,
+    writes_clipboard: bool,
+    destructive: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentBundle {
+    schema_version: u8,
+    mode: &'static str,
+    history_count: usize,
+    selected_count: usize,
+    commands: Vec<AgentCommand>,
+    safety: Vec<&'static str>,
+    context: Vec<HistoryEntry>,
+}
+
 pub fn run_from_env() -> i32 {
     let args = env::args().skip(1).collect::<Vec<_>>();
 
@@ -82,6 +105,7 @@ fn run(args: Vec<String>) -> Result<String, CliError> {
         "get" => run_get(&history, command_args),
         "search" => run_search(&history, command_args),
         "context" => run_context(&history, command_args),
+        "agent" => run_agent(&history, command_args),
         "add" => run_add(&path, history, command_args),
         "copy" => run_copy(&history, command_args),
         "delete" | "remove" => run_delete(&path, &history, command_args),
@@ -287,6 +311,56 @@ fn run_context(history: &[HistoryEntry], args: &[String]) -> Result<String, CliE
 
     let entries = select_recent(history, last, kind);
     format_entries(&entries, format)
+}
+
+fn run_agent(history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
+    let mut last = 5;
+    let mut kind = None;
+    let mut json = false;
+    let mut index = 0;
+
+    while index < args.len() {
+        match args[index].as_str() {
+            "--last" | "--limit" => {
+                last = parse_usize_option(args, index, args[index].as_str())?;
+                index += 2;
+            }
+            "--kind" => {
+                kind = Some(parse_kind_option(args, index)?);
+                index += 2;
+            }
+            "--json" => {
+                json = true;
+                index += 1;
+            }
+            "--format" => {
+                json = parse_agent_format_option(args, index)?;
+                index += 2;
+            }
+            "--help" | "-h" => return Err(CliError::Help),
+            other => return Err(CliError::Usage(format!("unknown agent option: {other}"))),
+        }
+    }
+
+    let entries = select_recent(history, last, kind);
+
+    if json {
+        let bundle = AgentBundle {
+            schema_version: 1,
+            mode: "agent",
+            history_count: history.len(),
+            selected_count: entries.len(),
+            commands: agent_commands(),
+            safety: agent_safety_contract(),
+            context: entries,
+        };
+
+        return serde_json::to_string(&bundle)
+            .map(|json| format!("{json}\n"))
+            .map_err(|error| CliError::Runtime(error.to_string()));
+    }
+
+    Ok(format_agent_markdown(history.len(), &entries))
 }
 
 fn run_add(path: &Path, history: Vec<HistoryEntry>, args: &[String]) -> Result<String, CliError> {
@@ -561,6 +635,137 @@ fn past_tense_action(action: &str) -> &'static str {
     }
 }
 
+fn agent_commands() -> Vec<AgentCommand> {
+    vec![
+        AgentCommand {
+            name: "agent",
+            purpose: "Print an agent-ready bundle with recent context, command capabilities, and safety notes.",
+            example: "mclip-cli agent --last 5 --json",
+            mutates_history: false,
+            writes_clipboard: false,
+            destructive: false,
+        },
+        AgentCommand {
+            name: "list",
+            purpose: "List recent history entries with metadata.",
+            example: "mclip-cli list --limit 5 --json",
+            mutates_history: false,
+            writes_clipboard: false,
+            destructive: false,
+        },
+        AgentCommand {
+            name: "get",
+            purpose: "Read one history item by one-based index or stable id.",
+            example: "mclip-cli get --index 1 --raw",
+            mutates_history: false,
+            writes_clipboard: false,
+            destructive: false,
+        },
+        AgentCommand {
+            name: "search",
+            purpose: "Search local history by text, id, source app, or raw content.",
+            example: "mclip-cli search \"panic\" --json",
+            mutates_history: false,
+            writes_clipboard: false,
+            destructive: false,
+        },
+        AgentCommand {
+            name: "context",
+            purpose: "Print recent history as text, JSON, raw text, or Markdown.",
+            example: "mclip-cli context --last 3 --format markdown",
+            mutates_history: false,
+            writes_clipboard: false,
+            destructive: false,
+        },
+        AgentCommand {
+            name: "add",
+            purpose: "Add text to mclip history without replacing the current system clipboard.",
+            example: "cat build.log | mclip-cli add --source-app Codex",
+            mutates_history: true,
+            writes_clipboard: false,
+            destructive: false,
+        },
+        AgentCommand {
+            name: "copy",
+            purpose: "Write one selected history item back to the system clipboard.",
+            example: "mclip-cli copy --index 1",
+            mutates_history: false,
+            writes_clipboard: true,
+            destructive: false,
+        },
+        AgentCommand {
+            name: "delete",
+            purpose: "Delete one selected history item from local history.",
+            example: "mclip-cli delete --id h_xxx",
+            mutates_history: true,
+            writes_clipboard: false,
+            destructive: true,
+        },
+        AgentCommand {
+            name: "clear",
+            purpose: "Clear local history only when explicit confirmation is supplied.",
+            example: "mclip-cli clear --yes",
+            mutates_history: true,
+            writes_clipboard: false,
+            destructive: true,
+        },
+    ]
+}
+
+fn agent_safety_contract() -> Vec<&'static str> {
+    vec![
+        "list, get, search, context, and agent read local history only.",
+        "add writes text into history without replacing the system clipboard.",
+        "copy writes one selected history item back to the system clipboard.",
+        "delete removes one selected item; clear requires --yes and removes local history.",
+        "mclip-cli does not start the desktop UI and all history data stays local.",
+    ]
+}
+
+fn format_agent_markdown(history_count: usize, entries: &[HistoryEntry]) -> String {
+    let mut markdown = String::from("# mclip Agent Mode\n\n");
+
+    markdown.push_str("## Scope\n\n");
+    markdown.push_str(&format!(
+        "- historyCount: {history_count}\n- selectedCount: {}\n- defaultFormat: markdown\n- jsonFormat: `mclip-cli agent --json`\n\n",
+        entries.len()
+    ));
+
+    markdown.push_str("## Safety Contract\n\n");
+    for note in agent_safety_contract() {
+        markdown.push_str(&format!("- {note}\n"));
+    }
+    markdown.push('\n');
+
+    markdown.push_str("## Command Map\n\n");
+    markdown.push_str("| Command | Example | Mutates history | Writes clipboard | Destructive |\n");
+    markdown.push_str("| --- | --- | --- | --- | --- |\n");
+    for command in agent_commands() {
+        markdown.push_str(&format!(
+            "| {} | `{}` | {} | {} | {} |\n",
+            command.name,
+            command.example,
+            yes_no(command.mutates_history),
+            yes_no(command.writes_clipboard),
+            yes_no(command.destructive)
+        ));
+    }
+    markdown.push('\n');
+
+    markdown.push_str("## Recent Clipboard Context\n\n");
+    push_markdown_entries(&mut markdown, entries, "###");
+
+    markdown
+}
+
+fn yes_no(value: bool) -> &'static str {
+    if value {
+        "yes"
+    } else {
+        "no"
+    }
+}
+
 fn select_recent(
     history: &[HistoryEntry],
     limit: usize,
@@ -633,14 +838,23 @@ fn format_raw_entries(entries: &[HistoryEntry]) -> String {
 fn format_markdown_context(entries: &[HistoryEntry]) -> String {
     let mut markdown = String::from("# mclip Clipboard Context\n\n");
 
+    push_markdown_entries(&mut markdown, entries, "##");
+    markdown
+}
+
+fn push_markdown_entries(markdown: &mut String, entries: &[HistoryEntry], heading: &str) {
     if entries.is_empty() {
         markdown.push_str("No clipboard history entries matched.\n");
-        return markdown;
+        return;
     }
 
     for (index, entry) in entries.iter().enumerate() {
         let common = entry.common();
-        markdown.push_str(&format!("## {}. {}\n\n", index + 1, common.display_text));
+        markdown.push_str(&format!(
+            "{heading} {}. {}\n\n",
+            index + 1,
+            common.display_text
+        ));
         markdown.push_str(&format!("- id: {}\n", common.id));
         markdown.push_str(&format!("- kind: {}\n", kind_name(entry)));
         markdown.push_str(&format!(
@@ -652,8 +866,6 @@ fn format_markdown_context(entries: &[HistoryEntry]) -> String {
         markdown.push_str(&markdown_code_block("text", &raw_content(entry)));
         markdown.push('\n');
     }
-
-    markdown
 }
 
 fn markdown_code_block(language: &str, content: &str) -> String {
@@ -754,6 +966,20 @@ fn parse_format_option(args: &[String], index: usize) -> Result<OutputFormat, Cl
     }
 }
 
+fn parse_agent_format_option(args: &[String], index: usize) -> Result<bool, CliError> {
+    let value = args
+        .get(index + 1)
+        .ok_or_else(|| CliError::Usage("--format requires a value".to_string()))?;
+
+    match value.as_str() {
+        "markdown" => Ok(false),
+        "json" => Ok(true),
+        _ => Err(CliError::Usage(
+            "--format must be markdown or json for agent mode".to_string(),
+        )),
+    }
+}
+
 fn default_history_path() -> Result<PathBuf, CliError> {
     if let Some(path) = env::var_os("MCLIP_HISTORY_PATH") {
         return Ok(PathBuf::from(path));
@@ -789,6 +1015,7 @@ fn usage() -> &'static str {
   mclip-cli [--history-path PATH] get (--index N|--id ID) [--raw|--json|--format text|json|raw|markdown]
   mclip-cli [--history-path PATH] search QUERY [--limit N] [--kind text|image|files] [--json|--format text|json|raw|markdown]
   mclip-cli [--history-path PATH] context [--last N] [--kind text|image|files] [--json|--format text|json|raw|markdown]
+  mclip-cli [--history-path PATH] agent [--last N] [--kind text|image|files] [--json|--format markdown|json]
   mclip-cli [--history-path PATH] add [--source-app NAME] [--max-history N] [--json] [TEXT...]
   mclip-cli [--history-path PATH] copy (--index N|--id ID) [--json]
   mclip-cli [--history-path PATH] delete (--index N|--id ID) [--json]

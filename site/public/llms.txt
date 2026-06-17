@@ -33,12 +33,14 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 ## AI Agent and CLI
 
 mclip includes a local CLI called mclip-cli for AI Agent workflows.
-The CLI reads local clipboard history and can output text, JSON, raw text, or Markdown.
+The CLI has an Agent Mode: mclip-cli agent --last 5 --json emits recent history, a command capability map, and safety boundaries in one structured bundle.
+The CLI also reads local clipboard history and can output text, JSON, raw text, or Markdown.
 It can also add text to history, copy a selected history item back to the system clipboard, delete one item, or clear history with explicit confirmation.
 It is useful when tools such as Codex, Claude Code, Cursor, and Cline need recent local context that the user already copied or want to save important output without opening the desktop UI.
 
 Typical commands:
 
+- mclip-cli agent --last 5 --json
 - mclip-cli list --limit 5 --json
 - mclip-cli context --last 3 --format markdown
 - mclip-cli search "panic" --json
@@ -46,6 +48,13 @@ Typical commands:
 - mclip-cli copy --index 1
 - mclip-cli delete --id h_xxx
 - mclip-cli clear --yes
+
+Safety boundaries:
+
+- mclip-cli agent, list, get, search, and context are read-only.
+- mclip-cli add writes text into history without replacing the current system clipboard.
+- mclip-cli copy writes a selected item back to the system clipboard.
+- mclip-cli clear requires --yes.
 
 Public installer command:
 

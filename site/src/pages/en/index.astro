@@ -36,16 +36,16 @@ const features = [
 
 const agentCliPoints = [
   {
-    title: "Give agents local context",
-    body: "mclip-cli list --limit 5 --json exposes recent history as structured JSON for Codex, Claude Code, Cursor, and Cline.",
+    title: "Agent Mode in one command",
+    body: "mclip-cli agent --last 5 --json emits recent history, command capabilities, and safety boundaries for Codex, Claude Code, Cursor, and Cline.",
   },
   {
     title: "Controlled actions, no desktop noise",
-    body: "list/get/search/context are read-only. add writes history without replacing the system clipboard; copy writes one selected item back to the clipboard.",
+    body: "agent/list/get/search/context are read-only. add writes history without replacing the system clipboard; copy writes one selected item back to the clipboard.",
   },
   {
     title: "Built for errors, code, and prompts",
-    body: "Text, JSON, raw, and Markdown output make copied errors, code snippets, and recent context easier to pass into an AI Agent.",
+    body: "Agent Mode defaults to Markdown and supports JSON. Regular commands support text, JSON, raw, and Markdown for copied errors, code snippets, and recent context.",
   },
 ];
 
@@ -88,7 +88,7 @@ const faqItems = [
   lang="en"
   path="/en/"
   title="mclip - Lightweight, local-first clipboard history"
-  description="mclip is a local-first clipboard history app for macOS and Windows, with text, image, and file history, independent previews, tray shortcuts, and an AI Agent CLI."
+  description="mclip is a local-first clipboard history app for macOS and Windows, with text, image, and file history, independent previews, tray shortcuts, and an AI Agent CLI with Agent Mode."
   faqItems={faqItems}
 >
   <Hero
@@ -117,11 +117,12 @@ const faqItems = [
     id="agents"
     eyebrow="For developers and AI agents"
     title="AI Agent and CLI"
-    summary="mclip-cli gives Codex, Claude Code, Cursor, and Cline a local terminal entry into clipboard history. Agents can fetch recent context, add important output, or copy a selected item without asking you to paste the same snippet again."
+    summary="mclip-cli gives Codex, Claude Code, Cursor, and Cline a local terminal entry into clipboard history. Agent Mode bundles recent history, available commands, and safety boundaries so agents do not need you to paste the same snippet again."
     installLabel="Install mclip-cli"
     installCommand="curl -fsSL https://www.mclip.cn/install.sh | sh"
     exampleLabel="Common commands"
     examples={[
+      "mclip-cli agent --last 5 --json",
       "mclip-cli list --limit 5 --json",
       "mclip-cli context --last 3 --format markdown",
       "mclip-cli add \"note from agent\"",

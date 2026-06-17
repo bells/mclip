@@ -38,9 +38,10 @@
 
 ### AI Agent 与 CLI
 
-CLI 提供本地历史访问和受控操作能力，方便 Codex、Claude Code、Cursor、Cline 等工具通过命令读取最近剪贴板上下文，或把重要输出写入 mclip 历史。开发环境中可以这样调用：
+CLI 提供本地历史访问、Agent 模式和受控操作能力，方便 Codex、Claude Code、Cursor、Cline 等工具通过命令读取最近剪贴板上下文，或把重要输出写入 mclip 历史。开发环境中可以这样调用：
 
 ```bash
+npm run cli -- agent --last 5 --json
 npm run cli -- list --limit 5 --json
 npm run cli -- get --index 1 --raw
 npm run cli -- search "panic" --json
@@ -65,7 +66,7 @@ npm run cli -- --history-path /path/to/history.json list --json
 curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
-当前 CLI 不启动桌面 UI。`list/get/search/context` 只读取历史并输出 text、JSON、raw 或 Markdown；`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy` 会把指定历史项写回系统剪贴板；`delete` 和 `clear --yes` 会修改本地 `history.json`。安装脚本第一版会从源码构建 `mclip-cli`，因此需要本机已有 Rust/Cargo 和 Git。
+当前 CLI 不启动桌面 UI。`agent` 会输出一个面向 AI Agent 的聚合包，包含最近历史、可用命令能力表和安全边界，默认 Markdown，也支持 `--json`；`list/get/search/context` 只读取历史并输出 text、JSON、raw 或 Markdown；`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy` 会把指定历史项写回系统剪贴板；`delete` 和 `clear --yes` 会修改本地 `history.json`。安装脚本第一版会从源码构建 `mclip-cli`，因此需要本机已有 Rust/Cargo 和 Git。
 
 ### Windows 注意事项
 
@@ -179,9 +180,10 @@ After installation, `mclip` runs in the system tray or menu bar. Click the tray 
 
 ### AI Agent And CLI
 
-The CLI provides local history access and controlled actions so tools such as Codex, Claude Code, Cursor, and Cline can read recent clipboard context or write important output back into mclip history. In development, run:
+The CLI provides local history access, Agent Mode, and controlled actions so tools such as Codex, Claude Code, Cursor, and Cline can read recent clipboard context or write important output back into mclip history. In development, run:
 
 ```bash
+npm run cli -- agent --last 5 --json
 npm run cli -- list --limit 5 --json
 npm run cli -- get --index 1 --raw
 npm run cli -- search "panic" --json
@@ -206,7 +208,7 @@ You can also install directly from the terminal:
 curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
-The current CLI does not start the desktop UI. `list/get/search/context` only read history and emit text, JSON, raw, or Markdown output; `add` writes text into history without replacing the current system clipboard; `copy` writes a selected history item back to the system clipboard; `delete` and `clear --yes` modify the local `history.json`. The first install script builds `mclip-cli` from source, so Rust/Cargo and Git must be available locally.
+The current CLI does not start the desktop UI. `agent` emits an AI-agent-ready bundle with recent history, command capabilities, and safety boundaries; it defaults to Markdown and supports `--json`. `list/get/search/context` only read history and emit text, JSON, raw, or Markdown output; `add` writes text into history without replacing the current system clipboard; `copy` writes a selected history item back to the system clipboard; `delete` and `clear --yes` modify the local `history.json`. The first install script builds `mclip-cli` from source, so Rust/Cargo and Git must be available locally.
 
 ### Windows Notes
 
