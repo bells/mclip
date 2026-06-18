@@ -360,4 +360,24 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn macos_bundle_is_configured_as_agent_app() {
+        let config: Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+
+        assert_eq!(
+            config["bundle"]["macOS"]["infoPlist"].as_str(),
+            Some("Info.plist"),
+            "macOS bundles must merge src-tauri/Info.plist so mclip starts without a Dock icon"
+        );
+
+        let plist_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("Info.plist");
+        let plist = std::fs::read_to_string(&plist_path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", plist_path.display()));
+
+        assert!(
+            plist.contains("<key>LSUIElement</key>") && plist.contains("<true/>"),
+            "Info.plist must declare LSUIElement=true so macOS treats mclip as a menu bar app"
+        );
+    }
 }

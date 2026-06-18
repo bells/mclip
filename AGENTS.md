@@ -90,6 +90,7 @@ src/
   utils/settings.ts                   前端设置 normalize
 
 src-tauri/
+  Info.plist                         macOS bundle 额外配置，声明 LSUIElement 让应用启动时不显示 Dock 图标
   tauri.conf.json                     Tauri 窗口、CSP、bundle、WebView2、签名配置
   capabilities/default.json           全窗口默认权限
   capabilities/desktop.json           桌面端 positioner 权限
@@ -342,6 +343,7 @@ git push origin v0.1.0
 
 ```json
 "macOS": {
+  "infoPlist": "Info.plist",
   "signingIdentity": "-"
 }
 ```
@@ -351,6 +353,8 @@ git push origin v0.1.0
 - 可以让 bundle 结构比完全未签名更规整。
 - 不能替代 Apple Developer ID。
 - 不能消除 Gatekeeper 对 GitHub 下载来源的拦截。
+
+`src-tauri/Info.plist` 里保留 `LSUIElement=true`，让 macOS 把 mclip 当作菜单栏/托盘工具启动，避免启动时在程序坞显示图标。`src-tauri/src/lib.rs` 里的 `ActivationPolicy::Accessory` 和 `set_dock_visibility(false)` 是运行时兜底。
 
 如果用户从 GitHub 下载 DMG 后看到：
 
