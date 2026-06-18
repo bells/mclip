@@ -58,7 +58,7 @@ CLI 是 AI Agent/终端入口。`npm run cli -- ...` 会运行 `mclip-cli`，默
 ```text
 install.sh                             mclip-cli 的 curl | sh 安装脚本，默认安装到用户目录
 site/public/install.sh                 Vercel 官网公开的安装脚本副本，必须和根目录 install.sh 保持一致
-site/vercel.json                       官网 Vercel 配置，根路径 / 直接 307 跳转到 /zh/
+site/vercel.json                       官网 Vercel 配置，根路径 / 直接 307 跳转到 /en/
 
 src/
   App.tsx                             根据 Tauri window label 分流 main/preview/about/preferences

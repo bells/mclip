@@ -34,7 +34,7 @@ test("root path redirects at the Vercel edge instead of rendering a temporary pa
 
   assert.deepEqual(redirects[0], {
     source: "/",
-    destination: "/zh/",
+    destination: "/en/",
     permanent: false,
   });
   await assert.rejects(read("src/pages/index.astro"), { code: "ENOENT" });
@@ -91,6 +91,8 @@ test("shared SEO metadata declares bilingual routes and social image", async () 
   assert.match(layout, /https:\/\/www\.mclip\.cn/);
   assert.match(layout, /hreflang/);
   assert.match(layout, /alternateZhPath/);
+  assert.match(layout, /alternateEnPath/);
+  assert.match(layout, /hreflang="x-default" href=\{alternateEn\}/);
   assert.match(layout, /og:image/);
   assert.match(layout, /og:image:alt/);
   assert.match(layout, /twitter:card/);
@@ -136,13 +138,15 @@ test("public SEO files expose crawl and sitemap hints", async () => {
   assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/en\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/zh\/changelog\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/en\/changelog\/<\/loc>/);
-  assert.match(sitemap, /hreflang="x-default"/);
+  assert.match(sitemap, /hreflang="x-default" href="https:\/\/www\.mclip\.cn\/en\/"/);
+  assert.match(sitemap, /hreflang="x-default" href="https:\/\/www\.mclip\.cn\/en\/changelog\/"/);
 });
 
 test("public AI discovery file describes canonical mclip facts", async () => {
   const llms = await read("public/llms.txt");
 
   assert.match(llms, /# mclip/);
+  assert.match(llms, /Default homepage: https:\/\/www\.mclip\.cn\/en\//);
   assert.match(llms, /https:\/\/www\.mclip\.cn\/zh\//);
   assert.match(llms, /https:\/\/www\.mclip\.cn\/en\//);
   assert.match(llms, /https:\/\/github\.com\/bells\/mclip\/releases/);

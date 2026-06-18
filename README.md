@@ -128,7 +128,7 @@ npm run site:build
 
 官网位于 `site/`，使用 Astro 生成静态页面。`npm run site:dev` 用于本地预览官网，`npm run site:build` 会输出到 `site/dist/`。
 
-Vercel 部署时，根路径 `/` 由 `site/vercel.json` 在边缘层重定向到 `/zh/`，避免先渲染临时中转页面再跳转。
+Vercel 部署时，根路径 `/` 由 `site/vercel.json` 在边缘层重定向到 `/en/`，默认进入英文官网，避免先渲染临时中转页面再跳转。
 
 ### 发布
 
@@ -270,7 +270,7 @@ npm run site:build
 
 The product site lives in `site/` and uses Astro to generate static pages. Use `npm run site:dev` to preview it locally and `npm run site:build` to write `site/dist/`.
 
-On Vercel, the root path `/` is redirected to `/zh/` by `site/vercel.json` at the edge layer, avoiding a temporary redirect page flash.
+On Vercel, the root path `/` is redirected to `/en/` by `site/vercel.json` at the edge layer, making the English site the default and avoiding a temporary redirect page flash.
 
 ### Release
 

@@ -1,6 +1,7 @@
 # mclip
 
 Canonical public site: https://www.mclip.cn/
+Default homepage: https://www.mclip.cn/en/
 Chinese homepage: https://www.mclip.cn/zh/
 English homepage: https://www.mclip.cn/en/
 Chinese changelog: https://www.mclip.cn/zh/changelog/
