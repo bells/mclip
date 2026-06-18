@@ -49,7 +49,7 @@ const TOGGLE_WINDOW_SHORTCUT: &str = "CommandOrControl+Shift+V";
 const TRAY_ICON_ID: &str = "main";
 #[cfg(any(target_os = "macos", test))]
 const TRAY_POSITION_AUTOSAVE_NAME: &str = "com.watson.mclip.tray.main";
-const TRAY_TOOLTIP: &str = "更好用的剪贴帮工具mclip";
+const TRAY_TOOLTIP: &str = "更好用的剪贴板工具mclip";
 
 #[tauri::command]
 fn quit_app(app_handle: AppHandle) {
