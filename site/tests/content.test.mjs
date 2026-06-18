@@ -188,3 +188,13 @@ test("hero preview image uses the real PNG aspect ratio", async () => {
   assert.match(hero, new RegExp(`height="${height}"`));
   assert.match(css, /\.hero-product\s*{[^}]*height:\s*auto;/s);
 });
+
+test("mobile layout wraps long copy and isolates the hero image", async () => {
+  const css = await read("src/styles/global.css");
+
+  assert.match(css, /overflow-x:\s*clip;/);
+  assert.match(css, /overflow-wrap:\s*anywhere;/);
+  assert.match(css, /\.agent-cli-board,[\s\S]*?\{\s*min-width:\s*0;/);
+  assert.match(css, /@media\s*\(max-width:\s*620px\)[\s\S]*\.hero-figure\s*{[^}]*overflow:\s*hidden;/);
+  assert.match(css, /@media\s*\(max-width:\s*620px\)[\s\S]*\.agent-terminal code\s*{[^}]*white-space:\s*pre-wrap;/);
+});

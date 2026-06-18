@@ -41,6 +41,7 @@ body {
   min-width: 320px;
   margin: 0;
   color: var(--text);
+  overflow-x: clip;
   background:
     radial-gradient(circle at 84% 12%, oklch(0.48 0.14 128 / 0.32), transparent 31rem),
     radial-gradient(circle at 4% 72%, oklch(0.34 0.08 150 / 0.34), transparent 26rem),
@@ -112,6 +113,38 @@ p {
 .text-page {
   width: min(var(--max), calc(100vw - var(--page-x) * 2));
   margin-inline: auto;
+}
+
+.hero-content,
+.hero-figure,
+.section-heading,
+.feature-row,
+.feature-row h3,
+.feature-row p,
+.agent-cli-board,
+.agent-cli-copy,
+.agent-terminal,
+.agent-points,
+.agent-points article,
+.agent-points h3,
+.agent-points p,
+.privacy-band,
+.install-row,
+.install-row h3,
+.install-row p,
+.faq-list {
+  min-width: 0;
+}
+
+.hero-content,
+.section-heading,
+.feature-row,
+.agent-cli-copy,
+.agent-points,
+.privacy-band,
+.install-row,
+.faq-list {
+  overflow-wrap: anywhere;
 }
 
 .topbar {
@@ -272,6 +305,7 @@ h3 {
   position: relative;
   margin-bottom: 0;
   animation: image-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+  isolation: isolate;
 }
 
 .hero-figure::before {
@@ -478,6 +512,7 @@ h3 {
 
 .agent-terminal pre {
   overflow-x: auto;
+  max-width: 100%;
   margin: 0 0 18px;
   padding: 13px 14px;
   color: var(--ink);
@@ -690,6 +725,10 @@ h3 {
 }
 
 @media (max-width: 620px) {
+  .site-hero {
+    padding-top: 16px;
+  }
+
   .topbar {
     align-items: flex-start;
   }
@@ -710,15 +749,50 @@ h3 {
   }
 
   h2 {
-    font-size: clamp(2rem, 11vw, 3.3rem);
+    font-size: clamp(2rem, 10vw, 3.05rem);
+  }
+
+  .hero-shell {
+    gap: 34px;
+    padding-top: 44px;
+    padding-bottom: 38px;
   }
 
   .hero-actions .button {
     width: 100%;
   }
 
+  .hero-figure {
+    width: min(100%, 420px);
+    margin-inline: auto;
+    padding: 14px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 72% 20%, oklch(0.36 0.08 132 / 0.5), transparent 12rem),
+      linear-gradient(180deg, oklch(0.15 0.018 138), oklch(0.1 0.012 138));
+    border: 1px solid oklch(0.42 0.052 138 / 0.62);
+    border-radius: var(--radius);
+    box-shadow: 0 20px 42px oklch(0.05 0.01 138 / 0.42);
+  }
+
+  .hero-figure::before {
+    inset: 16% 6% 18%;
+    opacity: 0.55;
+    filter: blur(42px);
+  }
+
+  .hero-product {
+    width: 100%;
+    filter: drop-shadow(0 18px 34px oklch(0.04 0.01 138 / 0.46));
+  }
+
   .hero-figure figcaption {
-    margin-top: -22px;
+    max-width: 100%;
+    margin: 12px 0 0;
+    padding: 0;
+    color: var(--dim);
+    background: transparent;
+    border: 0;
   }
 
   .feature-row,
@@ -738,6 +812,16 @@ h3 {
 
   .agent-cli-board {
     padding: 24px;
+    overflow: hidden;
+  }
+
+  .agent-terminal pre {
+    overflow-x: auto;
+  }
+
+  .agent-terminal code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
   .site-footer {
