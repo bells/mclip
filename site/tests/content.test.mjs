@@ -187,6 +187,8 @@ test("hero preview image uses the real PNG aspect ratio", async () => {
   assert.match(hero, new RegExp(`width="${width}"`));
   assert.match(hero, new RegExp(`height="${height}"`));
   assert.match(css, /\.hero-product\s*{[^}]*height:\s*auto;/s);
+  assert.match(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*16px 0 0 auto;/s);
+  assert.doesNotMatch(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*-/s);
 });
 
 test("mobile layout wraps long copy and isolates the hero image", async () => {

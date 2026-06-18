@@ -326,8 +326,8 @@ h3 {
 
 .hero-figure figcaption {
   width: fit-content;
-  max-width: min(440px, 92%);
-  margin: -42px 0 0 auto;
+  max-width: min(480px, 100%);
+  margin: 16px 0 0 auto;
   padding: 12px 14px;
   color: var(--text);
   font-size: 0.9rem;
