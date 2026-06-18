@@ -36,6 +36,8 @@
 
 安装后，`mclip` 会在系统托盘或菜单栏运行。可以点击托盘图标，也可以使用 `CommandOrControl+Shift+V` 打开主窗口。
 
+macOS 上，系统支持时可以按住 `Command` 拖动菜单栏里的 mclip 图标到更靠右的位置；mclip 会使用系统位置保存机制，后续启动时尽量恢复该位置。Windows 托盘排序由系统和用户设置控制，应用本身不能强制固定到最右侧。
+
 ### AI Agent 与 CLI
 
 CLI 提供本地历史访问、Agent 模式和受控操作能力，方便 Codex、Claude Code、Cursor、Cline 等工具通过命令读取最近剪贴板上下文，或把重要输出写入 mclip 历史。开发环境中可以这样调用：
@@ -177,6 +179,8 @@ Download the installer for your platform from GitHub Releases:
 - Windows: download the `.msi` or `.exe` installer and follow the setup wizard.
 
 After installation, `mclip` runs in the system tray or menu bar. Click the tray icon or press `CommandOrControl+Shift+V` to open the main window.
+
+On macOS, when the system allows it, hold `Command` and drag the mclip menu bar icon closer to the right side; mclip uses the system status-item position restore mechanism on later launches. On Windows, tray ordering is controlled by the system and user settings, so the app cannot force a rightmost position.
 
 ### AI Agent And CLI
 

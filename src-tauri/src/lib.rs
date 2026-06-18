@@ -47,6 +47,8 @@ use crate::window::{
 const SHOW_GUARD_MS: u64 = 450;
 const TOGGLE_WINDOW_SHORTCUT: &str = "CommandOrControl+Shift+V";
 const TRAY_ICON_ID: &str = "main";
+#[cfg(any(target_os = "macos", test))]
+const TRAY_POSITION_AUTOSAVE_NAME: &str = "com.watson.mclip.tray.main";
 const TRAY_TOOLTIP: &str = "更好用的剪贴帮工具mclip";
 
 #[tauri::command]
@@ -108,6 +110,48 @@ fn build_tray(
         })
         .build(app)?;
 
+    Ok(())
+}
+
+fn configure_tray_position_persistence(app_handle: &AppHandle) {
+    if let Err(error) = set_tray_position_autosave_name(app_handle) {
+        log_error(
+            app_handle,
+            "tray",
+            &format!("failed to configure tray position persistence: {error}"),
+        );
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn set_tray_position_autosave_name(app_handle: &AppHandle) -> Result<(), String> {
+    let Some(tray) = app_handle.tray_by_id(TRAY_ICON_ID) else {
+        return Err("failed to find tray icon".to_string());
+    };
+
+    // macOS does not expose a public API to force a status-item order. A stable
+    // autosave name lets the system restore the user's menu bar placement.
+    let did_configure = tray
+        .with_inner_tray_icon(|tray_icon| {
+            let Some(status_item) = tray_icon.ns_status_item() else {
+                return false;
+            };
+
+            let autosave_name = objc2_foundation::NSString::from_str(TRAY_POSITION_AUTOSAVE_NAME);
+            status_item.setAutosaveName(Some(&autosave_name));
+            true
+        })
+        .map_err(|error| error.to_string())?;
+
+    if did_configure {
+        Ok(())
+    } else {
+        Err("macOS status item is unavailable".to_string())
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn set_tray_position_autosave_name(_app_handle: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
@@ -306,6 +350,7 @@ pub fn run() {
                 spawn_clipboard_watcher(app.handle().clone());
                 register_global_shortcuts(app, Arc::clone(&show_guard_until));
                 build_tray(app, show_guard_until)?;
+                configure_tray_position_persistence(app.handle());
                 log_info(app.handle(), "app", "mclip started");
 
                 Ok(())
@@ -324,6 +369,7 @@ mod tests {
 
     use super::{
         single_instance_launch_action, SingleInstanceLaunchAction, TOGGLE_WINDOW_SHORTCUT,
+        TRAY_POSITION_AUTOSAVE_NAME,
     };
 
     #[test]
@@ -379,5 +425,10 @@ mod tests {
             plist.contains("<key>LSUIElement</key>") && plist.contains("<true/>"),
             "Info.plist must declare LSUIElement=true so macOS treats mclip as a menu bar app"
         );
+    }
+
+    #[test]
+    fn tray_position_autosave_name_is_stable() {
+        assert_eq!(TRAY_POSITION_AUTOSAVE_NAME, "com.watson.mclip.tray.main");
     }
 }

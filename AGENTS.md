@@ -19,6 +19,7 @@
 ## 核心体验
 
 - 托盘或菜单栏常驻，点击托盘图标显示或隐藏主窗口。
+- macOS 菜单栏图标设置稳定 `NSStatusItem.autosaveName`，用于恢复用户拖动后的菜单栏位置；不要承诺可强制最右排序。
 - 全局快捷键 `CommandOrControl+Shift+V` 唤起或隐藏主窗口。
 - 保存文本、图片、文件三类剪贴板历史；文件历史选择后应回填系统文件列表，而不是普通路径文本。
 - 去重后最新内容在最前，同一内容重复复制会更新次数和时间。
@@ -297,6 +298,7 @@ Windows 特有实现：
 - 剪贴板监听：`AddClipboardFormatListener`。
 - 来源应用识别：`GetForegroundWindow`、`GetWindowThreadProcessId`、`QueryFullProcessImageNameW`。
 - 登录启动：Startup 目录 `.cmd`。
+- 托盘图标排序由 Windows/Explorer 和用户设置控制，当前 Tauri/tray-icon 路径不提供应用级强制靠右能力。
 - 安装器：`bundle.windows.webviewInstallMode` 使用 `downloadBootstrapper`，缺少 WebView2 时会静默下载运行时。
 - 代码签名：当前未配置，用户可能看到 SmartScreen。
 
