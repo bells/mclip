@@ -132,7 +132,6 @@ pub fn get_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
     load_settings(&app_handle)
 }
 
-#[tauri::command]
 pub fn save_settings(app_handle: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
     persist_settings(&app_handle, settings)
 }

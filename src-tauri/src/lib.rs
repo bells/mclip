@@ -34,7 +34,7 @@ use crate::diagnostics::{
     open_logs_dir, open_project_link, write_client_log,
 };
 use crate::history::{clear_history, delete_history_item, get_history};
-use crate::settings::{get_settings, save_settings};
+use crate::settings::{get_settings, load_settings, AppLanguage, AppSettings};
 use crate::window::{
     adjust_window_height, configure_main_window, get_history_preview_pointer_position,
     hide_history_preview_detail_window, hide_history_preview_window, hide_main_window,
@@ -49,12 +49,25 @@ const TOGGLE_WINDOW_SHORTCUT: &str = "CommandOrControl+Shift+V";
 const TRAY_ICON_ID: &str = "main";
 #[cfg(any(target_os = "macos", test))]
 const TRAY_POSITION_AUTOSAVE_NAME: &str = "com.watson.mclip.tray.main";
-const TRAY_TOOLTIP: &str = "更好用的剪贴板工具mclip";
+
+fn tray_tooltip(language: &AppLanguage) -> &'static str {
+    match language {
+        AppLanguage::ZhCn => "更好用的剪贴板工具 mclip",
+        AppLanguage::En => "A better clipboard history tool, mclip",
+    }
+}
 
 #[tauri::command]
 fn quit_app(app_handle: AppHandle) {
     log_info(&app_handle, "app", "mclip exiting by user request");
     app_handle.exit(0);
+}
+
+#[tauri::command]
+fn save_settings(app_handle: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
+    let saved_settings = settings::save_settings(app_handle.clone(), settings)?;
+    configure_tray_tooltip(&app_handle, &saved_settings.language);
+    Ok(saved_settings)
 }
 
 // Opening the window from tray/shortcut briefly changes focus on macOS and
@@ -76,10 +89,20 @@ fn build_tray(
         .default_window_icon()
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "missing default window icon"))?
         .clone();
+    let tooltip_language = load_settings(app.handle())
+        .map(|settings| settings.language)
+        .unwrap_or_else(|error| {
+            log_error(
+                app.handle(),
+                "settings",
+                &format!("failed to load settings for tray tooltip: {error}"),
+            );
+            AppSettings::default().language
+        });
 
     TrayIconBuilder::with_id(TRAY_ICON_ID)
         .icon(icon)
-        .tooltip(TRAY_TOOLTIP)
+        .tooltip(tray_tooltip(&tooltip_language))
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_tray_icon_event(move |tray, event| {
@@ -111,6 +134,25 @@ fn build_tray(
         .build(app)?;
 
     Ok(())
+}
+
+fn configure_tray_tooltip(app_handle: &AppHandle, language: &AppLanguage) {
+    if let Err(error) = set_tray_tooltip(app_handle, language) {
+        log_error(
+            app_handle,
+            "tray",
+            &format!("failed to update tray tooltip: {error}"),
+        );
+    }
+}
+
+fn set_tray_tooltip(app_handle: &AppHandle, language: &AppLanguage) -> Result<(), String> {
+    let Some(tray) = app_handle.tray_by_id(TRAY_ICON_ID) else {
+        return Err("failed to find tray icon".to_string());
+    };
+
+    tray.set_tooltip(Some(tray_tooltip(language)))
+        .map_err(|error| error.to_string())
 }
 
 fn configure_tray_position_persistence(app_handle: &AppHandle) {
@@ -364,12 +406,14 @@ pub fn run() {
 mod tests {
     use std::str::FromStr;
 
+    use crate::settings::AppLanguage;
+
     use serde_json::Value;
     use tauri_plugin_global_shortcut::Shortcut;
 
     use super::{
-        single_instance_launch_action, SingleInstanceLaunchAction, TOGGLE_WINDOW_SHORTCUT,
-        TRAY_POSITION_AUTOSAVE_NAME,
+        single_instance_launch_action, tray_tooltip, SingleInstanceLaunchAction,
+        TOGGLE_WINDOW_SHORTCUT, TRAY_POSITION_AUTOSAVE_NAME,
     };
 
     #[test]
@@ -430,5 +474,14 @@ mod tests {
     #[test]
     fn tray_position_autosave_name_is_stable() {
         assert_eq!(TRAY_POSITION_AUTOSAVE_NAME, "com.watson.mclip.tray.main");
+    }
+
+    #[test]
+    fn tray_tooltip_is_localized() {
+        assert_eq!(tray_tooltip(&AppLanguage::ZhCn), "更好用的剪贴板工具 mclip");
+        assert_eq!(
+            tray_tooltip(&AppLanguage::En),
+            "A better clipboard history tool, mclip"
+        );
     }
 }
