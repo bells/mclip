@@ -19,10 +19,12 @@ type HistoryGroupPreviewWindowProps = {
   groupPreviewHeight: number;
   hoveredItemId: string | null;
   hoveredItem: HistoryListItem | null;
+  isKeyboardNavigating: boolean;
   preview: HistoryGroupPreviewPayload;
   translations: HistoryTranslations;
   onDeleteItem: (id: string) => void;
   onHoveredItemChange: (id: string | null) => void;
+  onPointerNavigation: () => void;
   onPointerInside: () => void;
   onRequestClose: () => void;
   onSelectItem: (id: string) => void;
@@ -50,10 +52,12 @@ export function HistoryGroupPreviewWindow({
   groupPreviewHeight,
   hoveredItemId,
   hoveredItem,
+  isKeyboardNavigating,
   preview,
   translations,
   onDeleteItem,
   onHoveredItemChange,
+  onPointerNavigation,
   onPointerInside,
   onRequestClose,
   onSelectItem,
@@ -84,13 +88,15 @@ export function HistoryGroupPreviewWindow({
   }, [hoveredItemId]);
 
   const activateItem = useCallback((id: string) => {
+    onPointerNavigation();
+
     if (hoveredItemIdRef.current === id) {
       return;
     }
 
     hoveredItemIdRef.current = id;
     onHoveredItemChange(id);
-  }, [onHoveredItemChange]);
+  }, [onHoveredItemChange, onPointerNavigation]);
 
   const clearActiveItem = useCallback(() => {
     if (hoveredItemIdRef.current === null) {
@@ -123,7 +129,7 @@ export function HistoryGroupPreviewWindow({
             document.elementFromPoint(position.x, position.y),
           );
 
-          if (itemId) {
+          if (itemId && !isKeyboardNavigating) {
             activateItem(itemId);
           }
         }
@@ -149,13 +155,15 @@ export function HistoryGroupPreviewWindow({
         window.clearTimeout(timerId);
       }
     };
-  }, [activateItem, onPointerInside]);
+  }, [activateItem, isKeyboardNavigating, onPointerInside]);
 
   return (
     <div
       className={`history-preview-window app-history-group-preview-window ${
         hoveredItem ? "has-detail" : ""
-      } ${detailSide === "left" ? "is-detail-left" : "is-detail-right"}`}
+      } ${detailSide === "left" ? "is-detail-left" : "is-detail-right"} ${
+        isKeyboardNavigating ? "is-keyboard-navigating" : ""
+      }`}
       style={previewStyle}
       onMouseEnter={onPointerInside}
       onMouseMove={onPointerInside}

@@ -27,7 +27,7 @@ import type {
 import { normalizeSettings } from "../utils/settings";
 import { DialogWindowControls } from "./DialogWindowControls";
 
-type PreferencesTab = "general" | "storage";
+type PreferencesTab = "general" | "storage" | "cli";
 
 export function PreferencesWindow() {
   // settingsDraft 保留了旧命名，但现在每次控件变更都会立即写入后端。
@@ -284,6 +284,7 @@ export function PreferencesWindow() {
               {([
                 ["general", t.generalTab],
                 ["storage", t.storageTab],
+                ["cli", t.cliTab],
               ] as const).map(([tab, label]) => (
                 <button
                   aria-selected={activeTab === tab}
@@ -358,89 +359,10 @@ export function PreferencesWindow() {
                     <span className="app-switch-thumb" />
                   </button>
                 </div>
-
-                <div className="app-settings-section app-cli-install-section">
-                  <div className="app-settings-section-heading">
-                    <div className="app-settings-label">{t.cliSectionLabel}</div>
-                    <div className="app-settings-description">
-                      {t.cliSectionDescription}
-                    </div>
-                  </div>
-
-                  <div className="app-cli-status-row">
-                    <div className="app-cli-status-copy">
-                      <span
-                        className={`app-cli-status-badge ${
-                          cliStatus?.isInstalled ? "is-installed" : "is-missing"
-                        }`}
-                      >
-                        {cliStatus
-                          ? cliStatus.isInstalled
-                            ? t.cliInstalled
-                            : t.cliNotInstalled
-                          : t.cliChecking}
-                      </span>
-                      <div className="app-settings-note">
-                        {cliStatus
-                          ? t.cliInstallPath(cliStatus.installPath)
-                          : t.cliCheckingDescription}
-                      </div>
-                      {cliStatus && !cliStatus.isOnPath ? (
-                        <div className="app-settings-note">
-                          {t.cliPathNotOnPath(cliStatus.installDir)}
-                        </div>
-                      ) : null}
-                      {cliStatus && !cliStatus.sourceAvailable ? (
-                        <div className="app-settings-note">
-                          {t.cliSourceUnavailable}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <button
-                      className="app-cli-action-btn"
-                      disabled={
-                        isInstallingCli ||
-                        !cliStatus ||
-                        !cliStatus.sourceAvailable
-                      }
-                      onClick={handleInstallCli}
-                      type="button"
-                    >
-                      {isInstallingCli
-                        ? t.cliInstalling
-                        : cliStatus?.sourceAvailable
-                          ? cliStatus.isInstalled
-                            ? t.cliReinstall
-                            : t.cliInstall
-                          : t.cliInstallUnavailable}
-                    </button>
-                  </div>
-
-                  <div className="app-cli-command-row">
-                    <code className="app-cli-command">
-                      {cliStatus?.installCommand ?? t.cliChecking}
-                    </code>
-                    <button
-                      className="app-cli-copy-btn"
-                      disabled={!cliStatus}
-                      onClick={copyCliInstallCommand}
-                      type="button"
-                    >
-                      {t.cliCopyCommand}
-                    </button>
-                  </div>
-
-                  {cliStatusError ? (
-                    <div className="app-settings-error">{cliStatusError}</div>
-                  ) : cliInstallMessage ? (
-                    <div className="app-settings-status" aria-live="polite">
-                      {cliInstallMessage}
-                    </div>
-                  ) : null}
-                </div>
               </div>
-            ) : (
+            ) : null}
+
+            {activeTab === "storage" ? (
               <div className="app-settings-tab-panel" role="tabpanel">
                 <div className="app-settings-row">
                   <div className="app-settings-copy">
@@ -525,7 +447,92 @@ export function PreferencesWindow() {
                   </div>
                 </div>
               </div>
-            )}
+            ) : null}
+
+            {activeTab === "cli" ? (
+              <div className="app-settings-tab-panel" role="tabpanel">
+                <div className="app-settings-section app-cli-install-section">
+                  <div className="app-settings-section-heading">
+                    <div className="app-settings-label">{t.cliSectionLabel}</div>
+                    <div className="app-settings-description">
+                      {t.cliSectionDescription}
+                    </div>
+                  </div>
+
+                  <div className="app-cli-status-row">
+                    <div className="app-cli-status-copy">
+                      <span
+                        className={`app-cli-status-badge ${
+                          cliStatus?.isInstalled ? "is-installed" : "is-missing"
+                        }`}
+                      >
+                        {cliStatus
+                          ? cliStatus.isInstalled
+                            ? t.cliInstalled
+                            : t.cliNotInstalled
+                          : t.cliChecking}
+                      </span>
+                      <div className="app-settings-note">
+                        {cliStatus
+                          ? t.cliInstallPath(cliStatus.installPath)
+                          : t.cliCheckingDescription}
+                      </div>
+                      {cliStatus && !cliStatus.isOnPath ? (
+                        <div className="app-settings-note">
+                          {t.cliPathNotOnPath(cliStatus.installDir)}
+                        </div>
+                      ) : null}
+                      {cliStatus && !cliStatus.sourceAvailable ? (
+                        <div className="app-settings-note">
+                          {t.cliSourceUnavailable}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <button
+                      className="app-cli-action-btn"
+                      disabled={
+                        isInstallingCli ||
+                        !cliStatus ||
+                        !cliStatus.sourceAvailable
+                      }
+                      onClick={handleInstallCli}
+                      type="button"
+                    >
+                      {isInstallingCli
+                        ? t.cliInstalling
+                        : cliStatus?.sourceAvailable
+                          ? cliStatus.isInstalled
+                            ? t.cliReinstall
+                            : t.cliInstall
+                          : t.cliInstallUnavailable}
+                    </button>
+                  </div>
+
+                  <div className="app-cli-command-row">
+                    <code className="app-cli-command">
+                      {cliStatus?.installCommand ?? t.cliChecking}
+                    </code>
+                    <button
+                      className="app-cli-copy-btn"
+                      disabled={!cliStatus}
+                      onClick={copyCliInstallCommand}
+                      type="button"
+                    >
+                      {t.cliCopyCommand}
+                    </button>
+                  </div>
+
+                  {cliStatusError ? (
+                    <div className="app-settings-error">{cliStatusError}</div>
+                  ) : cliInstallMessage ? (
+                    <div className="app-settings-status" aria-live="polite">
+                      {cliInstallMessage}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
             {settingsError ? (
               <div className="app-settings-error">{settingsError}</div>

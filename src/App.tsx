@@ -61,6 +61,7 @@ function MainWindow() {
     useState<number | null>(null);
   const [activeMainKeyboardTargetId, setActiveMainKeyboardTargetId] =
     useState<string | null>(null);
+  const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
   const activeMainKeyboardTargetIdRef = useRef<string | null>(null);
   // 自定义 Hook 把剪贴板历史、设置、窗口命令等逻辑集中起来，组件只负责组装界面。
   const {
@@ -163,6 +164,8 @@ function MainWindow() {
 
   const moveKeyboardNavigationFocus = useCallback(
     (direction: -1 | 1) => {
+      setIsKeyboardNavigating(true);
+
       const activeElement =
         document.activeElement instanceof HTMLElement ? document.activeElement : null;
       const currentTargetId =
@@ -403,6 +406,10 @@ function MainWindow() {
     activeMainKeyboardTarget?.kind === "history-item"
       ? visibleHistory[activeMainKeyboardTarget.index]?.id ?? null
       : null;
+  const activeFooterAction =
+    activeMainKeyboardTarget?.kind === "footer-action"
+      ? activeMainKeyboardTarget.action
+      : undefined;
 
   const openHistoryItemPreviewFromTarget = (
     item: (typeof visibleHistory)[number],
@@ -430,7 +437,10 @@ function MainWindow() {
   };
 
   return (
-    <div className="app-frame">
+    <div
+      className={`app-frame ${isKeyboardNavigating ? "is-keyboard-navigating" : ""}`}
+      onPointerMove={() => setIsKeyboardNavigating(false)}
+    >
       <div className="app-panel">
         <AppHeader
           inputRef={searchInputRef}
@@ -463,6 +473,7 @@ function MainWindow() {
 
         <AppFooter
           canClearHistory={hasHistory}
+          selectedAction={activeFooterAction}
           translations={t.footer}
           onClearHistory={openClearHistoryConfirm}
           onKeyboardTargetChange={handleFooterKeyboardTargetChange}

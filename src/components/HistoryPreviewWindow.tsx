@@ -42,18 +42,29 @@ export function HistoryPreviewWindow() {
   const [groupPlacement, setGroupPlacement] = useState<PreviewWindowPosition | null>(null);
   const [groupDetailSide, setGroupDetailSide] =
     useState<PreviewWindowSide>("right");
+  const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
   // ref 适合保存不参与渲染的可变值；这里记录上次通知主窗口的时间。
   const lastPointerNotifyAtRef = useRef(0);
   const latestPlacementRef = useRef<PreviewWindowPosition | null>(null);
   const previewRef = useRef<HistoryPreviewPayload | null>(null);
   const hoveredItemIdRef = useRef<string | null>(null);
+  const isKeyboardNavigatingRef = useRef(false);
   const pendingKeyboardActivationGroupIndexRef = useRef<number | null>(null);
   const previewKindRef = useRef<HistoryPreviewPayload["kind"] | null>(null);
+
+  function setPreviewKeyboardNavigating(nextValue: boolean) {
+    isKeyboardNavigatingRef.current = nextValue;
+    setIsKeyboardNavigating(nextValue);
+  }
 
   function setActiveGroupPreviewItemId(
     id: string | null,
     source: "keyboard" | "pointer" = "keyboard",
   ) {
+    if (source === "pointer" && isKeyboardNavigatingRef.current) {
+      return;
+    }
+
     hoveredItemIdRef.current = id;
     setHoveredItemId(id);
 
@@ -112,17 +123,21 @@ export function HistoryPreviewWindow() {
   }
 
   useEffect(() => {
+    let isActive = true;
     let unlisten: (() => void) | undefined;
 
     // preview 窗口不主动读取历史，由主窗口通过事件推送当前分组数据。
     void listenToHistoryPreviewUpdated((payload) => {
+      const shouldActivatePendingKeyboardItem =
+        payload.kind === "group" &&
+        pendingKeyboardActivationGroupIndexRef.current === payload.group.index;
+
       previewKindRef.current = payload.kind;
       previewRef.current = payload;
       setPreview(payload);
-      if (
-        payload.kind === "group" &&
-        pendingKeyboardActivationGroupIndexRef.current === payload.group.index
-      ) {
+      setPreviewKeyboardNavigating(shouldActivatePendingKeyboardItem);
+
+      if (shouldActivatePendingKeyboardItem) {
         pendingKeyboardActivationGroupIndexRef.current = null;
         setActiveGroupPreviewItemId(payload.items[0]?.id ?? null);
       } else {
@@ -132,10 +147,16 @@ export function HistoryPreviewWindow() {
       setGroupDetailSide("right");
       void hideHistoryPreviewDetailWindow();
     }).then((unsubscribe) => {
-      unlisten = unsubscribe;
+      if (isActive) {
+        unlisten = unsubscribe;
+        return;
+      }
+
+      unsubscribe();
     });
 
     return () => {
+      isActive = false;
       unlisten?.();
     };
   }, []);
@@ -149,6 +170,7 @@ export function HistoryPreviewWindow() {
   }, [hoveredItemId]);
 
   useEffect(() => {
+    let isActive = true;
     let unlisten: (() => void) | undefined;
 
     void listenToHistoryPreviewPlacementUpdated((placement) => {
@@ -157,18 +179,27 @@ export function HistoryPreviewWindow() {
         setGroupPlacement(placement);
       }
     }).then((unsubscribe) => {
-      unlisten = unsubscribe;
+      if (isActive) {
+        unlisten = unsubscribe;
+        return;
+      }
+
+      unsubscribe();
     });
 
     return () => {
+      isActive = false;
       unlisten?.();
     };
   }, []);
 
   useEffect(() => {
+    let isActive = true;
     let unlisten: (() => void) | undefined;
 
     void listenToHistoryPreviewKeyboardNavigation((payload) => {
+      setPreviewKeyboardNavigating(true);
+
       switch (payload.kind) {
         case "activate-first-group-item":
           activateFirstKeyboardGroupPreviewItem(payload.groupIndex);
@@ -197,10 +228,16 @@ export function HistoryPreviewWindow() {
         }
       }
     }).then((unsubscribe) => {
-      unlisten = unsubscribe;
+      if (isActive) {
+        unlisten = unsubscribe;
+        return;
+      }
+
+      unsubscribe();
     });
 
     return () => {
+      isActive = false;
       unlisten?.();
     };
   }, []);
@@ -274,6 +311,10 @@ export function HistoryPreviewWindow() {
 
     lastPointerNotifyAtRef.current = now;
     void notifyHistoryPreviewPointerEntered();
+  };
+
+  const markPointerNavigation = () => {
+    setPreviewKeyboardNavigating(false);
   };
 
   const hoveredItem =
@@ -356,12 +397,14 @@ export function HistoryPreviewWindow() {
       detailOffset={groupDetailOffset}
       detailPreviewHeight={detailPreviewHeight}
       groupPreviewHeight={groupPreviewHeight ?? getGroupPreviewHeight(preview.items.length)}
+      isKeyboardNavigating={isKeyboardNavigating}
       preview={preview}
       translations={t}
       onDeleteItem={(id) => {
         void deletePreviewItem(id);
       }}
       onHoveredItemChange={(id) => setActiveGroupPreviewItemId(id, "pointer")}
+      onPointerNavigation={markPointerNavigation}
       onPointerInside={notifyPointerInside}
       onRequestClose={() => {
         void requestHistoryPreviewClose();

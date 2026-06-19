@@ -151,11 +151,7 @@ export function getNextMainKeyboardNavigationTarget(
     return direction > 0 ? targets[0] : targets[targets.length - 1];
   }
 
-  const nextIndex = currentIndex + direction;
-
-  if (nextIndex < 0 || nextIndex >= targets.length) {
-    return null;
-  }
+  const nextIndex = (currentIndex + direction + targets.length) % targets.length;
 
   return targets[nextIndex];
 }

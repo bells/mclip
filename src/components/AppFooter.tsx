@@ -1,11 +1,15 @@
 // 主窗口底部菜单：清除历史、偏好设置、关于和退出。
 
 import type { AppTranslations } from "../i18n";
-import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
+import {
+  type FooterKeyboardAction,
+  serializeMainKeyboardNavigationTarget,
+} from "../utils/keyboardNavigation";
 
 // 这里把“能做什么”交给父组件实现，Footer 只负责触发对应的回调。
 type AppFooterProps = {
   canClearHistory: boolean;
+  selectedAction?: FooterKeyboardAction;
   translations: AppTranslations["footer"];
   onClearHistory: () => void;
   onKeyboardTargetChange?: (targetId: string) => void;
@@ -17,6 +21,7 @@ type AppFooterProps = {
 
 export function AppFooter({
   canClearHistory,
+  selectedAction,
   translations,
   onClearHistory,
   onKeyboardTargetChange,
@@ -36,7 +41,9 @@ export function AppFooter({
       onMouseEnter={onPreviewDismissRequest}
     >
       <button
-        className="app-menu-item is-danger"
+        className={`app-menu-item is-danger ${
+          selectedAction === "clearHistory" ? "is-selected" : ""
+        }`}
         data-main-keyboard-target={serializeMainKeyboardNavigationTarget({
           action: "clearHistory",
           kind: "footer-action",
@@ -56,7 +63,9 @@ export function AppFooter({
       </button>
 
       <button
-        className="app-menu-item"
+        className={`app-menu-item ${
+          selectedAction === "preferences" ? "is-selected" : ""
+        }`}
         data-main-keyboard-target={serializeMainKeyboardNavigationTarget({
           action: "preferences",
           kind: "footer-action",
@@ -74,7 +83,9 @@ export function AppFooter({
       </button>
 
       <button
-        className="app-menu-item"
+        className={`app-menu-item ${
+          selectedAction === "about" ? "is-selected" : ""
+        }`}
         data-main-keyboard-target={serializeMainKeyboardNavigationTarget({
           action: "about",
           kind: "footer-action",
@@ -92,7 +103,9 @@ export function AppFooter({
       </button>
 
       <button
-        className="app-menu-item"
+        className={`app-menu-item ${
+          selectedAction === "quit" ? "is-selected" : ""
+        }`}
         data-main-keyboard-target={serializeMainKeyboardNavigationTarget({
           action: "quit",
           kind: "footer-action",

@@ -122,7 +122,26 @@ test("footer navigation continues downward through the menu actions", () => {
   );
 });
 
-test("keyboard navigation does not wrap from the last menu action to the first history item", () => {
+test("arrow down from the last archive group moves to clear history", () => {
+  const currentTarget = serializeMainKeyboardNavigationTarget({
+    groupIndex: 4,
+    kind: "history-group",
+  });
+
+  assert.deepEqual(
+    getNextMainKeyboardNavigationTarget(currentTarget, 1, {
+      canClearHistory: true,
+      historyGroupCount: 5,
+      visibleHistoryCount: 10,
+    }),
+    {
+      action: "clearHistory",
+      kind: "footer-action",
+    },
+  );
+});
+
+test("keyboard navigation wraps from quit to the search input", () => {
   const currentTarget = serializeMainKeyboardNavigationTarget({
     action: "quit",
     kind: "footer-action",
@@ -134,7 +153,27 @@ test("keyboard navigation does not wrap from the last menu action to the first h
       historyGroupCount: 2,
       visibleHistoryCount: 10,
     }),
-    null,
+    {
+      kind: "search",
+    },
+  );
+});
+
+test("keyboard navigation wraps from the search input to quit", () => {
+  const currentTarget = serializeMainKeyboardNavigationTarget({
+    kind: "search",
+  });
+
+  assert.deepEqual(
+    getNextMainKeyboardNavigationTarget(currentTarget, -1, {
+      canClearHistory: true,
+      historyGroupCount: 2,
+      visibleHistoryCount: 10,
+    }),
+    {
+      action: "quit",
+      kind: "footer-action",
+    },
   );
 });
 
