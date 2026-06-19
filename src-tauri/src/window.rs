@@ -21,9 +21,13 @@ const ABOUT_WINDOW_LABEL: &str = "about";
 const PREFERENCES_WINDOW_LABEL: &str = "preferences";
 
 const HEADER_HEIGHT: f64 = 52.0;
-const GROUP_ROW_HEIGHT: f64 = 40.0;
+const BODY_VERTICAL_PADDING: f64 = 8.0;
+const ARCHIVE_DIVIDER_HEIGHT: f64 = 5.0;
+const ARCHIVE_BOTTOM_PADDING: f64 = 6.0;
+const ARCHIVE_ROW_HEIGHT: f64 = 34.0;
+const ARCHIVE_ROW_GAP: f64 = 4.0;
 const MAX_VISIBLE_ARCHIVE_GROUP_ROWS: u32 = 5;
-const FOOTER_HEIGHT: f64 = 124.0;
+const FOOTER_HEIGHT: f64 = 129.0;
 const PER_ITEM_HEIGHT: f64 = 32.0;
 const EMPTY_STATE_HEIGHT: f64 = 120.0;
 const MIN_PREVIEW_WINDOW_WIDTH: f64 = 240.0;
@@ -667,9 +671,21 @@ fn calculate_window_height(item_count: u32, group_count: u32) -> f64 {
     let visible_archive_group_count = group_count
         .saturating_sub(1)
         .min(MAX_VISIBLE_ARCHIVE_GROUP_ROWS);
-    let group_rows_height = visible_archive_group_count as f64 * GROUP_ROW_HEIGHT;
+    let group_rows_height = calculate_archive_group_height(visible_archive_group_count);
 
-    (HEADER_HEIGHT + group_rows_height + FOOTER_HEIGHT + content_height).min(MAX_WINDOW_HEIGHT)
+    (HEADER_HEIGHT + BODY_VERTICAL_PADDING + group_rows_height + FOOTER_HEIGHT + content_height)
+        .min(MAX_WINDOW_HEIGHT)
+}
+
+fn calculate_archive_group_height(visible_group_count: u32) -> f64 {
+    if visible_group_count == 0 {
+        return 0.0;
+    }
+
+    ARCHIVE_DIVIDER_HEIGHT
+        + ARCHIVE_BOTTOM_PADDING
+        + visible_group_count as f64 * ARCHIVE_ROW_HEIGHT
+        + visible_group_count.saturating_sub(1) as f64 * ARCHIVE_ROW_GAP
 }
 
 fn clamp_preview_width(width: f64) -> f64 {
@@ -1109,18 +1125,18 @@ mod tests {
 
     #[test]
     fn empty_state_height_has_expected_floor() {
-        assert_eq!(calculate_window_height(0, 0), 296.0);
+        assert_eq!(calculate_window_height(0, 0), 309.0);
     }
 
     #[test]
     fn group_nav_height_is_included_when_multiple_groups_exist() {
-        assert_eq!(calculate_window_height(10, 2), 536.0);
+        assert_eq!(calculate_window_height(10, 2), 554.0);
     }
 
     #[test]
     fn group_nav_height_only_counts_five_archive_rows() {
-        assert_eq!(calculate_window_height(10, 6), 696.0);
-        assert_eq!(calculate_window_height(10, 7), 696.0);
+        assert_eq!(calculate_window_height(10, 6), 706.0);
+        assert_eq!(calculate_window_height(10, 7), 706.0);
     }
 
     #[test]

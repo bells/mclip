@@ -1097,7 +1097,7 @@ button {
   display: grid;
   gap: 3px;
   flex-shrink: 0;
-  padding: 5px 6px;
+  padding: 5px 6px 10px;
   border-top: 1px solid rgba(247, 241, 232, 0.1);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(0, 0, 0, 0.06));
