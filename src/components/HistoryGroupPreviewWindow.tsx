@@ -6,6 +6,7 @@ import { getTranslations } from "../i18n";
 import { getHistoryPreviewPointerPosition, type PreviewWindowSide } from "../lib/tauri";
 import type { HistoryGroupInfo, HistoryGroupPreviewPayload, HistoryListItem } from "../types";
 import { getHistoryListDisplayText } from "../utils/history";
+import { shouldActivateGroupPreviewPointerItem } from "../utils/keyboardNavigation";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
 import { ImageThumb } from "./ImageThumb";
 
@@ -63,6 +64,9 @@ export function HistoryGroupPreviewWindow({
   onSelectItem,
 }: HistoryGroupPreviewWindowProps) {
   const hoveredItemIdRef = useRef(hoveredItemId);
+  const lastPolledPointerPositionRef = useRef<{ x: number; y: number } | null>(
+    null,
+  );
   const previewStyle = {
     "--detail-preview-offset": `${detailOffset}px`,
     "--detail-preview-height":
@@ -125,11 +129,26 @@ export function HistoryGroupPreviewWindow({
         if (!isCancelled && position) {
           onPointerInside();
 
+          const previousPosition = lastPolledPointerPositionRef.current;
+          const hasPointerMoved =
+            previousPosition !== null &&
+            (previousPosition.x !== position.x || previousPosition.y !== position.y);
+          lastPolledPointerPositionRef.current = {
+            x: position.x,
+            y: position.y,
+          };
           const itemId = findPreviewItemId(
             document.elementFromPoint(position.x, position.y),
           );
 
-          if (itemId && !isKeyboardNavigating) {
+          if (
+            itemId &&
+            shouldActivateGroupPreviewPointerItem({
+              hasPointerMoved,
+              isKeyboardNavigating,
+              itemId,
+            })
+          ) {
             activateItem(itemId);
           }
         }

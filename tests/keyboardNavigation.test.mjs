@@ -31,6 +31,7 @@ const {
   getNextGroupPreviewItemIndex,
   getNextMainKeyboardNavigationTarget,
   shouldClearPreviewForMainKeyboardTarget,
+  shouldActivateGroupPreviewPointerItem,
   serializeMainKeyboardNavigationTarget,
 } = await importTypeScriptModule("src/utils/keyboardNavigation.ts");
 
@@ -192,4 +193,39 @@ test("group preview item navigation starts on the first item and clamps at the e
   assert.equal(getNextGroupPreviewItemIndex(0, 1, 10), 1);
   assert.equal(getNextGroupPreviewItemIndex(0, -1, 10), 0);
   assert.equal(getNextGroupPreviewItemIndex(9, 1, 10), 9);
+});
+
+test("group preview pointer polling resumes hover after keyboard navigation only after the pointer moves", () => {
+  assert.equal(
+    shouldActivateGroupPreviewPointerItem({
+      hasPointerMoved: true,
+      isKeyboardNavigating: true,
+      itemId: "item-2",
+    }),
+    true,
+  );
+  assert.equal(
+    shouldActivateGroupPreviewPointerItem({
+      hasPointerMoved: false,
+      isKeyboardNavigating: true,
+      itemId: "item-2",
+    }),
+    false,
+  );
+  assert.equal(
+    shouldActivateGroupPreviewPointerItem({
+      hasPointerMoved: false,
+      isKeyboardNavigating: false,
+      itemId: "item-2",
+    }),
+    true,
+  );
+  assert.equal(
+    shouldActivateGroupPreviewPointerItem({
+      hasPointerMoved: true,
+      isKeyboardNavigating: true,
+      itemId: null,
+    }),
+    false,
+  );
 });

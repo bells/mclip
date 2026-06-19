@@ -186,6 +186,24 @@ export function getNextGroupPreviewItemIndex(
   return Math.max(0, Math.min(itemCount - 1, currentIndex + direction));
 }
 
+type GroupPreviewPointerActivationContext = {
+  hasPointerMoved: boolean;
+  isKeyboardNavigating: boolean;
+  itemId: string | null;
+};
+
+export function shouldActivateGroupPreviewPointerItem({
+  hasPointerMoved,
+  isKeyboardNavigating,
+  itemId,
+}: GroupPreviewPointerActivationContext): boolean {
+  if (!itemId) {
+    return false;
+  }
+
+  return !isKeyboardNavigating || hasPointerMoved;
+}
+
 function isFooterKeyboardAction(value: string | undefined): value is FooterKeyboardAction {
   return FOOTER_ACTIONS.includes(value as FooterKeyboardAction);
 }
