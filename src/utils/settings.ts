@@ -15,5 +15,7 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
     enabledHistoryTypes,
     language: settings.language === "zhCn" ? "zhCn" : "en",
     maxHistoryCount: clampHistoryCount(settings.maxHistoryCount),
+    menuBarIconStyle:
+      settings.menuBarIconStyle === "light" ? "light" : "appIcon",
   };
 }

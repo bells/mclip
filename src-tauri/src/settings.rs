@@ -21,6 +21,14 @@ pub enum AppLanguage {
     En,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum MenuBarIconStyle {
+    #[default]
+    AppIcon,
+    Light,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
@@ -32,6 +40,8 @@ pub struct AppSettings {
     pub max_history_count: u32,
     #[serde(default)]
     pub enabled_history_types: HistoryTypes,
+    #[serde(default)]
+    pub menu_bar_icon_style: MenuBarIconStyle,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -70,6 +80,7 @@ impl Default for AppSettings {
             language: default_language(),
             max_history_count: DEFAULT_MAX_HISTORY_COUNT,
             enabled_history_types: HistoryTypes::default(),
+            menu_bar_icon_style: MenuBarIconStyle::default(),
         }
     }
 }
@@ -303,8 +314,8 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
 #[cfg(test)]
 mod tests {
     use super::{
-        resolve_supported_language, AppLanguage, AppSettings, HistoryTypes, MAX_MAX_HISTORY_COUNT,
-        MIN_MAX_HISTORY_COUNT,
+        resolve_supported_language, AppLanguage, AppSettings, HistoryTypes, MenuBarIconStyle,
+        MAX_MAX_HISTORY_COUNT, MIN_MAX_HISTORY_COUNT,
     };
     use crate::history::HistoryKind;
 
@@ -316,6 +327,7 @@ mod tests {
             language: AppLanguage::En,
             max_history_count: 1,
             enabled_history_types: HistoryTypes::default(),
+            menu_bar_icon_style: MenuBarIconStyle::default(),
         }
         .sanitize();
 
@@ -330,6 +342,7 @@ mod tests {
             language: AppLanguage::En,
             max_history_count: 999,
             enabled_history_types: HistoryTypes::default(),
+            menu_bar_icon_style: MenuBarIconStyle::default(),
         }
         .sanitize();
 
@@ -371,6 +384,35 @@ mod tests {
     #[test]
     fn auto_paste_is_disabled_by_default() {
         assert!(!AppSettings::default().auto_paste);
+    }
+
+    #[test]
+    fn default_settings_use_app_icon_menu_bar_style() {
+        let value = serde_json::to_value(AppSettings::default()).unwrap();
+
+        assert_eq!(value["menuBarIconStyle"].as_str(), Some("appIcon"));
+    }
+
+    #[test]
+    fn settings_deserialize_light_menu_bar_icon_style() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{
+              "autoPaste": false,
+              "launchAtLogin": false,
+              "language": "en",
+              "maxHistoryCount": 50,
+              "enabledHistoryTypes": {
+                "text": true,
+                "image": true,
+                "files": true
+              },
+              "menuBarIconStyle": "light"
+            }"#,
+        )
+        .unwrap();
+        let value = serde_json::to_value(settings).unwrap();
+
+        assert_eq!(value["menuBarIconStyle"].as_str(), Some("light"));
     }
 
     #[test]

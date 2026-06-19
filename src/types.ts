@@ -2,6 +2,7 @@
 
 export type AppLanguage = "zhCn" | "en";
 export type HistoryKind = "text" | "image" | "files";
+export type MenuBarIconStyle = "appIcon" | "light";
 
 export type EnabledHistoryTypes = Record<HistoryKind, boolean>;
 
@@ -11,6 +12,7 @@ export type AppSettings = {
   language: AppLanguage;
   launchAtLogin: boolean;
   maxHistoryCount: number;
+  menuBarIconStyle: MenuBarIconStyle;
 };
 
 export type CliInstallStatus = {

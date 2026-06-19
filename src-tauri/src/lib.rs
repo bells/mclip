@@ -17,6 +17,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use tauri::{
+    image::Image,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     App, AppHandle, Manager, WindowEvent,
@@ -34,7 +35,7 @@ use crate::diagnostics::{
     open_logs_dir, open_project_link, write_client_log,
 };
 use crate::history::{clear_history, delete_history_item, get_history};
-use crate::settings::{get_settings, load_settings, AppLanguage, AppSettings};
+use crate::settings::{get_settings, load_settings, AppLanguage, AppSettings, MenuBarIconStyle};
 use crate::window::{
     adjust_window_height, configure_main_window, get_history_preview_pointer_position,
     hide_history_preview_detail_window, hide_history_preview_window, hide_main_window,
@@ -47,6 +48,8 @@ use crate::window::{
 const SHOW_GUARD_MS: u64 = 450;
 const TOGGLE_WINDOW_SHORTCUT: &str = "CommandOrControl+Shift+V";
 const TRAY_ICON_ID: &str = "main";
+const APP_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../../app-icon.png");
+const LIGHT_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/menu-bar-icon-light.png");
 #[cfg(any(target_os = "macos", test))]
 const TRAY_POSITION_AUTOSAVE_NAME: &str = "com.watson.mclip.tray.main";
 
@@ -67,6 +70,7 @@ fn quit_app(app_handle: AppHandle) {
 fn save_settings(app_handle: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
     let saved_settings = settings::save_settings(app_handle.clone(), settings)?;
     configure_tray_tooltip(&app_handle, &saved_settings.language);
+    configure_tray_icon(&app_handle, &saved_settings.menu_bar_icon_style);
     Ok(saved_settings)
 }
 
@@ -85,24 +89,30 @@ fn build_tray(
     let quit_item = MenuItem::with_id(app, "quit", "退出 mclip", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&quit_item])?;
 
-    let icon = app
+    let default_icon = app
         .default_window_icon()
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "missing default window icon"))?
         .clone();
-    let tooltip_language = load_settings(app.handle())
-        .map(|settings| settings.language)
-        .unwrap_or_else(|error| {
-            log_error(
-                app.handle(),
-                "settings",
-                &format!("failed to load settings for tray tooltip: {error}"),
-            );
-            AppSettings::default().language
-        });
+    let startup_settings = load_settings(app.handle()).unwrap_or_else(|error| {
+        log_error(
+            app.handle(),
+            "settings",
+            &format!("failed to load settings for tray icon: {error}"),
+        );
+        AppSettings::default()
+    });
+    let icon = menu_bar_icon(&startup_settings.menu_bar_icon_style).unwrap_or_else(|error| {
+        log_error(
+            app.handle(),
+            "tray",
+            &format!("failed to load configured tray icon: {error}"),
+        );
+        default_icon
+    });
 
     TrayIconBuilder::with_id(TRAY_ICON_ID)
         .icon(icon)
-        .tooltip(tray_tooltip(&tooltip_language))
+        .tooltip(tray_tooltip(&startup_settings.language))
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_tray_icon_event(move |tray, event| {
@@ -144,6 +154,36 @@ fn configure_tray_tooltip(app_handle: &AppHandle, language: &AppLanguage) {
             &format!("failed to update tray tooltip: {error}"),
         );
     }
+}
+
+fn configure_tray_icon(app_handle: &AppHandle, style: &MenuBarIconStyle) {
+    if let Err(error) = set_tray_icon(app_handle, style) {
+        log_error(
+            app_handle,
+            "tray",
+            &format!("failed to update tray icon: {error}"),
+        );
+    }
+}
+
+fn menu_bar_icon_bytes(style: &MenuBarIconStyle) -> &'static [u8] {
+    match style {
+        MenuBarIconStyle::AppIcon => APP_MENU_BAR_ICON_BYTES,
+        MenuBarIconStyle::Light => LIGHT_MENU_BAR_ICON_BYTES,
+    }
+}
+
+fn menu_bar_icon(style: &MenuBarIconStyle) -> Result<Image<'static>, String> {
+    Image::from_bytes(menu_bar_icon_bytes(style)).map_err(|error| error.to_string())
+}
+
+fn set_tray_icon(app_handle: &AppHandle, style: &MenuBarIconStyle) -> Result<(), String> {
+    let Some(tray) = app_handle.tray_by_id(TRAY_ICON_ID) else {
+        return Err("failed to find tray icon".to_string());
+    };
+
+    tray.set_icon(Some(menu_bar_icon(style)?))
+        .map_err(|error| error.to_string())
 }
 
 fn set_tray_tooltip(app_handle: &AppHandle, language: &AppLanguage) -> Result<(), String> {
@@ -406,13 +446,13 @@ pub fn run() {
 mod tests {
     use std::str::FromStr;
 
-    use crate::settings::AppLanguage;
+    use crate::settings::{AppLanguage, MenuBarIconStyle};
 
     use serde_json::Value;
     use tauri_plugin_global_shortcut::Shortcut;
 
     use super::{
-        single_instance_launch_action, tray_tooltip, SingleInstanceLaunchAction,
+        menu_bar_icon, single_instance_launch_action, tray_tooltip, SingleInstanceLaunchAction,
         TOGGLE_WINDOW_SHORTCUT, TRAY_POSITION_AUTOSAVE_NAME,
     };
 
@@ -497,5 +537,16 @@ mod tests {
             tray_tooltip(&AppLanguage::En),
             "A better clipboard history tool, mclip"
         );
+    }
+
+    #[test]
+    fn menu_bar_icon_styles_load_valid_assets() {
+        let app_icon = menu_bar_icon(&MenuBarIconStyle::AppIcon).unwrap();
+        let light_icon = menu_bar_icon(&MenuBarIconStyle::Light).unwrap();
+
+        assert_eq!(app_icon.width(), 1024);
+        assert_eq!(app_icon.height(), 1024);
+        assert_eq!(light_icon.width(), 512);
+        assert_eq!(light_icon.height(), 512);
     }
 }

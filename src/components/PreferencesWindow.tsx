@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
+import appIconUrl from "../../app-icon.png";
+import lightMenuBarIconUrl from "../../src-tauri/icons/menu-bar-icon-light-128.png";
 import {
   clampHistoryCount,
   DEFAULT_SETTINGS,
@@ -23,6 +25,7 @@ import type {
   AppSettings,
   CliInstallStatus,
   HistoryKind,
+  MenuBarIconStyle,
 } from "../types";
 import { normalizeSettings } from "../utils/settings";
 import { DialogWindowControls } from "./DialogWindowControls";
@@ -176,6 +179,13 @@ export function PreferencesWindow() {
     applySettingsPatch((current) => ({
       ...current,
       language,
+    }));
+  };
+
+  const updateMenuBarIconStyle = (menuBarIconStyle: MenuBarIconStyle) => {
+    applySettingsPatch((current) => ({
+      ...current,
+      menuBarIconStyle,
     }));
   };
 
@@ -338,6 +348,60 @@ export function PreferencesWindow() {
                     <option value="zhCn">{t.languageChinese}</option>
                     <option value="en">{t.languageEnglish}</option>
                   </select>
+                </div>
+
+                <div className="app-settings-section">
+                  <div className="app-settings-section-heading">
+                    <div className="app-settings-label">
+                      {t.menuBarIconStyleLabel}
+                    </div>
+                    <div className="app-settings-description">
+                      {t.menuBarIconStyleDescription}
+                    </div>
+                  </div>
+
+                  <div
+                    aria-label={t.menuBarIconStyleLabel}
+                    className="app-menu-bar-icon-options"
+                    role="radiogroup"
+                  >
+                    {([
+                      [
+                        "appIcon",
+                        t.menuBarIconStyleAppIcon,
+                        t.menuBarIconStyleAppIconDescription,
+                        appIconUrl,
+                      ],
+                      [
+                        "light",
+                        t.menuBarIconStyleLight,
+                        t.menuBarIconStyleLightDescription,
+                        lightMenuBarIconUrl,
+                      ],
+                    ] as const).map(([style, label, description, iconUrl]) => (
+                      <button
+                        aria-checked={settingsDraft.menuBarIconStyle === style}
+                        className={`app-menu-bar-icon-option ${
+                          settingsDraft.menuBarIconStyle === style ? "is-selected" : ""
+                        }`}
+                        disabled={isSavingSettings}
+                        key={style}
+                        onClick={() => updateMenuBarIconStyle(style)}
+                        role="radio"
+                        type="button"
+                      >
+                        <span className="app-menu-bar-icon-preview">
+                          <img src={iconUrl} alt="" aria-hidden="true" />
+                        </span>
+                        <span className="app-menu-bar-icon-copy">
+                          <span className="app-menu-bar-icon-label">{label}</span>
+                          <span className="app-menu-bar-icon-description">
+                            {description}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="app-settings-row">

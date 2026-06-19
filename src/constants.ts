@@ -26,6 +26,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   language: "en",
   launchAtLogin: false,
   maxHistoryCount: 50,
+  menuBarIconStyle: "appIcon",
 };
 
 export function clampHistoryCount(value: number) {

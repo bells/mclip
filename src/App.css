@@ -1533,7 +1533,8 @@ button {
 .app-window-control-close,
 .app-stepper-btn,
 .app-switch,
-.app-settings-tab {
+.app-settings-tab,
+.app-menu-bar-icon-option {
   transition:
     background 120ms ease,
     border-color 120ms ease,
@@ -1591,6 +1592,7 @@ button {
 .app-switch:disabled,
 .app-settings-tab:disabled,
 .app-history-type-row:disabled,
+.app-menu-bar-icon-option:disabled,
 .app-cli-action-btn:disabled,
 .app-cli-copy-btn:disabled {
   cursor: not-allowed;
@@ -1896,6 +1898,84 @@ button {
   transform: rotate(-45deg);
 }
 
+.app-menu-bar-icon-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.app-menu-bar-icon-option {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(247, 241, 232, 0.09);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.14);
+  color: inherit;
+  cursor: pointer;
+  padding: 8px;
+  text-align: left;
+}
+
+.app-menu-bar-icon-option:hover:not(:disabled) {
+  border-color: rgba(124, 199, 193, 0.32);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.app-menu-bar-icon-option.is-selected {
+  border-color: rgba(124, 199, 193, 0.44);
+  background:
+    linear-gradient(90deg, rgba(124, 199, 193, 0.13), rgba(124, 199, 193, 0)),
+    rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 0 0 1px rgba(124, 199, 193, 0.24);
+}
+
+.app-menu-bar-icon-preview {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid rgba(247, 241, 232, 0.12);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+    rgba(0, 0, 0, 0.18);
+}
+
+.app-menu-bar-icon-preview img {
+  display: block;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.app-menu-bar-icon-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.app-menu-bar-icon-label {
+  overflow: hidden;
+  color: var(--app-ink-soft);
+  font-size: 11px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-menu-bar-icon-description {
+  overflow: hidden;
+  color: var(--app-ink-dim);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .app-clear-confirm-modal {
   border-color: rgba(255, 117, 109, 0.24);
 }
@@ -2044,6 +2124,7 @@ button {
 .app-switch:focus-visible,
 .app-settings-tab:focus-visible,
 .app-history-type-row:focus-visible,
+.app-menu-bar-icon-option:focus-visible,
 .app-cli-action-btn:focus-visible,
 .app-cli-copy-btn:focus-visible,
 .app-language-select:focus-visible,
