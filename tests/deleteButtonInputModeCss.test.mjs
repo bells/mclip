@@ -13,8 +13,12 @@ function cssRule(css, selector) {
   return match?.[1] ?? "";
 }
 
-test("keyboard navigation suppresses stale hover delete buttons", async () => {
+test("keyboard navigation suppresses stale hover affordances", async () => {
   const css = await readAppCss();
+  const mainHoverRule = cssRule(
+    css,
+    ".app-frame.is-keyboard-navigating .app-item-row:hover:not(.is-selected)",
+  );
   const mainRule = cssRule(
     css,
     ".app-frame.is-keyboard-navigating .app-item-row:hover:not(.is-selected) .app-item-delete",
@@ -32,6 +36,8 @@ test("keyboard navigation suppresses stale hover delete buttons", async () => {
     ".app-history-group-preview-window.is-keyboard-navigating .app-history-preview-item-row:hover:not(.is-selected) .app-history-preview-delete",
   );
 
+  assert.match(mainHoverRule, /background:\s*transparent;/);
+  assert.match(mainHoverRule, /box-shadow:\s*none;/);
   assert.match(mainRule, /opacity:\s*0;/);
   assert.match(mainRule, /pointer-events:\s*none;/);
   assert.match(previewRule, /opacity:\s*0;/);

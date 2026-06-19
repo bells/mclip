@@ -478,6 +478,11 @@ button {
   pointer-events: auto;
 }
 
+.app-frame.is-keyboard-navigating .app-item-row:hover:not(.is-selected) {
+  background: transparent;
+  box-shadow: none;
+}
+
 .app-frame.is-keyboard-navigating .app-item-row:hover:not(.is-selected) .app-item-delete {
   opacity: 0;
   pointer-events: none;
