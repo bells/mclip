@@ -51,6 +51,15 @@ pub fn paste_current_clipboard(
     thread::spawn(move || {
         thread::sleep(Duration::from_millis(AUTO_PASTE_DELAY_MS));
 
+        if let Err(error) = ensure_system_paste_permission() {
+            log_error(
+                &app_handle,
+                "clipboard",
+                &format!("failed to prepare auto paste permission: {error}"),
+            );
+            return;
+        }
+
         if let Err(error) = activate_paste_target_on_main_thread(&app_handle, paste_target) {
             log_error(
                 &app_handle,
@@ -169,6 +178,55 @@ fn trigger_system_paste() -> Result<(), String> {
     key_up.post(CGEventTapLocation::HID);
 
     Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn ensure_system_paste_permission() -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn ensure_system_paste_permission() -> Result<(), String> {
+    let already_allowed = macos_preflight_post_event_access();
+    let allowed_after_request = if already_allowed {
+        false
+    } else {
+        macos_request_post_event_access()
+    };
+
+    macos_auto_paste_access_result(already_allowed, allowed_after_request)
+}
+
+#[cfg(target_os = "macos")]
+fn macos_preflight_post_event_access() -> bool {
+    unsafe { CGPreflightPostEventAccess() }
+}
+
+#[cfg(target_os = "macos")]
+fn macos_request_post_event_access() -> bool {
+    unsafe { CGRequestPostEventAccess() }
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn macos_auto_paste_access_result(
+    already_allowed: bool,
+    allowed_after_request: bool,
+) -> Result<(), String> {
+    if already_allowed || allowed_after_request {
+        return Ok(());
+    }
+
+    Err(
+        "macOS Accessibility permission is required to auto paste clipboard content"
+            .to_string(),
+    )
+}
+
+#[cfg(target_os = "macos")]
+#[link(name = "CoreGraphics", kind = "framework")]
+unsafe extern "C" {
+    fn CGPreflightPostEventAccess() -> bool;
+    fn CGRequestPostEventAccess() -> bool;
 }
 
 #[cfg(target_os = "windows")]
@@ -923,7 +981,7 @@ mod tests {
     use crate::settings::HistoryTypes;
 
     use super::{
-        clipboard_file_list_paths, clipboard_snapshot_from_candidates,
+        clipboard_file_list_paths, clipboard_snapshot_from_candidates, macos_auto_paste_access_result,
         normalize_suspicious_clipboard_alpha, read_snapshot_after_change_token_update,
         text_to_history_item, ClipboardSnapshot,
     };
@@ -1039,6 +1097,13 @@ mod tests {
                 std::path::PathBuf::from("/Users/watson/Desktop/icon.png"),
             ]
         );
+    }
+
+    #[test]
+    fn macos_auto_paste_access_returns_error_when_event_synthesis_is_denied() {
+        let error = macos_auto_paste_access_result(false, false).unwrap_err();
+
+        assert!(error.contains("macOS Accessibility permission"));
     }
 
     #[test]
