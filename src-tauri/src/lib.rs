@@ -452,6 +452,20 @@ mod tests {
     }
 
     #[test]
+    fn preferences_window_uses_tight_fixed_height() {
+        let config: Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let windows = config["app"]["windows"].as_array().unwrap();
+        let preferences = windows
+            .iter()
+            .find(|window| window["label"].as_str() == Some("preferences"))
+            .expect("preferences window should be configured");
+
+        assert_eq!(preferences["height"].as_u64(), Some(420));
+        assert_eq!(preferences["minHeight"].as_u64(), Some(420));
+        assert_eq!(preferences["maxHeight"].as_u64(), Some(420));
+    }
+
+    #[test]
     fn macos_bundle_is_configured_as_agent_app() {
         let config: Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
 
