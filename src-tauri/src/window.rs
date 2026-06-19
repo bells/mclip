@@ -20,11 +20,11 @@ const PREVIEW_DETAIL_WINDOW_LABEL: &str = "preview-detail";
 const ABOUT_WINDOW_LABEL: &str = "about";
 const PREFERENCES_WINDOW_LABEL: &str = "preferences";
 
-const HEADER_HEIGHT: f64 = 56.0;
-const GROUP_ROW_HEIGHT: f64 = 52.0;
+const HEADER_HEIGHT: f64 = 52.0;
+const GROUP_ROW_HEIGHT: f64 = 40.0;
 const MAX_VISIBLE_ARCHIVE_GROUP_ROWS: u32 = 5;
-const FOOTER_HEIGHT: f64 = 144.0;
-const PER_ITEM_HEIGHT: f64 = 34.0;
+const FOOTER_HEIGHT: f64 = 124.0;
+const PER_ITEM_HEIGHT: f64 = 32.0;
 const EMPTY_STATE_HEIGHT: f64 = 120.0;
 const MIN_PREVIEW_WINDOW_WIDTH: f64 = 240.0;
 const MAX_PREVIEW_WINDOW_WIDTH: f64 = 680.0;
@@ -1109,18 +1109,18 @@ mod tests {
 
     #[test]
     fn empty_state_height_has_expected_floor() {
-        assert_eq!(calculate_window_height(0, 0), 320.0);
+        assert_eq!(calculate_window_height(0, 0), 296.0);
     }
 
     #[test]
     fn group_nav_height_is_included_when_multiple_groups_exist() {
-        assert_eq!(calculate_window_height(10, 2), 592.0);
+        assert_eq!(calculate_window_height(10, 2), 536.0);
     }
 
     #[test]
     fn group_nav_height_only_counts_five_archive_rows() {
-        assert_eq!(calculate_window_height(10, 6), 800.0);
-        assert_eq!(calculate_window_height(10, 7), 800.0);
+        assert_eq!(calculate_window_height(10, 6), 696.0);
+        assert_eq!(calculate_window_height(10, 7), 696.0);
     }
 
     #[test]
