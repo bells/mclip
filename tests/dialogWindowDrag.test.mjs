@@ -26,7 +26,8 @@ test("about and preferences windows use the draggable dialog frame", async () =>
 test("dialog drag frame starts dragging only from non-interactive targets", async () => {
   const frameSource = await readSource("src/components/DialogWindowFrame.tsx");
   const dragSource = await readSource("src/utils/dialogDrag.ts");
-  const tauriSource = await readSource("src/lib/tauri.ts");
+  const tauriFacadeSource = await readSource("src/lib/tauri.ts");
+  const windowServiceSource = await readSource("src/services/ipc/windows.ts");
 
   assert.match(frameSource, /event\.button !== 0/);
   assert.match(frameSource, /shouldStartDialogWindowDrag\(event\.target\)/);
@@ -36,6 +37,7 @@ test("dialog drag frame starts dragging only from non-interactive targets", asyn
   assert.match(dragSource, /select/);
   assert.match(dragSource, /textarea/);
   assert.match(dragSource, /\[data-dialog-drag-exclude\]/);
-  assert.match(tauriSource, /export function startCurrentWindowDrag\(\)/);
-  assert.match(tauriSource, /getCurrentWindow\(\)\.startDragging\(\)/);
+  assert.match(windowServiceSource, /export function startCurrentWindowDrag\(\)/);
+  assert.match(windowServiceSource, /getCurrentWindow\(\)\.startDragging\(\)/);
+  assert.match(tauriFacadeSource, /export \* from "\.\.\/services\/ipc\/windows";/);
 });

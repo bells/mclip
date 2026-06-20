@@ -21,7 +21,11 @@ test("settings saves are queued in the background instead of disabling the page"
 
   assert.match(source, /settingsSaveQueueRef/);
   assert.match(source, /settingsSaveRevisionRef/);
-  assert.match(source, /settingsSaveQueueRef\.current = settingsSaveQueueRef\.current/);
+  assert.match(
+    source,
+    /const saveTask = settingsSaveQueueRef\.current\s*\.catch\(\(\) => undefined\)\s*\.then\(async \(\) =>/s,
+  );
+  assert.match(source, /settingsSaveQueueRef\.current = saveTask/);
   assert.doesNotMatch(source, /isSavingSettings/);
   assert.doesNotMatch(source, /setIsSavingSettings/);
   assert.doesNotMatch(source, /t\.saving/);
