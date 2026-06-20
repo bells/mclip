@@ -31,6 +31,7 @@ import type {
   MenuBarIconStyle,
 } from "../types";
 import { normalizeSettings } from "../utils/settings";
+import { DialogWindowFrame } from "./DialogWindowFrame";
 import { DialogWindowControls } from "./DialogWindowControls";
 
 type PreferencesTab = "general" | "storage" | "cli";
@@ -57,6 +58,8 @@ export function PreferencesWindow() {
   );
   const translations = getTranslations(settingsDraft.language);
   const t = translations.preferences;
+  const selectedMenuBarIconUrl =
+    settingsDraft.menuBarIconStyle === "light" ? lightMenuBarIconUrl : appIconUrl;
 
   const syncSettingsState = (nextSettings: AppSettings) => {
     latestSettingsRef.current = nextSettings;
@@ -385,9 +388,9 @@ export function PreferencesWindow() {
   };
 
   return (
-    <div className="app-dialog-frame app-preferences-window">
+    <DialogWindowFrame className="app-preferences-window">
       <div className="app-dialog-panel app-settings-window-panel">
-        <div className="app-dialog-titlebar" data-tauri-drag-region>
+        <div className="app-dialog-titlebar">
           <span className="app-modal-title">{t.title}</span>
           <DialogWindowControls labels={translations.windowControls} />
         </div>
@@ -416,6 +419,48 @@ export function PreferencesWindow() {
 
             {activeTab === "general" ? (
               <div className="app-settings-tab-panel" role="tabpanel">
+                <div className="app-settings-primary-grid">
+                  <div className="app-settings-compact-field">
+                    <div className="app-settings-label">{t.languageLabel}</div>
+                    <select
+                      aria-label={t.languageLabel}
+                      className="app-settings-select app-language-select"
+                      disabled={isSavingSettings}
+                      onChange={(event) => updateLanguage(event.target.value as AppLanguage)}
+                      value={settingsDraft.language}
+                    >
+                      <option value="zhCn">{t.languageChinese}</option>
+                      <option value="en">{t.languageEnglish}</option>
+                    </select>
+                  </div>
+
+                  <div className="app-settings-compact-field">
+                    <div className="app-settings-label">{t.menuBarIconStyleLabel}</div>
+                    <div className="app-menu-bar-icon-select">
+                      <span
+                        aria-hidden="true"
+                        className="app-menu-bar-icon-select-preview"
+                      >
+                        <img src={selectedMenuBarIconUrl} alt="" />
+                      </span>
+                      <select
+                        aria-label={t.menuBarIconStyleLabel}
+                        className="app-settings-select app-menu-bar-icon-select-control"
+                        disabled={isSavingSettings}
+                        onChange={(event) =>
+                          updateMenuBarIconStyle(
+                            event.target.value as MenuBarIconStyle,
+                          )
+                        }
+                        value={settingsDraft.menuBarIconStyle}
+                      >
+                        <option value="appIcon">{t.menuBarIconStyleAppIcon}</option>
+                        <option value="light">{t.menuBarIconStyleLight}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="app-settings-row">
                   <div className="app-settings-copy">
                     <div className="app-settings-label">{t.launchAtLoginLabel}</div>
@@ -434,78 +479,6 @@ export function PreferencesWindow() {
                   >
                     <span className="app-switch-thumb" />
                   </button>
-                </div>
-
-                <div className="app-settings-row">
-                  <div className="app-settings-copy">
-                    <div className="app-settings-label">{t.languageLabel}</div>
-                    <div className="app-settings-description">{t.languageDescription}</div>
-                  </div>
-
-                  <select
-                    aria-label={t.languageLabel}
-                    className="app-language-select"
-                    disabled={isSavingSettings}
-                    onChange={(event) => updateLanguage(event.target.value as AppLanguage)}
-                    value={settingsDraft.language}
-                  >
-                    <option value="zhCn">{t.languageChinese}</option>
-                    <option value="en">{t.languageEnglish}</option>
-                  </select>
-                </div>
-
-                <div className="app-settings-section">
-                  <div className="app-settings-section-heading">
-                    <div className="app-settings-label">
-                      {t.menuBarIconStyleLabel}
-                    </div>
-                    <div className="app-settings-description">
-                      {t.menuBarIconStyleDescription}
-                    </div>
-                  </div>
-
-                  <div
-                    aria-label={t.menuBarIconStyleLabel}
-                    className="app-menu-bar-icon-options"
-                    role="radiogroup"
-                  >
-                    {([
-                      [
-                        "appIcon",
-                        t.menuBarIconStyleAppIcon,
-                        t.menuBarIconStyleAppIconDescription,
-                        appIconUrl,
-                      ],
-                      [
-                        "light",
-                        t.menuBarIconStyleLight,
-                        t.menuBarIconStyleLightDescription,
-                        lightMenuBarIconUrl,
-                      ],
-                    ] as const).map(([style, label, description, iconUrl]) => (
-                      <button
-                        aria-checked={settingsDraft.menuBarIconStyle === style}
-                        className={`app-menu-bar-icon-option ${
-                          settingsDraft.menuBarIconStyle === style ? "is-selected" : ""
-                        }`}
-                        disabled={isSavingSettings}
-                        key={style}
-                        onClick={() => updateMenuBarIconStyle(style)}
-                        role="radio"
-                        type="button"
-                      >
-                        <span className="app-menu-bar-icon-preview">
-                          <img src={iconUrl} alt="" aria-hidden="true" />
-                        </span>
-                        <span className="app-menu-bar-icon-copy">
-                          <span className="app-menu-bar-icon-label">{label}</span>
-                          <span className="app-menu-bar-icon-description">
-                            {description}
-                          </span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 <div className="app-settings-row">
@@ -752,6 +725,6 @@ export function PreferencesWindow() {
           </div>
         </div>
       </div>
-    </div>
+    </DialogWindowFrame>
   );
 }

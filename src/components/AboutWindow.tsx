@@ -10,6 +10,7 @@ import {
   DEFAULT_SETTINGS,
   GITHUB_LATEST_RELEASE_API_URL,
 } from "../constants";
+import { DialogWindowFrame } from "./DialogWindowFrame";
 import { DialogWindowControls } from "./DialogWindowControls";
 import { getTranslations } from "../i18n";
 import {
@@ -211,9 +212,9 @@ export function AboutWindow() {
   };
 
   return (
-    <div className="app-dialog-frame app-about-window">
+    <DialogWindowFrame className="app-about-window">
       <div className="app-dialog-panel">
-        <div className="app-dialog-titlebar" data-tauri-drag-region>
+        <div className="app-dialog-titlebar">
           <span className="app-modal-title">{t.title}</span>
           <DialogWindowControls labels={translations.windowControls} />
         </div>
@@ -301,6 +302,6 @@ export function AboutWindow() {
           </p>
         </div>
       </div>
-    </div>
+    </DialogWindowFrame>
   );
 }

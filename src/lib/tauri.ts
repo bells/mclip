@@ -275,6 +275,10 @@ export function hideCurrentWindow() {
   return getCurrentWindow().hide();
 }
 
+export function startCurrentWindowDrag() {
+  return getCurrentWindow().startDragging();
+}
+
 export async function hideMainWindow() {
   const mainWindow = await TauriWindow.getByLabel(MAIN_WINDOW_LABEL);
   await mainWindow?.hide();

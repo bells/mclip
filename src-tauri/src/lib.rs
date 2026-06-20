@@ -518,7 +518,7 @@ mod tests {
             permissions
                 .iter()
                 .any(|permission| permission.as_str() == Some("core:window:allow-start-dragging")),
-            "dialog titlebars use data-tauri-drag-region, which calls plugin:window|start_dragging"
+            "dialog frames call Window.startDragging() from non-interactive regions"
         );
     }
 
