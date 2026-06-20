@@ -41,7 +41,6 @@ export function PreferencesWindow() {
   const [settingsDraft, setSettingsDraft] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [activeTab, setActiveTab] = useState<PreferencesTab>("general");
   const [settingsError, setSettingsError] = useState("");
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [autoPastePermissionStatus, setAutoPastePermissionStatus] =
     useState<AutoPastePermissionStatus | null>(null);
   const [isCheckingAutoPastePermission, setIsCheckingAutoPastePermission] =
@@ -51,6 +50,9 @@ export function PreferencesWindow() {
   const [cliInstallMessage, setCliInstallMessage] = useState("");
   const [isInstallingCli, setIsInstallingCli] = useState(false);
   const latestSettingsRef = useRef<AppSettings>(DEFAULT_SETTINGS);
+  const pendingSettingsSaveCountRef = useRef(0);
+  const settingsSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const settingsSaveRevisionRef = useRef(0);
   const isMacOs = navigator.platform.toLowerCase().includes("mac");
   // 数字输入框单独保存字符串，允许用户编辑中间态，比如暂时清空输入框。
   const [maxHistoryCountInput, setMaxHistoryCountInput] = useState(
@@ -89,6 +91,10 @@ export function PreferencesWindow() {
 
     void loadSettings();
     void listenToSettingsUpdated((updatedSettings) => {
+      if (pendingSettingsSaveCountRef.current > 0) {
+        return;
+      }
+
       const normalizedSettings = normalizeSettings(updatedSettings);
       syncSettingsState(normalizedSettings);
       setSettingsError("");
@@ -178,24 +184,42 @@ export function PreferencesWindow() {
     };
   }, []);
 
-  const applySettings = async (nextSettings: AppSettings) => {
+  const applySettings = (nextSettings: AppSettings) => {
     const previousSettings = latestSettingsRef.current;
     const normalizedSettings = normalizeSettings(nextSettings);
+    const saveRevision = settingsSaveRevisionRef.current + 1;
 
+    settingsSaveRevisionRef.current = saveRevision;
+    pendingSettingsSaveCountRef.current += 1;
     syncSettingsState(normalizedSettings);
     setSettingsError("");
-    setIsSavingSettings(true);
 
-    try {
-      const savedSettings = normalizeSettings(await saveSettings(normalizedSettings));
-      syncSettingsState(savedSettings);
-    } catch (error) {
-      console.error("保存设置失败:", error);
-      syncSettingsState(previousSettings);
-      setSettingsError(t.error);
-    } finally {
-      setIsSavingSettings(false);
-    }
+    const saveTask = settingsSaveQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          const savedSettings = normalizeSettings(await saveSettings(normalizedSettings));
+
+          if (settingsSaveRevisionRef.current === saveRevision) {
+            syncSettingsState(savedSettings);
+            setSettingsError("");
+          }
+        } catch (error) {
+          console.error("保存设置失败:", error);
+
+          if (settingsSaveRevisionRef.current === saveRevision) {
+            syncSettingsState(previousSettings);
+            setSettingsError(t.error);
+          }
+        } finally {
+          pendingSettingsSaveCountRef.current = Math.max(
+            0,
+            pendingSettingsSaveCountRef.current - 1,
+          );
+        }
+      });
+
+    settingsSaveQueueRef.current = saveTask;
   };
 
   const applySettingsPatch = (
@@ -403,13 +427,12 @@ export function PreferencesWindow() {
                 ["storage", t.storageTab],
                 ["cli", t.cliTab],
               ] as const).map(([tab, label]) => (
-                <button
-                  aria-selected={activeTab === tab}
-                  className={`app-settings-tab ${activeTab === tab ? "is-active" : ""}`}
-                  disabled={isSavingSettings}
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  role="tab"
+                  <button
+                    aria-selected={activeTab === tab}
+                    className={`app-settings-tab ${activeTab === tab ? "is-active" : ""}`}
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    role="tab"
                   type="button"
                 >
                   {label}
@@ -425,7 +448,6 @@ export function PreferencesWindow() {
                     <select
                       aria-label={t.languageLabel}
                       className="app-settings-select app-language-select"
-                      disabled={isSavingSettings}
                       onChange={(event) => updateLanguage(event.target.value as AppLanguage)}
                       value={settingsDraft.language}
                     >
@@ -446,7 +468,6 @@ export function PreferencesWindow() {
                       <select
                         aria-label={t.menuBarIconStyleLabel}
                         className="app-settings-select app-menu-bar-icon-select-control"
-                        disabled={isSavingSettings}
                         onChange={(event) =>
                           updateMenuBarIconStyle(
                             event.target.value as MenuBarIconStyle,
@@ -473,7 +494,6 @@ export function PreferencesWindow() {
                     aria-label={t.launchAtLoginLabel}
                     aria-pressed={settingsDraft.launchAtLogin}
                     className={`app-switch ${settingsDraft.launchAtLogin ? "is-on" : ""}`}
-                    disabled={isSavingSettings}
                     onClick={toggleLaunchAtLogin}
                     type="button"
                   >
@@ -510,7 +530,7 @@ export function PreferencesWindow() {
                       aria-label={t.autoPasteLabel}
                       aria-pressed={settingsDraft.autoPaste}
                       className={`app-switch ${settingsDraft.autoPaste ? "is-on" : ""}`}
-                      disabled={isSavingSettings || isCheckingAutoPastePermission}
+                      disabled={isCheckingAutoPastePermission}
                       onClick={() => void toggleAutoPaste()}
                       type="button"
                     >
@@ -520,7 +540,6 @@ export function PreferencesWindow() {
                     {isMacOs ? (
                       <button
                         className="app-settings-action-btn"
-                        disabled={isSavingSettings}
                         onClick={openAutoPastePermission}
                         type="button"
                       >
@@ -531,7 +550,7 @@ export function PreferencesWindow() {
                     {isMacOs ? (
                       <button
                         className="app-settings-action-btn"
-                        disabled={isSavingSettings || isCheckingAutoPastePermission}
+                        disabled={isCheckingAutoPastePermission}
                         onClick={() => void refreshAutoPastePermissionStatus()}
                         type="button"
                       >
@@ -560,7 +579,6 @@ export function PreferencesWindow() {
                     <button
                       aria-label={t.decreaseMaxHistoryCount}
                       className="app-stepper-btn"
-                      disabled={isSavingSettings}
                       onClick={() =>
                         updateMaxHistoryCount(settingsDraft.maxHistoryCount - 1)
                       }
@@ -571,7 +589,6 @@ export function PreferencesWindow() {
                     <input
                       aria-label={t.maxHistoryCountAriaLabel}
                       className="app-stepper-input"
-                      disabled={isSavingSettings}
                       max={MAX_MAX_HISTORY_COUNT}
                       min={MIN_MAX_HISTORY_COUNT}
                       onBlur={commitMaxHistoryCountInput}
@@ -587,7 +604,6 @@ export function PreferencesWindow() {
                     <button
                       aria-label={t.increaseMaxHistoryCount}
                       className="app-stepper-btn"
-                      disabled={isSavingSettings}
                       onClick={() =>
                         updateMaxHistoryCount(settingsDraft.maxHistoryCount + 1)
                       }
@@ -616,7 +632,6 @@ export function PreferencesWindow() {
                         className={`app-history-type-row ${
                           settingsDraft.enabledHistoryTypes[kind] ? "is-on" : ""
                         }`}
-                        disabled={isSavingSettings}
                         key={kind}
                         onClick={() => toggleHistoryType(kind)}
                         type="button"
@@ -717,10 +732,6 @@ export function PreferencesWindow() {
 
             {settingsError ? (
               <div className="app-settings-error">{settingsError}</div>
-            ) : isSavingSettings ? (
-              <div className="app-settings-status" aria-live="polite">
-                {t.saving}
-              </div>
             ) : null}
           </div>
         </div>
