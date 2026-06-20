@@ -4,6 +4,8 @@
 
 use std::borrow::Cow;
 use std::path::PathBuf;
+#[cfg(target_os = "macos")]
+use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
@@ -15,7 +17,7 @@ use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
 use tauri::{AppHandle, State};
 
 use crate::auto_paste::{activate_paste_target_on_main_thread, AutoPasteTargetState};
-use crate::diagnostics::log_error;
+use crate::diagnostics::{log_error, log_info};
 use crate::history::{
     emit_history_updated, find_history_item, hash_hex, process_new_history_item, HistoryEntry,
     NewHistoryItem,
@@ -46,19 +48,19 @@ pub fn paste_current_clipboard(
     app_handle: AppHandle,
     paste_target_state: State<'_, AutoPasteTargetState>,
 ) -> Result<(), String> {
+    if let Err(error) = ensure_system_paste_permission() {
+        log_error(
+            &app_handle,
+            "clipboard",
+            &format!("failed to prepare auto paste permission: {error}"),
+        );
+        return Err(error);
+    }
+
     let paste_target = paste_target_state.take();
 
     thread::spawn(move || {
         thread::sleep(Duration::from_millis(AUTO_PASTE_DELAY_MS));
-
-        if let Err(error) = ensure_system_paste_permission() {
-            log_error(
-                &app_handle,
-                "clipboard",
-                &format!("failed to prepare auto paste permission: {error}"),
-            );
-            return;
-        }
 
         if let Err(error) = activate_paste_target_on_main_thread(&app_handle, paste_target) {
             log_error(
@@ -81,6 +83,17 @@ pub fn paste_current_clipboard(
     });
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn open_auto_paste_permission_settings(app_handle: AppHandle) -> Result<(), String> {
+    log_info(
+        &app_handle,
+        "clipboard",
+        "opening macOS Accessibility settings for auto paste",
+    );
+
+    open_platform_auto_paste_permission_settings()
 }
 
 #[tauri::command]
@@ -216,10 +229,26 @@ fn macos_auto_paste_access_result(
         return Ok(());
     }
 
-    Err(
-        "macOS Accessibility permission is required to auto paste clipboard content"
-            .to_string(),
-    )
+    Err("macOS Accessibility permission is required to auto paste clipboard content".to_string())
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn macos_auto_paste_permission_settings_url() -> &'static str {
+    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+}
+
+#[cfg(target_os = "macos")]
+fn open_platform_auto_paste_permission_settings() -> Result<(), String> {
+    Command::new("open")
+        .arg(macos_auto_paste_permission_settings_url())
+        .spawn()
+        .map(|_| ())
+        .map_err(|error| error.to_string())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn open_platform_auto_paste_permission_settings() -> Result<(), String> {
+    Err("Auto Paste permission settings are only available on macOS".to_string())
 }
 
 #[cfg(target_os = "macos")]
@@ -981,7 +1010,8 @@ mod tests {
     use crate::settings::HistoryTypes;
 
     use super::{
-        clipboard_file_list_paths, clipboard_snapshot_from_candidates, macos_auto_paste_access_result,
+        clipboard_file_list_paths, clipboard_snapshot_from_candidates,
+        macos_auto_paste_access_result, macos_auto_paste_permission_settings_url,
         normalize_suspicious_clipboard_alpha, read_snapshot_after_change_token_update,
         text_to_history_item, ClipboardSnapshot,
     };
@@ -1104,6 +1134,14 @@ mod tests {
         let error = macos_auto_paste_access_result(false, false).unwrap_err();
 
         assert!(error.contains("macOS Accessibility permission"));
+    }
+
+    #[test]
+    fn macos_auto_paste_permission_settings_url_targets_accessibility_pane() {
+        assert_eq!(
+            macos_auto_paste_permission_settings_url(),
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+        );
     }
 
     #[test]

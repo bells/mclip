@@ -74,6 +74,11 @@ export const translations = {
     preferences: {
       autoPasteDescription: "选择历史项后，先写入剪贴板，再自动粘贴到当前应用。",
       autoPasteLabel: "自动粘贴",
+      autoPastePermissionAction: "打开辅助功能设置",
+      autoPastePermissionNote:
+        "macOS 安装版需要在“系统设置 > 隐私与安全性 > 辅助功能”中允许 mclip；通过 npm run tauri:dev 启动的开发版需要单独授权。",
+      autoPastePermissionOpenError:
+        "无法打开辅助功能设置，请手动前往系统设置 > 隐私与安全性 > 辅助功能。",
       cancel: "取消",
       cliChecking: "检查中...",
       cliCheckingDescription: "正在读取本机 mclip-cli 安装状态。",
@@ -205,6 +210,11 @@ export const translations = {
     preferences: {
       autoPasteDescription: "After choosing an item, copy it first and then paste it into the active app.",
       autoPasteLabel: "Auto Paste",
+      autoPastePermissionAction: "Open Accessibility",
+      autoPastePermissionNote:
+        "On macOS, the installed app needs Accessibility permission. The dev build launched by npm run tauri:dev and /Applications/mclip.app are authorized separately.",
+      autoPastePermissionOpenError:
+        "Unable to open Accessibility settings. Open System Settings > Privacy & Security > Accessibility manually.",
       cancel: "Cancel",
       cliChecking: "Checking...",
       cliCheckingDescription: "Reading the local mclip-cli install status.",

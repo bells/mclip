@@ -109,6 +109,10 @@ export function pasteClipboard() {
   return invoke<void>("paste_current_clipboard");
 }
 
+export function openAutoPastePermissionSettings() {
+  return invoke<void>("open_auto_paste_permission_settings");
+}
+
 export function getAssetUrl(path: string) {
   return convertFileSrc(path);
 }

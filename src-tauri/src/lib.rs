@@ -28,7 +28,8 @@ use tauri_plugin_positioner::on_tray_event;
 use crate::auto_paste::{remember_current_paste_target, AutoPasteTargetState};
 use crate::cli_install::{get_cli_install_status, install_cli};
 use crate::clipboard::{
-    copy_history_item, get_image_base64, paste_current_clipboard, spawn_clipboard_watcher,
+    copy_history_item, get_image_base64, open_auto_paste_permission_settings,
+    paste_current_clipboard, spawn_clipboard_watcher,
 };
 use crate::diagnostics::{
     copy_diagnostic_report, initialize_diagnostics, log_error, log_info, open_issue_report,
@@ -392,6 +393,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             copy_history_item,
             paste_current_clipboard,
+            open_auto_paste_permission_settings,
             get_image_base64,
             quit_app,
             get_settings,

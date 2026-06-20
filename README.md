@@ -38,6 +38,12 @@
 
 macOS 上，系统支持时可以按住 `Command` 拖动菜单栏里的 mclip 图标到更靠右的位置；mclip 会使用系统位置保存机制，后续启动时尽量恢复该位置。Windows 托盘排序由系统和用户设置控制，应用本身不能强制固定到最右侧。
 
+### macOS 自动粘贴权限
+
+自动粘贴会向系统发送 `Command+V`，macOS 会把它归到“辅助功能”权限。通过 GitHub Release 安装到“应用程序”的 `mclip.app`，和 `npm run tauri:dev` 启动的开发版是两个不同的授权对象；开发版可用不代表安装版已经被授权。
+
+如果自动粘贴没有反应，请打开 mclip 的“偏好设置 > 通用”，点击“打开辅助功能设置”，然后在“系统设置 > 隐私与安全性 > 辅助功能”中允许 `mclip.app`。
+
 ### AI Agent 与 CLI
 
 CLI 提供本地历史访问、Agent 模式和受控操作能力，方便 Codex、Claude Code、Cursor、Cline 等工具通过命令读取最近剪贴板上下文，或把重要输出写入 mclip 历史。开发环境中可以这样调用：
@@ -181,6 +187,12 @@ Download the installer for your platform from GitHub Releases:
 After installation, `mclip` runs in the system tray or menu bar. Click the tray icon or press `CommandOrControl+Shift+V` to open the main window.
 
 On macOS, when the system allows it, hold `Command` and drag the mclip menu bar icon closer to the right side; mclip uses the system status-item position restore mechanism on later launches. On Windows, tray ordering is controlled by the system and user settings, so the app cannot force a rightmost position.
+
+### macOS Auto Paste Permission
+
+Auto Paste sends `Command+V` through the system, so macOS protects it with Accessibility permission. The `mclip.app` installed from a GitHub Release and the dev app launched by `npm run tauri:dev` are authorized separately; a working dev build does not mean the installed app is already trusted.
+
+If Auto Paste does not react, open `Preferences > General` in mclip, click `Open Accessibility`, then allow `mclip.app` in `System Settings > Privacy & Security > Accessibility`.
 
 ### AI Agent And CLI
 

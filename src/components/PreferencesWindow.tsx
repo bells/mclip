@@ -18,6 +18,7 @@ import {
   hideCurrentWindow,
   installCli,
   listenToSettingsUpdated,
+  openAutoPastePermissionSettings,
   saveSettings,
 } from "../lib/tauri";
 import type {
@@ -43,6 +44,7 @@ export function PreferencesWindow() {
   const [cliInstallMessage, setCliInstallMessage] = useState("");
   const [isInstallingCli, setIsInstallingCli] = useState(false);
   const latestSettingsRef = useRef<AppSettings>(DEFAULT_SETTINGS);
+  const isMacOs = navigator.platform.toLowerCase().includes("mac");
   // 数字输入框单独保存字符串，允许用户编辑中间态，比如暂时清空输入框。
   const [maxHistoryCountInput, setMaxHistoryCountInput] = useState(
     String(DEFAULT_SETTINGS.maxHistoryCount),
@@ -173,6 +175,17 @@ export function PreferencesWindow() {
       ...current,
       autoPaste: !current.autoPaste,
     }));
+  };
+
+  const openAutoPastePermission = async () => {
+    setSettingsError("");
+
+    try {
+      await openAutoPastePermissionSettings();
+    } catch (error) {
+      console.error("打开自动粘贴权限设置失败:", error);
+      setSettingsError(t.autoPastePermissionOpenError);
+    }
   };
 
   const updateLanguage = (language: AppLanguage) => {
@@ -410,18 +423,36 @@ export function PreferencesWindow() {
                     <div className="app-settings-description">
                       {t.autoPasteDescription}
                     </div>
+                    {isMacOs ? (
+                      <div className="app-settings-note">
+                        {t.autoPastePermissionNote}
+                      </div>
+                    ) : null}
                   </div>
 
-                  <button
-                    aria-label={t.autoPasteLabel}
-                    aria-pressed={settingsDraft.autoPaste}
-                    className={`app-switch ${settingsDraft.autoPaste ? "is-on" : ""}`}
-                    disabled={isSavingSettings}
-                    onClick={toggleAutoPaste}
-                    type="button"
-                  >
-                    <span className="app-switch-thumb" />
-                  </button>
+                  <div className="app-settings-row-actions">
+                    <button
+                      aria-label={t.autoPasteLabel}
+                      aria-pressed={settingsDraft.autoPaste}
+                      className={`app-switch ${settingsDraft.autoPaste ? "is-on" : ""}`}
+                      disabled={isSavingSettings}
+                      onClick={toggleAutoPaste}
+                      type="button"
+                    >
+                      <span className="app-switch-thumb" />
+                    </button>
+
+                    {isMacOs ? (
+                      <button
+                        className="app-settings-action-btn"
+                        disabled={isSavingSettings}
+                        onClick={openAutoPastePermission}
+                        type="button"
+                      >
+                        {t.autoPastePermissionAction}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             ) : null}
