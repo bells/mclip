@@ -28,8 +28,8 @@ use tauri_plugin_positioner::on_tray_event;
 use crate::auto_paste::{remember_current_paste_target, AutoPasteTargetState};
 use crate::cli_install::{get_cli_install_status, install_cli};
 use crate::clipboard::{
-    copy_history_item, get_image_base64, open_auto_paste_permission_settings,
-    paste_current_clipboard, spawn_clipboard_watcher,
+    copy_history_item, get_auto_paste_permission_status, get_image_base64,
+    open_auto_paste_permission_settings, paste_current_clipboard, spawn_clipboard_watcher,
 };
 use crate::diagnostics::{
     copy_diagnostic_report, initialize_diagnostics, log_error, log_info, open_issue_report,
@@ -394,6 +394,7 @@ pub fn run() {
             copy_history_item,
             paste_current_clipboard,
             open_auto_paste_permission_settings,
+            get_auto_paste_permission_status,
             get_image_base64,
             quit_app,
             get_settings,
@@ -505,6 +506,20 @@ mod tests {
         assert_eq!(preferences["height"].as_u64(), Some(420));
         assert_eq!(preferences["minHeight"].as_u64(), Some(420));
         assert_eq!(preferences["maxHeight"].as_u64(), Some(420));
+    }
+
+    #[test]
+    fn default_capability_allows_custom_titlebar_dragging() {
+        let capability: Value =
+            serde_json::from_str(include_str!("../capabilities/default.json")).unwrap();
+        let permissions = capability["permissions"].as_array().unwrap();
+
+        assert!(
+            permissions
+                .iter()
+                .any(|permission| permission.as_str() == Some("core:window:allow-start-dragging")),
+            "dialog titlebars use data-tauri-drag-region, which calls plugin:window|start_dragging"
+        );
     }
 
     #[test]

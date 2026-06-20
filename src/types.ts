@@ -25,6 +25,13 @@ export type CliInstallStatus = {
   sourceAvailable: boolean;
 };
 
+export type AutoPastePermissionStatus = {
+  appPath: string | null;
+  isGranted: boolean;
+  requiresPermission: boolean;
+  settingsUrl: string | null;
+};
+
 export type HistoryEntryBase = {
   copyCount: number;
   displayText: string;

@@ -1736,6 +1736,15 @@ button {
 .app-settings-note {
   color: rgba(244, 184, 96, 0.76);
   font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.app-settings-note.is-ok {
+  color: rgba(124, 199, 193, 0.9);
+}
+
+.app-settings-note.is-warning {
+  color: rgba(244, 184, 96, 0.86);
 }
 
 .app-settings-error {

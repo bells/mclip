@@ -14,6 +14,7 @@ import {
 import { getTranslations } from "../i18n";
 import {
   getCliInstallStatus,
+  getAutoPastePermissionStatus,
   getSettings,
   hideCurrentWindow,
   installCli,
@@ -24,6 +25,7 @@ import {
 import type {
   AppLanguage,
   AppSettings,
+  AutoPastePermissionStatus,
   CliInstallStatus,
   HistoryKind,
   MenuBarIconStyle,
@@ -39,6 +41,10 @@ export function PreferencesWindow() {
   const [activeTab, setActiveTab] = useState<PreferencesTab>("general");
   const [settingsError, setSettingsError] = useState("");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [autoPastePermissionStatus, setAutoPastePermissionStatus] =
+    useState<AutoPastePermissionStatus | null>(null);
+  const [isCheckingAutoPastePermission, setIsCheckingAutoPastePermission] =
+    useState(false);
   const [cliStatus, setCliStatus] = useState<CliInstallStatus | null>(null);
   const [cliStatusError, setCliStatusError] = useState("");
   const [cliInstallMessage, setCliInstallMessage] = useState("");
@@ -92,6 +98,38 @@ export function PreferencesWindow() {
       unlisten?.();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isMacOs) {
+      return;
+    }
+
+    let isActive = true;
+
+    const loadAutoPastePermissionStatus = async () => {
+      setIsCheckingAutoPastePermission(true);
+
+      try {
+        const status = await getAutoPastePermissionStatus();
+
+        if (isActive) {
+          setAutoPastePermissionStatus(status);
+        }
+      } catch (error) {
+        console.error("检查自动粘贴权限失败:", error);
+      } finally {
+        if (isActive) {
+          setIsCheckingAutoPastePermission(false);
+        }
+      }
+    };
+
+    void loadAutoPastePermissionStatus();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isMacOs]);
 
   useEffect(() => {
     let isActive = true;
@@ -163,6 +201,26 @@ export function PreferencesWindow() {
     void applySettings(updater(latestSettingsRef.current));
   };
 
+  const refreshAutoPastePermissionStatus = async () => {
+    if (!isMacOs) {
+      return null;
+    }
+
+    setIsCheckingAutoPastePermission(true);
+
+    try {
+      const status = await getAutoPastePermissionStatus();
+      setAutoPastePermissionStatus(status);
+      return status;
+    } catch (error) {
+      console.error("检查自动粘贴权限失败:", error);
+      setSettingsError(t.autoPastePermissionOpenError);
+      return null;
+    } finally {
+      setIsCheckingAutoPastePermission(false);
+    }
+  };
+
   const toggleLaunchAtLogin = () => {
     applySettingsPatch((current) => ({
       ...current,
@@ -170,10 +228,42 @@ export function PreferencesWindow() {
     }));
   };
 
-  const toggleAutoPaste = () => {
+  const toggleAutoPaste = async () => {
+    const currentSettings = latestSettingsRef.current;
+
+    if (currentSettings.autoPaste) {
+      applySettingsPatch((current) => ({
+        ...current,
+        autoPaste: false,
+      }));
+      return;
+    }
+
+    if (isMacOs) {
+      const permissionStatus = await refreshAutoPastePermissionStatus();
+
+      if (!permissionStatus) {
+        return;
+      }
+
+      if (permissionStatus?.requiresPermission && !permissionStatus.isGranted) {
+        setSettingsError(t.autoPastePermissionRequiredToEnable);
+
+        try {
+          await openAutoPastePermissionSettings();
+          void refreshAutoPastePermissionStatus();
+        } catch (error) {
+          console.error("打开自动粘贴权限设置失败:", error);
+          setSettingsError(t.autoPastePermissionOpenError);
+        }
+
+        return;
+      }
+    }
+
     applySettingsPatch((current) => ({
       ...current,
-      autoPaste: !current.autoPaste,
+      autoPaste: true,
     }));
   };
 
@@ -182,6 +272,7 @@ export function PreferencesWindow() {
 
     try {
       await openAutoPastePermissionSettings();
+      void refreshAutoPastePermissionStatus();
     } catch (error) {
       console.error("打开自动粘贴权限设置失败:", error);
       setSettingsError(t.autoPastePermissionOpenError);
@@ -428,6 +519,17 @@ export function PreferencesWindow() {
                         {t.autoPastePermissionNote}
                       </div>
                     ) : null}
+                    {isMacOs && autoPastePermissionStatus ? (
+                      <div
+                        className={`app-settings-note ${
+                          autoPastePermissionStatus.isGranted ? "is-ok" : "is-warning"
+                        }`}
+                      >
+                        {autoPastePermissionStatus.isGranted
+                          ? t.autoPastePermissionGranted
+                          : t.autoPastePermissionStatus(autoPastePermissionStatus.appPath)}
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="app-settings-row-actions">
@@ -435,8 +537,8 @@ export function PreferencesWindow() {
                       aria-label={t.autoPasteLabel}
                       aria-pressed={settingsDraft.autoPaste}
                       className={`app-switch ${settingsDraft.autoPaste ? "is-on" : ""}`}
-                      disabled={isSavingSettings}
-                      onClick={toggleAutoPaste}
+                      disabled={isSavingSettings || isCheckingAutoPastePermission}
+                      onClick={() => void toggleAutoPaste()}
                       type="button"
                     >
                       <span className="app-switch-thumb" />
@@ -450,6 +552,17 @@ export function PreferencesWindow() {
                         type="button"
                       >
                         {t.autoPastePermissionAction}
+                      </button>
+                    ) : null}
+
+                    {isMacOs ? (
+                      <button
+                        className="app-settings-action-btn"
+                        disabled={isSavingSettings || isCheckingAutoPastePermission}
+                        onClick={() => void refreshAutoPastePermissionStatus()}
+                        type="button"
+                      >
+                        {t.autoPastePermissionRefreshAction}
                       </button>
                     ) : null}
                   </div>

@@ -14,6 +14,7 @@ use base64::prelude::*;
 use image::imageops::{self, FilterType};
 use image::RgbaImage;
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
+use serde::Serialize;
 use tauri::{AppHandle, State};
 
 use crate::auto_paste::{activate_paste_target_on_main_thread, AutoPasteTargetState};
@@ -33,6 +34,15 @@ const CLIPBOARD_CHANGE_SETTLE_DELAY_MS: u64 = 75;
 const AUTO_PASTE_DELAY_MS: u64 = 120;
 const AUTO_PASTE_AFTER_ACTIVATION_DELAY_MS: u64 = 80;
 const MAX_IMAGE_DIMENSION: u32 = 1200;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoPastePermissionStatus {
+    pub requires_permission: bool,
+    pub is_granted: bool,
+    pub app_path: Option<String>,
+    pub settings_url: Option<String>,
+}
 
 #[tauri::command]
 pub fn copy_history_item(app_handle: AppHandle, id: String) -> Result<(), String> {
@@ -94,6 +104,11 @@ pub fn open_auto_paste_permission_settings(app_handle: AppHandle) -> Result<(), 
     );
 
     open_platform_auto_paste_permission_settings()
+}
+
+#[tauri::command]
+pub fn get_auto_paste_permission_status() -> AutoPastePermissionStatus {
+    platform_auto_paste_permission_status()
 }
 
 #[tauri::command]
@@ -200,45 +215,88 @@ fn ensure_system_paste_permission() -> Result<(), String> {
 
 #[cfg(target_os = "macos")]
 fn ensure_system_paste_permission() -> Result<(), String> {
-    let already_allowed = macos_preflight_post_event_access();
-    let allowed_after_request = if already_allowed {
-        false
-    } else {
-        macos_request_post_event_access()
-    };
+    if macos_accessibility_trusted() {
+        return Ok(());
+    }
 
-    macos_auto_paste_access_result(already_allowed, allowed_after_request)
+    macos_request_accessibility_trust_prompt();
+    macos_auto_paste_access_result(false)
 }
 
 #[cfg(target_os = "macos")]
-fn macos_preflight_post_event_access() -> bool {
-    unsafe { CGPreflightPostEventAccess() }
+fn macos_accessibility_trusted() -> bool {
+    unsafe { AXIsProcessTrusted() != 0 }
 }
 
 #[cfg(target_os = "macos")]
-fn macos_request_post_event_access() -> bool {
-    unsafe { CGRequestPostEventAccess() }
+fn macos_request_accessibility_trust_prompt() -> bool {
+    unsafe {
+        let keys = [kAXTrustedCheckOptionPrompt as CFTypeRef];
+        let values = [kCFBooleanTrue as CFTypeRef];
+        let options = CFDictionaryCreate(
+            std::ptr::null(),
+            keys.as_ptr(),
+            values.as_ptr(),
+            1,
+            std::ptr::null(),
+            std::ptr::null(),
+        );
+
+        if options.is_null() {
+            return macos_accessibility_trusted();
+        }
+
+        let is_trusted = AXIsProcessTrustedWithOptions(options) != 0;
+        CFRelease(options as CFTypeRef);
+        is_trusted
+    }
 }
 
 #[cfg(any(target_os = "macos", test))]
-fn macos_auto_paste_access_result(
-    already_allowed: bool,
-    allowed_after_request: bool,
-) -> Result<(), String> {
-    if already_allowed || allowed_after_request {
+fn macos_auto_paste_access_result(is_accessibility_trusted: bool) -> Result<(), String> {
+    if is_accessibility_trusted {
         return Ok(());
     }
 
     Err("macOS Accessibility permission is required to auto paste clipboard content".to_string())
 }
 
-#[cfg(any(target_os = "macos", test))]
 fn macos_auto_paste_permission_settings_url() -> &'static str {
     "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
 }
 
+fn auto_paste_permission_status_from_parts(
+    requires_permission: bool,
+    is_granted: bool,
+    app_path: Option<PathBuf>,
+) -> AutoPastePermissionStatus {
+    AutoPastePermissionStatus {
+        requires_permission,
+        is_granted,
+        app_path: app_path.map(|path| path.display().to_string()),
+        settings_url: requires_permission
+            .then(|| macos_auto_paste_permission_settings_url().to_string()),
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn platform_auto_paste_permission_status() -> AutoPastePermissionStatus {
+    auto_paste_permission_status_from_parts(
+        true,
+        macos_accessibility_trusted(),
+        std::env::current_exe().ok(),
+    )
+}
+
+#[cfg(not(target_os = "macos"))]
+fn platform_auto_paste_permission_status() -> AutoPastePermissionStatus {
+    auto_paste_permission_status_from_parts(false, true, std::env::current_exe().ok())
+}
+
 #[cfg(target_os = "macos")]
 fn open_platform_auto_paste_permission_settings() -> Result<(), String> {
+    macos_request_accessibility_trust_prompt();
+
     Command::new("open")
         .arg(macos_auto_paste_permission_settings_url())
         .spawn()
@@ -252,11 +310,36 @@ fn open_platform_auto_paste_permission_settings() -> Result<(), String> {
 }
 
 #[cfg(target_os = "macos")]
-#[link(name = "CoreGraphics", kind = "framework")]
+#[link(name = "ApplicationServices", kind = "framework")]
 unsafe extern "C" {
-    fn CGPreflightPostEventAccess() -> bool;
-    fn CGRequestPostEventAccess() -> bool;
+    static kAXTrustedCheckOptionPrompt: CFTypeRef;
+    fn AXIsProcessTrusted() -> std::ffi::c_uchar;
+    fn AXIsProcessTrustedWithOptions(options: CFDictionaryRef) -> std::ffi::c_uchar;
 }
+
+#[cfg(target_os = "macos")]
+#[link(name = "CoreFoundation", kind = "framework")]
+unsafe extern "C" {
+    static kCFBooleanTrue: CFTypeRef;
+    fn CFDictionaryCreate(
+        allocator: CFAllocatorRef,
+        keys: *const CFTypeRef,
+        values: *const CFTypeRef,
+        num_values: CFIndex,
+        key_callbacks: *const std::ffi::c_void,
+        value_callbacks: *const std::ffi::c_void,
+    ) -> CFDictionaryRef;
+    fn CFRelease(cf: CFTypeRef);
+}
+
+#[cfg(target_os = "macos")]
+type CFAllocatorRef = *const std::ffi::c_void;
+#[cfg(target_os = "macos")]
+type CFDictionaryRef = *const std::ffi::c_void;
+#[cfg(target_os = "macos")]
+type CFIndex = isize;
+#[cfg(target_os = "macos")]
+type CFTypeRef = *const std::ffi::c_void;
 
 #[cfg(target_os = "windows")]
 fn trigger_system_paste() -> Result<(), String> {
@@ -1010,10 +1093,10 @@ mod tests {
     use crate::settings::HistoryTypes;
 
     use super::{
-        clipboard_file_list_paths, clipboard_snapshot_from_candidates,
-        macos_auto_paste_access_result, macos_auto_paste_permission_settings_url,
-        normalize_suspicious_clipboard_alpha, read_snapshot_after_change_token_update,
-        text_to_history_item, ClipboardSnapshot,
+        auto_paste_permission_status_from_parts, clipboard_file_list_paths,
+        clipboard_snapshot_from_candidates, macos_auto_paste_access_result,
+        macos_auto_paste_permission_settings_url, normalize_suspicious_clipboard_alpha,
+        read_snapshot_after_change_token_update, text_to_history_item, ClipboardSnapshot,
     };
     use crate::history::{HistoryKind, NewHistoryItem};
     use image::RgbaImage;
@@ -1130,10 +1213,29 @@ mod tests {
     }
 
     #[test]
-    fn macos_auto_paste_access_returns_error_when_event_synthesis_is_denied() {
-        let error = macos_auto_paste_access_result(false, false).unwrap_err();
+    fn macos_auto_paste_access_allows_trusted_accessibility_clients() {
+        assert!(macos_auto_paste_access_result(true).is_ok());
+    }
+
+    #[test]
+    fn macos_auto_paste_access_returns_error_when_accessibility_is_denied() {
+        let error = macos_auto_paste_access_result(false).unwrap_err();
 
         assert!(error.contains("macOS Accessibility permission"));
+    }
+
+    #[test]
+    fn auto_paste_permission_status_includes_denied_current_app_context() {
+        let app_path = std::path::PathBuf::from("/Applications/mclip.app/Contents/MacOS/mclip");
+        let status = auto_paste_permission_status_from_parts(true, false, Some(app_path.clone()));
+
+        assert!(status.requires_permission);
+        assert!(!status.is_granted);
+        assert_eq!(status.app_path.as_deref(), Some(app_path.to_str().unwrap()));
+        assert_eq!(
+            status.settings_url.as_deref(),
+            Some(macos_auto_paste_permission_settings_url())
+        );
     }
 
     #[test]

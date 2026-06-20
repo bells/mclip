@@ -8,6 +8,7 @@ import { getCurrentWindow, Window as TauriWindow } from "@tauri-apps/api/window"
 import { DEFAULT_APP_VERSION } from "../constants";
 import type {
   AppSettings,
+  AutoPastePermissionStatus,
   CliInstallStatus,
   HistoryEntry,
   HistoryPreviewGroupItemActivatedPayload,
@@ -111,6 +112,10 @@ export function pasteClipboard() {
 
 export function openAutoPastePermissionSettings() {
   return invoke<void>("open_auto_paste_permission_settings");
+}
+
+export function getAutoPastePermissionStatus() {
+  return invoke<AutoPastePermissionStatus>("get_auto_paste_permission_status");
 }
 
 export function getAssetUrl(path: string) {

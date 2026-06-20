@@ -75,10 +75,18 @@ export const translations = {
       autoPasteDescription: "选择历史项后，先写入剪贴板，再自动粘贴到当前应用。",
       autoPasteLabel: "自动粘贴",
       autoPastePermissionAction: "打开辅助功能设置",
+      autoPastePermissionGranted: "当前运行的 mclip 已获得辅助功能权限。",
       autoPastePermissionNote:
         "macOS 安装版需要在“系统设置 > 隐私与安全性 > 辅助功能”中允许 mclip；通过 npm run tauri:dev 启动的开发版需要单独授权。",
+      autoPastePermissionRequiredToEnable:
+        "请先允许当前运行的 mclip 使用辅助功能权限，再开启自动粘贴。",
+      autoPastePermissionStatus: (appPath: string | null) =>
+        appPath
+          ? `当前需要授权的程序：${appPath}。如果系统设置里 mclip 已开启但这里仍显示未授权，请先从辅助功能列表删除 mclip.app，再重新添加 /Applications/mclip.app。`
+          : "当前运行的 mclip 尚未获得辅助功能权限。",
       autoPastePermissionOpenError:
         "无法打开辅助功能设置，请手动前往系统设置 > 隐私与安全性 > 辅助功能。",
+      autoPastePermissionRefreshAction: "重新检查",
       cancel: "取消",
       cliChecking: "检查中...",
       cliCheckingDescription: "正在读取本机 mclip-cli 安装状态。",
@@ -211,10 +219,19 @@ export const translations = {
       autoPasteDescription: "After choosing an item, copy it first and then paste it into the active app.",
       autoPasteLabel: "Auto Paste",
       autoPastePermissionAction: "Open Accessibility",
+      autoPastePermissionGranted:
+        "The currently running mclip already has Accessibility permission.",
       autoPastePermissionNote:
         "On macOS, the installed app needs Accessibility permission. The dev build launched by npm run tauri:dev and /Applications/mclip.app are authorized separately.",
+      autoPastePermissionRequiredToEnable:
+        "Allow the currently running mclip in Accessibility before enabling Auto Paste.",
+      autoPastePermissionStatus: (appPath: string | null) =>
+        appPath
+          ? `App that needs permission: ${appPath}. If mclip is already enabled in System Settings but still shows as denied here, remove mclip.app from Accessibility and add /Applications/mclip.app again.`
+          : "The currently running mclip does not have Accessibility permission yet.",
       autoPastePermissionOpenError:
         "Unable to open Accessibility settings. Open System Settings > Privacy & Security > Accessibility manually.",
+      autoPastePermissionRefreshAction: "Check again",
       cancel: "Cancel",
       cliChecking: "Checking...",
       cliCheckingDescription: "Reading the local mclip-cli install status.",
