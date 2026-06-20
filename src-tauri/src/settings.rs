@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::history::{trim_history_to_max, HistoryKind};
-use crate::storage::write_text_atomically;
+use crate::storage::{write_text_atomically, write_text_atomically_if_changed};
 
 pub const DEFAULT_MAX_HISTORY_COUNT: u32 = 50;
 pub const MIN_MAX_HISTORY_COUNT: u32 = 10;
@@ -278,7 +278,7 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
                 program = executable.to_string_lossy().replace('&', "&amp;"),
             );
 
-            write_text_atomically(&plist_path, &plist_content)?;
+            write_text_atomically_if_changed(&plist_path, &plist_content)?;
         } else if plist_path.exists() {
             fs::remove_file(&plist_path).map_err(|error| error.to_string())?;
         }
@@ -297,7 +297,7 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
             let executable = std::env::current_exe().map_err(|error| error.to_string())?;
             let script = windows_startup_script_contents(&executable);
 
-            write_text_atomically(&startup_script_path, &script)?;
+            write_text_atomically_if_changed(&startup_script_path, &script)?;
         } else if startup_script_path.exists() {
             fs::remove_file(&startup_script_path).map_err(|error| error.to_string())?;
         }
