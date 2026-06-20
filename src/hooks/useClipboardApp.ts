@@ -5,10 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   DEFAULT_SETTINGS,
-  GROUP_PREVIEW_WIDTH,
-  GROUP_PREVIEW_WITH_DETAIL_WIDTH,
   HISTORY_GROUP_SIZE,
-  ITEM_PREVIEW_WIDTH,
 } from "../constants";
 import {
   adjustWindowHeight,
@@ -18,22 +15,12 @@ import {
   getHistory,
   getSettings,
   hideCurrentWindow,
-  hideHistoryPreviewWindow,
-  isPointerOverHistoryPreviewWindow,
-  listenToHistoryPreviewCloseRequested,
-  listenToHistoryPreviewPointerEntered,
-  listenToHistoryPreviewSelectionCancelled,
-  listenToHistoryPreviewSelectionStarted,
   listenToHistoryUpdated,
-  listenToMainWindowShown,
   listenToSettingsUpdated,
   pasteClipboard,
   quitApp,
   showAboutWindow,
-  showHistoryPreviewWindow,
   showPreferencesWindow,
-  type PreviewWindowSide,
-  updateHistoryPreviewWindow,
 } from "../lib/tauri";
 import type { AppSettings, HistoryEntry, HistoryListItem } from "../types";
 import {
@@ -41,38 +28,16 @@ import {
   getHistoryGroupItems,
   getHistoryGroups,
 } from "../utils/history";
-import {
-  getGroupPreviewHeight,
-  getItemPreviewAnchorTop,
-  getItemPreviewHeight,
-} from "../utils/preview";
-import {
-  beginPreviewOpenRequest,
-  cancelPreviewOpenRequests,
-  canCompletePreviewOpenRequest,
-  canStartPreviewOpenRequest,
-  createPreviewDismissalState,
-  dismissPreviewForSelection,
-  resetPreviewSelectionDismissal,
-} from "../utils/previewDismissal";
 import { getSearchQueryAfterHistorySelection } from "../utils/searchInteraction";
 import { shouldAutoPasteAfterHistorySelection } from "../utils/selectionBehavior";
 import { normalizeSettings } from "../utils/settings";
-
-const PREVIEW_CLOSE_DELAY_MS = 500;
+import { useHistoryPreviewController } from "./useHistoryPreviewController";
 
 export function useClipboardApp() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [previewHistoryGroupIndex, setPreviewHistoryGroupIndex] = useState<number | null>(null);
-  const [previewHistoryItemId, setPreviewHistoryItemId] = useState<string | null>(null);
-  const [previewAnchorTop, setPreviewAnchorTop] = useState<number | null>(null);
-  const [previewWindowSide, setPreviewWindowSide] =
-    useState<PreviewWindowSide | null>(null);
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(-1);
-  const previewCloseTimerRef = useRef<number | null>(null);
-  const previewDismissalStateRef = useRef(createPreviewDismissalState());
   const searchQueryRef = useRef(searchQuery);
 
   const filteredHistory = useMemo(
@@ -87,56 +52,24 @@ export function useClipboardApp() {
     () => getHistoryGroupItems(filteredHistory, 0, HISTORY_GROUP_SIZE),
     [filteredHistory],
   );
-  const previewHistory = useMemo(
-    () =>
-      previewHistoryGroupIndex === null
-        ? []
-        : getHistoryGroupItems(
-            filteredHistory,
-            previewHistoryGroupIndex,
-            HISTORY_GROUP_SIZE,
-          ),
-    [filteredHistory, previewHistoryGroupIndex],
-  );
-  const previewHistoryItem = useMemo(
-    () =>
-      previewHistoryItemId === null
-        ? null
-        : filteredHistory.find((item) => item.id === previewHistoryItemId) ?? null,
-    [filteredHistory, previewHistoryItemId],
-  );
-
-  function cancelPendingPreviewOpenRequests() {
-    previewDismissalStateRef.current = cancelPreviewOpenRequests(
-      previewDismissalStateRef.current,
-    );
-  }
-
-  function clearPreviewState() {
-    cancelPendingPreviewOpenRequests();
-    clearScheduledPreviewClose();
-    setPreviewHistoryGroupIndex(null);
-    setPreviewHistoryItemId(null);
-    setPreviewAnchorTop(null);
-    setPreviewWindowSide(null);
-  }
-
-  function beginSelectionPreviewDismissal() {
-    previewDismissalStateRef.current = dismissPreviewForSelection(
-      previewDismissalStateRef.current,
-    );
-    clearScheduledPreviewClose();
-    setPreviewHistoryGroupIndex(null);
-    setPreviewHistoryItemId(null);
-    setPreviewAnchorTop(null);
-    setPreviewWindowSide(null);
-  }
-
-  function resetSelectionPreviewDismissal() {
-    previewDismissalStateRef.current = resetPreviewSelectionDismissal(
-      previewDismissalStateRef.current,
-    );
-  }
+  const {
+    beginSelectionPreviewDismissal,
+    clearPreviewState,
+    closeHistoryGroupPreview,
+    hidePreviewWindow,
+    openHistoryGroupPreview,
+    openHistoryItemPreview,
+    previewHistory,
+    previewHistoryGroupIndex,
+    previewWindowSide,
+    resetSelectionPreviewDismissal,
+    scheduleHistoryGroupPreviewClose,
+  } = useHistoryPreviewController({
+    filteredHistory,
+    historyGroups,
+    onMainWindowShown: () => setSelectedHistoryIndex(-1),
+    settings,
+  });
 
   function clearSearchQueryAfterHistorySelection() {
     const nextSearchQuery = getSearchQueryAfterHistorySelection(searchQueryRef.current);
@@ -205,9 +138,6 @@ export function useClipboardApp() {
     return () => {
       isActive = false;
       unlisten?.();
-      if (previewCloseTimerRef.current !== null) {
-        window.clearTimeout(previewCloseTimerRef.current);
-      }
     };
   }, []);
 
@@ -222,69 +152,6 @@ export function useClipboardApp() {
 
     return () => {
       unlisten?.();
-    };
-  }, []);
-
-  useEffect(() => {
-    let unlistenCloseRequested: UnlistenFn | undefined;
-    let unlistenPointerEntered: UnlistenFn | undefined;
-    let unlistenSelectionStarted: UnlistenFn | undefined;
-    let unlistenSelectionCancelled: UnlistenFn | undefined;
-    let unlistenMainWindowShown: UnlistenFn | undefined;
-
-    void listenToHistoryPreviewCloseRequested(() => {
-      void isPointerOverHistoryPreviewWindow()
-        .then((isPointerOverPreview) => {
-          if (isPointerOverPreview) {
-            scheduleHistoryGroupPreviewClose();
-            return;
-          }
-
-          closeHistoryGroupPreview();
-        })
-        .catch((error) => {
-          console.error("检测历史预览鼠标位置失败:", error);
-          closeHistoryGroupPreview();
-        });
-    }).then((unsubscribe) => {
-      unlistenCloseRequested = unsubscribe;
-    });
-
-    void listenToHistoryPreviewPointerEntered(() => {
-      scheduleHistoryGroupPreviewClose();
-    }).then((unsubscribe) => {
-      unlistenPointerEntered = unsubscribe;
-    });
-
-    void listenToHistoryPreviewSelectionStarted(() => {
-      beginSelectionPreviewDismissal();
-      void hideHistoryPreviewWindow().catch((error) => {
-        console.error("隐藏历史预览失败:", error);
-      });
-    }).then((unsubscribe) => {
-      unlistenSelectionStarted = unsubscribe;
-    });
-
-    void listenToHistoryPreviewSelectionCancelled(() => {
-      resetSelectionPreviewDismissal();
-    }).then((unsubscribe) => {
-      unlistenSelectionCancelled = unsubscribe;
-    });
-
-    void listenToMainWindowShown(() => {
-      resetSelectionPreviewDismissal();
-      clearPreviewState();
-      setSelectedHistoryIndex(-1);
-    }).then((unsubscribe) => {
-      unlistenMainWindowShown = unsubscribe;
-    });
-
-    return () => {
-      unlistenCloseRequested?.();
-      unlistenPointerEntered?.();
-      unlistenSelectionStarted?.();
-      unlistenSelectionCancelled?.();
-      unlistenMainWindowShown?.();
     };
   }, []);
 
@@ -304,117 +171,6 @@ export function useClipboardApp() {
   }, [searchQuery]);
 
   useEffect(() => {
-    if (previewHistoryItemId !== null && !previewHistoryItem) {
-      clearPreviewState();
-    }
-  }, [previewHistoryItem, previewHistoryItemId]);
-
-  useEffect(() => {
-    if (
-      previewHistoryGroupIndex !== null &&
-      previewHistoryGroupIndex >= historyGroups.length
-    ) {
-      clearPreviewState();
-    }
-  }, [historyGroups.length, previewHistoryGroupIndex]);
-
-  useEffect(() => {
-    if (previewAnchorTop !== null && previewHistoryItem) {
-      if (!canStartPreviewOpenRequest(previewDismissalStateRef.current)) {
-        return;
-      }
-
-      const request = beginPreviewOpenRequest(previewDismissalStateRef.current);
-
-      void updateHistoryPreviewWindow({
-        autoPaste: settings.autoPaste,
-        item: previewHistoryItem,
-        kind: "item",
-        language: settings.language,
-      })
-        .then(async () => {
-          if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
-            return;
-          }
-
-          const placement = await showHistoryPreviewWindow(
-            getItemPreviewAnchorTop(previewAnchorTop),
-            getItemPreviewHeight(previewHistoryItem),
-            ITEM_PREVIEW_WIDTH,
-            ITEM_PREVIEW_WIDTH,
-          );
-
-          if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
-            await hideHistoryPreviewWindow();
-            return;
-          }
-
-          setPreviewWindowSide(placement.side);
-        })
-        .catch((error) => {
-          console.error("显示历史条目预览失败:", error);
-        });
-      return;
-    }
-
-    const previewGroup = historyGroups.find(
-      (group) => group.index === previewHistoryGroupIndex,
-    );
-
-    if (previewAnchorTop === null || !previewGroup || previewHistory.length === 0) {
-      cancelPendingPreviewOpenRequests();
-      void hideHistoryPreviewWindow().catch((error) => {
-        console.error("隐藏历史分组预览失败:", error);
-      });
-      return;
-    }
-
-    if (!canStartPreviewOpenRequest(previewDismissalStateRef.current)) {
-      return;
-    }
-
-    const request = beginPreviewOpenRequest(previewDismissalStateRef.current);
-
-    void updateHistoryPreviewWindow({
-      autoPaste: settings.autoPaste,
-      group: previewGroup,
-      items: previewHistory,
-      kind: "group",
-      language: settings.language,
-    })
-      .then(async () => {
-        if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
-          return;
-        }
-
-        const placement = await showHistoryPreviewWindow(
-          previewAnchorTop,
-          getGroupPreviewHeight(previewHistory.length),
-          GROUP_PREVIEW_WIDTH,
-          GROUP_PREVIEW_WITH_DETAIL_WIDTH,
-        );
-
-        if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
-          await hideHistoryPreviewWindow();
-          return;
-        }
-
-        setPreviewWindowSide(placement.side);
-      })
-      .catch((error) => {
-        console.error("显示历史分组预览失败:", error);
-      });
-  }, [
-    historyGroups,
-    previewAnchorTop,
-    previewHistory,
-    previewHistoryItem,
-    previewHistoryGroupIndex,
-    settings.autoPaste,
-    settings.language,
-  ]);
-
-  useEffect(() => {
     setSelectedHistoryIndex((currentIndex) => {
       if (visibleHistory.length === 0) {
         return -1;
@@ -431,7 +187,7 @@ export function useClipboardApp() {
   const openAboutDialog = async () => {
     try {
       clearPreviewState();
-      await hideHistoryPreviewWindow();
+      await hidePreviewWindow();
       await showAboutWindow();
     } catch (error) {
       console.error("打开关于窗口失败:", error);
@@ -441,7 +197,7 @@ export function useClipboardApp() {
   const openPreferencesDialog = async () => {
     try {
       clearPreviewState();
-      await hideHistoryPreviewWindow();
+      await hidePreviewWindow();
       await showPreferencesWindow();
     } catch (error) {
       console.error("打开偏好设置窗口失败:", error);
@@ -451,7 +207,7 @@ export function useClipboardApp() {
   const selectHistoryItem = async (id: string) => {
     try {
       beginSelectionPreviewDismissal();
-      await hideHistoryPreviewWindow();
+      await hidePreviewWindow();
       await copyHistoryItem(id);
       clearSearchQueryAfterHistorySelection();
       await hideCurrentWindow();
@@ -479,7 +235,7 @@ export function useClipboardApp() {
   const deleteHistoryItem = async (id: string) => {
     try {
       clearPreviewState();
-      await hideHistoryPreviewWindow();
+      await hidePreviewWindow();
 
       const updatedHistory = await deleteHistoryItemCommand(id);
       setHistory(updatedHistory);
@@ -499,7 +255,7 @@ export function useClipboardApp() {
   const hideWindow = async () => {
     try {
       clearPreviewState();
-      await hideHistoryPreviewWindow();
+      await hidePreviewWindow();
       await hideCurrentWindow();
     } catch (error) {
       console.error("隐藏主窗口失败:", error);
@@ -541,63 +297,6 @@ export function useClipboardApp() {
     if (selectedItem) {
       await selectHistoryItem(selectedItem.id);
     }
-  };
-
-  const clearScheduledPreviewClose = () => {
-    if (previewCloseTimerRef.current !== null) {
-      window.clearTimeout(previewCloseTimerRef.current);
-      previewCloseTimerRef.current = null;
-    }
-  };
-
-  const openHistoryGroupPreview = (groupIndex: number, anchorTop: number) => {
-    if (!canStartPreviewOpenRequest(previewDismissalStateRef.current)) {
-      return;
-    }
-
-    clearScheduledPreviewClose();
-    setPreviewHistoryGroupIndex(groupIndex);
-    setPreviewHistoryItemId(null);
-    setPreviewAnchorTop(anchorTop);
-  };
-
-  const openHistoryItemPreview = (item: HistoryListItem, anchorTop: number) => {
-    if (!canStartPreviewOpenRequest(previewDismissalStateRef.current)) {
-      return;
-    }
-
-    clearScheduledPreviewClose();
-    setPreviewHistoryGroupIndex(null);
-    setPreviewHistoryItemId(item.id);
-    setPreviewAnchorTop(anchorTop);
-  };
-
-  const closeHistoryGroupPreview = () => {
-    clearPreviewState();
-  };
-
-  const scheduleHistoryGroupPreviewClose = () => {
-    clearScheduledPreviewClose();
-    previewCloseTimerRef.current = window.setTimeout(() => {
-      previewCloseTimerRef.current = null;
-
-      // Keep polling while the pointer stays inside the preview. This lets the
-      // user inspect and click grouped items without the preview disappearing
-      // under the cursor.
-      void isPointerOverHistoryPreviewWindow()
-        .then((isPointerOverPreview) => {
-          if (isPointerOverPreview) {
-            scheduleHistoryGroupPreviewClose();
-            return;
-          }
-
-          closeHistoryGroupPreview();
-        })
-        .catch((error) => {
-          console.error("检测历史分组预览鼠标位置失败:", error);
-          closeHistoryGroupPreview();
-        });
-    }, PREVIEW_CLOSE_DELAY_MS);
   };
 
   const selectedHistoryItem: HistoryListItem | undefined =
