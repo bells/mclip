@@ -49,20 +49,54 @@ jobs:
           tagName: v__VERSION__
           releaseName: "mclip v__VERSION__"
           releaseBody: |
-            自动生成的 mclip 发布版本，包含 macOS 和 Windows 安装包。
+            mclip v__VERSION__ 已发布，提供 macOS 和 Windows 安装包。它是一个本地优先的剪贴板历史工具，适合从菜单栏/托盘快速找回最近复制过的文本、图片和文件。
 
-            This automated mclip release includes installers for macOS and Windows.
+            mclip v__VERSION__ is now available, with installers for macOS and Windows. It is a local-first clipboard history tool for quickly bringing back recently copied text, images, and files from the menu bar or system tray.
 
-            注意：当前 macOS 包未做 Apple Developer ID 公证。若首次打开提示“mclip.app 已损坏，无法打开”，请先把 mclip 拖到“应用程序”，然后在终端执行：
+            ## 本版本包含
+
+            - 文本、图片、文件三类剪贴板历史，重复复制会自动更新到最新位置。
+            - 最近 10 条历史快速访问，更多记录按每 10 条分组。
+            - 独立预览窗口，可在不撑宽主窗口的情况下查看历史详情。
+            - 搜索、复制、删除、清空历史，以及 `CommandOrControl+Shift+V` 全局快捷键。
+            - 偏好设置：登录时启动、语言、菜单栏图标样式、自动粘贴、最大历史条数和保存类型。
+            - 剪贴板历史仅保存在本机，不会上传到云端。
+
+            ## Included in this release
+
+            - Text, image, and file clipboard history, with repeated copies moved back to the top.
+            - Quick access to the latest 10 items, with older history grouped by 10.
+            - Separate preview windows for details, keeping the main window compact.
+            - Search, copy, delete, clear history, and the `CommandOrControl+Shift+V` global shortcut.
+            - Preferences for launch at login, language, menu bar icon style, auto paste, maximum history size, and enabled history types.
+            - Clipboard history stays on your device and is not uploaded.
+
+            ## 下载 / Downloads
+
+            请在下方 Assets 中选择对应系统的安装包。
+
+            Choose the installer for your platform from the Assets below.
+
+            ## 安装提示 / Installation notes
+
+            ### macOS
+
+            当前 macOS 包使用 ad-hoc 签名，尚未使用 Apple Developer ID 公证。请先把 `mclip.app` 拖到“应用程序”。如果首次打开提示“mclip.app 已损坏，无法打开”，并且你信任这个 Release，可在终端执行：
+
+            The macOS build uses ad-hoc signing and is not notarized with an Apple Developer ID yet. Drag `mclip.app` into Applications first. If macOS says “mclip.app is damaged and can’t be opened” and you trust this release, run:
 
             ```bash
             xattr -dr com.apple.quarantine /Applications/mclip.app
             ```
 
-            执行后再打开 mclip 即可。
+            然后重新打开 mclip。
 
-            Windows 安装包当前未做代码签名。安装或首次启动时，如果 Windows SmartScreen 提示未知发布者，请只在确认信任该 Release 后继续。
+            Then open mclip again.
 
-            The Windows installer is currently unsigned. If Windows SmartScreen warns about an unknown publisher, continue only if you trust this release.
+            ### Windows
+
+            当前 Windows 安装包尚未代码签名。安装或首次启动时，Windows SmartScreen 可能提示“未知发布者”；请只在确认信任这个 Release 后继续。
+
+            The Windows installer is not code-signed yet. Windows SmartScreen may warn about an unknown publisher during install or first launch; continue only if you trust this release.
           releaseDraft: true
           prerelease: false
