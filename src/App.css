@@ -19,16 +19,25 @@
   --app-base-deep: rgba(12, 14, 15, 0.96);
   --app-panel: rgba(33, 35, 34, 0.88);
   --app-panel-raised: rgba(47, 49, 47, 0.84);
+  --app-surface: rgba(33, 35, 34, 0.92);
+  --app-surface-raised: rgba(47, 49, 47, 0.88);
+  --app-surface-translucent: rgba(31, 33, 32, 0.98);
   --app-line: rgba(247, 241, 232, 0.12);
   --app-line-strong: rgba(247, 241, 232, 0.2);
   --app-accent: #f4b860;
   --app-accent-cool: #7cc7c1;
   --app-danger: #ff756d;
+  --app-index-ink: rgba(244, 184, 96, 0.84);
+  --app-meta-label-ink: rgba(244, 184, 96, 0.88);
+  --app-kicker-ink: rgba(244, 184, 96, 0.84);
+  --app-placeholder-ink: rgba(222, 213, 199, 0.68);
   --app-selection: rgba(124, 199, 193, 0.18);
   --app-selection-strong: rgba(124, 199, 193, 0.28);
   --app-focus-ring: rgba(124, 199, 193, 0.86);
   --app-control-bg: rgba(255, 255, 255, 0.045);
   --app-control-bg-hover: rgba(255, 255, 255, 0.08);
+  --app-row-hover-bg: rgba(255, 255, 255, 0.055);
+  --app-scroll-thumb: rgba(244, 184, 96, 0.52);
   --app-radius-lg: 20px;
   --app-radius-md: 14px;
   --app-radius-sm: 8px;
@@ -43,75 +52,84 @@
 
   --app-ink: #15221d;
   --app-ink-soft: #34443d;
-  --app-ink-dim: #6d7a72;
-  --app-base: rgba(250, 248, 242, 0.98);
-  --app-base-deep: rgba(234, 239, 234, 0.98);
-  --app-panel: rgba(255, 255, 250, 0.9);
-  --app-panel-raised: rgba(246, 248, 241, 0.92);
-  --app-line: rgba(38, 55, 48, 0.12);
-  --app-line-strong: rgba(38, 55, 48, 0.2);
-  --app-accent: #b86f15;
-  --app-accent-cool: #207d77;
+  --app-ink-dim: #50635a;
+  --app-base: rgba(247, 250, 247, 0.985);
+  --app-base-deep: rgba(231, 240, 235, 0.985);
+  --app-panel: rgba(251, 253, 250, 0.965);
+  --app-panel-raised: rgba(241, 247, 244, 0.96);
+  --app-surface: #fbfdfa;
+  --app-surface-raised: #f2f8f4;
+  --app-surface-translucent: rgba(251, 253, 250, 0.97);
+  --app-line: rgba(24, 50, 40, 0.18);
+  --app-line-strong: #687b72;
+  --app-accent: #8f540b;
+  --app-accent-cool: #176f69;
   --app-danger: #c94840;
-  --app-selection: rgba(32, 125, 119, 0.12);
-  --app-selection-strong: rgba(32, 125, 119, 0.2);
-  --app-focus-ring: rgba(32, 125, 119, 0.7);
-  --app-control-bg: rgba(38, 55, 48, 0.045);
-  --app-control-bg-hover: rgba(38, 55, 48, 0.08);
+  --app-index-ink: #8f540b;
+  --app-meta-label-ink: #7d4a09;
+  --app-kicker-ink: #7d4a09;
+  --app-placeholder-ink: #50635a;
+  --app-selection: rgba(23, 111, 105, 0.15);
+  --app-selection-strong: rgba(23, 111, 105, 0.24);
+  --app-focus-ring: #176f69;
+  --app-control-bg: rgba(24, 50, 40, 0.065);
+  --app-control-bg-hover: rgba(24, 50, 40, 0.11);
+  --app-row-hover-bg: rgba(24, 50, 40, 0.075);
+  --app-scroll-thumb: rgba(143, 84, 11, 0.62);
   --app-shadow:
-    0 12px 24px rgba(41, 52, 47, 0.2),
+    0 12px 20px rgba(41, 52, 47, 0.16),
     inset 0 0 0 1px rgba(255, 255, 255, 0.82);
 }
 
 :root[data-app-theme="light"] .app-panel::before,
 :root[data-app-theme="light"] .app-dialog-panel::before {
   background:
-    linear-gradient(120deg, rgba(184, 111, 21, 0.12), transparent 31%),
-    linear-gradient(300deg, rgba(32, 125, 119, 0.1), transparent 38%);
-  opacity: 0.62;
+    linear-gradient(120deg, rgba(143, 84, 11, 0.07), transparent 31%),
+    linear-gradient(300deg, rgba(23, 111, 105, 0.08), transparent 38%);
+  opacity: 0.5;
 }
 
 :root[data-app-theme="light"] .app-panel {
   background:
-    linear-gradient(180deg, rgba(255, 254, 248, 0.98), rgba(234, 239, 234, 0.98));
+    linear-gradient(180deg, var(--app-panel), var(--app-base-deep));
 }
 
 :root[data-app-theme="light"] .app-dialog-panel,
 :root[data-app-theme="light"] .app-modal,
 :root[data-app-theme="light"] .app-history-preview {
-  border-color: rgba(38, 55, 48, 0.14);
+  border-color: var(--app-line);
   background:
-    linear-gradient(160deg, rgba(184, 111, 21, 0.08), transparent 36%),
-    linear-gradient(180deg, rgba(255, 254, 248, 0.98), rgba(237, 242, 237, 0.98));
+    linear-gradient(160deg, rgba(143, 84, 11, 0.04), transparent 36%),
+    linear-gradient(180deg, var(--app-surface-translucent), var(--app-surface-raised));
   box-shadow:
-    0 12px 22px rgba(41, 52, 47, 0.18),
+    0 12px 20px rgba(41, 52, 47, 0.16),
     inset 0 0 0 1px rgba(255, 255, 255, 0.82);
 }
 
 :root[data-app-theme="light"] .app-search {
-  border-color: rgba(38, 55, 48, 0.12);
+  border-color: var(--app-line);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(245, 247, 242, 0.72)),
-    rgba(38, 55, 48, 0.03);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), var(--app-surface-raised)),
+    var(--app-control-bg);
   color: var(--app-ink);
 }
 
 :root[data-app-theme="light"] .app-search::placeholder {
-  color: rgba(109, 122, 114, 0.76);
+  color: var(--app-placeholder-ink);
 }
 
 :root[data-app-theme="light"] .app-search-shell:focus-within .app-search {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(32, 125, 119, 0.5);
+  background: var(--app-surface);
+  border-color: var(--app-accent-cool);
   box-shadow:
-    0 0 0 3px rgba(32, 125, 119, 0.14),
+    0 0 0 3px rgba(23, 111, 105, 0.16),
     inset 0 0 0 1px rgba(255, 255, 255, 0.78);
 }
 
 :root[data-app-theme="light"] .app-item-row:hover,
 :root[data-app-theme="light"] .app-menu-item:hover,
 :root[data-app-theme="light"] .app-menu-item.is-selected {
-  background: rgba(38, 55, 48, 0.06);
+  background: var(--app-row-hover-bg);
 }
 
 :root[data-app-theme="light"] .app-item-row.is-selected,
@@ -120,9 +138,9 @@
 :root[data-app-theme="light"] .app-history-archive-row:hover,
 :root[data-app-theme="light"] .app-history-archive-row.is-active {
   background:
-    linear-gradient(90deg, rgba(32, 125, 119, 0.13), rgba(184, 111, 21, 0.08)),
-    rgba(255, 255, 255, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(32, 125, 119, 0.18);
+    linear-gradient(90deg, var(--app-selection), rgba(143, 84, 11, 0.07)),
+    var(--app-surface-translucent);
+  box-shadow: inset 0 0 0 1px var(--app-selection-strong);
   color: var(--app-ink);
 }
 
@@ -130,32 +148,59 @@
 :root[data-app-theme="light"] .app-empty,
 :root[data-app-theme="light"] .app-history-detail-file,
 :root[data-app-theme="light"] .app-history-detail-image-wrap {
-  border-color: rgba(38, 55, 48, 0.11);
-  background: rgba(255, 255, 255, 0.48);
+  border-color: var(--app-line);
+  background: var(--app-surface-translucent);
+}
+
+:root[data-app-theme="light"] .app-settings-tabs,
+:root[data-app-theme="light"] .app-settings-compact-field,
+:root[data-app-theme="light"] .app-settings-row,
+:root[data-app-theme="light"] .app-settings-section,
+:root[data-app-theme="light"] .app-history-type-list,
+:root[data-app-theme="light"] .app-menu-bar-icon-select-preview {
+  border-color: var(--app-line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), transparent),
+    var(--app-control-bg);
+}
+
+:root[data-app-theme="light"] .app-history-preview-header,
+:root[data-app-theme="light"] .app-history-detail-content-region,
+:root[data-app-theme="light"] .app-history-detail-content,
+:root[data-app-theme="light"] .app-history-detail-files {
+  border-color: var(--app-line);
+}
+
+:root[data-app-theme="light"] .app-settings-select,
+:root[data-app-theme="light"] .app-stepper-input,
+:root[data-app-theme="light"] .app-cli-command {
+  background: var(--app-surface);
+  border-color: var(--app-line-strong);
+  color: var(--app-ink);
 }
 
 :root[data-app-theme="light"] .app-history-color-swatch {
-  border-color: rgba(38, 55, 48, 0.22);
+  border-color: var(--app-line-strong);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.62),
     0 2px 4px rgba(41, 52, 47, 0.14);
 }
 
 :root[data-app-theme="light"] .app-footer {
-  border-top-color: rgba(38, 55, 48, 0.1);
+  border-top-color: var(--app-line);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(38, 55, 48, 0.035));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), var(--app-control-bg));
 }
 
 :root[data-app-theme="light"] .app-dialog-statusbar {
-  border-color: rgba(38, 55, 48, 0.1);
+  border-color: var(--app-line);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(38, 55, 48, 0.035)),
-    rgba(255, 255, 255, 0.38);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), var(--app-control-bg)),
+    var(--app-surface-translucent);
 }
 
 :root[data-app-theme="light"] .app-dialog-statusbar::after {
-  background: rgba(38, 55, 48, 0.14);
+  background: var(--app-line-strong);
 }
 
 html,
@@ -408,7 +453,7 @@ button {
 }
 
 .app-search::placeholder {
-  color: rgba(222, 213, 199, 0.68);
+  color: var(--app-placeholder-ink);
 }
 
 .app-search-shell:focus-within .app-search {
@@ -435,7 +480,7 @@ button {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-color: rgba(244, 184, 96, 0.52) rgba(255, 255, 255, 0.05);
+  scrollbar-color: var(--app-scroll-thumb) rgba(255, 255, 255, 0.05);
   scrollbar-width: thin;
 }
 
@@ -450,7 +495,7 @@ button {
 
 .app-main-scroll-region::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(244, 184, 96, 0.52);
+  background: var(--app-scroll-thumb);
 }
 
 .app-body {
@@ -481,7 +526,7 @@ button {
 }
 
 .app-item-row:hover {
-  background: rgba(255, 255, 255, 0.055);
+  background: var(--app-row-hover-bg);
 }
 
 .app-item-row.is-selected {
@@ -528,7 +573,7 @@ button {
 .app-item-index {
   justify-self: start;
   min-width: 0;
-  color: rgba(244, 184, 96, 0.72);
+  color: var(--app-index-ink);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: 800;
@@ -779,7 +824,7 @@ button {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 4px;
-  scrollbar-color: rgba(244, 184, 96, 0.52) rgba(255, 255, 255, 0.05);
+  scrollbar-color: var(--app-scroll-thumb) rgba(255, 255, 255, 0.05);
   scrollbar-width: thin;
 }
 
@@ -794,7 +839,7 @@ button {
 
 .app-history-archive-list.is-scrollable::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(244, 184, 96, 0.52);
+  background: var(--app-scroll-thumb);
 }
 
 .app-history-archive-entry {
@@ -927,7 +972,7 @@ button {
 .app-history-preview-kicker {
   min-width: 0;
   overflow: hidden;
-  color: rgba(244, 184, 96, 0.78);
+  color: var(--app-kicker-ink);
   font-size: 10px;
   font-weight: 900;
   text-overflow: ellipsis;
@@ -1033,7 +1078,7 @@ button {
   overflow-y: auto;
   border-bottom: 1px solid rgba(247, 241, 232, 0.1);
   padding-bottom: 10px;
-  scrollbar-color: rgba(244, 184, 96, 0.52) rgba(255, 255, 255, 0.05);
+  scrollbar-color: var(--app-scroll-thumb) rgba(255, 255, 255, 0.05);
   scrollbar-width: thin;
 }
 
@@ -1048,7 +1093,7 @@ button {
 
 .app-history-detail-content-region::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(244, 184, 96, 0.52);
+  background: var(--app-scroll-thumb);
 }
 
 .app-history-detail-content {
@@ -1204,7 +1249,7 @@ button {
 }
 
 .app-history-detail-meta dt {
-  color: rgba(244, 184, 96, 0.8);
+  color: var(--app-meta-label-ink);
   font-size: 11px;
   font-weight: 900;
 }
@@ -1278,7 +1323,7 @@ button {
 
 .app-history-preview-index {
   justify-self: start;
-  color: rgba(244, 184, 96, 0.78);
+  color: var(--app-index-ink);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 900;
@@ -1665,7 +1710,7 @@ button {
 }
 
 .app-modal-version {
-  color: rgba(244, 184, 96, 0.86);
+  color: var(--app-meta-label-ink);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-weight: 800;
@@ -1713,7 +1758,7 @@ button {
 }
 
 .app-about-link-label {
-  color: rgba(124, 199, 193, 0.95);
+  color: var(--app-accent-cool);
   font-size: 11px;
   font-weight: 900;
   line-height: 1;
@@ -1755,7 +1800,7 @@ button {
 .app-update-status {
   min-height: 16px;
   margin: 7px 0 0;
-  color: rgba(124, 199, 193, 0.92);
+  color: var(--app-accent-cool);
   font-size: 11px;
   font-weight: 750;
   line-height: 1.35;
@@ -1763,13 +1808,13 @@ button {
 }
 
 .app-update-status.is-error {
-  color: rgba(255, 117, 109, 0.92);
+  color: var(--app-danger);
 }
 
 .app-diagnostics-status {
   min-height: 16px;
   margin: 8px 0 0;
-  color: rgba(124, 199, 193, 0.92);
+  color: var(--app-accent-cool);
   font-size: 11px;
   font-weight: 750;
   line-height: 1.35;
@@ -1979,7 +2024,7 @@ button {
 
 .app-settings-group-label {
   padding: 2px 2px 0;
-  color: rgba(244, 184, 96, 0.82);
+  color: var(--app-meta-label-ink);
   font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
@@ -2011,24 +2056,24 @@ button {
 }
 
 .app-settings-note {
-  color: rgba(244, 184, 96, 0.76);
+  color: var(--app-meta-label-ink);
   font-size: 11px;
   overflow-wrap: anywhere;
 }
 
 .app-settings-note.is-ok {
-  color: rgba(124, 199, 193, 0.9);
+  color: var(--app-accent-cool);
 }
 
 .app-settings-note.is-warning {
-  color: rgba(244, 184, 96, 0.86);
+  color: var(--app-meta-label-ink);
 }
 
 .app-settings-error {
   border: 1px solid rgba(255, 117, 109, 0.22);
   border-radius: 8px;
   background: rgba(255, 117, 109, 0.09);
-  color: #ffc4bf;
+  color: var(--app-danger);
   padding: 10px 12px;
 }
 
@@ -2036,7 +2081,7 @@ button {
   border: 1px solid rgba(124, 199, 193, 0.2);
   border-radius: 8px;
   background: rgba(124, 199, 193, 0.07);
-  color: rgba(124, 199, 193, 0.95);
+  color: var(--app-accent-cool);
   font-size: 11px;
   font-weight: 800;
   padding: 9px 12px;
@@ -2064,7 +2109,7 @@ button {
   border: 1px solid rgba(255, 117, 109, 0.24);
   border-radius: 999px;
   background: rgba(255, 117, 109, 0.1);
-  color: #ffc4bf;
+  color: var(--app-danger);
   font-size: 11px;
   font-weight: 900;
   padding: 0 9px;
@@ -2073,7 +2118,7 @@ button {
 .app-cli-status-badge.is-installed {
   border-color: rgba(124, 199, 193, 0.3);
   background: rgba(124, 199, 193, 0.1);
-  color: rgba(124, 199, 193, 0.96);
+  color: var(--app-accent-cool);
 }
 
 .app-cli-command-row {

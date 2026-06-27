@@ -98,6 +98,91 @@ The visual direction should remain a compact desktop utility:
 - light theme should feel native and clear, not beige or washed out;
 - dark theme should keep the existing mclip personality but move color values into tokens.
 
+## Light Theme Readability
+
+Physical scene: a user opens the menu-bar window over a bright or detailed
+desktop wallpaper while still focused on another task. The light theme must read
+as a compact utility surface, not as translucent paper laid over the wallpaper.
+
+Use a restrained product color strategy:
+
+- neutral surfaces carry most of the interface;
+- teal remains the primary interaction and selection accent;
+- amber remains a secondary warm accent for narrow hierarchy moments;
+- semantic state colors stay reserved for danger, warning, success, and info;
+- no additional theme families are introduced.
+
+The screenshot evidence for this pass shows two concrete weak spots:
+
+- main-list row-leading numbers are too pale in light mode;
+- detail metadata labels such as source app, first copied time, last copied
+  time, and copy count are too pale on the light preview panel.
+
+The likely root cause is token reuse from the dark theme, especially raw
+`rgba(244, 184, 96, ...)` accent colors whose alpha works on dark surfaces but
+does not hold enough contrast on near-white translucent panels. The fix should
+not be a one-off color override for the screenshot. Introduce or refine semantic
+tokens for the light theme and apply them consistently.
+
+Recommended token roles:
+
+- `--app-ink`: primary readable text.
+- `--app-ink-soft`: secondary row text and non-primary labels.
+- `--app-ink-dim`: tertiary hints that still meet body-text contrast when used
+  for readable copy.
+- `--app-index-ink`: row-leading numbers in main and archive preview lists.
+- `--app-meta-label-ink`: detail metadata labels.
+- `--app-accent`: primary action or important warm accent.
+- `--app-accent-cool`: selected, focused, and current navigation accent.
+- `--app-surface`, `--app-surface-raised`, and `--app-surface-translucent`:
+  explicit light surfaces that are opaque enough to protect text from wallpaper
+  bleed-through.
+- `--app-line` and `--app-line-strong`: borders with at least 3:1 contrast for
+  UI component boundaries when the boundary conveys structure.
+
+Existing token names may be reused where they already express the correct role.
+If a selector currently uses a raw RGBA accent for readable text, prefer moving
+that value behind a semantic token. This keeps future dark and light tuning from
+diverging selector by selector.
+
+Contrast targets:
+
+- normal readable text in rows, menu labels, settings descriptions, placeholders,
+  preview content, and modal copy should meet WCAG AA 4.5:1 against its local
+  surface;
+- bold or large UI labels, row-leading numbers, metadata labels, and icons that
+  communicate structure should meet at least 3:1, with 4.5:1 preferred when the
+  label carries important content;
+- focus rings, selected rows, switches, check marks, and delete controls should
+  meet at least 3:1 as UI components;
+- selected and hover states must remain readable without relying on color alone.
+
+Light theme surfaces should move away from the current washed-out cream feeling.
+Use either a true neutral off-white or a very small teal-tinted neutral that
+belongs to the mclip palette. Avoid generic warm beige as the base. Preserve the
+transparent-window feel with controlled opacity and subtle panel depth, but do
+not allow wallpaper detail to compete with text.
+
+Implementation should audit these selectors at minimum:
+
+- `.app-item-index`
+- `.app-history-preview-index`
+- `.app-history-detail-meta dt`
+- `.app-history-preview-kicker`
+- `.app-modal-version`
+- `.app-settings-group-label`
+- `.app-settings-note`
+- `.app-menu-hint`
+- `.app-search::placeholder`
+- light-theme selected, hover, and focus selectors for main rows, archive rows,
+  preview rows, settings tabs, switches, and buttons.
+
+Because screenshots alone cannot prove full accessibility compliance, add a
+lightweight contrast regression test for named theme tokens and manually inspect
+the rendered app in light mode over a busy desktop background. The manual pass
+should cover the main window, group preview, item detail preview,
+preview-detail, About, Preferences, and clear-history modal.
+
 ## Dialog Status Bar
 
 About and Preferences should share a top status/title bar component. The bar should include:

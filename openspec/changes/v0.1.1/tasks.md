@@ -33,3 +33,35 @@
 - [x] Preserve keyboard navigation and preview anchoring when the main content region scrolls, including `scrollIntoView({ block: "nearest" })` behavior for history rows, archive groups, and footer actions.
 - [x] Add focused regression tests for dynamic main-count clamping, max-history reconciliation, scroll-container CSS, footer visibility assumptions, and large-count window-height clamping.
 - [x] Visually verify a large main-window item count, such as `40`, on the dev app: the history area scrolls, the search header is visible, and every footer action is visible.
+
+## Additional Light Theme Readability Tasks
+
+- [x] Audit current light-theme token usage in `src/App.css`, especially raw
+  amber/teal RGBA values used for readable text, labels, indices, placeholders,
+  borders, selected rows, and focus states.
+- [x] Add or refine semantic CSS tokens for light theme text, secondary text,
+  tertiary text, row-leading numbers, detail metadata labels, surface layers,
+  structural borders, selected rows, focus rings, and state colors.
+- [x] Update `.app-item-index` and `.app-history-preview-index` so main-list and
+  archive-preview numbers are readable in light theme across default, hover,
+  selected, and keyboard-navigation states.
+- [x] Update `.app-history-detail-meta dt`, `.app-history-preview-kicker`,
+  `.app-modal-version`, `.app-settings-group-label`, `.app-settings-note`,
+  `.app-menu-hint`, and `.app-search::placeholder` so readable labels do not use
+  low-contrast dark-theme accent opacity values in light mode.
+- [x] Adjust light-theme panel, preview, dialog, modal, settings, and footer
+  surfaces so text is protected from busy wallpaper bleed-through without making
+  the app feel heavy or decorative.
+- [x] Keep color strategy restrained: teal for focus, selection, and current
+  state; amber for limited hierarchy accents; semantic red/green/warning/info for
+  state only.
+- [x] Add a lightweight contrast regression test for named light-theme token
+  pairs, covering normal text at 4.5:1 and row-number, metadata-label, icon,
+  focus, selected, and border tokens at 3:1 or better where they convey UI
+  structure or state.
+- [ ] Visually verify light theme over a busy desktop background in the dev app:
+  main window, archive group preview, item detail preview, preview-detail,
+  About, Preferences, and clear-history modal.
+- [x] Run `npm run check:frontend`, `node --test tests/*.test.mjs`, and
+  `git diff --check`; run full `npm run check` before marking the appearance
+  implementation complete.

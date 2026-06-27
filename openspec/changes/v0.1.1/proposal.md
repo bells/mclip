@@ -10,6 +10,14 @@ v0.1.1 should turn these into explicit user preferences and polish the desktop s
 
 The CLI installer also needs a better distribution path. The current public install script can fall back to cloning and building from source, which means users need Git, Rust, and Cargo. That is acceptable for development, but too heavy for a one-command public install.
 
+After the first appearance-theme implementation, the light theme still has a
+readability gap in real desktop use. In a transparent tray window placed over a
+busy wallpaper, row-leading numbers and detail metadata labels can become too
+faint, especially the amber numeric labels in the main list and the detail
+labels such as source app, first copied time, last copied time, and copy count.
+Light mode needs a dedicated contrast pass rather than inheriting dark-theme
+accent opacity values.
+
 ## What Changes
 
 - Add settings for:
@@ -22,6 +30,17 @@ The CLI installer also needs a better distribution path. The current public inst
   - General: appearance theme;
   - Storage: main item count, archive group item count, row number visibility.
 - Rework light and dark app themes through shared CSS tokens so main, preview, About, and Preferences stay visually coherent.
+- Add a light-theme readability pass across main, preview, preview-detail,
+  About, Preferences, and modal surfaces:
+  - replace low-contrast raw accent opacity values with semantic text, label,
+    index, border, selection, and surface tokens;
+  - make row-leading numbers readable in default, hover, selected, and preview
+    states;
+  - make detail metadata labels readable on translucent light preview panels;
+  - reduce washed-out cream or beige surface drift while keeping the product
+    quiet and compact;
+  - keep the restrained teal/amber identity, but use color for state,
+    hierarchy, and wayfinding rather than decoration.
 - Keep the existing `light` menu bar icon setting but make it use macOS native template image behavior on macOS so the menu bar can adapt to system appearance and wallpaper contrast.
 - Add a clear draggable status/title bar to About and Preferences. Only that bar should start window dragging; content areas should not.
 - Add frontend recognition for copied color codes and common emoji text so history rows and previews can display useful visual affordances without changing clipboard persistence or copy-back semantics.
@@ -51,6 +70,9 @@ Expected implementation areas:
 - No change to text/image/file clipboard write-back semantics.
 - No attempt to force macOS menu bar icon ordering.
 - No full redesign of the tray window layout.
+- No new theme families beyond system, light, and dark in this change.
+- No decorative theme picker, wallpaper-aware personalization, or marketing-style
+  visual treatment.
 - No mobile implementation in this change; keep the settings contract mobile-friendly.
 
 ## Open Questions
