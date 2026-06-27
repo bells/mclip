@@ -1,0 +1,136 @@
+# v0.1.1 Design
+
+## Settings Contract
+
+Add these fields to the cross-boundary `AppSettings` contract:
+
+- `mainWindowItemCount: number`
+- `historyGroupItemCount: number`
+- `showHistoryItemNumbers: boolean`
+- `appearanceTheme: "system" | "light" | "dark"`
+
+Rust keeps the serialized names camelCase with `serde(rename_all = "camelCase")`; TypeScript mirrors the same field names in `src/types.ts`. Defaults live in both `DEFAULT_SETTINGS` and `AppSettings::default()`.
+
+Validation should be symmetric:
+
+- item counts clamp to `5..=20`;
+- `showHistoryItemNumbers` defaults to `true`;
+- unknown themes normalize to `system`;
+- legacy settings files without these fields continue loading.
+
+## History Sizing Model
+
+The current `HISTORY_GROUP_SIZE` represents two different concepts. v0.1.1 should split them:
+
+- `mainWindowItemCount` controls how many filtered history entries appear in the main window.
+- `historyGroupItemCount` controls the size of each archive group after the main window slice.
+
+Example with `mainWindowItemCount = 8` and `historyGroupItemCount = 12`:
+
+- main list shows positions `1..8`;
+- first archive group shows `9 - 20`;
+- second archive group shows `21 - 32`.
+
+Do not compute archive slices with `groupIndex * groupSize` after this change. `HistoryGroupInfo` should either carry slice boundaries or the utility should derive archive items from `startPosition` and `endPosition`. This keeps preview payloads correct when the two counts differ.
+
+`adjust_window_height(item_count, group_count)` can keep the same Rust signature if the frontend continues passing `visibleHistory.length` and `historyGroups.length`. Rust tests should be updated for custom item counts and max-height clamping.
+
+## Row Numbers
+
+`showHistoryItemNumbers` controls only row-leading indices:
+
+- `.app-item-index` in the main list;
+- `.app-history-preview-index` in archive preview rows.
+
+When hidden, layout should switch to a no-index grid rather than leaving an empty leading column. Keyboard navigation target ids and absolute `item.position` values remain unchanged. Detail headers may continue showing the item position because that is metadata, not the row-leading number requested here.
+
+## Themes
+
+Use one theme attribute on the document root or app root:
+
+- `data-app-theme="light"`
+- `data-app-theme="dark"`
+
+When the setting is `system`, resolve with `prefers-color-scheme` and subscribe to changes while the app is open. Theme application must cover all Tauri-rendered windows because main, preview, preview-detail, About, and Preferences load the same frontend entry.
+
+The visual direction should remain a compact desktop utility:
+
+- restrained surfaces and strong readable contrast;
+- no marketing-page hero styling;
+- no one-hue palette;
+- light theme should feel native and clear, not beige or washed out;
+- dark theme should keep the existing mclip personality but move color values into tokens.
+
+## Dialog Status Bar
+
+About and Preferences should share a top status/title bar component. The bar should include:
+
+- window controls;
+- window title;
+- concise state text where useful, such as app version or Preferences section context;
+- `data-dialog-drag-region` on the draggable area.
+
+`DialogWindowFrame` should only call `startCurrentWindowDrag()` when the event target is inside `[data-dialog-drag-region]` and outside known interactive controls. This replaces the current broad "any non-interactive dialog content can drag" behavior.
+
+## macOS Template Menu Bar Icon
+
+Keep `MenuBarIconStyle.Light` / `menuBarIconStyle: "light"` for compatibility. On macOS, after setting the tray icon image, mark the underlying `NSImage` as a template image when the style is `Light`. This lets macOS adapt the icon to light/dark menu bar states and wallpaper contrast.
+
+On Windows, keep using the existing image asset path because template images are a macOS AppKit concept.
+
+## Color Codes And Emoji
+
+Do not change `HistoryEntry` persistence for this feature. Add a frontend-only text classifier, likely under `src/utils/historyDisplay.ts`, that recognizes:
+
+- hex colors: `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`;
+- CSS rgb/rgba colors with valid numeric ranges;
+- short emoji-only text using Unicode emoji segmentation.
+
+Rendering rules:
+
+- main rows can show a compact swatch or emoji mark before the text;
+- detail preview can show a larger swatch, the original code, and the copied text;
+- invalid or ambiguous text falls back to normal text display;
+- selecting the item still copies the original text exactly.
+
+## CLI
+
+`mclip-cli --help`, `mclip-cli -h`, and `mclip-cli help` should print usage and exit `0` without requiring a readable history file. `mclip-cli --version`, `mclip-cli -V`, and `mclip-cli version` should print the package version and exit `0` without reading history.
+
+Command-level help should remain supported, but it should not require history loading when possible. Unknown commands still exit with usage error code `2`.
+
+The public installer should prefer prebuilt release binaries:
+
+1. detect OS and CPU architecture;
+2. build a release asset URL for the requested version or latest version;
+3. download to a temp file;
+4. install to the user-level bin directory;
+5. chmod on Unix;
+6. print PATH guidance.
+
+Source build remains available when `MCLIP_CLI_SOURCE` is set, a local repo is detected, or a development flag requests source fallback. Public one-command install should not require Rust, Cargo, or Git for supported platforms.
+
+## Verification Strategy
+
+Fast checks:
+
+```bash
+npm run check:frontend
+node --test tests/*.test.mjs
+git diff --check
+```
+
+Rust and CLI checks:
+
+```bash
+cargo test --manifest-path src-tauri/Cargo.toml
+npm run cli:test
+```
+
+Full gate before implementation is considered complete:
+
+```bash
+npm run check
+```
+
+For visual implementation, run the app and inspect main, preview, About, and Preferences in light, dark, and system mode.
