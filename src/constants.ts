@@ -40,7 +40,14 @@ export function clampHistoryCount(value: number) {
   return Math.min(MAX_MAX_HISTORY_COUNT, Math.max(MIN_MAX_HISTORY_COUNT, value));
 }
 
-export function clampVisibleItemCount(value: number) {
+export function clampMainWindowItemCount(value: number, maxHistoryCount: number) {
+  return Math.min(
+    clampHistoryCount(maxHistoryCount),
+    Math.max(MIN_VISIBLE_ITEM_COUNT, value),
+  );
+}
+
+export function clampHistoryGroupItemCount(value: number) {
   return Math.min(
     MAX_VISIBLE_ITEM_COUNT,
     Math.max(MIN_VISIBLE_ITEM_COUNT, value),

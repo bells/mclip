@@ -22,3 +22,14 @@
 - [x] Update release workflow or release asset naming so installer URLs are stable.
 - [x] Update README, AGENTS, site copy, and `llms.txt` for public CLI install behavior and new settings if implementation changes public docs.
 - [x] Run `npm run check:frontend`, `node --test tests/*.test.mjs`, `npm run cli:test`, and `npm run check`.
+
+## Additional Count And Main Window Layout Tasks
+
+- [x] Replace the fixed main-window visible-count maximum with a dynamic `mainWindowItemCount <= maxHistoryCount` rule in TypeScript defaults/normalization and Rust settings sanitization.
+- [x] Keep `historyGroupItemCount` on the compact `5..=20` range, with separate clamp helpers/tests so the main-window and archive-preview limits cannot drift together by accident.
+- [x] Update Preferences so the main-window item count input/stepper uses `settingsDraft.maxHistoryCount` as its current maximum and reconciles `mainWindowItemCount` when `maxHistoryCount` is lowered.
+- [x] Refactor the main window markup/CSS so the header and footer are fixed within the app panel while the history list and archive group navigation share a bounded vertical scroll region.
+- [x] Update Rust main-window height calculation and positioning so large configured counts are capped to the current monitor work area and never place the top behind the macOS menu bar/status area or the bottom below the screen.
+- [x] Preserve keyboard navigation and preview anchoring when the main content region scrolls, including `scrollIntoView({ block: "nearest" })` behavior for history rows, archive groups, and footer actions.
+- [x] Add focused regression tests for dynamic main-count clamping, max-history reconciliation, scroll-container CSS, footer visibility assumptions, and large-count window-height clamping.
+- [x] Visually verify a large main-window item count, such as `40`, on the dev app: the history area scrolls, the search header is visible, and every footer action is visible.

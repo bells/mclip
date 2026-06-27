@@ -6,8 +6,9 @@ import type { UnlistenFn } from "@tauri-apps/api/event";
 import appIconUrl from "../../app-icon.png";
 import lightMenuBarIconUrl from "../../src-tauri/icons/menu-bar-icon-light-128.png";
 import {
+  clampHistoryGroupItemCount,
   clampHistoryCount,
-  clampVisibleItemCount,
+  clampMainWindowItemCount,
   DEFAULT_SETTINGS,
   MAX_MAX_HISTORY_COUNT,
   MAX_VISIBLE_ITEM_COUNT,
@@ -75,6 +76,7 @@ export function PreferencesWindow() {
   const t = translations.preferences;
   const selectedMenuBarIconUrl =
     settingsDraft.menuBarIconStyle === "light" ? lightMenuBarIconUrl : appIconUrl;
+  const mainWindowItemCountMax = settingsDraft.maxHistoryCount;
 
   const syncSettingsState = (nextSettings: AppSettings) => {
     latestSettingsRef.current = nextSettings;
@@ -369,6 +371,10 @@ export function PreferencesWindow() {
     applySettingsPatch((current) => ({
       ...current,
       maxHistoryCount: clampedValue,
+      mainWindowItemCount: clampMainWindowItemCount(
+        current.mainWindowItemCount,
+        clampedValue,
+      ),
     }));
   };
 
@@ -402,17 +408,37 @@ export function PreferencesWindow() {
           applySettingsPatch((current) => ({
             ...current,
             maxHistoryCount: nextValue,
+            mainWindowItemCount: clampMainWindowItemCount(
+              current.mainWindowItemCount,
+              nextValue,
+            ),
           }));
         }
       }
     }
   };
 
+  const clampVisibleItemCountForSetting = (
+    settingKey: VisibleItemCountSetting,
+    nextValue: number,
+  ) =>
+    settingKey === "mainWindowItemCount"
+      ? clampMainWindowItemCount(
+          nextValue,
+          latestSettingsRef.current.maxHistoryCount,
+        )
+      : clampHistoryGroupItemCount(nextValue);
+
+  const getVisibleItemCountMax = (settingKey: VisibleItemCountSetting) =>
+    settingKey === "mainWindowItemCount"
+      ? latestSettingsRef.current.maxHistoryCount
+      : MAX_VISIBLE_ITEM_COUNT;
+
   const updateVisibleItemCount = (
     settingKey: VisibleItemCountSetting,
     nextValue: number,
   ) => {
-    const clampedValue = clampVisibleItemCount(nextValue);
+    const clampedValue = clampVisibleItemCountForSetting(settingKey, nextValue);
 
     setVisibleItemCountInputs((current) => ({
       ...current,
@@ -452,12 +478,13 @@ export function PreferencesWindow() {
     }));
 
     const parsedValue = Number(value);
+    const maxValue = getVisibleItemCountMax(settingKey);
 
     if (
       value !== "" &&
       Number.isFinite(parsedValue) &&
       parsedValue >= MIN_VISIBLE_ITEM_COUNT &&
-      parsedValue <= MAX_VISIBLE_ITEM_COUNT
+      parsedValue <= maxValue
     ) {
       const nextValue = Math.trunc(parsedValue);
 
@@ -732,7 +759,7 @@ export function PreferencesWindow() {
                       {t.mainWindowItemCountDescription}
                     </div>
                     <div className="app-settings-note">
-                      {t.rangeNote(MIN_VISIBLE_ITEM_COUNT, MAX_VISIBLE_ITEM_COUNT)}
+                      {t.rangeNote(MIN_VISIBLE_ITEM_COUNT, mainWindowItemCountMax)}
                     </div>
                   </div>
 
@@ -753,7 +780,7 @@ export function PreferencesWindow() {
                     <input
                       aria-label={t.mainWindowItemCountAriaLabel}
                       className="app-stepper-input"
-                      max={MAX_VISIBLE_ITEM_COUNT}
+                      max={mainWindowItemCountMax}
                       min={MIN_VISIBLE_ITEM_COUNT}
                       onBlur={() =>
                         commitVisibleItemCountInput("mainWindowItemCount")

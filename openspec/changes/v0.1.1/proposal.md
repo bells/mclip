@@ -4,6 +4,8 @@
 
 v0.1.0 has the core clipboard history workflow, but several visible behaviors are still fixed in code: the main list always shows 10 items, archive previews always use 10 items per group, row indices are always visible, and the app is effectively dark-only. The About and Preferences windows also feel less like native utility windows because the drag region is implicit across most non-interactive content.
 
+After making visible counts configurable, the main window also needs a safer large-count layout. If the main list can show many copied items, the tray window must not grow under the macOS menu bar/status area or clip the footer actions; the history content should scroll while the search header and action footer stay available.
+
 v0.1.1 should turn these into explicit user preferences and polish the desktop shell without changing the local-first clipboard model.
 
 The CLI installer also needs a better distribution path. The current public install script can fall back to cloning and building from source, which means users need Git, Rust, and Cargo. That is acceptable for development, but too heavy for a one-command public install.
@@ -11,10 +13,11 @@ The CLI installer also needs a better distribution path. The current public inst
 ## What Changes
 
 - Add settings for:
-  - main window visible history item count, default `10`;
+  - main window visible history item count, default `10`, configurable up to the maximum saved history count;
   - archive group preview item count, default `10`;
   - whether row-leading history numbers are shown, default `true`;
   - appearance theme: follow system, light, dark, default follow system.
+- Make large main-window item counts usable by keeping the header and all footer actions visible, bounding the Tauri window to the monitor work area, and scrolling the history content region when needed.
 - Add the new controls in Preferences:
   - General: appearance theme;
   - Storage: main item count, archive group item count, row number visibility.
@@ -35,6 +38,7 @@ Expected implementation areas:
 - `src/components/HistoryList.tsx`, `src/components/HistoryGroupPreviewWindow.tsx`, `src/components/HistoryPreviewDetailContent.tsx`
 - `src/components/PreferencesWindow.tsx`, `src/components/AboutWindow.tsx`, `src/components/DialogWindowFrame.tsx`, `src/utils/dialogDrag.ts`
 - `src/App.css`, `src/i18n.ts`
+- `src/App.tsx` and `src-tauri/src/window.rs` for scroll-container wiring, window height capping, and work-area-safe positioning
 - `src-tauri/src/lib.rs`, macOS tray icon handling
 - `src-tauri/src/agent_cli.rs`, `src-tauri/tests/agent_cli.rs`
 - `install.sh`, `site/public/install.sh`, release workflow or release assets
@@ -51,5 +55,5 @@ Expected implementation areas:
 
 ## Open Questions
 
-- The proposal uses a conservative adjustable range of `5..=20` for both visible item counts. This can be widened later if real window-height testing is comfortable on smaller screens.
+- The archive group preview count remains conservative at `5..=20` because preview windows are transient and should stay compact. The main window count can scale to `maxHistoryCount` because the main content area will scroll.
 - The preferred CLI binary host can be GitHub Releases first, with the website script mirroring only the installer. If direct site-hosted binaries are desired, that should be a separate distribution decision.

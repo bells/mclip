@@ -1,8 +1,9 @@
 // 偏好设置工具：前端展示前先归一化，后端仍负责最终校验与持久化。
 
 import {
+  clampHistoryGroupItemCount,
   clampHistoryCount,
-  clampVisibleItemCount,
+  clampMainWindowItemCount,
   DEFAULT_SETTINGS,
 } from "../constants";
 import type { AppSettings } from "../types";
@@ -13,18 +14,21 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
     ...settings.enabledHistoryTypes,
   };
 
+  const maxHistoryCount = clampHistoryCount(settings.maxHistoryCount);
+
   return {
     ...DEFAULT_SETTINGS,
     ...settings,
     enabledHistoryTypes,
     language: settings.language === "zhCn" ? "zhCn" : "en",
-    maxHistoryCount: clampHistoryCount(settings.maxHistoryCount),
+    maxHistoryCount,
     menuBarIconStyle:
       settings.menuBarIconStyle === "light" ? "light" : "appIcon",
-    mainWindowItemCount: clampVisibleItemCount(
+    mainWindowItemCount: clampMainWindowItemCount(
       settings.mainWindowItemCount ?? DEFAULT_SETTINGS.mainWindowItemCount,
+      settings.maxHistoryCount,
     ),
-    historyGroupItemCount: clampVisibleItemCount(
+    historyGroupItemCount: clampHistoryGroupItemCount(
       settings.historyGroupItemCount ?? DEFAULT_SETTINGS.historyGroupItemCount,
     ),
     showHistoryItemNumbers: settings.showHistoryItemNumbers !== false,

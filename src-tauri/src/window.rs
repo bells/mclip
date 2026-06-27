@@ -148,10 +148,21 @@ pub fn adjust_window_height(
     group_count: u32,
 ) -> Result<(), String> {
     if let Some(window) = app_handle.get_webview_window("main") {
+        let desired_height = calculate_window_height(item_count, group_count);
+        let window_height = window
+            .current_monitor()
+            .map_err(|error| error.to_string())?
+            .as_ref()
+            .map(monitor_work_area_bounds)
+            .map(|screen_bounds| {
+                calculate_window_height_for_screen_bounds(item_count, group_count, screen_bounds)
+            })
+            .unwrap_or(desired_height);
+
         window
             .set_size(Size::Logical(LogicalSize {
                 width: WINDOW_WIDTH,
-                height: calculate_window_height(item_count, group_count),
+                height: window_height,
             }))
             .map_err(|error| error.to_string())?;
     }
@@ -677,6 +688,20 @@ fn calculate_window_height(item_count: u32, group_count: u32) -> f64 {
         .min(MAX_WINDOW_HEIGHT)
 }
 
+fn calculate_window_height_for_screen_bounds(
+    item_count: u32,
+    group_count: u32,
+    screen_bounds: ScreenBounds,
+) -> f64 {
+    let height = calculate_window_height(item_count, group_count);
+
+    if screen_bounds.height <= 0.0 {
+        return height;
+    }
+
+    height.min(screen_bounds.height)
+}
+
 fn calculate_archive_group_height(visible_group_count: u32) -> f64 {
     if visible_group_count == 0 {
         return 0.0;
@@ -1118,8 +1143,9 @@ mod macos_window {
 mod tests {
     use super::{
         calculate_tray_bottom_center_window_position, calculate_window_height,
-        choose_screen_bounds_for_tray_anchor, clamp_preview_height, clamp_preview_width,
-        is_physical_point_in_rect, TrayWindowAnchor, TrayWindowPositionInput, MAX_WINDOW_HEIGHT,
+        calculate_window_height_for_screen_bounds, choose_screen_bounds_for_tray_anchor,
+        clamp_preview_height, clamp_preview_width, is_physical_point_in_rect, TrayWindowAnchor,
+        TrayWindowPositionInput, MAX_WINDOW_HEIGHT,
     };
     use tauri::{PhysicalPosition, PhysicalSize, Rect};
 
@@ -1142,6 +1168,21 @@ mod tests {
     #[test]
     fn list_height_is_capped_at_maximum() {
         assert_eq!(calculate_window_height(100, 10), MAX_WINDOW_HEIGHT);
+    }
+
+    #[test]
+    fn list_height_is_capped_to_monitor_work_area() {
+        let screen_bounds = super::ScreenBounds {
+            left: 0.0,
+            top: 24.0,
+            width: 1440.0,
+            height: 676.0,
+        };
+
+        assert_eq!(
+            calculate_window_height_for_screen_bounds(100, 10, screen_bounds),
+            676.0
+        );
     }
 
     #[test]

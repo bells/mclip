@@ -13,10 +13,17 @@ Rust keeps the serialized names camelCase with `serde(rename_all = "camelCase")`
 
 Validation should be symmetric:
 
-- item counts clamp to `5..=20`;
+- `mainWindowItemCount` clamps to `5..=maxHistoryCount`;
+- `historyGroupItemCount` keeps the compact archive-preview range of `5..=20`;
 - `showHistoryItemNumbers` defaults to `true`;
 - unknown themes normalize to `system`;
 - legacy settings files without these fields continue loading.
+
+Sanitization order matters: normalize `maxHistoryCount` first, then clamp
+`mainWindowItemCount` against that sanitized value. When Preferences lowers
+`maxHistoryCount` below the current `mainWindowItemCount`, the UI should save or
+render the reconciled main count immediately so the stepper/input never advertises
+an impossible value.
 
 ## History Sizing Model
 
@@ -33,7 +40,37 @@ Example with `mainWindowItemCount = 8` and `historyGroupItemCount = 12`:
 
 Do not compute archive slices with `groupIndex * groupSize` after this change. `HistoryGroupInfo` should either carry slice boundaries or the utility should derive archive items from `startPosition` and `endPosition`. This keeps preview payloads correct when the two counts differ.
 
-`adjust_window_height(item_count, group_count)` can keep the same Rust signature if the frontend continues passing `visibleHistory.length` and `historyGroups.length`. Rust tests should be updated for custom item counts and max-height clamping.
+`adjust_window_height(item_count, group_count)` can keep the same Rust signature
+if the frontend continues passing `visibleHistory.length` and
+`historyGroups.length`, but the calculation should treat the result as a desired
+height, not an unconditional final height. The final Tauri window height must be
+capped to the current monitor work area so a large `mainWindowItemCount` cannot
+push the window above the macOS menu bar/status area or below the screen edge.
+Rust tests should cover custom item counts, max-height clamping, and monitor
+work-area bounds.
+
+## Main Window Scrolling
+
+Large main-window counts should not make the transparent root scroll. Keep the
+outer app frame and panel clipped and move scrolling into a dedicated content
+region between the header and footer.
+
+Recommended structure:
+
+- header/search stays `flex-shrink: 0`;
+- a middle scroll region uses `flex: 1`, `min-height: 0`, and `overflow-y: auto`;
+- the main `HistoryList` and `HistoryGroupNav` live inside that scroll region;
+- footer actions stay outside the scroll region and remain `flex-shrink: 0`.
+
+This preserves the tray utility feel while allowing `mainWindowItemCount` to
+scale up to `maxHistoryCount`. It also prevents the screenshot failure mode where
+the window extends under the menu bar and the footer only shows the first action.
+
+Keyboard navigation should continue to call `scrollIntoView({ block: "nearest" })`
+on `[data-main-keyboard-target]` elements. With a real scroll container, this
+should scroll only the middle region while keeping the header and footer visible.
+Preview anchor calculation can keep using `getBoundingClientRect().top` because
+the visible row top remains in viewport coordinates after scrolling.
 
 ## Row Numbers
 

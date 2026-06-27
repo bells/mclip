@@ -14,17 +14,62 @@ The system SHALL let users configure how many copied history items appear in the
 
 #### Scenario: Adjusted main item count
 
-- **GIVEN** `mainWindowItemCount` is `8`
-- **AND** there are at least 20 filtered history items
+- **GIVEN** `maxHistoryCount` is `50`
+- **AND** `mainWindowItemCount` is `40`
+- **AND** there are at least 50 filtered history items
 - **WHEN** the main window renders
-- **THEN** it displays positions `1` through `8` in the main list
-- **AND** archive groups start at position `9`.
+- **THEN** it displays positions `1` through `40` in the main list
+- **AND** archive groups start at position `41`.
 
-#### Scenario: Main item count is clamped
+#### Scenario: Main item count upper bound follows maximum history count
 
-- **GIVEN** a saved `mainWindowItemCount` outside `5..=20`
+- **GIVEN** `maxHistoryCount` is `100`
+- **WHEN** the user edits the main window item count in Preferences
+- **THEN** the largest accepted `mainWindowItemCount` is `100`.
+
+#### Scenario: Main item count is clamped by maximum history count
+
+- **GIVEN** `maxHistoryCount` is `50`
+- **AND** a saved `mainWindowItemCount` outside `5..=50`
 - **WHEN** settings are loaded
-- **THEN** the value is clamped into `5..=20`.
+- **THEN** the value is clamped into `5..=50`.
+
+#### Scenario: Lowering maximum history count reconciles main item count
+
+- **GIVEN** `mainWindowItemCount` is `80`
+- **AND** the user lowers `maxHistoryCount` to `50`
+- **WHEN** the setting change is saved
+- **THEN** `mainWindowItemCount` is reduced to `50`
+- **AND** the Preferences control shows `50` as the current main window item count.
+
+### Requirement: Scrollable Main Window Content
+
+The system SHALL keep the main window usable when the configured main item count exceeds the available window height.
+
+#### Scenario: Main list scrolls when configured count is large
+
+- **GIVEN** `mainWindowItemCount` is `80`
+- **AND** there are at least 80 filtered history items
+- **WHEN** the main window renders on a screen that cannot fit all rows at once
+- **THEN** the history content area is vertically scrollable
+- **AND** the app header remains fully visible
+- **AND** every footer action remains fully visible.
+
+#### Scenario: Main window respects monitor work area
+
+- **GIVEN** the main window is shown from the macOS menu bar or Windows tray
+- **AND** the desired content height is larger than the current monitor work area can fit
+- **WHEN** the window is positioned and resized
+- **THEN** the top edge is not above the monitor work area
+- **AND** the bottom edge is not below the monitor work area
+- **AND** the search header is not hidden behind the menu bar or status area.
+
+#### Scenario: Keyboard navigation stays visible while scrolling
+
+- **GIVEN** the main history content area is scrollable
+- **WHEN** the user moves keyboard focus through history rows, archive group rows, and footer actions
+- **THEN** the focused target scrolls into view within the main content area
+- **AND** preview windows continue to align to the visible focused or hovered row.
 
 ### Requirement: Configurable Archive Group Item Count
 

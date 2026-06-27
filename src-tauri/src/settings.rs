@@ -117,7 +117,7 @@ impl AppSettings {
             .clamp(MIN_MAX_HISTORY_COUNT, MAX_MAX_HISTORY_COUNT);
         self.main_window_item_count = self
             .main_window_item_count
-            .clamp(MIN_VISIBLE_ITEM_COUNT, MAX_VISIBLE_ITEM_COUNT);
+            .clamp(MIN_VISIBLE_ITEM_COUNT, self.max_history_count);
         self.history_group_item_count = self
             .history_group_item_count
             .clamp(MIN_VISIBLE_ITEM_COUNT, MAX_VISIBLE_ITEM_COUNT);
@@ -446,6 +446,33 @@ mod tests {
 
         assert_eq!(settings.main_window_item_count, MIN_VISIBLE_ITEM_COUNT);
         assert_eq!(settings.history_group_item_count, MAX_VISIBLE_ITEM_COUNT);
+    }
+
+    #[test]
+    fn sanitize_allows_main_window_item_count_up_to_max_history_count() {
+        let settings = AppSettings {
+            max_history_count: 80,
+            main_window_item_count: 80,
+            history_group_item_count: 999,
+            ..AppSettings::default()
+        }
+        .sanitize();
+
+        assert_eq!(settings.main_window_item_count, 80);
+        assert_eq!(settings.history_group_item_count, MAX_VISIBLE_ITEM_COUNT);
+    }
+
+    #[test]
+    fn sanitize_reconciles_main_window_item_count_when_history_max_is_lowered() {
+        let settings = AppSettings {
+            max_history_count: 50,
+            main_window_item_count: 80,
+            ..AppSettings::default()
+        }
+        .sanitize();
+
+        assert_eq!(settings.max_history_count, 50);
+        assert_eq!(settings.main_window_item_count, 50);
     }
 
     #[test]

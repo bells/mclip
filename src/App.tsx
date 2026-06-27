@@ -452,27 +452,29 @@ function MainWindow() {
           onSearchQueryChange={setSearchQuery}
         />
 
-        <div className="app-body">
-          <HistoryList
-            hasHistory={hasHistory}
-            items={visibleHistory}
+        <div className="app-main-scroll-region">
+          <div className="app-body">
+            <HistoryList
+              hasHistory={hasHistory}
+              items={visibleHistory}
+              translations={t.history}
+              onDeleteItem={deleteHistoryItem}
+              onOpenItemPreview={openHistoryItemPreviewFromTarget}
+              onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
+              onSelectItem={selectHistoryItem}
+              showItemNumbers={settings.showHistoryItemNumbers}
+              selectedItemId={activeHistoryItemId ?? undefined}
+            />
+          </div>
+
+          <HistoryGroupNav
+            groups={historyGroups}
+            previewGroupIndex={previewHistoryGroupIndex}
             translations={t.history}
-            onDeleteItem={deleteHistoryItem}
-            onOpenItemPreview={openHistoryItemPreviewFromTarget}
+            onOpenPreview={openHistoryGroupPreviewFromTarget}
             onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
-            onSelectItem={selectHistoryItem}
-            showItemNumbers={settings.showHistoryItemNumbers}
-            selectedItemId={activeHistoryItemId ?? undefined}
           />
         </div>
-
-        <HistoryGroupNav
-          groups={historyGroups}
-          previewGroupIndex={previewHistoryGroupIndex}
-          translations={t.history}
-          onOpenPreview={openHistoryGroupPreviewFromTarget}
-          onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
-        />
 
         <AppFooter
           canClearHistory={hasHistory}
