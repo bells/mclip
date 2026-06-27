@@ -42,6 +42,39 @@ jobs:
             exit 1
           fi
 
+      - name: Build mclip-cli release binary
+        run: cargo build --manifest-path src-tauri/Cargo.toml --bin mclip-cli --release
+
+      - name: Prepare mclip-cli release asset
+        id: cli_asset
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            macOS) PLATFORM="darwin" ;;
+            Windows) PLATFORM="windows" ;;
+            Linux) PLATFORM="linux" ;;
+            *) echo "Unsupported runner OS: $RUNNER_OS" >&2; exit 1 ;;
+          esac
+
+          case "$RUNNER_ARCH" in
+            X64) ARCH="x64" ;;
+            ARM64) ARCH="arm64" ;;
+            *) echo "Unsupported runner arch: $RUNNER_ARCH" >&2; exit 1 ;;
+          esac
+
+          EXTENSION=""
+          SOURCE_PATH="src-tauri/target/release/mclip-cli"
+          if [ "$PLATFORM" = "windows" ]; then
+            EXTENSION=".exe"
+            SOURCE_PATH="${SOURCE_PATH}.exe"
+          fi
+
+          mkdir -p cli-dist
+          cp "$SOURCE_PATH" "cli-dist/mclip-cli-${PLATFORM}-${ARCH}${EXTENSION}"
+          echo "platform=$PLATFORM" >> "$GITHUB_OUTPUT"
+          echo "arch=$ARCH" >> "$GITHUB_OUTPUT"
+          echo "extension=$EXTENSION" >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,19 +89,19 @@ jobs:
             ## 本版本包含
 
             - 文本、图片、文件三类剪贴板历史，重复复制会自动更新到最新位置。
-            - 最近 10 条历史快速访问，更多记录按每 10 条分组。
+            - 最近历史快速访问，主界面和历史分组展示条数可配置，默认分别为 10。
             - 独立预览窗口，可在不撑宽主窗口的情况下查看历史详情。
             - 搜索、复制、删除、清空历史，以及 `CommandOrControl+Shift+V` 全局快捷键。
-            - 偏好设置：登录时启动、语言、菜单栏图标样式、自动粘贴、最大历史条数和保存类型。
+            - 偏好设置：登录时启动、语言、外观主题、菜单栏图标样式、自动粘贴、展示条数、序号显示、最大历史条数和保存类型。
             - 剪贴板历史仅保存在本机，不会上传到云端。
 
             ## Included in this release
 
             - Text, image, and file clipboard history, with repeated copies moved back to the top.
-            - Quick access to the latest 10 items, with older history grouped by 10.
+            - Quick access to recent history, with configurable main-window and archive-group item counts, both defaulting to 10.
             - Separate preview windows for details, keeping the main window compact.
             - Search, copy, delete, clear history, and the `CommandOrControl+Shift+V` global shortcut.
-            - Preferences for launch at login, language, menu bar icon style, auto paste, maximum history size, and enabled history types.
+            - Preferences for launch at login, language, appearance theme, menu bar icon style, auto paste, display counts, row numbers, maximum history size, and enabled history types.
             - Clipboard history stays on your device and is not uploaded.
 
             ## 下载 / Downloads
@@ -76,6 +109,14 @@ jobs:
             请在下方 Assets 中选择对应系统的安装包。
 
             Choose the installer for your platform from the Assets below.
+
+            CLI 用户可以使用公开安装脚本，默认优先下载本 Release 的预构建 `mclip-cli`：
+
+            CLI users can use the public install script, which prefers the prebuilt `mclip-cli` from this release:
+
+            ```bash
+            curl -fsSL https://www.mclip.cn/install.sh | sh
+            ```
 
             ## 安装提示 / Installation notes
 
@@ -100,3 +141,9 @@ jobs:
             The Windows installer is not code-signed yet. Windows SmartScreen may warn about an unknown publisher during install or first launch; continue only if you trust this release.
           releaseDraft: true
           prerelease: false
+
+      - name: Upload mclip-cli release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: cli-dist/mclip-cli-${{ steps.cli_asset.outputs.platform }}-${{ steps.cli_asset.outputs.arch }}${{ steps.cli_asset.outputs.extension }}

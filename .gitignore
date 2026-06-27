@@ -50,3 +50,5 @@ clear-history.sh
 
 # Local CodeGraph index
 .codegraph/
+
+.codex/

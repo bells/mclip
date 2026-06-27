@@ -1,6 +1,6 @@
 import { hideCurrentWindow } from "../lib/tauri";
 
-type DialogWindowControlLabels = {
+export type DialogWindowControlLabels = {
   close: string;
   maximizeUnavailable: string;
   minimizeUnavailable: string;

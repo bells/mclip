@@ -5,6 +5,10 @@ import { type CSSProperties, useCallback, useEffect, useRef } from "react";
 import { getTranslations } from "../i18n";
 import { getHistoryPreviewPointerPosition, type PreviewWindowSide } from "../lib/tauri";
 import type { HistoryGroupInfo, HistoryGroupPreviewPayload, HistoryListItem } from "../types";
+import {
+  getTextHistoryAffordance,
+  type HistoryTextAffordance,
+} from "../utils/historyAffordance";
 import { getHistoryListDisplayText } from "../utils/history";
 import { shouldActivateGroupPreviewPointerItem } from "../utils/keyboardNavigation";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
@@ -44,6 +48,29 @@ function findPreviewItemId(target: EventTarget | null) {
 
   return target.closest<HTMLElement>("[data-preview-item-id]")?.dataset
     .previewItemId ?? null;
+}
+
+function renderHistoryTextAffordance(affordance: HistoryTextAffordance | null) {
+  if (affordance === null) {
+    return null;
+  }
+
+  if (affordance.kind === "color") {
+    return (
+      <span className="app-history-affordance" aria-hidden="true">
+        <span
+          className="app-history-color-swatch"
+          style={{ background: affordance.color }}
+        />
+      </span>
+    );
+  }
+
+  return (
+    <span className="app-history-affordance" aria-hidden="true">
+      <span className="app-history-emoji-badge">{affordance.emoji}</span>
+    </span>
+  );
 }
 
 export function HistoryGroupPreviewWindow({
@@ -221,6 +248,8 @@ export function HistoryGroupPreviewWindow({
           >
             {preview.items.map((item) => {
               const displayText = getHistoryListDisplayText(item);
+              const textAffordance =
+                item.kind === "text" ? getTextHistoryAffordance(item.text) : null;
 
               return (
                 <div
@@ -243,7 +272,9 @@ export function HistoryGroupPreviewWindow({
                   }}
                 >
                   <button
-                    className="app-history-preview-item"
+                    className={`app-history-preview-item ${
+                      preview.showHistoryItemNumbers ? "" : "is-index-hidden"
+                    }`}
                     onFocus={() => {
                       activateItem(item.id);
                     }}
@@ -264,9 +295,11 @@ export function HistoryGroupPreviewWindow({
                     }}
                     type="button"
                   >
-                    <span className="app-history-preview-index">
-                      {getLocalDisplayPosition(item, preview.group)}.
-                    </span>
+                    {preview.showHistoryItemNumbers ? (
+                      <span className="app-history-preview-index">
+                        {getLocalDisplayPosition(item, preview.group)}.
+                      </span>
+                    ) : null}
                     {item.kind === "image" ? (
                       <span className="app-item-thumbnail-wrap">
                         <ImageThumb
@@ -277,7 +310,14 @@ export function HistoryGroupPreviewWindow({
                         <span className="app-history-preview-text">{displayText}</span>
                       </span>
                     ) : (
-                      <span className="app-history-preview-text">{displayText}</span>
+                      <span
+                        className={`app-history-preview-text ${
+                          textAffordance ? "app-history-text-with-affordance" : ""
+                        }`}
+                      >
+                        {renderHistoryTextAffordance(textAffordance)}
+                        <span className="app-history-display-text">{displayText}</span>
+                      </span>
                     )}
                   </button>
                   <button

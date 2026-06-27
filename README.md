@@ -18,12 +18,12 @@
 - 全局快捷键 `CommandOrControl+Shift+V` 唤起或隐藏主窗口。
 - 支持文本、图片、文件三类剪贴板历史；文件历史可回填为系统文件列表，方便继续粘贴文件本身。
 - 历史记录本地保存，重复内容会合并并移动到最前。
-- 主窗口默认展示最新 10 条，更多记录按每 10 条分组。
+- 主窗口默认展示最新 10 条，更多记录默认按每 10 条分组；两个展示条数都可在偏好设置中调整。
 - 历史分组使用独立透明 preview 窗口，不会撑宽主窗口。
-- 支持单条历史详情、分组 hover 详情、图片缩略图和文件详情。
+- 支持单条历史详情、分组 hover 详情、图片缩略图、颜色代码 swatch、常用表情放大展示和文件详情。
 - 文件列表会对过长文件名做中间省略并保留扩展名；文件详情会显示完整绝对路径和完整文件名。
 - 支持搜索、方向键选择、回车复制、`Esc` 收起窗口。
-- 支持偏好设置：登录时启动、界面语言、菜单栏图标样式、自动粘贴、最大历史条数、保存类型。
+- 支持偏好设置：登录时启动、界面语言、外观主题、菜单栏图标样式、自动粘贴、最大历史条数、主界面/历史分组展示条数、复制项序号显示和保存类型。
 - 关于窗口支持手动检查 GitHub Releases 上的新版本。
 - 支持中英文界面，首次启动会根据系统语言选择中文或英文。
 
@@ -50,6 +50,7 @@ CLI 提供本地历史访问、Agent 模式和受控操作能力，方便 Codex�
 
 ```bash
 npm run cli -- agent --last 5 --json
+npm run cli -- --version
 npm run cli -- list --limit 5 --json
 npm run cli -- get --index 1 --raw
 npm run cli -- search "panic" --json
@@ -74,7 +75,7 @@ npm run cli -- --history-path /path/to/history.json list --json
 curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
-当前 CLI 不启动桌面 UI。`agent` 会输出一个面向 AI Agent 的聚合包，包含最近历史、可用命令能力表和安全边界，默认 Markdown，也支持 `--json`；`list/get/search/context` 只读取历史并输出 text、JSON、raw 或 Markdown；`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy` 会把指定历史项写回系统剪贴板；`delete` 和 `clear --yes` 会修改本地 `history.json`。安装脚本第一版会从源码构建 `mclip-cli`，因此需要本机已有 Rust/Cargo 和 Git。
+当前 CLI 不启动桌面 UI。`--help`/`help` 输出帮助，`--version`、`-V` 和 `version` 输出版本号，且这些信息命令不会读取历史文件。`agent` 会输出一个面向 AI Agent 的聚合包，包含最近历史、可用命令能力表和安全边界，默认 Markdown，也支持 `--json`；`list/get/search/context` 只读取历史并输出 text、JSON、raw 或 Markdown；`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy` 会把指定历史项写回系统剪贴板；`delete` 和 `clear --yes` 会修改本地 `history.json`。公开安装脚本会优先下载 GitHub Release 里的预构建 `mclip-cli`，只有预构建不可用时才回退到本地或源码构建，此时才需要 Rust/Cargo 和 Git。
 
 ### Windows 注意事项
 
@@ -168,12 +169,12 @@ Current version: `0.1.0`
 - Toggle the main window with `CommandOrControl+Shift+V`.
 - Saves text, image, and file clipboard history. File history is restored as a system file list, so files can be pasted again as files.
 - Keeps history locally, deduplicates repeated content, and moves reused items to the top.
-- Shows the latest 10 items in the main window, with older items grouped by 10.
+- Shows the latest 10 items in the main window by default, with older items grouped by 10 by default; both display counts are configurable in Preferences.
 - Uses a separate transparent preview window for grouped history, so the main window stays compact.
-- Supports item details, grouped hover details, image thumbnails, and file details.
+- Supports item details, grouped hover details, image thumbnails, color-code swatches, common emoji display, and file details.
 - Long file names are middle-ellipsized in lists to preserve extensions, while file details show the full absolute path and full file name.
 - Supports search, arrow-key selection, Enter-to-copy, and Escape-to-hide.
-- Preferences include launch at login, display language, menu bar icon style, auto paste, maximum history count, and enabled content types.
+- Preferences include launch at login, display language, appearance theme, menu bar icon style, auto paste, maximum history count, main/group display counts, row number visibility, and enabled content types.
 - The About window can manually check GitHub Releases for a newer version.
 - Supports Chinese and English UI. The first launch follows the system language when possible.
 
@@ -200,6 +201,7 @@ The CLI provides local history access, Agent Mode, and controlled actions so too
 
 ```bash
 npm run cli -- agent --last 5 --json
+npm run cli -- --version
 npm run cli -- list --limit 5 --json
 npm run cli -- get --index 1 --raw
 npm run cli -- search "panic" --json
@@ -224,7 +226,7 @@ You can also install directly from the terminal:
 curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
-The current CLI does not start the desktop UI. `agent` emits an AI-agent-ready bundle with recent history, command capabilities, and safety boundaries; it defaults to Markdown and supports `--json`. `list/get/search/context` only read history and emit text, JSON, raw, or Markdown output; `add` writes text into history without replacing the current system clipboard; `copy` writes a selected history item back to the system clipboard; `delete` and `clear --yes` modify the local `history.json`. The first install script builds `mclip-cli` from source, so Rust/Cargo and Git must be available locally.
+The current CLI does not start the desktop UI. `--help`/`help` prints help, and `--version`, `-V`, and `version` print the version without reading the history file. `agent` emits an AI-agent-ready bundle with recent history, command capabilities, and safety boundaries; it defaults to Markdown and supports `--json`. `list/get/search/context` only read history and emit text, JSON, raw, or Markdown output; `add` writes text into history without replacing the current system clipboard; `copy` writes a selected history item back to the system clipboard; `delete` and `clear --yes` modify the local `history.json`. The public install script prefers prebuilt `mclip-cli` binaries from GitHub Releases and falls back to local/source builds only when a prebuilt binary is unavailable, so Rust/Cargo and Git are no longer required for the normal path.
 
 ### Windows Notes
 

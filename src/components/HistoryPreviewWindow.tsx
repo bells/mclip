@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { GROUP_PREVIEW_DETAIL_WINDOW_WIDTH, GROUP_PREVIEW_WIDTH } from "../constants";
+import { useApplyAppTheme } from "../hooks/useApplyAppTheme";
 import { getTranslations } from "../i18n";
 import {
   copyHistoryItem,
@@ -51,6 +52,7 @@ export function HistoryPreviewWindow() {
   const isKeyboardNavigatingRef = useRef(false);
   const pendingKeyboardActivationGroupIndexRef = useRef<number | null>(null);
   const previewKindRef = useRef<HistoryPreviewPayload["kind"] | null>(null);
+  useApplyAppTheme(preview?.appearanceTheme ?? "system");
 
   function setPreviewKeyboardNavigating(nextValue: boolean) {
     isKeyboardNavigatingRef.current = nextValue;

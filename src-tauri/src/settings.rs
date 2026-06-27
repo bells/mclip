@@ -12,6 +12,9 @@ use crate::storage::{write_text_atomically, write_text_atomically_if_changed};
 pub const DEFAULT_MAX_HISTORY_COUNT: u32 = 50;
 pub const MIN_MAX_HISTORY_COUNT: u32 = 10;
 pub const MAX_MAX_HISTORY_COUNT: u32 = 200;
+pub const DEFAULT_VISIBLE_ITEM_COUNT: u32 = 10;
+pub const MIN_VISIBLE_ITEM_COUNT: u32 = 5;
+pub const MAX_VISIBLE_ITEM_COUNT: u32 = 20;
 pub const SETTINGS_UPDATED_EVENT: &str = "settings-updated";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -29,6 +32,16 @@ pub enum MenuBarIconStyle {
     Light,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum AppearanceTheme {
+    Light,
+    Dark,
+    #[default]
+    #[serde(other)]
+    System,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
@@ -42,6 +55,14 @@ pub struct AppSettings {
     pub enabled_history_types: HistoryTypes,
     #[serde(default)]
     pub menu_bar_icon_style: MenuBarIconStyle,
+    #[serde(default = "default_visible_item_count")]
+    pub main_window_item_count: u32,
+    #[serde(default = "default_visible_item_count")]
+    pub history_group_item_count: u32,
+    #[serde(default = "default_show_history_item_numbers")]
+    pub show_history_item_numbers: bool,
+    #[serde(default)]
+    pub appearance_theme: AppearanceTheme,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -81,6 +102,10 @@ impl Default for AppSettings {
             max_history_count: DEFAULT_MAX_HISTORY_COUNT,
             enabled_history_types: HistoryTypes::default(),
             menu_bar_icon_style: MenuBarIconStyle::default(),
+            main_window_item_count: DEFAULT_VISIBLE_ITEM_COUNT,
+            history_group_item_count: DEFAULT_VISIBLE_ITEM_COUNT,
+            show_history_item_numbers: true,
+            appearance_theme: AppearanceTheme::default(),
         }
     }
 }
@@ -90,8 +115,22 @@ impl AppSettings {
         self.max_history_count = self
             .max_history_count
             .clamp(MIN_MAX_HISTORY_COUNT, MAX_MAX_HISTORY_COUNT);
+        self.main_window_item_count = self
+            .main_window_item_count
+            .clamp(MIN_VISIBLE_ITEM_COUNT, MAX_VISIBLE_ITEM_COUNT);
+        self.history_group_item_count = self
+            .history_group_item_count
+            .clamp(MIN_VISIBLE_ITEM_COUNT, MAX_VISIBLE_ITEM_COUNT);
         self
     }
+}
+
+fn default_visible_item_count() -> u32 {
+    DEFAULT_VISIBLE_ITEM_COUNT
+}
+
+fn default_show_history_item_numbers() -> bool {
+    true
 }
 
 fn default_language() -> AppLanguage {
@@ -314,20 +353,17 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
 #[cfg(test)]
 mod tests {
     use super::{
-        resolve_supported_language, AppLanguage, AppSettings, HistoryTypes, MenuBarIconStyle,
-        MAX_MAX_HISTORY_COUNT, MIN_MAX_HISTORY_COUNT,
+        resolve_supported_language, AppLanguage, AppSettings, AppearanceTheme, HistoryTypes,
+        DEFAULT_VISIBLE_ITEM_COUNT, MAX_MAX_HISTORY_COUNT, MAX_VISIBLE_ITEM_COUNT,
+        MIN_MAX_HISTORY_COUNT, MIN_VISIBLE_ITEM_COUNT,
     };
     use crate::history::HistoryKind;
 
     #[test]
     fn sanitize_clamps_history_count_to_lower_bound() {
         let settings = AppSettings {
-            auto_paste: false,
-            launch_at_login: false,
-            language: AppLanguage::En,
             max_history_count: 1,
-            enabled_history_types: HistoryTypes::default(),
-            menu_bar_icon_style: MenuBarIconStyle::default(),
+            ..AppSettings::default()
         }
         .sanitize();
 
@@ -337,12 +373,8 @@ mod tests {
     #[test]
     fn sanitize_clamps_history_count_to_upper_bound() {
         let settings = AppSettings {
-            auto_paste: false,
-            launch_at_login: false,
-            language: AppLanguage::En,
             max_history_count: 999,
-            enabled_history_types: HistoryTypes::default(),
-            menu_bar_icon_style: MenuBarIconStyle::default(),
+            ..AppSettings::default()
         }
         .sanitize();
 
@@ -391,6 +423,78 @@ mod tests {
         let value = serde_json::to_value(AppSettings::default()).unwrap();
 
         assert_eq!(value["menuBarIconStyle"].as_str(), Some("appIcon"));
+    }
+
+    #[test]
+    fn default_settings_include_display_preferences() {
+        let value = serde_json::to_value(AppSettings::default()).unwrap();
+
+        assert_eq!(value["mainWindowItemCount"].as_u64(), Some(10));
+        assert_eq!(value["historyGroupItemCount"].as_u64(), Some(10));
+        assert_eq!(value["showHistoryItemNumbers"].as_bool(), Some(true));
+        assert_eq!(value["appearanceTheme"].as_str(), Some("system"));
+    }
+
+    #[test]
+    fn sanitize_clamps_visible_item_counts() {
+        let settings = AppSettings {
+            main_window_item_count: 1,
+            history_group_item_count: 999,
+            ..AppSettings::default()
+        }
+        .sanitize();
+
+        assert_eq!(settings.main_window_item_count, MIN_VISIBLE_ITEM_COUNT);
+        assert_eq!(settings.history_group_item_count, MAX_VISIBLE_ITEM_COUNT);
+    }
+
+    #[test]
+    fn legacy_settings_without_display_preferences_use_defaults() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{
+              "autoPaste": false,
+              "launchAtLogin": false,
+              "language": "en",
+              "maxHistoryCount": 50,
+              "enabledHistoryTypes": {
+                "text": true,
+                "image": true,
+                "files": true
+              },
+              "menuBarIconStyle": "appIcon"
+            }"#,
+        )
+        .unwrap();
+
+        assert_eq!(settings.main_window_item_count, DEFAULT_VISIBLE_ITEM_COUNT);
+        assert_eq!(
+            settings.history_group_item_count,
+            DEFAULT_VISIBLE_ITEM_COUNT
+        );
+        assert!(settings.show_history_item_numbers);
+        assert_eq!(settings.appearance_theme, AppearanceTheme::System);
+    }
+
+    #[test]
+    fn unknown_appearance_theme_deserializes_to_system() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{
+              "autoPaste": false,
+              "launchAtLogin": false,
+              "language": "en",
+              "maxHistoryCount": 50,
+              "enabledHistoryTypes": {
+                "text": true,
+                "image": true,
+                "files": true
+              },
+              "menuBarIconStyle": "appIcon",
+              "appearanceTheme": "sepia"
+            }"#,
+        )
+        .unwrap();
+
+        assert_eq!(settings.appearance_theme, AppearanceTheme::System);
     }
 
     #[test]

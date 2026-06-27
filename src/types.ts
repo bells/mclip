@@ -3,6 +3,7 @@
 export type AppLanguage = "zhCn" | "en";
 export type HistoryKind = "text" | "image" | "files";
 export type MenuBarIconStyle = "appIcon" | "light";
+export type AppearanceTheme = "system" | "light" | "dark";
 
 export type EnabledHistoryTypes = Record<HistoryKind, boolean>;
 
@@ -13,6 +14,10 @@ export type AppSettings = {
   launchAtLogin: boolean;
   maxHistoryCount: number;
   menuBarIconStyle: MenuBarIconStyle;
+  mainWindowItemCount: number;
+  historyGroupItemCount: number;
+  showHistoryItemNumbers: boolean;
+  appearanceTheme: AppearanceTheme;
 };
 
 export type CliInstallStatus = {
@@ -79,14 +84,17 @@ export type HistoryGroupInfo = {
 
 export type HistoryGroupPreviewPayload = {
   autoPaste: boolean;
+  appearanceTheme: AppearanceTheme;
   kind: "group";
   group: HistoryGroupInfo;
   items: HistoryListItem[];
   language: AppLanguage;
+  showHistoryItemNumbers: boolean;
 };
 
 export type HistoryItemPreviewPayload = {
   autoPaste: boolean;
+  appearanceTheme: AppearanceTheme;
   kind: "item";
   item: HistoryListItem;
   language: AppLanguage;

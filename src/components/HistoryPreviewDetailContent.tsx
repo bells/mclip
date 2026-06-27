@@ -2,6 +2,7 @@
 
 import { getTranslations } from "../i18n";
 import type { HistoryListItem } from "../types";
+import { getTextHistoryAffordance } from "../utils/historyAffordance";
 import { ImageThumb } from "./ImageThumb";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
@@ -47,9 +48,28 @@ export function HistoryPreviewDetailContent({
     );
   }
 
+  const textAffordance = getTextHistoryAffordance(item.text);
+
   return (
     <div className="app-history-detail-content">
-      {item.text}
+      {textAffordance?.kind === "color" ? (
+        <div className="app-history-detail-affordance app-history-affordance">
+          <span
+            className="app-history-color-swatch"
+            style={{ background: textAffordance.color }}
+            aria-hidden="true"
+          />
+          <span>{textAffordance.color}</span>
+        </div>
+      ) : null}
+      {textAffordance?.kind === "emoji" ? (
+        <div className="app-history-detail-affordance app-history-affordance">
+          <span className="app-history-emoji-badge" aria-hidden="true">
+            {textAffordance.emoji}
+          </span>
+        </div>
+      ) : null}
+      <span>{item.text}</span>
     </div>
   );
 }

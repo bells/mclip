@@ -6,7 +6,6 @@ export const APP_NAME = "mclip";
 export const DEFAULT_APP_VERSION = "0.1.0";
 export const GITHUB_LATEST_RELEASE_API_URL =
   "https://api.github.com/repos/bells/mclip/releases/latest";
-export const HISTORY_GROUP_SIZE = 10;
 export const ITEM_PREVIEW_WIDTH = 304;
 export const GROUP_PREVIEW_WIDTH = 320;
 export const GROUP_PREVIEW_DETAIL_WINDOW_WIDTH = ITEM_PREVIEW_WIDTH;
@@ -15,6 +14,9 @@ export const GROUP_PREVIEW_WITH_DETAIL_WIDTH =
 
 export const MIN_MAX_HISTORY_COUNT = 10;
 export const MAX_MAX_HISTORY_COUNT = 200;
+export const DEFAULT_VISIBLE_ITEM_COUNT = 10;
+export const MIN_VISIBLE_ITEM_COUNT = 5;
+export const MAX_VISIBLE_ITEM_COUNT = 20;
 
 export const DEFAULT_SETTINGS: AppSettings = {
   autoPaste: false,
@@ -27,9 +29,20 @@ export const DEFAULT_SETTINGS: AppSettings = {
   launchAtLogin: false,
   maxHistoryCount: 50,
   menuBarIconStyle: "appIcon",
+  mainWindowItemCount: DEFAULT_VISIBLE_ITEM_COUNT,
+  historyGroupItemCount: DEFAULT_VISIBLE_ITEM_COUNT,
+  showHistoryItemNumbers: true,
+  appearanceTheme: "system",
 };
 
 export function clampHistoryCount(value: number) {
   // 手动输入和步进按钮共用同一套边界限制。
   return Math.min(MAX_MAX_HISTORY_COUNT, Math.max(MIN_MAX_HISTORY_COUNT, value));
+}
+
+export function clampVisibleItemCount(value: number) {
+  return Math.min(
+    MAX_VISIBLE_ITEM_COUNT,
+    Math.max(MIN_VISIBLE_ITEM_COUNT, value),
+  );
 }

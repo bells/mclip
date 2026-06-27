@@ -26,7 +26,8 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 - Main workflow: open from the menu bar or system tray, search clipboard history, preview an item, copy it, then return to the current task
 - Clipboard content types: text, images, and files
 - File history restores a system file list instead of copying path-only text
-- The main app window shows the latest 10 items and groups older history
+- The main app window shows the latest 10 items by default and groups older history by 10 by default; both display counts are configurable
+- Preferences include appearance theme, main/group display counts, and row number visibility
 - Global shortcut: CommandOrControl+Shift+V
 - Interface languages: Chinese and English
 - Public source repository: https://github.com/bells/mclip
@@ -42,6 +43,7 @@ It is useful when tools such as Codex, Claude Code, Cursor, and Cline need recen
 Typical commands:
 
 - mclip-cli agent --last 5 --json
+- mclip-cli --version
 - mclip-cli list --limit 5 --json
 - mclip-cli context --last 3 --format markdown
 - mclip-cli search "panic" --json
@@ -63,7 +65,7 @@ Public installer command:
 curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
-The installer currently builds mclip-cli from source, so Rust/Cargo and Git are required.
+The installer prefers prebuilt mclip-cli binaries from GitHub Releases. Rust/Cargo and Git are only needed when the prebuilt download is unavailable and the script falls back to a source build.
 
 ## Privacy and trust
 

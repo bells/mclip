@@ -18,7 +18,7 @@ const features = [
   },
   {
     title: "Separate preview windows",
-    body: "The latest 10 items stay compact and older history stays grouped. Long file names are middle-ellipsized in lists, while details show the full absolute path.",
+    body: "The latest 10 items stay compact by default and older history is grouped by 10 by default. Main and group display counts are configurable, and long file names keep extensions in lists while details show the full absolute path.",
   },
   {
     title: "Search and keyboard flow",
@@ -79,7 +79,7 @@ const faqItems = [
   },
   {
     question: "How many items can mclip keep?",
-    answer: "You can adjust the maximum history count in Preferences, and you can choose whether mclip saves text, images, files, or only some of them.",
+    answer: "You can adjust the maximum history count, main window item count, archive group item count, and whether mclip saves text, images, files, or only some of them.",
   },
 ];
 ---
@@ -100,7 +100,7 @@ const faqItems = [
     note="Current version 0.1.0. Downloads are served from GitHub Releases."
     utilityLabel="Menu bar utility for macOS and Windows"
     proofItems={[
-      "Main window shows the latest 10 items",
+      "Main window shows the latest 10 items by default",
       "Keeps text, images, and files",
       "History and settings stay local",
     ]}
@@ -129,7 +129,7 @@ const faqItems = [
       "mclip-cli copy --index 1",
     ]}
     points={agentCliPoints}
-    note="The current installer builds mclip-cli from source, so Rust/Cargo and Git are required for now."
+    note="The installer prefers prebuilt mclip-cli binaries from GitHub Releases and falls back to local/source builds only when a prebuilt binary is unavailable."
   />
 
   <section class="privacy-band">

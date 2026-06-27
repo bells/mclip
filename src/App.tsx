@@ -11,6 +11,7 @@ import { HistoryGroupNav } from "./components/HistoryGroupNav";
 import { HistoryList } from "./components/HistoryList";
 import { Modal } from "./components/Modal";
 import { PreferencesWindow } from "./components/PreferencesWindow";
+import { useApplyAppTheme } from "./hooks/useApplyAppTheme";
 import { useClipboardApp } from "./hooks/useClipboardApp";
 import { getTranslations } from "./i18n";
 import {
@@ -86,6 +87,7 @@ function MainWindow() {
     setSearchQuery,
     scheduleHistoryGroupPreviewClose,
   } = useClipboardApp();
+  useApplyAppTheme(settings.appearanceTheme);
   const t = getTranslations(settings.language);
 
   const updateActiveMainKeyboardTarget = useCallback((targetId: string | null) => {
@@ -459,6 +461,7 @@ function MainWindow() {
             onOpenItemPreview={openHistoryItemPreviewFromTarget}
             onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
             onSelectItem={selectHistoryItem}
+            showItemNumbers={settings.showHistoryItemNumbers}
             selectedItemId={activeHistoryItemId ?? undefined}
           />
         </div>

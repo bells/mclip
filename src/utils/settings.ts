@@ -1,6 +1,10 @@
 // 偏好设置工具：前端展示前先归一化，后端仍负责最终校验与持久化。
 
-import { clampHistoryCount, DEFAULT_SETTINGS } from "../constants";
+import {
+  clampHistoryCount,
+  clampVisibleItemCount,
+  DEFAULT_SETTINGS,
+} from "../constants";
 import type { AppSettings } from "../types";
 
 export function normalizeSettings(settings: AppSettings): AppSettings {
@@ -17,5 +21,16 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
     maxHistoryCount: clampHistoryCount(settings.maxHistoryCount),
     menuBarIconStyle:
       settings.menuBarIconStyle === "light" ? "light" : "appIcon",
+    mainWindowItemCount: clampVisibleItemCount(
+      settings.mainWindowItemCount ?? DEFAULT_SETTINGS.mainWindowItemCount,
+    ),
+    historyGroupItemCount: clampVisibleItemCount(
+      settings.historyGroupItemCount ?? DEFAULT_SETTINGS.historyGroupItemCount,
+    ),
+    showHistoryItemNumbers: settings.showHistoryItemNumbers !== false,
+    appearanceTheme:
+      settings.appearanceTheme === "light" || settings.appearanceTheme === "dark"
+        ? settings.appearanceTheme
+        : "system",
   };
 }

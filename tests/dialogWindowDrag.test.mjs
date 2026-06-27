@@ -6,7 +6,7 @@ async function readSource(path) {
   return readFile(path, "utf8");
 }
 
-test("about and preferences windows use the draggable dialog frame", async () => {
+test("about and preferences windows use the shared status bar frame", async () => {
   const [aboutSource, preferencesSource] = await Promise.all([
     readSource("src/components/AboutWindow.tsx"),
     readSource("src/components/PreferencesWindow.tsx"),
@@ -14,8 +14,12 @@ test("about and preferences windows use the draggable dialog frame", async () =>
 
   assert.match(aboutSource, /import \{ DialogWindowFrame \} from "\.\/DialogWindowFrame";/);
   assert.match(preferencesSource, /import \{ DialogWindowFrame \} from "\.\/DialogWindowFrame";/);
+  assert.match(aboutSource, /import \{ DialogStatusBar \} from "\.\/DialogStatusBar";/);
+  assert.match(preferencesSource, /import \{ DialogStatusBar \} from "\.\/DialogStatusBar";/);
   assert.match(aboutSource, /<DialogWindowFrame className="app-about-window">/);
   assert.match(preferencesSource, /<DialogWindowFrame className="app-preferences-window">/);
+  assert.match(aboutSource, /<DialogStatusBar/);
+  assert.match(preferencesSource, /<DialogStatusBar/);
   assert.doesNotMatch(aboutSource, /<div className="app-dialog-frame app-about-window">/);
   assert.doesNotMatch(
     preferencesSource,
@@ -23,7 +27,7 @@ test("about and preferences windows use the draggable dialog frame", async () =>
   );
 });
 
-test("dialog drag frame starts dragging only from non-interactive targets", async () => {
+test("dialog drag frame starts dragging only from explicit status bar targets", async () => {
   const frameSource = await readSource("src/components/DialogWindowFrame.tsx");
   const dragSource = await readSource("src/utils/dialogDrag.ts");
   const tauriFacadeSource = await readSource("src/lib/tauri.ts");
@@ -32,6 +36,8 @@ test("dialog drag frame starts dragging only from non-interactive targets", asyn
   assert.match(frameSource, /event\.button !== 0/);
   assert.match(frameSource, /shouldStartDialogWindowDrag\(event\.target\)/);
   assert.match(frameSource, /startCurrentWindowDrag\(\)/);
+  assert.match(dragSource, /\[data-dialog-drag-region\]/);
+  assert.match(dragSource, /closest\("\[data-dialog-drag-region\]"\)/);
   assert.match(dragSource, /button/);
   assert.match(dragSource, /input/);
   assert.match(dragSource, /select/);

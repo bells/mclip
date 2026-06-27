@@ -2,7 +2,7 @@ import type { UnlistenFn } from "@tauri-apps/api/event";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { DEFAULT_SETTINGS, HISTORY_GROUP_SIZE } from "../constants";
+import { DEFAULT_SETTINGS } from "../constants";
 import { getHistory, getSettings } from "../services/ipc/commands";
 import { listenToHistoryUpdated, listenToSettingsUpdated } from "../services/ipc/events";
 import type {
@@ -50,12 +50,24 @@ export function useClipboardDataController({
     [history, searchQuery],
   );
   const historyGroups = useMemo(
-    () => getHistoryGroups(filteredHistory.length, HISTORY_GROUP_SIZE),
-    [filteredHistory.length],
+    () =>
+      getHistoryGroups(
+        filteredHistory.length,
+        settings.mainWindowItemCount,
+        settings.historyGroupItemCount,
+      ),
+    [
+      filteredHistory.length,
+      settings.historyGroupItemCount,
+      settings.mainWindowItemCount,
+    ],
   );
   const visibleHistory = useMemo(
-    () => getHistoryGroupItems(filteredHistory, 0, HISTORY_GROUP_SIZE),
-    [filteredHistory],
+    () =>
+      historyGroups[0]
+        ? getHistoryGroupItems(filteredHistory, historyGroups[0])
+        : [],
+    [filteredHistory, historyGroups],
   );
 
   function clearSearchQueryAfterHistorySelection() {

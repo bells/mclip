@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   GROUP_PREVIEW_WIDTH,
   GROUP_PREVIEW_WITH_DETAIL_WIDTH,
-  HISTORY_GROUP_SIZE,
   ITEM_PREVIEW_WIDTH,
 } from "../constants";
 import {
@@ -78,15 +77,20 @@ export function useHistoryPreviewController({
   const onMainWindowShownRef = useRef(onMainWindowShown);
 
   const previewHistory = useMemo(
-    () =>
-      previewHistoryGroupIndex === null
-        ? []
-        : getHistoryGroupItems(
-            filteredHistory,
-            previewHistoryGroupIndex,
-            HISTORY_GROUP_SIZE,
-          ),
-    [filteredHistory, previewHistoryGroupIndex],
+    () => {
+      if (previewHistoryGroupIndex === null) {
+        return [];
+      }
+
+      const previewGroup = historyGroups.find(
+        (group) => group.index === previewHistoryGroupIndex,
+      );
+
+      return previewGroup
+        ? getHistoryGroupItems(filteredHistory, previewGroup)
+        : [];
+    },
+    [filteredHistory, historyGroups, previewHistoryGroupIndex],
   );
   const previewHistoryItem = useMemo(
     () =>
@@ -283,6 +287,7 @@ export function useHistoryPreviewController({
 
       void updateHistoryPreviewWindow({
         autoPaste: settings.autoPaste,
+        appearanceTheme: settings.appearanceTheme,
         item: previewHistoryItem,
         kind: "item",
         language: settings.language,
@@ -332,10 +337,12 @@ export function useHistoryPreviewController({
 
     void updateHistoryPreviewWindow({
       autoPaste: settings.autoPaste,
+      appearanceTheme: settings.appearanceTheme,
       group: previewGroup,
       items: previewHistory,
       kind: "group",
       language: settings.language,
+      showHistoryItemNumbers: settings.showHistoryItemNumbers,
     })
       .then(async () => {
         if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
@@ -365,8 +372,10 @@ export function useHistoryPreviewController({
     previewHistory,
     previewHistoryItem,
     previewHistoryGroupIndex,
+    settings.appearanceTheme,
     settings.autoPaste,
     settings.language,
+    settings.showHistoryItemNumbers,
   ]);
 
   return {

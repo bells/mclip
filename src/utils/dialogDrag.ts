@@ -17,5 +17,10 @@ export function shouldStartDialogWindowDrag(target: EventTarget | null) {
     return false;
   }
 
-  return target.closest(INTERACTIVE_DIALOG_DRAG_TARGET_SELECTOR) === null;
+  const dragRegion = target.closest("[data-dialog-drag-region]");
+
+  return (
+    dragRegion !== null &&
+    target.closest(INTERACTIVE_DIALOG_DRAG_TARGET_SELECTOR) === null
+  );
 }

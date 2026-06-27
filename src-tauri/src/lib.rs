@@ -113,6 +113,9 @@ fn build_tray(
 
     TrayIconBuilder::with_id(TRAY_ICON_ID)
         .icon(icon)
+        .icon_as_template(menu_bar_icon_is_template(
+            &startup_settings.menu_bar_icon_style,
+        ))
         .tooltip(tray_tooltip(&startup_settings.language))
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -178,12 +181,18 @@ fn menu_bar_icon(style: &MenuBarIconStyle) -> Result<Image<'static>, String> {
     Image::from_bytes(menu_bar_icon_bytes(style)).map_err(|error| error.to_string())
 }
 
+fn menu_bar_icon_is_template(style: &MenuBarIconStyle) -> bool {
+    matches!(style, MenuBarIconStyle::Light)
+}
+
 fn set_tray_icon(app_handle: &AppHandle, style: &MenuBarIconStyle) -> Result<(), String> {
     let Some(tray) = app_handle.tray_by_id(TRAY_ICON_ID) else {
         return Err("failed to find tray icon".to_string());
     };
 
     tray.set_icon(Some(menu_bar_icon(style)?))
+        .map_err(|error| error.to_string())?;
+    tray.set_icon_as_template(menu_bar_icon_is_template(style))
         .map_err(|error| error.to_string())
 }
 
@@ -455,8 +464,8 @@ mod tests {
     use tauri_plugin_global_shortcut::Shortcut;
 
     use super::{
-        menu_bar_icon, single_instance_launch_action, tray_tooltip, SingleInstanceLaunchAction,
-        TOGGLE_WINDOW_SHORTCUT, TRAY_POSITION_AUTOSAVE_NAME,
+        menu_bar_icon, menu_bar_icon_is_template, single_instance_launch_action, tray_tooltip,
+        SingleInstanceLaunchAction, TOGGLE_WINDOW_SHORTCUT, TRAY_POSITION_AUTOSAVE_NAME,
     };
 
     #[test]
@@ -565,5 +574,11 @@ mod tests {
         assert_eq!(app_icon.height(), 1024);
         assert_eq!(light_icon.width(), 512);
         assert_eq!(light_icon.height(), 512);
+    }
+
+    #[test]
+    fn only_light_menu_bar_icon_uses_macos_template_rendering() {
+        assert!(!menu_bar_icon_is_template(&MenuBarIconStyle::AppIcon));
+        assert!(menu_bar_icon_is_template(&MenuBarIconStyle::Light));
     }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useApplyAppTheme } from "../hooks/useApplyAppTheme";
 import { getTranslations } from "../i18n";
 import {
   listenToHistoryPreviewPlacementUpdated,
@@ -17,6 +18,7 @@ export function HistoryPreviewDetailWindow() {
   const [preview, setPreview] = useState<HistoryItemPreviewPayload | null>(null);
   const [previewSide, setPreviewSide] = useState<PreviewWindowSide>("right");
   const lastPointerNotifyAtRef = useRef(0);
+  useApplyAppTheme(preview?.appearanceTheme ?? "system");
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;

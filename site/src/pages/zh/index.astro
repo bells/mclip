@@ -18,7 +18,7 @@ const features = [
   },
   {
     title: "独立预览窗口",
-    body: "最新 10 条保持紧凑，更多历史按组浏览；长文件名在列表中间省略并保留扩展名，单条详情显示完整绝对路径。",
+    body: "最新 10 条默认保持紧凑，更多历史默认按 10 条分组；主界面和分组展示条数都可调整，长文件名在列表中间省略并保留扩展名，详情显示完整绝对路径。",
   },
   {
     title: "搜索和键盘操作",
@@ -79,7 +79,7 @@ const faqItems = [
   },
   {
     question: "历史能保存多少条？",
-    answer: "可以在偏好设置里调整最大历史条数，也可以选择只保存文本、图片或文件中的一部分类型。",
+    answer: "可以在偏好设置里调整最大历史条数、主界面展示条数、历史分组展示条数，也可以选择只保存文本、图片或文件中的一部分类型。",
   },
 ];
 ---
@@ -100,7 +100,7 @@ const faqItems = [
     note="当前版本 0.1.0，下载入口指向 GitHub Releases。"
     utilityLabel="macOS 和 Windows 菜单栏工具"
     proofItems={[
-      "主窗口默认只显示最新 10 条",
+      "主窗口默认只显示最新 10 条，可调整",
       "支持文本、图片、文件",
       "历史和设置只保存在本机",
     ]}
@@ -129,7 +129,7 @@ const faqItems = [
       "mclip-cli copy --index 1",
     ]}
     points={agentCliPoints}
-    note="当前安装脚本会从源码构建 mclip-cli，因此需要本机已有 Rust/Cargo 和 Git。"
+    note="安装脚本会优先下载 GitHub Release 里的预构建 mclip-cli；只有预构建不可用时才回退到本地或源码构建。"
   />
 
   <section class="privacy-band">

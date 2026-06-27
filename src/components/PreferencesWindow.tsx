@@ -7,10 +7,14 @@ import appIconUrl from "../../app-icon.png";
 import lightMenuBarIconUrl from "../../src-tauri/icons/menu-bar-icon-light-128.png";
 import {
   clampHistoryCount,
+  clampVisibleItemCount,
   DEFAULT_SETTINGS,
   MAX_MAX_HISTORY_COUNT,
+  MAX_VISIBLE_ITEM_COUNT,
   MIN_MAX_HISTORY_COUNT,
+  MIN_VISIBLE_ITEM_COUNT,
 } from "../constants";
+import { useApplyAppTheme } from "../hooks/useApplyAppTheme";
 import { getTranslations } from "../i18n";
 import {
   getCliInstallStatus,
@@ -25,16 +29,18 @@ import {
 import type {
   AppLanguage,
   AppSettings,
+  AppearanceTheme,
   AutoPastePermissionStatus,
   CliInstallStatus,
   HistoryKind,
   MenuBarIconStyle,
 } from "../types";
 import { normalizeSettings } from "../utils/settings";
+import { DialogStatusBar } from "./DialogStatusBar";
 import { DialogWindowFrame } from "./DialogWindowFrame";
-import { DialogWindowControls } from "./DialogWindowControls";
 
 type PreferencesTab = "general" | "storage" | "cli";
+type VisibleItemCountSetting = "mainWindowItemCount" | "historyGroupItemCount";
 
 export function PreferencesWindow() {
   // settingsDraft 保留了旧命名，但现在每次控件变更都会立即写入后端。
@@ -58,7 +64,14 @@ export function PreferencesWindow() {
   const [maxHistoryCountInput, setMaxHistoryCountInput] = useState(
     String(DEFAULT_SETTINGS.maxHistoryCount),
   );
+  const [visibleItemCountInputs, setVisibleItemCountInputs] = useState<
+    Record<VisibleItemCountSetting, string>
+  >({
+    historyGroupItemCount: String(DEFAULT_SETTINGS.historyGroupItemCount),
+    mainWindowItemCount: String(DEFAULT_SETTINGS.mainWindowItemCount),
+  });
   const translations = getTranslations(settingsDraft.language);
+  useApplyAppTheme(settingsDraft.appearanceTheme);
   const t = translations.preferences;
   const selectedMenuBarIconUrl =
     settingsDraft.menuBarIconStyle === "light" ? lightMenuBarIconUrl : appIconUrl;
@@ -67,6 +80,10 @@ export function PreferencesWindow() {
     latestSettingsRef.current = nextSettings;
     setSettingsDraft(nextSettings);
     setMaxHistoryCountInput(String(nextSettings.maxHistoryCount));
+    setVisibleItemCountInputs({
+      historyGroupItemCount: String(nextSettings.historyGroupItemCount),
+      mainWindowItemCount: String(nextSettings.mainWindowItemCount),
+    });
   };
 
   useEffect(() => {
@@ -320,6 +337,20 @@ export function PreferencesWindow() {
     }));
   };
 
+  const updateAppearanceTheme = (appearanceTheme: AppearanceTheme) => {
+    applySettingsPatch((current) => ({
+      ...current,
+      appearanceTheme,
+    }));
+  };
+
+  const toggleHistoryItemNumbers = () => {
+    applySettingsPatch((current) => ({
+      ...current,
+      showHistoryItemNumbers: !current.showHistoryItemNumbers,
+    }));
+  };
+
   const toggleHistoryType = (kind: HistoryKind) => {
     applySettingsPatch((current) => ({
       ...current,
@@ -377,6 +408,68 @@ export function PreferencesWindow() {
     }
   };
 
+  const updateVisibleItemCount = (
+    settingKey: VisibleItemCountSetting,
+    nextValue: number,
+  ) => {
+    const clampedValue = clampVisibleItemCount(nextValue);
+
+    setVisibleItemCountInputs((current) => ({
+      ...current,
+      [settingKey]: String(clampedValue),
+    }));
+    applySettingsPatch((current) => ({
+      ...current,
+      [settingKey]: clampedValue,
+    }));
+  };
+
+  const commitVisibleItemCountInput = (settingKey: VisibleItemCountSetting) => {
+    const parsedValue = Number(visibleItemCountInputs[settingKey]);
+
+    if (!Number.isFinite(parsedValue)) {
+      setVisibleItemCountInputs((current) => ({
+        ...current,
+        [settingKey]: String(settingsDraft[settingKey]),
+      }));
+      return;
+    }
+
+    updateVisibleItemCount(settingKey, Math.trunc(parsedValue));
+  };
+
+  const updateVisibleItemCountInput = (
+    settingKey: VisibleItemCountSetting,
+    value: string,
+  ) => {
+    if (!/^\d*$/.test(value)) {
+      return;
+    }
+
+    setVisibleItemCountInputs((current) => ({
+      ...current,
+      [settingKey]: value,
+    }));
+
+    const parsedValue = Number(value);
+
+    if (
+      value !== "" &&
+      Number.isFinite(parsedValue) &&
+      parsedValue >= MIN_VISIBLE_ITEM_COUNT &&
+      parsedValue <= MAX_VISIBLE_ITEM_COUNT
+    ) {
+      const nextValue = Math.trunc(parsedValue);
+
+      if (nextValue !== latestSettingsRef.current[settingKey]) {
+        applySettingsPatch((current) => ({
+          ...current,
+          [settingKey]: nextValue,
+        }));
+      }
+    }
+  };
+
   const handleInstallCli = async () => {
     setCliInstallMessage("");
     setCliStatusError("");
@@ -414,10 +507,10 @@ export function PreferencesWindow() {
   return (
     <DialogWindowFrame className="app-preferences-window">
       <div className="app-dialog-panel app-settings-window-panel">
-        <div className="app-dialog-titlebar">
-          <span className="app-modal-title">{t.title}</span>
-          <DialogWindowControls labels={translations.windowControls} />
-        </div>
+        <DialogStatusBar
+          controlsLabels={translations.windowControls}
+          title={t.title}
+        />
 
         <div className="app-modal-content">
           <div className="app-settings-content">
@@ -479,6 +572,22 @@ export function PreferencesWindow() {
                         <option value="light">{t.menuBarIconStyleLight}</option>
                       </select>
                     </div>
+                  </div>
+
+                  <div className="app-settings-compact-field">
+                    <div className="app-settings-label">{t.appearanceThemeLabel}</div>
+                    <select
+                      aria-label={t.appearanceThemeLabel}
+                      className="app-settings-select"
+                      onChange={(event) =>
+                        updateAppearanceTheme(event.target.value as AppearanceTheme)
+                      }
+                      value={settingsDraft.appearanceTheme}
+                    >
+                      <option value="system">{t.appearanceThemeSystem}</option>
+                      <option value="light">{t.appearanceThemeLight}</option>
+                      <option value="dark">{t.appearanceThemeDark}</option>
+                    </select>
                   </div>
                 </div>
 
@@ -612,6 +721,159 @@ export function PreferencesWindow() {
                       +
                     </button>
                   </div>
+                </div>
+
+                <div className="app-settings-row">
+                  <div className="app-settings-copy">
+                    <div className="app-settings-label">
+                      {t.mainWindowItemCountLabel}
+                    </div>
+                    <div className="app-settings-description">
+                      {t.mainWindowItemCountDescription}
+                    </div>
+                    <div className="app-settings-note">
+                      {t.rangeNote(MIN_VISIBLE_ITEM_COUNT, MAX_VISIBLE_ITEM_COUNT)}
+                    </div>
+                  </div>
+
+                  <div className="app-stepper">
+                    <button
+                      aria-label={t.decreaseMainWindowItemCount}
+                      className="app-stepper-btn"
+                      onClick={() =>
+                        updateVisibleItemCount(
+                          "mainWindowItemCount",
+                          settingsDraft.mainWindowItemCount - 1,
+                        )
+                      }
+                      type="button"
+                    >
+                      -
+                    </button>
+                    <input
+                      aria-label={t.mainWindowItemCountAriaLabel}
+                      className="app-stepper-input"
+                      max={MAX_VISIBLE_ITEM_COUNT}
+                      min={MIN_VISIBLE_ITEM_COUNT}
+                      onBlur={() =>
+                        commitVisibleItemCountInput("mainWindowItemCount")
+                      }
+                      onChange={(event) =>
+                        updateVisibleItemCountInput(
+                          "mainWindowItemCount",
+                          event.target.value,
+                        )
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
+                      }}
+                      type="number"
+                      value={visibleItemCountInputs.mainWindowItemCount}
+                    />
+                    <button
+                      aria-label={t.increaseMainWindowItemCount}
+                      className="app-stepper-btn"
+                      onClick={() =>
+                        updateVisibleItemCount(
+                          "mainWindowItemCount",
+                          settingsDraft.mainWindowItemCount + 1,
+                        )
+                      }
+                      type="button"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="app-settings-row">
+                  <div className="app-settings-copy">
+                    <div className="app-settings-label">
+                      {t.historyGroupItemCountLabel}
+                    </div>
+                    <div className="app-settings-description">
+                      {t.historyGroupItemCountDescription}
+                    </div>
+                    <div className="app-settings-note">
+                      {t.rangeNote(MIN_VISIBLE_ITEM_COUNT, MAX_VISIBLE_ITEM_COUNT)}
+                    </div>
+                  </div>
+
+                  <div className="app-stepper">
+                    <button
+                      aria-label={t.decreaseHistoryGroupItemCount}
+                      className="app-stepper-btn"
+                      onClick={() =>
+                        updateVisibleItemCount(
+                          "historyGroupItemCount",
+                          settingsDraft.historyGroupItemCount - 1,
+                        )
+                      }
+                      type="button"
+                    >
+                      -
+                    </button>
+                    <input
+                      aria-label={t.historyGroupItemCountAriaLabel}
+                      className="app-stepper-input"
+                      max={MAX_VISIBLE_ITEM_COUNT}
+                      min={MIN_VISIBLE_ITEM_COUNT}
+                      onBlur={() =>
+                        commitVisibleItemCountInput("historyGroupItemCount")
+                      }
+                      onChange={(event) =>
+                        updateVisibleItemCountInput(
+                          "historyGroupItemCount",
+                          event.target.value,
+                        )
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
+                      }}
+                      type="number"
+                      value={visibleItemCountInputs.historyGroupItemCount}
+                    />
+                    <button
+                      aria-label={t.increaseHistoryGroupItemCount}
+                      className="app-stepper-btn"
+                      onClick={() =>
+                        updateVisibleItemCount(
+                          "historyGroupItemCount",
+                          settingsDraft.historyGroupItemCount + 1,
+                        )
+                      }
+                      type="button"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="app-settings-row">
+                  <div className="app-settings-copy">
+                    <div className="app-settings-label">
+                      {t.showHistoryItemNumbersLabel}
+                    </div>
+                    <div className="app-settings-description">
+                      {t.showHistoryItemNumbersDescription}
+                    </div>
+                  </div>
+
+                  <button
+                    aria-label={t.showHistoryItemNumbersLabel}
+                    aria-pressed={settingsDraft.showHistoryItemNumbers}
+                    className={`app-switch ${
+                      settingsDraft.showHistoryItemNumbers ? "is-on" : ""
+                    }`}
+                    onClick={toggleHistoryItemNumbers}
+                    type="button"
+                  >
+                    <span className="app-switch-thumb" />
+                  </button>
                 </div>
 
                 <div className="app-settings-section">

@@ -20,12 +20,13 @@
 
 - 托盘或菜单栏常驻，点击托盘图标显示或隐藏主窗口。
 - macOS 菜单栏图标设置稳定 `NSStatusItem.autosaveName`，用于恢复用户拖动后的菜单栏位置；不要承诺可强制最右排序。
+- macOS 的浅色菜单栏图标必须设置为原生 Template Image，让系统根据菜单栏/壁纸/深浅色状态自动着色。
 - 全局快捷键 `CommandOrControl+Shift+V` 唤起或隐藏主窗口。
 - 保存文本、图片、文件三类剪贴板历史；文件历史选择后应回填系统文件列表，而不是普通路径文本。
 - 去重后最新内容在最前，同一内容重复复制会更新次数和时间。
-- 主窗口只显示最新 10 条，更多历史按每 10 条分组。
+- 主窗口默认显示最新 10 条，更多历史默认按每 10 条分组；主界面条数和历史分组条数都可在偏好设置里调整。
 - 历史分组和单条详情都使用独立透明 preview 窗口，不把预览塞回主窗口 DOM。
-- 支持偏好设置：登录时启动、语言、菜单栏图标样式、自动粘贴、最大历史条数、保存类型。
+- 支持偏好设置：登录时启动、语言、外观主题、菜单栏图标样式、自动粘贴、最大历史条数、主界面/历史分组展示条数、复制项序号显示、保存类型。
 - 支持 About 独立窗口，展示版本、GitHub 地址和真实应用图标。
 
 ## 常用命令
@@ -51,7 +52,7 @@ npm run cli:install
 
 提交前优先跑 `npm run check`。如果只改 TSX/CSS 文档化小界面，可以先跑 `npm run build` 快速确认，再跑完整检查。
 
-CLI 是 AI Agent/终端入口。`npm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持 Agent 聚合命令 `agent`、只读命令 `list/get/search/context`，以及操作命令 `add/copy/delete/clear`。`agent` 输出最近历史、命令能力表和安全边界，默认 Markdown，`--json` 输出结构化包；`add` 只写历史不覆盖系统剪贴板，`copy` 才会写回系统剪贴板，`clear` 必须带 `--yes`。`npm run cli:test` 是 CLI 的快速回归测试，`npm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
+CLI 是 AI Agent/终端入口。`npm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持 `--help`/`help`、`--version`/`-V`/`version`，Agent 聚合命令 `agent`、只读命令 `list/get/search/context`，以及操作命令 `add/copy/delete/clear`。help/version 不应读取历史文件；`agent` 输出最近历史、命令能力表和安全边界，默认 Markdown，`--json` 输出结构化包；`add` 只写历史不覆盖系统剪贴板，`copy` 才会写回系统剪贴板，`clear` 必须带 `--yes`。`npm run cli:test` 是 CLI 的快速回归测试，`npm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
 
 ## 代码地图
 
@@ -127,7 +128,7 @@ src-tauri/tests/
 - 监听后端 `history-updated` 事件刷新列表。
 - 监听后端 `settings-updated` 事件刷新语言和偏好设置。
 - 根据搜索词计算 `filteredHistory`。
-- 计算主窗口显示的前 10 条和历史分组。
+- 按设置计算主窗口显示条数和历史分组条数，默认都是 10。
 - 维护 `previewHistoryGroupIndex`、`previewHistoryItemId`、`previewAnchorTop`。
 - 调用 `adjust_window_height` 让 Rust 调整主窗口高度。
 - 推送 item/group preview payload 到独立 `preview` 窗口。
@@ -216,8 +217,8 @@ Windows 监听注意：
 - 由 `src-tauri/src/history.rs` 管理。
 - 存在系统 app config 目录的 `history.json`。
 - CLI 通过 `load_history_from_path` 复用同一份历史解析逻辑；桌面端历史损坏时仍回退为空并写日志，CLI 会把解析错误输出到 stderr。CLI 写入通过 path-based helper 复用稳定 id、去重、原子写入和图片资源清理逻辑。
-- CLI 安装第一版默认复制/构建到用户目录，例如 macOS/Linux 的 `~/.local/bin/mclip-cli`；不要在未明确确认前写 `/usr/local/bin` 或使用 `sudo`。
-- 公开安装命令使用 `curl -fsSL https://www.mclip.cn/install.sh | sh`；`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
+- CLI 安装默认写到用户目录，例如 macOS/Linux 的 `~/.local/bin/mclip-cli`；不要在未明确确认前写 `/usr/local/bin` 或使用 `sudo`。
+- 公开安装命令使用 `curl -fsSL https://www.mclip.cn/install.sh | sh`；脚本优先下载 GitHub Release 里的预构建 `mclip-cli`，不可用时才回退到本地/源码构建。`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
 - 新内容先生成稳定 id，再与已有历史合并。
 - 超过最大条数会截断。
 - 删除和裁剪历史后要清理未使用图片资源。
@@ -228,7 +229,7 @@ Windows 监听注意：
 
 - 由 `src-tauri/src/settings.rs` 管理。
 - 存在系统 app config 目录的 `settings.json`。
-- 字段包括 `launchAtLogin`、`language`、`menuBarIconStyle`、`autoPaste`、`maxHistoryCount`、`enabledHistoryTypes`。
+- 字段包括 `launchAtLogin`、`language`、`menuBarIconStyle`、`autoPaste`、`maxHistoryCount`、`enabledHistoryTypes`、`mainWindowItemCount`、`historyGroupItemCount`、`showHistoryItemNumbers`、`appearanceTheme`。
 - 前端有 `normalizeSettings`，后端有 `AppSettings::sanitize`，改边界时两边都要同步考虑。
 
 语言规则：
@@ -278,6 +279,7 @@ Tauri capability 文件：
 - `main` 根容器 `.app-frame` 使用 `border-radius` + `clip-path`。
 - preview 根容器 `.history-preview-window` 使用 `border-radius` + `clip-path`。
 - About 和 Preferences 使用 `.app-dialog-frame` / `.app-dialog-panel`。
+- About 和 Preferences 的拖动区域只能是共享状态栏 `.app-dialog-statusbar` / `[data-dialog-drag-region]`，内容区不可拖动。
 - macOS 额外用 `raw-window-handle` + AppKit 给 WebView 和 contentView 做圆角裁剪。
 
 ## Windows 覆盖点
@@ -404,6 +406,7 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - 不要把主窗口 `resizable` 改回 `true`。
 - 改 preview 尺寸时，同步检查 `src/constants.ts`、`src/utils/preview.ts`、`src-tauri/src/window.rs` 和 Rust 单元测试。
 - 改历史条数逻辑时，前端 clamp 和后端 sanitize 都要同步考虑。
+- 改主界面/历史分组展示条数时，同步检查 `DEFAULT_VISIBLE_ITEM_COUNT`、前端 clamp、后端 sanitize、`getHistoryGroups` 和键盘/preview 逻辑。
 - 改保存类型时，同步检查 `HistoryKind`、`HistoryTypes`、`PreferencesWindow`、`clipboard.rs` 和 `history.rs`。
 - 改文件历史展示时，同步检查 `src/utils/history.ts`、`HistoryList.tsx`、`HistoryGroupPreviewWindow.tsx` 和 `HistoryPreviewDetailContent.tsx`；列表可省略，详情不能省略。
 - 改文件复制/粘贴语义时，同步检查 `src-tauri/src/clipboard.rs` 的文件列表读取、`file://` 文本兼容和 `HistoryEntry::Files` 写回逻辑。

@@ -94,6 +94,17 @@ fn run(args: Vec<String>) -> Result<String, CliError> {
         return Err(CliError::Help);
     }
 
+    if command == "--version" || command == "-V" || command == "version" {
+        return Ok(version_output());
+    }
+
+    if command_args
+        .iter()
+        .any(|arg| arg == "--help" || arg == "-h")
+    {
+        return Err(CliError::Help);
+    }
+
     let path = match history_path {
         Some(path) => path,
         None => default_history_path()?,
@@ -112,6 +123,10 @@ fn run(args: Vec<String>) -> Result<String, CliError> {
         "clear" => run_clear(&path, command_args),
         other => Err(CliError::Usage(format!("unknown command: {other}"))),
     }
+}
+
+fn version_output() -> String {
+    format!("mclip-cli {}\n", env!("CARGO_PKG_VERSION"))
 }
 
 fn extract_global_options(args: Vec<String>) -> Result<(Option<PathBuf>, Vec<String>), CliError> {

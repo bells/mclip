@@ -92,29 +92,43 @@ export function filterHistoryItems(
 
 export function getHistoryGroups(
   itemCount: number,
-  groupSize: number,
+  mainWindowItemCount: number,
+  historyGroupItemCount: number,
 ): HistoryGroupInfo[] {
-  const groupCount = Math.ceil(itemCount / groupSize);
+  if (itemCount <= 0) {
+    return [];
+  }
 
-  return Array.from({ length: groupCount }, (_, index) => {
-    const startPosition = index * groupSize + 1;
-    const endPosition = (index + 1) * groupSize;
+  const groups: HistoryGroupInfo[] = [
+    {
+      endPosition: mainWindowItemCount,
+      index: 0,
+      label: "1",
+      startPosition: 1,
+    },
+  ];
+  let startPosition = mainWindowItemCount + 1;
+
+  while (startPosition <= itemCount) {
+    const index = groups.length;
 
     // 分组范围按完整组显示，例如实际只有第 11 条，也显示 11-20。
-    return {
-      endPosition,
+    groups.push({
+      endPosition: startPosition + historyGroupItemCount - 1,
       index,
       label: String(index + 1),
       startPosition,
-    };
-  });
+    });
+    startPosition += historyGroupItemCount;
+  }
+
+  return groups;
 }
 
 export function getHistoryGroupItems(
   items: HistoryListItem[],
-  groupIndex: number,
-  groupSize: number,
+  group: HistoryGroupInfo,
 ): HistoryListItem[] {
-  const startIndex = groupIndex * groupSize;
-  return items.slice(startIndex, startIndex + groupSize);
+  const startIndex = Math.max(0, group.startPosition - 1);
+  return items.slice(startIndex, Math.min(items.length, group.endPosition));
 }

@@ -2,6 +2,10 @@
 
 import type { AppTranslations } from "../i18n";
 import type { HistoryListItem } from "../types";
+import {
+  getTextHistoryAffordance,
+  type HistoryTextAffordance,
+} from "../utils/historyAffordance";
 import { getHistoryListDisplayText } from "../utils/history";
 import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
 import { ImageThumb } from "./ImageThumb";
@@ -19,8 +23,32 @@ type HistoryListProps = {
   ) => void;
   onScheduleClosePreview: () => void;
   onSelectItem: (id: string) => void;
+  showItemNumbers: boolean;
   selectedItemId?: string;
 };
+
+function renderHistoryTextAffordance(affordance: HistoryTextAffordance | null) {
+  if (affordance === null) {
+    return null;
+  }
+
+  if (affordance.kind === "color") {
+    return (
+      <span className="app-history-affordance" aria-hidden="true">
+        <span
+          className="app-history-color-swatch"
+          style={{ background: affordance.color }}
+        />
+      </span>
+    );
+  }
+
+  return (
+    <span className="app-history-affordance" aria-hidden="true">
+      <span className="app-history-emoji-badge">{affordance.emoji}</span>
+    </span>
+  );
+}
 
 export function HistoryList({
   hasHistory,
@@ -30,6 +58,7 @@ export function HistoryList({
   onOpenItemPreview,
   onScheduleClosePreview,
   onSelectItem,
+  showItemNumbers,
   selectedItemId,
 }: HistoryListProps) {
   if (items.length === 0) {
@@ -47,6 +76,8 @@ export function HistoryList({
     <div className="app-history-group">
       {items.map((item, index) => {
         const displayText = getHistoryListDisplayText(item);
+        const textAffordance =
+          item.kind === "text" ? getTextHistoryAffordance(item.text) : null;
         const targetId = serializeMainKeyboardNavigationTarget({
           index,
           kind: "history-item",
@@ -66,9 +97,9 @@ export function HistoryList({
               );
             }}
             onMouseLeave={onScheduleClosePreview}
-          >
-            <button
-              className="app-item"
+            >
+              <button
+              className={`app-item ${showItemNumbers ? "" : "is-index-hidden"}`}
               data-main-keyboard-target={targetId}
               onClick={() => onSelectItem(item.id)}
               onFocus={(event) => {
@@ -80,7 +111,9 @@ export function HistoryList({
               }}
               type="button"
             >
-              <span className="app-item-index">{item.position}.</span>
+              {showItemNumbers ? (
+                <span className="app-item-index">{item.position}.</span>
+              ) : null}
               {item.kind === "image" ? (
                 <span className="app-item-thumbnail-wrap">
                   <ImageThumb
@@ -91,7 +124,14 @@ export function HistoryList({
                   <span className="app-item-text">{displayText}</span>
                 </span>
               ) : (
-                <span className="app-item-text">{displayText}</span>
+                <span
+                  className={`app-item-text ${
+                    textAffordance ? "app-history-text-with-affordance" : ""
+                  }`}
+                >
+                  {renderHistoryTextAffordance(textAffordance)}
+                  <span className="app-history-display-text">{displayText}</span>
+                </span>
               )}
             </button>
             <button

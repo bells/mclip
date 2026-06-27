@@ -10,8 +10,9 @@ import {
   DEFAULT_SETTINGS,
   GITHUB_LATEST_RELEASE_API_URL,
 } from "../constants";
+import { useApplyAppTheme } from "../hooks/useApplyAppTheme";
+import { DialogStatusBar } from "./DialogStatusBar";
 import { DialogWindowFrame } from "./DialogWindowFrame";
-import { DialogWindowControls } from "./DialogWindowControls";
 import { getTranslations } from "../i18n";
 import {
   getAppVersion,
@@ -46,6 +47,7 @@ export function AboutWindow() {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ kind: "idle" });
   // 根据当前语言取文案；settings 更新后组件会重新渲染，t 也会跟着切换语言。
   const translations = getTranslations(settings.language);
+  useApplyAppTheme(settings.appearanceTheme);
   const t = translations.about;
   const isCheckingUpdates = updateStatus.kind === "checking";
   const isUpdateAvailable = updateStatus.kind === "available";
@@ -214,10 +216,10 @@ export function AboutWindow() {
   return (
     <DialogWindowFrame className="app-about-window">
       <div className="app-dialog-panel">
-        <div className="app-dialog-titlebar">
-          <span className="app-modal-title">{t.title}</span>
-          <DialogWindowControls labels={translations.windowControls} />
-        </div>
+        <DialogStatusBar
+          controlsLabels={translations.windowControls}
+          title={t.title}
+        />
 
         <div className="app-modal-content">
           <div className="app-modal-identity">
