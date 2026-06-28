@@ -59,9 +59,35 @@
   pairs, covering normal text at 4.5:1 and row-number, metadata-label, icon,
   focus, selected, and border tokens at 3:1 or better where they convey UI
   structure or state.
-- [ ] Visually verify light theme over a busy desktop background in the dev app:
+- [x] Visually verify light theme over a busy desktop background in the dev app:
   main window, archive group preview, item detail preview, preview-detail,
   About, Preferences, and clear-history modal.
 - [x] Run `npm run check:frontend`, `node --test tests/*.test.mjs`, and
   `git diff --check`; run full `npm run check` before marking the appearance
   implementation complete.
+
+## Additional Dialog Status Bar Visual Refinement Tasks
+
+- [x] Refactor `DialogStatusBar` so About and Preferences use a full-width
+  native-style title bar inspired by the ztool reference screenshots, rather
+  than a centered capsule-like status bar.
+- [x] Align the macOS dialog control cluster and title on one baseline, with the
+  title following the traffic-light controls and identifying both mclip and the
+  dialog purpose.
+- [x] Preserve platform-aware control placement in `DialogWindowControls`; keep
+  unsupported minimize/maximize actions visibly unavailable while leaving the
+  close action distinct and operable.
+- [x] Update `src/App.css` dialog chrome styles to use theme tokens for the
+  title-bar surface, separator, title text, and control states in light and dark
+  themes.
+- [x] Remove the decorative status-bar grabber treatment from About and
+  Preferences while keeping `[data-dialog-drag-region]` as the only draggable
+  area.
+- [x] Update Chinese and English dialog title strings if the title copy changes
+  to `mclip Preferences` and `About mclip` or localized equivalents.
+- [x] Visually verify About and Preferences against the reference direction in
+  light and dark themes, confirming controls, title, content spacing, and drag
+  behavior.
+- [x] Run `npm run check:frontend`, `node --test tests/*.test.mjs`, and
+  `git diff --check`; run full `npm run check` before marking the dialog chrome
+  refinement complete.

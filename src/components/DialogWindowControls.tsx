@@ -6,11 +6,13 @@ export type DialogWindowControlLabels = {
   minimizeUnavailable: string;
 };
 
+export type DialogWindowControlSide = "left" | "right";
+
 type DialogWindowControlsProps = {
   labels: DialogWindowControlLabels;
 };
 
-function getPreferredWindowControlSide() {
+export function getPreferredWindowControlSide(): DialogWindowControlSide {
   const platform = navigator.platform.toLowerCase();
 
   return platform.includes("mac") ? "left" : "right";
@@ -54,7 +56,7 @@ export function DialogWindowControls({ labels }: DialogWindowControlsProps) {
   };
 
   return (
-    <div className={`app-window-controls is-${side}`}>
+    <div className={`app-window-controls is-${side}`} data-dialog-drag-exclude>
       {side === "left"
         ? [controls.close, controls.minimize, controls.maximize]
         : [controls.minimize, controls.maximize, controls.close]}

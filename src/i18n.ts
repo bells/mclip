@@ -18,7 +18,7 @@ export const translations = {
       openLogsError: "无法打开日志目录。",
       reportIssue: "报告问题",
       reportIssueError: "无法打开问题反馈页面。",
-      title: `关于${APP_NAME}`,
+      title: `关于 ${APP_NAME}`,
       updateAvailable: (version: string) => `发现新版本 ${version}，可从 GitHub Releases 下载。`,
       updateCheck: "检查更新",
       updateCheckError: "无法检查更新，请确认网络后重试。",
@@ -156,7 +156,7 @@ export const translations = {
       typeTextDescription: "保存普通纯文本内容。",
       typesDescription: "选择哪些剪贴板内容会进入历史。",
       typesLabel: "保存类型",
-      title: "偏好设置",
+      title: `${APP_NAME} 偏好设置`,
     },
     windowControls: {
       close: "关闭",
@@ -317,7 +317,7 @@ export const translations = {
       typeTextDescription: "Save plain text clipboard content.",
       typesDescription: "Choose which clipboard content is saved to history.",
       typesLabel: "Saved Types",
-      title: "Preferences",
+      title: `${APP_NAME} Preferences`,
     },
     windowControls: {
       close: "Close",

@@ -36,6 +36,9 @@
   --app-focus-ring: rgba(124, 199, 193, 0.86);
   --app-control-bg: rgba(255, 255, 255, 0.045);
   --app-control-bg-hover: rgba(255, 255, 255, 0.08);
+  --app-titlebar-bg: rgba(24, 26, 26, 0.9);
+  --app-titlebar-line: rgba(247, 241, 232, 0.13);
+  --app-titlebar-ink: #eee6da;
   --app-row-hover-bg: rgba(255, 255, 255, 0.055);
   --app-scroll-thumb: rgba(244, 184, 96, 0.52);
   --app-radius-lg: 20px;
@@ -74,6 +77,9 @@
   --app-focus-ring: #176f69;
   --app-control-bg: rgba(24, 50, 40, 0.065);
   --app-control-bg-hover: rgba(24, 50, 40, 0.11);
+  --app-titlebar-bg: rgba(252, 253, 251, 0.96);
+  --app-titlebar-line: rgba(24, 50, 40, 0.14);
+  --app-titlebar-ink: #39463f;
   --app-row-hover-bg: rgba(24, 50, 40, 0.075);
   --app-scroll-thumb: rgba(143, 84, 11, 0.62);
   --app-shadow:
@@ -193,14 +199,9 @@
 }
 
 :root[data-app-theme="light"] .app-dialog-statusbar {
-  border-color: var(--app-line);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), var(--app-control-bg)),
-    var(--app-surface-translucent);
-}
-
-:root[data-app-theme="light"] .app-dialog-statusbar::after {
-  background: var(--app-line-strong);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), transparent),
+    var(--app-titlebar-bg);
 }
 
 html,
@@ -1577,8 +1578,7 @@ button {
   margin-bottom: 14px;
 }
 
-.app-dialog-titlebar,
-.app-dialog-statusbar {
+.app-dialog-titlebar {
   position: relative;
   z-index: 1;
   display: flex;
@@ -1596,37 +1596,42 @@ button {
   user-select: none;
 }
 
-.app-dialog-statusbar::after {
-  position: absolute;
-  bottom: 5px;
-  left: 50%;
-  width: 28px;
-  height: 2px;
-  border-radius: 999px;
-  background: rgba(247, 241, 232, 0.14);
-  content: "";
-  transform: translateX(-50%);
+.app-dialog-statusbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 14px;
+  margin: -16px -18px 18px;
+  border-bottom: 1px solid var(--app-titlebar-line);
+  border-radius: var(--app-radius-lg) var(--app-radius-lg) 0 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent),
+    var(--app-titlebar-bg);
+  cursor: default;
+  padding: 0 18px;
+  user-select: none;
+}
+
+.app-dialog-statusbar.is-controls-left {
+  justify-content: flex-start;
+}
+
+.app-dialog-statusbar.is-controls-right {
+  justify-content: space-between;
 }
 
 .app-window-controls {
-  position: absolute;
-  top: 8px;
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 7px;
 }
 
-.app-window-controls.is-left {
-  left: 0;
-}
-
-.app-window-controls.is-right {
-  right: 0;
-}
-
 .app-window-control {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border: 1px solid rgba(0, 0, 0, 0.28);
   border-radius: 999px;
   padding: 0;
@@ -1653,9 +1658,9 @@ button {
 }
 
 .app-window-control:disabled {
-  cursor: not-allowed;
+  cursor: default;
   filter: saturate(0.55);
-  opacity: 0.42;
+  opacity: 0.58;
 }
 
 .app-modal-title {
@@ -1665,6 +1670,21 @@ button {
   font-weight: 800;
   text-align: center;
   pointer-events: none;
+}
+
+.app-dialog-statusbar .app-modal-title {
+  overflow: hidden;
+  color: var(--app-titlebar-ink);
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-dialog-statusbar.is-controls-right .app-modal-title {
+  padding-right: 14px;
 }
 
 .app-modal-content {

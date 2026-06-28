@@ -185,14 +185,50 @@ preview-detail, About, Preferences, and clear-history modal.
 
 ## Dialog Status Bar
 
-About and Preferences should share a top status/title bar component. The bar should include:
+About and Preferences should share a top status/title bar component. The bar
+should feel closer to the ztool reference screenshots: a native-like dialog
+chrome strip attached to the top of the window, not a centered pill inside the
+content.
+
+The bar should include:
 
 - window controls;
 - window title;
-- concise state text where useful, such as app version or Preferences section context;
 - `data-dialog-drag-region` on the draggable area.
 
+Visual and layout direction:
+
+- the title bar spans the full dialog width and is flush with the top rounded
+  panel edge;
+- use a neutral title-bar surface with a subtle bottom separator in light theme
+  and corresponding dark theme tokens in dark mode;
+- remove the decorative bottom grabber line from dialog status bars;
+- on macOS, place controls on the left in close/minimize/maximize order and put
+  the title on the same baseline after the controls, matching the reference
+  rhythm of "About ZTool" and "ZTool Preferences";
+- on Windows or other platforms, keep the control cluster on the conventional
+  side already chosen by `DialogWindowControls`;
+- if minimize and maximize remain unsupported for these fixed-size dialogs,
+  render them as disabled or unavailable controls while preserving the
+  three-dot title-bar rhythm;
+- title text should identify both app and window purpose, such as
+  `mclip Preferences` and `About mclip`, with localized strings updated when
+  user-facing copy changes.
+
 `DialogWindowFrame` should only call `startCurrentWindowDrag()` when the event target is inside `[data-dialog-drag-region]` and outside known interactive controls. This replaces the current broad "any non-interactive dialog content can drag" behavior.
+
+Implementation should keep this refinement localized to the shared dialog
+chrome components and CSS:
+
+- update `DialogStatusBar` markup so the title and controls participate in the
+  same title-bar layout instead of relying on a centered title with absolutely
+  positioned controls;
+- keep `DialogWindowControls` as the single owner of control order, labels, and
+  enabled/disabled semantics;
+- adjust `.app-dialog-panel`, `.app-dialog-statusbar`, `.app-window-controls`,
+  `.app-window-control`, and `.app-modal-title` styles in `src/App.css`;
+- verify the content padding in `AboutWindow` and `PreferencesWindow` so their
+  first content row does not visually collide with the taller title bar.
 
 ## macOS Template Menu Bar Icon
 

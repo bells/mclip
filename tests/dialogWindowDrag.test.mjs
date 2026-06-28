@@ -47,3 +47,19 @@ test("dialog drag frame starts dragging only from explicit status bar targets", 
   assert.match(windowServiceSource, /getCurrentWindow\(\)\.startDragging\(\)/);
   assert.match(tauriFacadeSource, /export \* from "\.\.\/services\/ipc\/windows";/);
 });
+
+test("dialog status bar keeps native-style title and control layout", async () => {
+  const [statusBarSource, controlsSource, cssSource] = await Promise.all([
+    readSource("src/components/DialogStatusBar.tsx"),
+    readSource("src/components/DialogWindowControls.tsx"),
+    readSource("src/App.css"),
+  ]);
+
+  assert.match(statusBarSource, /getPreferredWindowControlSide/);
+  assert.match(statusBarSource, /is-controls-\$\{controlSide\}/);
+  assert.match(controlsSource, /data-dialog-drag-exclude/);
+  assert.match(cssSource, /--app-titlebar-bg/);
+  assert.match(cssSource, /\.app-dialog-statusbar\.is-controls-left/);
+  assert.match(cssSource, /\.app-dialog-statusbar\.is-controls-right/);
+  assert.doesNotMatch(cssSource, /\.app-dialog-statusbar::after/);
+});
