@@ -1,3 +1,6 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
 :root {
   color-scheme: dark;
   font-family:
