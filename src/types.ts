@@ -17,6 +17,7 @@ export type AppSettings = {
   mainWindowItemCount: number;
   historyGroupItemCount: number;
   showHistoryItemNumbers: boolean;
+  showMainWindowBrand: boolean;
   appearanceTheme: AppearanceTheme;
 };
 

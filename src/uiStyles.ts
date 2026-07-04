@@ -33,6 +33,7 @@ export const ui = {
   header:
     "relative z-[1] flex shrink-0 items-center gap-2 border-b border-[var(--mclip-line)] px-2.5 pb-2 pt-2.5",
   brand: "flex min-w-0 items-center gap-1.5",
+  brandHidden: "hidden",
   brandIcon:
     "size-[22px] shrink-0 rounded-md border border-[var(--mclip-line)] object-cover shadow-sm",
   kicker:

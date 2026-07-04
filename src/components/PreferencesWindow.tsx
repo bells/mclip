@@ -361,6 +361,13 @@ export function PreferencesWindow() {
     }));
   };
 
+  const toggleMainWindowBrand = () => {
+    applySettingsPatch((current) => ({
+      ...current,
+      showMainWindowBrand: !current.showMainWindowBrand,
+    }));
+  };
+
   const toggleHistoryType = (kind: HistoryKind) => {
     applySettingsPatch((current) => ({
       ...current,
@@ -628,6 +635,27 @@ export function PreferencesWindow() {
                       <option value="dark">{t.appearanceThemeDark}</option>
                     </select>
                   </div>
+                </div>
+
+                <div className={ui.settingsRow}>
+                  <div className={ui.settingsCopy}>
+                    <div className={ui.settingsLabel}>
+                      {t.showMainWindowBrandLabel}
+                    </div>
+                    <div className={ui.settingsDescription}>
+                      {t.showMainWindowBrandDescription}
+                    </div>
+                  </div>
+
+                  <button
+                    aria-label={t.showMainWindowBrandLabel}
+                    aria-pressed={settingsDraft.showMainWindowBrand}
+                    className={switchControl(settingsDraft.showMainWindowBrand)}
+                    onClick={toggleMainWindowBrand}
+                    type="button"
+                  >
+                    <span className={switchThumb(settingsDraft.showMainWindowBrand)} />
+                  </button>
                 </div>
 
                 <div className={ui.settingsRow}>

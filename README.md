@@ -23,7 +23,7 @@
 - 支持单条历史详情、分组 hover 详情、图片缩略图、颜色代码 swatch、常用表情放大展示和文件详情。
 - 文件列表会对过长文件名做中间省略并保留扩展名；文件详情会显示完整绝对路径和完整文件名。
 - 支持搜索、方向键选择、回车复制、`Esc` 收起窗口。
-- 支持偏好设置：登录时启动、界面语言、外观主题、菜单栏图标样式、自动粘贴、最大历史条数、主界面/历史分组展示条数、复制项序号显示和保存类型。
+- 支持偏好设置：登录时启动、界面语言、外观主题、菜单栏图标样式、自动粘贴、最大历史条数、主界面/历史分组展示条数、复制项序号显示、主界面 Logo 显示和保存类型。
 - 关于窗口支持手动检查 GitHub Releases 上的新版本。
 - 支持中英文界面，首次启动会根据系统语言选择中文或英文。
 
@@ -174,7 +174,7 @@ Current version: `0.1.0`
 - Supports item details, grouped hover details, image thumbnails, color-code swatches, common emoji display, and file details.
 - Long file names are middle-ellipsized in lists to preserve extensions, while file details show the full absolute path and full file name.
 - Supports search, arrow-key selection, Enter-to-copy, and Escape-to-hide.
-- Preferences include launch at login, display language, appearance theme, menu bar icon style, auto paste, maximum history count, main/group display counts, row number visibility, and enabled content types.
+- Preferences include launch at login, display language, appearance theme, menu bar icon style, auto paste, maximum history count, main/group display counts, row number visibility, main-window logo visibility, and enabled content types.
 - The About window can manually check GitHub Releases for a newer version.
 - Supports Chinese and English UI. The first launch follows the system language when possible.
 

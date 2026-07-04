@@ -13,6 +13,7 @@ import { SearchIcon } from "./UiIcons";
 type AppHeaderProps = {
   inputRef?: RefObject<HTMLInputElement | null>;
   searchQuery: string;
+  showBrand: boolean;
   translations: AppTranslations["header"];
   onSearchFocus?: (targetId: string) => void;
   onSearchQueryChange: (value: string) => void;
@@ -21,22 +22,27 @@ type AppHeaderProps = {
 export function AppHeader({
   inputRef,
   searchQuery,
+  showBrand,
   translations,
   onSearchFocus,
   onSearchQueryChange,
 }: AppHeaderProps) {
   return (
     <header className={ui.header}>
-      <div className={ui.brand} aria-label={APP_NAME}>
-        <img
-          alt=""
-          aria-hidden="true"
-          className={ui.brandIcon}
-          draggable={false}
-          src={appIconUrl}
-        />
-        <span className={ui.kicker}>{APP_NAME}</span>
-      </div>
+      {showBrand ? (
+        <div className={ui.brand} aria-label={APP_NAME}>
+          <img
+            alt=""
+            aria-hidden="true"
+            className={ui.brandIcon}
+            draggable={false}
+            src={appIconUrl}
+          />
+          <span className={ui.kicker}>{APP_NAME}</span>
+        </div>
+      ) : (
+        <div aria-hidden="true" className={ui.brandHidden} />
+      )}
       <label className={ui.searchShell}>
         <SearchIcon className={ui.searchIcon} />
         <input

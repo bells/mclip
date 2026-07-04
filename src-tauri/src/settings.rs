@@ -61,6 +61,8 @@ pub struct AppSettings {
     pub history_group_item_count: u32,
     #[serde(default = "default_show_history_item_numbers")]
     pub show_history_item_numbers: bool,
+    #[serde(default = "default_show_main_window_brand")]
+    pub show_main_window_brand: bool,
     #[serde(default)]
     pub appearance_theme: AppearanceTheme,
 }
@@ -105,6 +107,7 @@ impl Default for AppSettings {
             main_window_item_count: DEFAULT_VISIBLE_ITEM_COUNT,
             history_group_item_count: DEFAULT_VISIBLE_ITEM_COUNT,
             show_history_item_numbers: true,
+            show_main_window_brand: true,
             appearance_theme: AppearanceTheme::default(),
         }
     }
@@ -130,6 +133,10 @@ fn default_visible_item_count() -> u32 {
 }
 
 fn default_show_history_item_numbers() -> bool {
+    true
+}
+
+fn default_show_main_window_brand() -> bool {
     true
 }
 
@@ -433,6 +440,7 @@ mod tests {
         assert_eq!(value["historyGroupItemCount"].as_u64(), Some(10));
         assert_eq!(value["showHistoryItemNumbers"].as_bool(), Some(true));
         assert_eq!(value["appearanceTheme"].as_str(), Some("system"));
+        assert_eq!(value["showMainWindowBrand"].as_bool(), Some(true));
     }
 
     #[test]
@@ -500,6 +508,32 @@ mod tests {
         );
         assert!(settings.show_history_item_numbers);
         assert_eq!(settings.appearance_theme, AppearanceTheme::System);
+        let value = serde_json::to_value(settings).unwrap();
+
+        assert_eq!(value["showMainWindowBrand"].as_bool(), Some(true));
+    }
+
+    #[test]
+    fn settings_preserve_disabled_main_window_brand_visibility() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{
+              "autoPaste": false,
+              "launchAtLogin": false,
+              "language": "en",
+              "maxHistoryCount": 50,
+              "enabledHistoryTypes": {
+                "text": true,
+                "image": true,
+                "files": true
+              },
+              "menuBarIconStyle": "appIcon",
+              "showMainWindowBrand": false
+            }"#,
+        )
+        .unwrap();
+        let value = serde_json::to_value(settings).unwrap();
+
+        assert_eq!(value["showMainWindowBrand"].as_bool(), Some(false));
     }
 
     #[test]

@@ -32,6 +32,7 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
       settings.historyGroupItemCount ?? DEFAULT_SETTINGS.historyGroupItemCount,
     ),
     showHistoryItemNumbers: settings.showHistoryItemNumbers !== false,
+    showMainWindowBrand: settings.showMainWindowBrand !== false,
     appearanceTheme:
       settings.appearanceTheme === "light" || settings.appearanceTheme === "dark"
         ? settings.appearanceTheme

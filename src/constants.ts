@@ -32,6 +32,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   mainWindowItemCount: DEFAULT_VISIBLE_ITEM_COUNT,
   historyGroupItemCount: DEFAULT_VISIBLE_ITEM_COUNT,
   showHistoryItemNumbers: true,
+  showMainWindowBrand: true,
   appearanceTheme: "system",
 };
 

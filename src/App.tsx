@@ -166,6 +166,7 @@ function MainWindow() {
     historyGroups.length,
     measureAndApplyMainWindowHeight,
     searchQuery,
+    settings.showMainWindowBrand,
     settings.showHistoryItemNumbers,
     visibleHistory.length,
   ]);
@@ -528,6 +529,7 @@ function MainWindow() {
           <AppHeader
             inputRef={searchInputRef}
             searchQuery={searchQuery}
+            showBrand={settings.showMainWindowBrand}
             translations={t.header}
             onSearchFocus={handleSearchFocus}
             onSearchQueryChange={setSearchQuery}

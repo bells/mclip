@@ -26,7 +26,7 @@
 - 去重后最新内容在最前，同一内容重复复制会更新次数和时间。
 - 主窗口默认显示最新 10 条，更多历史默认按每 10 条分组；主界面条数和历史分组条数都可在偏好设置里调整。
 - 历史分组和单条详情都使用独立透明 preview 窗口，不把预览塞回主窗口 DOM。
-- 支持偏好设置：登录时启动、语言、外观主题、菜单栏图标样式、自动粘贴、最大历史条数、主界面/历史分组展示条数、复制项序号显示、保存类型。
+- 支持偏好设置：登录时启动、语言、外观主题、菜单栏图标样式、自动粘贴、最大历史条数、主界面/历史分组展示条数、复制项序号显示、主界面 Logo 显示、保存类型。
 - 支持 About 独立窗口，展示版本、GitHub 地址和真实应用图标。
 
 ## 常用命令
@@ -229,7 +229,7 @@ Windows 监听注意：
 
 - 由 `src-tauri/src/settings.rs` 管理。
 - 存在系统 app config 目录的 `settings.json`。
-- 字段包括 `launchAtLogin`、`language`、`menuBarIconStyle`、`autoPaste`、`maxHistoryCount`、`enabledHistoryTypes`、`mainWindowItemCount`、`historyGroupItemCount`、`showHistoryItemNumbers`、`appearanceTheme`。
+- 字段包括 `launchAtLogin`、`language`、`menuBarIconStyle`、`autoPaste`、`maxHistoryCount`、`enabledHistoryTypes`、`mainWindowItemCount`、`historyGroupItemCount`、`showHistoryItemNumbers`、`showMainWindowBrand`、`appearanceTheme`。
 - 前端有 `normalizeSettings`，后端有 `AppSettings::sanitize`，改边界时两边都要同步考虑。
 
 语言规则：
