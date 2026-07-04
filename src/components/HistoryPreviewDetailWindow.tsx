@@ -12,6 +12,7 @@ import {
   type PreviewWindowSide,
 } from "../lib/tauri";
 import type { HistoryItemPreviewPayload } from "../types";
+import { ui } from "../uiStyles";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
 
 export function HistoryPreviewDetailWindow() {
@@ -67,8 +68,8 @@ export function HistoryPreviewDetailWindow() {
 
   return (
     <div
-      className={`history-preview-window app-history-preview-detail-window ${
-        previewSide === "left" ? "is-left-side" : "is-right-side"
+      className={`${ui.historyPreviewDetailWindow} ${
+        previewSide === "left" ? "pr-2" : "pl-2"
       }`}
       onMouseEnter={notifyPointerInside}
       onMouseMove={notifyPointerInside}

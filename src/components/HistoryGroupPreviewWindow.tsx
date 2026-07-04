@@ -6,6 +6,13 @@ import { getTranslations } from "../i18n";
 import { getHistoryPreviewPointerPosition, type PreviewWindowSide } from "../lib/tauri";
 import type { HistoryGroupInfo, HistoryGroupPreviewPayload, HistoryListItem } from "../types";
 import {
+  previewDeleteButton,
+  previewItem,
+  previewItemRow,
+  previewWindow,
+  ui,
+} from "../uiStyles";
+import {
   getTextHistoryAffordance,
   type HistoryTextAffordance,
 } from "../utils/historyAffordance";
@@ -13,6 +20,7 @@ import { getHistoryListDisplayText } from "../utils/history";
 import { shouldActivateGroupPreviewPointerItem } from "../utils/keyboardNavigation";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
 import { ImageThumb } from "./ImageThumb";
+import { TrashIcon } from "./UiIcons";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
 const POINTER_POLL_INTERVAL_MS = 48;
@@ -57,9 +65,9 @@ function renderHistoryTextAffordance(affordance: HistoryTextAffordance | null) {
 
   if (affordance.kind === "color") {
     return (
-      <span className="app-history-affordance" aria-hidden="true">
+      <span className={ui.historyAffordance} aria-hidden="true">
         <span
-          className="app-history-color-swatch"
+          className={ui.historyColorSwatch}
           style={{ background: affordance.color }}
         />
       </span>
@@ -67,8 +75,8 @@ function renderHistoryTextAffordance(affordance: HistoryTextAffordance | null) {
   }
 
   return (
-    <span className="app-history-affordance" aria-hidden="true">
-      <span className="app-history-emoji-badge">{affordance.emoji}</span>
+    <span className={ui.historyAffordance} aria-hidden="true">
+      <span className={ui.historyEmojiBadge}>{affordance.emoji}</span>
     </span>
   );
 }
@@ -102,10 +110,10 @@ export function HistoryGroupPreviewWindow({
   } as CSSProperties;
   const detailPanel =
     hoveredItem === null ? null : (
-      <div className="app-history-group-detail-pane">
+      <div className={ui.historyGroupDetailPane}>
         <HistoryDetailPanel
           ariaLabel={translations.itemPreviewAriaLabel}
-          className="app-history-group-hover-detail"
+          className={ui.historyGroupHoverDetail}
           item={hoveredItem}
           language={preview.language}
           role="region"
@@ -205,11 +213,7 @@ export function HistoryGroupPreviewWindow({
 
   return (
     <div
-      className={`history-preview-window app-history-group-preview-window ${
-        hoveredItem ? "has-detail" : ""
-      } ${detailSide === "left" ? "is-detail-left" : "is-detail-right"} ${
-        isKeyboardNavigating ? "is-keyboard-navigating" : ""
-      }`}
+      className={previewWindow(Boolean(hoveredItem), detailSide, isKeyboardNavigating)}
       style={previewStyle}
       onMouseEnter={onPointerInside}
       onMouseMove={onPointerInside}
@@ -223,21 +227,21 @@ export function HistoryGroupPreviewWindow({
           preview.group.startPosition,
           preview.group.endPosition,
         )}
-        className="app-history-preview app-history-group-preview"
+        className={`${ui.historyPreview} ${ui.historyGroupPreview}`}
         role="menu"
       >
-        <div className="app-history-preview-header">
-          <span className="app-history-preview-kicker">
+        <div className={ui.historyPreviewHeader}>
+          <span className={ui.historyPreviewKicker}>
             {translations.groupPreviewKicker}
           </span>
-          <span className="app-history-preview-range">
+          <span className={ui.historyPreviewRange}>
             {preview.group.startPosition} - {preview.group.endPosition}
           </span>
         </div>
 
-        <div className="app-history-group-preview-body">
+        <div className={ui.historyGroupPreviewBody}>
           <div
-            className="app-history-preview-list"
+            className={ui.historyPreviewList}
             onPointerMove={(event) => {
               // target 可能是按钮里的子元素，closest 可以向上找到带 data 属性的条目行。
               const itemId = findPreviewItemId(event.target);
@@ -253,9 +257,10 @@ export function HistoryGroupPreviewWindow({
 
               return (
                 <div
-                  className={`app-history-preview-item-row ${
-                    item.id === hoveredItemId ? "is-selected" : ""
-                  }`}
+                  className={previewItemRow(
+                    item.id === hoveredItemId,
+                    isKeyboardNavigating,
+                  )}
                   data-preview-item-id={item.id}
                   key={item.id}
                   onMouseEnter={() => {
@@ -272,9 +277,7 @@ export function HistoryGroupPreviewWindow({
                   }}
                 >
                   <button
-                    className={`app-history-preview-item ${
-                      preview.showHistoryItemNumbers ? "" : "is-index-hidden"
-                    }`}
+                    className={previewItem(preview.showHistoryItemNumbers)}
                     onFocus={() => {
                       activateItem(item.id);
                     }}
@@ -296,33 +299,33 @@ export function HistoryGroupPreviewWindow({
                     type="button"
                   >
                     {preview.showHistoryItemNumbers ? (
-                      <span className="app-history-preview-index">
+                      <span className={ui.historyPreviewIndex}>
                         {getLocalDisplayPosition(item, preview.group)}.
                       </span>
                     ) : null}
                     {item.kind === "image" ? (
-                      <span className="app-item-thumbnail-wrap">
+                      <span className={ui.itemThumbnailWrap}>
                         <ImageThumb
                           alt={displayText}
-                          className="app-item-thumbnail"
+                          className={ui.itemThumbnail}
                           imagePath={item.imagePath}
                         />
-                        <span className="app-history-preview-text">{displayText}</span>
+                        <span className={ui.historyPreviewText}>{displayText}</span>
                       </span>
                     ) : (
                       <span
-                        className={`app-history-preview-text ${
-                          textAffordance ? "app-history-text-with-affordance" : ""
+                        className={`${ui.historyPreviewText} ${
+                          textAffordance ? ui.historyTextWithAffordance : ""
                         }`}
                       >
                         {renderHistoryTextAffordance(textAffordance)}
-                        <span className="app-history-display-text">{displayText}</span>
+                        <span className={ui.historyDisplayText}>{displayText}</span>
                       </span>
                     )}
                   </button>
                   <button
                     aria-label={translations.deleteItemAriaLabel}
-                    className="app-history-preview-delete"
+                    className={previewDeleteButton(item.id === hoveredItemId)}
                     onClick={(event) => {
                       event.stopPropagation();
                       if (hoveredItemIdRef.current === item.id) {
@@ -333,7 +336,7 @@ export function HistoryGroupPreviewWindow({
                     title={translations.deleteItemAriaLabel}
                     type="button"
                   >
-                    <span className="app-item-delete-icon" aria-hidden="true" />
+                    <TrashIcon className={ui.deleteIcon} />
                   </button>
                 </div>
               );

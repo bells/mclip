@@ -16,15 +16,12 @@ test("about and preferences windows use the shared status bar frame", async () =
   assert.match(preferencesSource, /import \{ DialogWindowFrame \} from "\.\/DialogWindowFrame";/);
   assert.match(aboutSource, /import \{ DialogStatusBar \} from "\.\/DialogStatusBar";/);
   assert.match(preferencesSource, /import \{ DialogStatusBar \} from "\.\/DialogStatusBar";/);
-  assert.match(aboutSource, /<DialogWindowFrame className="app-about-window">/);
-  assert.match(preferencesSource, /<DialogWindowFrame className="app-preferences-window">/);
+  assert.match(aboutSource, /<DialogWindowFrame className=\{ui\.aboutWindowFrame\}>/);
+  assert.match(preferencesSource, /<DialogWindowFrame className=\{ui\.preferencesWindowFrame\}>/);
   assert.match(aboutSource, /<DialogStatusBar/);
   assert.match(preferencesSource, /<DialogStatusBar/);
-  assert.doesNotMatch(aboutSource, /<div className="app-dialog-frame app-about-window">/);
-  assert.doesNotMatch(
-    preferencesSource,
-    /<div className="app-dialog-frame app-preferences-window">/,
-  );
+  assert.doesNotMatch(aboutSource, /app-dialog-frame app-about-window/);
+  assert.doesNotMatch(preferencesSource, /app-dialog-frame app-preferences-window/);
 });
 
 test("dialog drag frame starts dragging only from explicit status bar targets", async () => {
@@ -49,17 +46,19 @@ test("dialog drag frame starts dragging only from explicit status bar targets", 
 });
 
 test("dialog status bar keeps native-style title and control layout", async () => {
-  const [statusBarSource, controlsSource, cssSource] = await Promise.all([
+  const [statusBarSource, controlsSource, stylesCss, stylesSource] = await Promise.all([
     readSource("src/components/DialogStatusBar.tsx"),
     readSource("src/components/DialogWindowControls.tsx"),
-    readSource("src/App.css"),
+    readSource("src/styles.css"),
+    readSource("src/uiStyles.ts"),
   ]);
 
   assert.match(statusBarSource, /getPreferredWindowControlSide/);
-  assert.match(statusBarSource, /is-controls-\$\{controlSide\}/);
+  assert.match(statusBarSource, /ui\.dialogStatusBar\(controlSide\)/);
   assert.match(controlsSource, /data-dialog-drag-exclude/);
-  assert.match(cssSource, /--app-titlebar-bg/);
-  assert.match(cssSource, /\.app-dialog-statusbar\.is-controls-left/);
-  assert.match(cssSource, /\.app-dialog-statusbar\.is-controls-right/);
-  assert.doesNotMatch(cssSource, /\.app-dialog-statusbar::after/);
+  assert.match(stylesCss, /--mclip-titlebar-bg/);
+  assert.match(stylesSource, /dialogStatusBar\(controlSide: WindowControlSide\)/);
+  assert.match(stylesSource, /controlSide === "left"/);
+  assert.match(stylesSource, /controlSide === "right"/);
+  assert.doesNotMatch(stylesCss, /dialog-statusbar::after/);
 });

@@ -1,6 +1,7 @@
 import type { MouseEvent, ReactNode } from "react";
 
 import { startCurrentWindowDrag } from "../lib/tauri";
+import { dialogFrame } from "../uiStyles";
 import { shouldStartDialogWindowDrag } from "../utils/dialogDrag";
 
 type DialogWindowFrameProps = {
@@ -20,7 +21,7 @@ export function DialogWindowFrame({ children, className }: DialogWindowFrameProp
   };
 
   return (
-    <div className={`app-dialog-frame ${className}`} onMouseDown={handleMouseDown}>
+    <div className={dialogFrame(className)} onMouseDown={handleMouseDown}>
       {children}
     </div>
   );

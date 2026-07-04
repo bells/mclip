@@ -15,8 +15,8 @@ test("color and emoji affordances render in history rows and detail content", as
 
   for (const source of [listSource, groupPreviewSource, detailSource]) {
     assert.match(source, /getTextHistoryAffordance/);
-    assert.match(source, /app-history-affordance/);
-    assert.match(source, /app-history-color-swatch/);
-    assert.match(source, /app-history-emoji-badge/);
+    assert.match(source, /ui\.historyAffordance/);
+    assert.match(source, /ui\.historyColorSwatch/);
+    assert.match(source, /ui\.historyEmojiBadge/);
   }
 });

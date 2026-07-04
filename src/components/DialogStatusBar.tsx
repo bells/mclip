@@ -3,6 +3,7 @@ import {
   getPreferredWindowControlSide,
   type DialogWindowControlLabels,
 } from "./DialogWindowControls";
+import { ui } from "../uiStyles";
 
 type DialogStatusBarProps = {
   controlsLabels: DialogWindowControlLabels;
@@ -17,17 +18,17 @@ export function DialogStatusBar({
 
   return (
     <div
-      className={`app-dialog-statusbar is-controls-${controlSide}`}
+      className={ui.dialogStatusBar(controlSide)}
       data-dialog-drag-region
     >
       {controlSide === "left" ? (
         <>
           <DialogWindowControls labels={controlsLabels} />
-          <span className="app-modal-title">{title}</span>
+          <span className={ui.modalTitle}>{title}</span>
         </>
       ) : (
         <>
-          <span className="app-modal-title">{title}</span>
+          <span className={ui.modalTitle}>{title}</span>
           <DialogWindowControls labels={controlsLabels} />
         </>
       )}

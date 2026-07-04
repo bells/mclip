@@ -26,6 +26,7 @@ import {
   type ProjectLinkTarget,
 } from "../lib/tauri";
 import type { AppSettings } from "../types";
+import { ui } from "../uiStyles";
 import { normalizeSettings } from "../utils/settings";
 import {
   isReleaseNewer,
@@ -214,40 +215,40 @@ export function AboutWindow() {
   };
 
   return (
-    <DialogWindowFrame className="app-about-window">
-      <div className="app-dialog-panel">
+    <DialogWindowFrame className={ui.aboutWindowFrame}>
+      <div className={ui.dialogPanel}>
         <DialogStatusBar
           controlsLabels={translations.windowControls}
           title={t.title}
         />
 
-        <div className="app-modal-content">
-          <div className="app-modal-identity">
-            <img className="app-about-icon" src={appIconUrl} alt="" aria-hidden="true" />
-            <h2 className="app-modal-app-name">{APP_NAME}</h2>
-            <span className="app-modal-version">{t.version(appVersion)}</span>
+        <div className={ui.dialogContent}>
+          <div className={ui.modalIdentity}>
+            <img className={ui.aboutIcon} src={appIconUrl} alt="" aria-hidden="true" />
+            <h2 className={ui.modalAppName}>{APP_NAME}</h2>
+            <span className={ui.modalVersion}>{t.version(appVersion)}</span>
           </div>
-          <p className="app-modal-description">{t.description}</p>
-          <div className="app-about-links" aria-label={t.linksLabel}>
+          <p className={ui.modalDescription}>{t.description}</p>
+          <div className={ui.aboutLinks} aria-label={t.linksLabel}>
             {([
               ["github", t.githubLabel],
               ["homepage", t.homepageLabel],
             ] as const).map(([target, label]) => (
               <button
-                className="app-about-link-btn"
+                className={ui.aboutLinkButton}
                 key={target}
                 onClick={() => {
                   void handleOpenProjectLink(target);
                 }}
                 type="button"
               >
-                <span className="app-about-link-label">{label}</span>
+                <span className={ui.aboutLinkLabel}>{label}</span>
               </button>
             ))}
           </div>
-          <div className="app-update-actions">
+          <div className={ui.updateActions}>
             <button
-              className="app-diagnostics-btn"
+              className={ui.diagnosticsButton}
               disabled={isCheckingUpdates}
               onClick={() => {
                 void handleCheckUpdates();
@@ -258,7 +259,7 @@ export function AboutWindow() {
             </button>
             {isUpdateAvailable ? (
               <button
-                className="app-diagnostics-btn"
+                className={ui.diagnosticsButton}
                 onClick={() => {
                   void handleOpenLatestRelease();
                 }}
@@ -269,37 +270,37 @@ export function AboutWindow() {
             ) : null}
           </div>
           <p
-            className={`app-update-status ${
-              updateStatus.kind === "error" ? "is-error" : ""
+            className={`${ui.updateStatus} ${
+              updateStatus.kind === "error" ? ui.updateStatusError : ""
             }`}
             aria-live="polite"
           >
             {getUpdateStatusMessage()}
           </p>
-          <div className="app-diagnostics-actions">
+          <div className={ui.diagnosticsActions}>
             <button
-              className="app-diagnostics-btn"
+              className={ui.diagnosticsButton}
               onClick={handleOpenLogs}
               type="button"
             >
               {t.openLogs}
             </button>
             <button
-              className="app-diagnostics-btn"
+              className={ui.diagnosticsButton}
               onClick={handleCopyDiagnostics}
               type="button"
             >
               {t.copyDiagnostics}
             </button>
             <button
-              className="app-diagnostics-btn"
+              className={ui.diagnosticsButton}
               onClick={handleReportIssue}
               type="button"
             >
               {t.reportIssue}
             </button>
           </div>
-          <p className="app-diagnostics-status" aria-live="polite">
+          <p className={ui.diagnosticsStatus} aria-live="polite">
             {diagnosticMessage}
           </p>
         </div>

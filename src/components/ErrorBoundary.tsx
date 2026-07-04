@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
+import { ui } from "../uiStyles";
 import { logClientError } from "../utils/diagnostics";
 
 type ErrorBoundaryProps = {
@@ -32,10 +33,10 @@ export class ErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="app-frame">
-          <div className="app-panel app-error-panel" role="alert">
-            <span className="app-error-title">mclip failed to render</span>
-            <span className="app-error-copy">
+        <div className={ui.appFrame}>
+          <div className={`${ui.appPanel} ${ui.errorPanel}`} role="alert">
+            <span className={ui.errorTitle}>mclip failed to render</span>
+            <span className={ui.errorCopy}>
               Please open About and copy diagnostics after restarting.
             </span>
           </div>

@@ -2,9 +2,9 @@
 
 import type { AppTranslations } from "../i18n";
 import type { HistoryGroupInfo } from "../types";
+import { archiveRow, ui } from "../uiStyles";
 import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
-
-const MAX_VISIBLE_ARCHIVE_GROUPS = 5;
+import { ChevronRightIcon, FolderIcon } from "./UiIcons";
 
 // 主列表显示最新一组，后续分组通过这些入口打开右侧 preview 窗口。
 type HistoryGroupNavProps = {
@@ -44,13 +44,11 @@ export function HistoryGroupNav({
   };
 
   return (
-    <div className="app-history-archive" onMouseLeave={onScheduleClosePreview}>
-      <div className="app-history-archive-divider" />
+    <div className={ui.archive} onMouseLeave={onScheduleClosePreview}>
+      <div className={ui.archiveDivider} />
 
       <div
-        className={`app-history-archive-list ${
-          archiveGroups.length > MAX_VISIBLE_ARCHIVE_GROUPS ? "is-scrollable" : ""
-        }`}
+        className={ui.archiveList}
         aria-label={translations.groupAriaLabel}
       >
         {archiveGroups.map((group) => {
@@ -62,24 +60,22 @@ export function HistoryGroupNav({
 
           // map 渲染列表时必须给稳定的 key，React 用它识别哪些节点需要复用。
           return (
-            <div className="app-history-archive-entry" key={group.index}>
+            <div className={ui.archiveEntry} key={group.index}>
               <button
                 aria-expanded={isActive}
                 aria-haspopup="menu"
-                className={`app-history-archive-row ${isActive ? "is-active" : ""}`}
+                className={archiveRow(isActive)}
                 data-main-keyboard-target={targetId}
                 onClick={(event) => openPreview(group.index, event.currentTarget, targetId)}
                 onFocus={(event) => openPreview(group.index, event.currentTarget, targetId)}
                 onMouseEnter={(event) => openPreview(group.index, event.currentTarget, targetId)}
                 type="button"
               >
-                <span className="app-history-folder-icon" aria-hidden="true" />
-                <span className="app-history-archive-label">
+                <FolderIcon className={ui.archiveFolderIcon} />
+                <span className={ui.archiveLabel}>
                   {group.startPosition} - {group.endPosition}
                 </span>
-                <span className="app-history-archive-chevron" aria-hidden="true">
-                  &gt;
-                </span>
+                <ChevronRightIcon className={ui.archiveChevron} />
               </button>
             </div>
           );

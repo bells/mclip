@@ -36,9 +36,17 @@ import type {
   HistoryKind,
   MenuBarIconStyle,
 } from "../types";
+import {
+  historyTypeRow,
+  settingsTab,
+  switchControl,
+  switchThumb,
+  ui,
+} from "../uiStyles";
 import { normalizeSettings } from "../utils/settings";
 import { DialogStatusBar } from "./DialogStatusBar";
 import { DialogWindowFrame } from "./DialogWindowFrame";
+import { CheckIcon } from "./UiIcons";
 
 type PreferencesTab = "general" | "storage" | "cli";
 type VisibleItemCountSetting = "mainWindowItemCount" | "historyGroupItemCount";
@@ -532,16 +540,16 @@ export function PreferencesWindow() {
   };
 
   return (
-    <DialogWindowFrame className="app-preferences-window">
-      <div className="app-dialog-panel app-settings-window-panel">
+    <DialogWindowFrame className={ui.preferencesWindowFrame}>
+      <div className={`${ui.dialogPanel} ${ui.settingsWindowPanel}`}>
         <DialogStatusBar
           controlsLabels={translations.windowControls}
           title={t.title}
         />
 
-        <div className="app-modal-content">
-          <div className="app-settings-content">
-            <div aria-label={t.tabsLabel} className="app-settings-tabs" role="tablist">
+        <div className={ui.dialogContent}>
+          <div className={ui.settingsContent}>
+            <div aria-label={t.tabsLabel} className={ui.settingsTabs} role="tablist">
               {([
                 ["general", t.generalTab],
                 ["storage", t.storageTab],
@@ -549,7 +557,7 @@ export function PreferencesWindow() {
               ] as const).map(([tab, label]) => (
                   <button
                     aria-selected={activeTab === tab}
-                    className={`app-settings-tab ${activeTab === tab ? "is-active" : ""}`}
+                    className={settingsTab(activeTab === tab)}
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     role="tab"
@@ -561,13 +569,13 @@ export function PreferencesWindow() {
             </div>
 
             {activeTab === "general" ? (
-              <div className="app-settings-tab-panel" role="tabpanel">
-                <div className="app-settings-primary-grid">
-                  <div className="app-settings-compact-field">
-                    <div className="app-settings-label">{t.languageLabel}</div>
+              <div className={ui.settingsTabPanel} role="tabpanel">
+                <div className={ui.settingsPrimaryGrid}>
+                  <div className={ui.settingsCompactField}>
+                    <div className={ui.settingsLabel}>{t.languageLabel}</div>
                     <select
                       aria-label={t.languageLabel}
-                      className="app-settings-select app-language-select"
+                      className={`${ui.settingsSelect} ${ui.languageSelect}`}
                       onChange={(event) => updateLanguage(event.target.value as AppLanguage)}
                       value={settingsDraft.language}
                     >
@@ -576,18 +584,22 @@ export function PreferencesWindow() {
                     </select>
                   </div>
 
-                  <div className="app-settings-compact-field">
-                    <div className="app-settings-label">{t.menuBarIconStyleLabel}</div>
-                    <div className="app-menu-bar-icon-select">
+                  <div className={ui.settingsCompactField}>
+                    <div className={ui.settingsLabel}>{t.menuBarIconStyleLabel}</div>
+                    <div className={ui.menuBarIconSelect}>
                       <span
                         aria-hidden="true"
-                        className="app-menu-bar-icon-select-preview"
+                        className={ui.menuBarIconSelectPreview}
                       >
-                        <img src={selectedMenuBarIconUrl} alt="" />
+                        <img
+                          className={ui.menuBarIconSelectImage}
+                          src={selectedMenuBarIconUrl}
+                          alt=""
+                        />
                       </span>
                       <select
                         aria-label={t.menuBarIconStyleLabel}
-                        className="app-settings-select app-menu-bar-icon-select-control"
+                        className={ui.menuBarIconSelectControl}
                         onChange={(event) =>
                           updateMenuBarIconStyle(
                             event.target.value as MenuBarIconStyle,
@@ -601,11 +613,11 @@ export function PreferencesWindow() {
                     </div>
                   </div>
 
-                  <div className="app-settings-compact-field">
-                    <div className="app-settings-label">{t.appearanceThemeLabel}</div>
+                  <div className={ui.settingsCompactField}>
+                    <div className={ui.settingsLabel}>{t.appearanceThemeLabel}</div>
                     <select
                       aria-label={t.appearanceThemeLabel}
-                      className="app-settings-select"
+                      className={ui.settingsSelect}
                       onChange={(event) =>
                         updateAppearanceTheme(event.target.value as AppearanceTheme)
                       }
@@ -618,10 +630,10 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
-                <div className="app-settings-row">
-                  <div className="app-settings-copy">
-                    <div className="app-settings-label">{t.launchAtLoginLabel}</div>
-                    <div className="app-settings-description">
+                <div className={ui.settingsRow}>
+                  <div className={ui.settingsCopy}>
+                    <div className={ui.settingsLabel}>{t.launchAtLoginLabel}</div>
+                    <div className={ui.settingsDescription}>
                       {t.launchAtLoginDescription}
                     </div>
                   </div>
@@ -629,29 +641,31 @@ export function PreferencesWindow() {
                   <button
                     aria-label={t.launchAtLoginLabel}
                     aria-pressed={settingsDraft.launchAtLogin}
-                    className={`app-switch ${settingsDraft.launchAtLogin ? "is-on" : ""}`}
+                    className={switchControl(settingsDraft.launchAtLogin)}
                     onClick={toggleLaunchAtLogin}
                     type="button"
                   >
-                    <span className="app-switch-thumb" />
+                    <span className={switchThumb(settingsDraft.launchAtLogin)} />
                   </button>
                 </div>
 
-                <div className="app-settings-row">
-                  <div className="app-settings-copy">
-                    <div className="app-settings-label">{t.autoPasteLabel}</div>
-                    <div className="app-settings-description">
+                <div className={ui.settingsRow}>
+                  <div className={ui.settingsCopy}>
+                    <div className={ui.settingsLabel}>{t.autoPasteLabel}</div>
+                    <div className={ui.settingsDescription}>
                       {t.autoPasteDescription}
                     </div>
                     {isMacOs ? (
-                      <div className="app-settings-note">
+                      <div className={ui.settingsNote}>
                         {t.autoPastePermissionNote}
                       </div>
                     ) : null}
                     {isMacOs && autoPastePermissionStatus ? (
                       <div
-                        className={`app-settings-note ${
-                          autoPastePermissionStatus.isGranted ? "is-ok" : "is-warning"
+                        className={`${ui.settingsNote} ${
+                          autoPastePermissionStatus.isGranted
+                            ? ui.settingsNoteOk
+                            : ui.settingsNoteWarning
                         }`}
                       >
                         {autoPastePermissionStatus.isGranted
@@ -661,21 +675,21 @@ export function PreferencesWindow() {
                     ) : null}
                   </div>
 
-                  <div className="app-settings-row-actions">
+                  <div className={ui.settingsRowActions}>
                     <button
                       aria-label={t.autoPasteLabel}
                       aria-pressed={settingsDraft.autoPaste}
-                      className={`app-switch ${settingsDraft.autoPaste ? "is-on" : ""}`}
+                      className={switchControl(settingsDraft.autoPaste)}
                       disabled={isCheckingAutoPastePermission}
                       onClick={() => void toggleAutoPaste()}
                       type="button"
                     >
-                      <span className="app-switch-thumb" />
+                      <span className={switchThumb(settingsDraft.autoPaste)} />
                     </button>
 
                     {isMacOs ? (
                       <button
-                        className="app-settings-action-btn"
+                        className={ui.settingsActionButton}
                         onClick={openAutoPastePermission}
                         type="button"
                       >
@@ -685,7 +699,7 @@ export function PreferencesWindow() {
 
                     {isMacOs ? (
                       <button
-                        className="app-settings-action-btn"
+                        className={ui.settingsActionButton}
                         disabled={isCheckingAutoPastePermission}
                         onClick={() => void refreshAutoPastePermissionStatus()}
                         type="button"
@@ -699,22 +713,22 @@ export function PreferencesWindow() {
             ) : null}
 
             {activeTab === "storage" ? (
-              <div className="app-settings-tab-panel" role="tabpanel">
-                <div className="app-settings-row">
-                  <div className="app-settings-copy">
-                    <div className="app-settings-label">{t.maxHistoryCountLabel}</div>
-                    <div className="app-settings-description">
+              <div className={ui.settingsTabPanel} role="tabpanel">
+                <div className={ui.settingsRow}>
+                  <div className={ui.settingsCopy}>
+                    <div className={ui.settingsLabel}>{t.maxHistoryCountLabel}</div>
+                    <div className={ui.settingsDescription}>
                       {t.maxHistoryCountDescription}
                     </div>
-                    <div className="app-settings-note">
+                    <div className={ui.settingsNote}>
                       {t.rangeNote(MIN_MAX_HISTORY_COUNT, MAX_MAX_HISTORY_COUNT)}
                     </div>
                   </div>
 
-                  <div className="app-stepper">
+                  <div className={ui.stepper}>
                     <button
                       aria-label={t.decreaseMaxHistoryCount}
-                      className="app-stepper-btn"
+                      className={ui.stepperButton}
                       onClick={() =>
                         updateMaxHistoryCount(settingsDraft.maxHistoryCount - 1)
                       }
@@ -724,7 +738,7 @@ export function PreferencesWindow() {
                     </button>
                     <input
                       aria-label={t.maxHistoryCountAriaLabel}
-                      className="app-stepper-input"
+                      className={ui.stepperInput}
                       max={MAX_MAX_HISTORY_COUNT}
                       min={MIN_MAX_HISTORY_COUNT}
                       onBlur={commitMaxHistoryCountInput}
@@ -739,7 +753,7 @@ export function PreferencesWindow() {
                     />
                     <button
                       aria-label={t.increaseMaxHistoryCount}
-                      className="app-stepper-btn"
+                      className={ui.stepperButton}
                       onClick={() =>
                         updateMaxHistoryCount(settingsDraft.maxHistoryCount + 1)
                       }
@@ -750,23 +764,23 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
-                <div className="app-settings-row">
-                  <div className="app-settings-copy">
-                    <div className="app-settings-label">
+                <div className={ui.settingsRow}>
+                  <div className={ui.settingsCopy}>
+                    <div className={ui.settingsLabel}>
                       {t.mainWindowItemCountLabel}
                     </div>
-                    <div className="app-settings-description">
+                    <div className={ui.settingsDescription}>
                       {t.mainWindowItemCountDescription}
                     </div>
-                    <div className="app-settings-note">
+                    <div className={ui.settingsNote}>
                       {t.rangeNote(MIN_VISIBLE_ITEM_COUNT, mainWindowItemCountMax)}
                     </div>
                   </div>
 
-                  <div className="app-stepper">
+                  <div className={ui.stepper}>
                     <button
                       aria-label={t.decreaseMainWindowItemCount}
-                      className="app-stepper-btn"
+                      className={ui.stepperButton}
                       onClick={() =>
                         updateVisibleItemCount(
                           "mainWindowItemCount",
@@ -779,7 +793,7 @@ export function PreferencesWindow() {
                     </button>
                     <input
                       aria-label={t.mainWindowItemCountAriaLabel}
-                      className="app-stepper-input"
+                      className={ui.stepperInput}
                       max={mainWindowItemCountMax}
                       min={MIN_VISIBLE_ITEM_COUNT}
                       onBlur={() =>
@@ -801,7 +815,7 @@ export function PreferencesWindow() {
                     />
                     <button
                       aria-label={t.increaseMainWindowItemCount}
-                      className="app-stepper-btn"
+                      className={ui.stepperButton}
                       onClick={() =>
                         updateVisibleItemCount(
                           "mainWindowItemCount",
@@ -815,23 +829,23 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
-                <div className="app-settings-row">
-                  <div className="app-settings-copy">
-                    <div className="app-settings-label">
+                <div className={ui.settingsRow}>
+                  <div className={ui.settingsCopy}>
+                    <div className={ui.settingsLabel}>
                       {t.historyGroupItemCountLabel}
                     </div>
-                    <div className="app-settings-description">
+                    <div className={ui.settingsDescription}>
                       {t.historyGroupItemCountDescription}
                     </div>
-                    <div className="app-settings-note">
+                    <div className={ui.settingsNote}>
                       {t.rangeNote(MIN_VISIBLE_ITEM_COUNT, MAX_VISIBLE_ITEM_COUNT)}
                     </div>
                   </div>
 
-                  <div className="app-stepper">
+                  <div className={ui.stepper}>
                     <button
                       aria-label={t.decreaseHistoryGroupItemCount}
-                      className="app-stepper-btn"
+                      className={ui.stepperButton}
                       onClick={() =>
                         updateVisibleItemCount(
                           "historyGroupItemCount",
@@ -844,7 +858,7 @@ export function PreferencesWindow() {
                     </button>
                     <input
                       aria-label={t.historyGroupItemCountAriaLabel}
-                      className="app-stepper-input"
+                      className={ui.stepperInput}
                       max={MAX_VISIBLE_ITEM_COUNT}
                       min={MIN_VISIBLE_ITEM_COUNT}
                       onBlur={() =>
@@ -866,7 +880,7 @@ export function PreferencesWindow() {
                     />
                     <button
                       aria-label={t.increaseHistoryGroupItemCount}
-                      className="app-stepper-btn"
+                      className={ui.stepperButton}
                       onClick={() =>
                         updateVisibleItemCount(
                           "historyGroupItemCount",
@@ -880,12 +894,12 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
-                <div className="app-settings-row">
-                  <div className="app-settings-copy">
-                    <div className="app-settings-label">
+                <div className={ui.settingsRow}>
+                  <div className={ui.settingsCopy}>
+                    <div className={ui.settingsLabel}>
                       {t.showHistoryItemNumbersLabel}
                     </div>
-                    <div className="app-settings-description">
+                    <div className={ui.settingsDescription}>
                       {t.showHistoryItemNumbersDescription}
                     </div>
                   </div>
@@ -893,23 +907,21 @@ export function PreferencesWindow() {
                   <button
                     aria-label={t.showHistoryItemNumbersLabel}
                     aria-pressed={settingsDraft.showHistoryItemNumbers}
-                    className={`app-switch ${
-                      settingsDraft.showHistoryItemNumbers ? "is-on" : ""
-                    }`}
+                    className={switchControl(settingsDraft.showHistoryItemNumbers)}
                     onClick={toggleHistoryItemNumbers}
                     type="button"
                   >
-                    <span className="app-switch-thumb" />
+                    <span className={switchThumb(settingsDraft.showHistoryItemNumbers)} />
                   </button>
                 </div>
 
-                <div className="app-settings-section">
-                  <div className="app-settings-section-heading">
-                    <div className="app-settings-label">{t.typesLabel}</div>
-                    <div className="app-settings-description">{t.typesDescription}</div>
+                <div className={ui.settingsSection}>
+                  <div className={ui.settingsSectionHeading}>
+                    <div className={ui.settingsLabel}>{t.typesLabel}</div>
+                    <div className={ui.settingsDescription}>{t.typesDescription}</div>
                   </div>
 
-                  <div className="app-history-type-list">
+                  <div className={ui.historyTypeList}>
                     {/* `as const` 让 TypeScript 把 kind 推断成字面量类型，而不是普通 string。 */}
                     {([
                       ["text", t.typeText],
@@ -918,15 +930,17 @@ export function PreferencesWindow() {
                     ] as const).map(([kind, label]) => (
                       <button
                         aria-pressed={settingsDraft.enabledHistoryTypes[kind]}
-                        className={`app-history-type-row ${
-                          settingsDraft.enabledHistoryTypes[kind] ? "is-on" : ""
-                        }`}
+                        className={historyTypeRow(settingsDraft.enabledHistoryTypes[kind])}
                         key={kind}
                         onClick={() => toggleHistoryType(kind)}
                         type="button"
                       >
-                        <span className="app-history-type-label">{label}</span>
-                        <span className="app-history-type-check" />
+                        <span className={ui.historyTypeLabel}>{label}</span>
+                        <span className={ui.historyTypeCheck}>
+                          {settingsDraft.enabledHistoryTypes[kind] ? (
+                            <CheckIcon className="size-3.5" />
+                          ) : null}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -935,20 +949,20 @@ export function PreferencesWindow() {
             ) : null}
 
             {activeTab === "cli" ? (
-              <div className="app-settings-tab-panel" role="tabpanel">
-                <div className="app-settings-section app-cli-install-section">
-                  <div className="app-settings-section-heading">
-                    <div className="app-settings-label">{t.cliSectionLabel}</div>
-                    <div className="app-settings-description">
+              <div className={ui.settingsTabPanel} role="tabpanel">
+                <div className={`${ui.settingsSection} ${ui.cliInstallSection}`}>
+                  <div className={ui.settingsSectionHeading}>
+                    <div className={ui.settingsLabel}>{t.cliSectionLabel}</div>
+                    <div className={ui.settingsDescription}>
                       {t.cliSectionDescription}
                     </div>
                   </div>
 
-                  <div className="app-cli-status-row">
-                    <div className="app-cli-status-copy">
+                  <div className={ui.cliStatusRow}>
+                    <div className={ui.cliStatusCopy}>
                       <span
-                        className={`app-cli-status-badge ${
-                          cliStatus?.isInstalled ? "is-installed" : "is-missing"
+                        className={`${ui.cliStatusBadge} ${
+                          cliStatus?.isInstalled ? ui.cliStatusBadgeInstalled : ""
                         }`}
                       >
                         {cliStatus
@@ -957,25 +971,25 @@ export function PreferencesWindow() {
                             : t.cliNotInstalled
                           : t.cliChecking}
                       </span>
-                      <div className="app-settings-note">
+                      <div className={ui.settingsNote}>
                         {cliStatus
                           ? t.cliInstallPath(cliStatus.installPath)
                           : t.cliCheckingDescription}
                       </div>
                       {cliStatus && !cliStatus.isOnPath ? (
-                        <div className="app-settings-note">
+                        <div className={ui.settingsNote}>
                           {t.cliPathNotOnPath(cliStatus.installDir)}
                         </div>
                       ) : null}
                       {cliStatus && !cliStatus.sourceAvailable ? (
-                        <div className="app-settings-note">
+                        <div className={ui.settingsNote}>
                           {t.cliSourceUnavailable}
                         </div>
                       ) : null}
                     </div>
 
                     <button
-                      className="app-cli-action-btn"
+                      className={ui.cliActionButton}
                       disabled={
                         isInstallingCli ||
                         !cliStatus ||
@@ -994,12 +1008,12 @@ export function PreferencesWindow() {
                     </button>
                   </div>
 
-                  <div className="app-cli-command-row">
-                    <code className="app-cli-command">
+                  <div className={ui.cliCommandRow}>
+                    <code className={ui.cliCommand}>
                       {cliStatus?.installCommand ?? t.cliChecking}
                     </code>
                     <button
-                      className="app-cli-copy-btn"
+                      className={ui.cliCopyButton}
                       disabled={!cliStatus}
                       onClick={copyCliInstallCommand}
                       type="button"
@@ -1009,9 +1023,9 @@ export function PreferencesWindow() {
                   </div>
 
                   {cliStatusError ? (
-                    <div className="app-settings-error">{cliStatusError}</div>
+                    <div className={ui.settingsError}>{cliStatusError}</div>
                   ) : cliInstallMessage ? (
-                    <div className="app-settings-status" aria-live="polite">
+                    <div className={ui.settingsStatus} aria-live="polite">
                       {cliInstallMessage}
                     </div>
                   ) : null}
@@ -1020,7 +1034,7 @@ export function PreferencesWindow() {
             ) : null}
 
             {settingsError ? (
-              <div className="app-settings-error">{settingsError}</div>
+              <div className={ui.settingsError}>{settingsError}</div>
             ) : null}
           </div>
         </div>

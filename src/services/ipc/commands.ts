@@ -57,6 +57,12 @@ export function adjustWindowHeight(itemCount: number, groupCount: number) {
   });
 }
 
+export function adjustWindowHeightToContent(contentHeight: number) {
+  return invoke<void>("adjust_window_height_to_content", {
+    contentHeight,
+  });
+}
+
 export function copyHistoryItem(id: string) {
   return invoke<void>("copy_history_item", { id });
 }

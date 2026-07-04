@@ -2,6 +2,7 @@
 
 import type { AppTranslations } from "../i18n";
 import type { HistoryListItem } from "../types";
+import { historyDeleteButton, historyItem, historyItemRow, ui } from "../uiStyles";
 import {
   getTextHistoryAffordance,
   type HistoryTextAffordance,
@@ -9,10 +10,12 @@ import {
 import { getHistoryListDisplayText } from "../utils/history";
 import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
 import { ImageThumb } from "./ImageThumb";
+import { TrashIcon } from "./UiIcons";
 
 // Props 类型让组件的输入更清晰：数据在父组件中维护，列表只发出用户操作。
 type HistoryListProps = {
   hasHistory: boolean;
+  isKeyboardNavigating: boolean;
   items: HistoryListItem[];
   translations: AppTranslations["history"];
   onDeleteItem: (id: string) => void;
@@ -34,9 +37,9 @@ function renderHistoryTextAffordance(affordance: HistoryTextAffordance | null) {
 
   if (affordance.kind === "color") {
     return (
-      <span className="app-history-affordance" aria-hidden="true">
+      <span className={ui.historyAffordance} aria-hidden="true">
         <span
-          className="app-history-color-swatch"
+          className={ui.historyColorSwatch}
           style={{ background: affordance.color }}
         />
       </span>
@@ -44,14 +47,15 @@ function renderHistoryTextAffordance(affordance: HistoryTextAffordance | null) {
   }
 
   return (
-    <span className="app-history-affordance" aria-hidden="true">
-      <span className="app-history-emoji-badge">{affordance.emoji}</span>
+    <span className={ui.historyAffordance} aria-hidden="true">
+      <span className={ui.historyEmojiBadge}>{affordance.emoji}</span>
     </span>
   );
 }
 
 export function HistoryList({
   hasHistory,
+  isKeyboardNavigating,
   items,
   translations,
   onDeleteItem,
@@ -64,8 +68,8 @@ export function HistoryList({
   if (items.length === 0) {
     // 同一个空状态组件根据 hasHistory 区分“没有记录”和“搜索无匹配”。
     return (
-      <div className="app-history-group">
-        <div className="app-empty">
+      <div className={ui.historyGroup}>
+        <div className={ui.empty}>
           {hasHistory ? translations.noMatches : translations.empty}
         </div>
       </div>
@@ -73,7 +77,7 @@ export function HistoryList({
   }
 
   return (
-    <div className="app-history-group">
+    <div className={ui.historyGroup}>
       {items.map((item, index) => {
         const displayText = getHistoryListDisplayText(item);
         const textAffordance =
@@ -85,7 +89,10 @@ export function HistoryList({
 
         return (
           <div
-            className={`app-item-row ${selectedItemId === item.id ? "is-selected" : ""}`}
+            className={historyItemRow(
+              selectedItemId === item.id,
+              isKeyboardNavigating,
+            )}
             // key 不会作为 prop 传给子组件；它只给 React 的列表 diff 算法使用。
             key={item.renderId}
             onMouseEnter={(event) => {
@@ -99,7 +106,7 @@ export function HistoryList({
             onMouseLeave={onScheduleClosePreview}
             >
               <button
-              className={`app-item ${showItemNumbers ? "" : "is-index-hidden"}`}
+              className={historyItem(showItemNumbers)}
               data-main-keyboard-target={targetId}
               onClick={() => onSelectItem(item.id)}
               onFocus={(event) => {
@@ -112,31 +119,31 @@ export function HistoryList({
               type="button"
             >
               {showItemNumbers ? (
-                <span className="app-item-index">{item.position}.</span>
+                <span className={ui.itemIndex}>{item.position}.</span>
               ) : null}
               {item.kind === "image" ? (
-                <span className="app-item-thumbnail-wrap">
+                <span className={ui.itemThumbnailWrap}>
                   <ImageThumb
                     alt={displayText}
-                    className="app-item-thumbnail"
+                    className={ui.itemThumbnail}
                     imagePath={item.imagePath}
                   />
-                  <span className="app-item-text">{displayText}</span>
+                  <span className={ui.itemText}>{displayText}</span>
                 </span>
               ) : (
                 <span
-                  className={`app-item-text ${
-                    textAffordance ? "app-history-text-with-affordance" : ""
+                  className={`${ui.itemText} ${
+                    textAffordance ? ui.historyTextWithAffordance : ""
                   }`}
                 >
                   {renderHistoryTextAffordance(textAffordance)}
-                  <span className="app-history-display-text">{displayText}</span>
+                  <span className={ui.historyDisplayText}>{displayText}</span>
                 </span>
               )}
             </button>
             <button
               aria-label={translations.deleteItemAriaLabel}
-              className="app-item-delete"
+              className={historyDeleteButton(selectedItemId === item.id)}
               onClick={(event) => {
                 // 阻止删除按钮的点击继续冒泡到外层行，避免同时触发选择/复制。
                 event.stopPropagation();
@@ -145,7 +152,7 @@ export function HistoryList({
               title={translations.deleteItemAriaLabel}
               type="button"
             >
-              <span className="app-item-delete-icon" aria-hidden="true" />
+              <TrashIcon className={ui.deleteIcon} />
             </button>
           </div>
         );

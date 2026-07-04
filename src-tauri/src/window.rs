@@ -13,6 +13,7 @@ use raw_window_handle::HasWindowHandle;
 
 pub const WINDOW_WIDTH: f64 = 320.0;
 pub const MAX_WINDOW_HEIGHT: f64 = 900.0;
+const MIN_MAIN_WINDOW_HEIGHT: f64 = 220.0;
 pub const MAIN_WINDOW_SHOWN_EVENT: &str = "main-window-shown";
 const HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT: &str = "history-preview-placement-updated";
 const PREVIEW_WINDOW_LABEL: &str = "preview";
@@ -171,6 +172,34 @@ pub fn adjust_window_height(
 }
 
 #[tauri::command]
+pub fn adjust_window_height_to_content(
+    app_handle: AppHandle,
+    content_height: f64,
+) -> Result<(), String> {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        let desired_height = calculate_content_window_height(content_height);
+        let window_height = window
+            .current_monitor()
+            .map_err(|error| error.to_string())?
+            .as_ref()
+            .map(monitor_work_area_bounds)
+            .map(|screen_bounds| {
+                calculate_content_window_height_for_screen_bounds(content_height, screen_bounds)
+            })
+            .unwrap_or(desired_height);
+
+        window
+            .set_size(Size::Logical(LogicalSize {
+                width: WINDOW_WIDTH,
+                height: window_height,
+            }))
+            .map_err(|error| error.to_string())?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 pub fn show_history_preview_window(
     app_handle: AppHandle,
     anchor_top: f64,
@@ -202,15 +231,16 @@ pub fn show_history_preview_window(
         .outer_position()
         .map_err(|error| error.to_string())?
         .to_logical::<f64>(scale_factor);
-    let clamped_preview_width = clamp_preview_width(preview_width);
-    let clamped_preview_height = clamp_preview_height(preview_height);
-    let clamped_required_width =
-        clamp_preview_width(required_preview_width.max(clamped_preview_width));
     let screen_bounds = main_window
         .current_monitor()
         .map_err(|error| error.to_string())?
         .map(|monitor| monitor_work_area_bounds(&monitor))
         .unwrap_or_else(|| fallback_screen_bounds(main_position.x, main_position.y));
+    let clamped_preview_width = clamp_preview_width(preview_width);
+    let clamped_preview_height =
+        clamp_preview_height_for_screen_bounds(preview_height, screen_bounds);
+    let clamped_required_width =
+        clamp_preview_width(required_preview_width.max(clamped_preview_width));
     let position = calculate_preview_window_position(PreviewWindowPositionInput {
         main_x: main_position.x,
         main_y: main_position.y,
@@ -702,6 +732,29 @@ fn calculate_window_height_for_screen_bounds(
     height.min(screen_bounds.height)
 }
 
+fn calculate_content_window_height(content_height: f64) -> f64 {
+    if !content_height.is_finite() || content_height <= 0.0 {
+        return MIN_MAIN_WINDOW_HEIGHT;
+    }
+
+    content_height
+        .ceil()
+        .clamp(MIN_MAIN_WINDOW_HEIGHT, MAX_WINDOW_HEIGHT)
+}
+
+fn calculate_content_window_height_for_screen_bounds(
+    content_height: f64,
+    screen_bounds: ScreenBounds,
+) -> f64 {
+    let height = calculate_content_window_height(content_height);
+
+    if screen_bounds.height <= 0.0 {
+        return height;
+    }
+
+    height.min(screen_bounds.height)
+}
+
 fn calculate_archive_group_height(visible_group_count: u32) -> f64 {
     if visible_group_count == 0 {
         return 0.0;
@@ -719,6 +772,16 @@ fn clamp_preview_width(width: f64) -> f64 {
 
 fn clamp_preview_height(height: f64) -> f64 {
     height.clamp(MIN_PREVIEW_WINDOW_HEIGHT, MAX_WINDOW_HEIGHT)
+}
+
+fn clamp_preview_height_for_screen_bounds(height: f64, screen_bounds: ScreenBounds) -> f64 {
+    let height = clamp_preview_height(height);
+
+    if screen_bounds.height <= 0.0 {
+        return height;
+    }
+
+    height.min(screen_bounds.height)
 }
 
 fn default_preview_window_position() -> PreviewWindowPosition {
@@ -1142,10 +1205,11 @@ mod macos_window {
 #[cfg(test)]
 mod tests {
     use super::{
+        calculate_content_window_height, calculate_content_window_height_for_screen_bounds,
         calculate_tray_bottom_center_window_position, calculate_window_height,
         calculate_window_height_for_screen_bounds, choose_screen_bounds_for_tray_anchor,
-        clamp_preview_height, clamp_preview_width, is_physical_point_in_rect, TrayWindowAnchor,
-        TrayWindowPositionInput, MAX_WINDOW_HEIGHT,
+        clamp_preview_height, clamp_preview_height_for_screen_bounds, clamp_preview_width,
+        is_physical_point_in_rect, TrayWindowAnchor, TrayWindowPositionInput, MAX_WINDOW_HEIGHT,
     };
     use tauri::{PhysicalPosition, PhysicalSize, Rect};
 
@@ -1181,6 +1245,29 @@ mod tests {
 
         assert_eq!(
             calculate_window_height_for_screen_bounds(100, 10, screen_bounds),
+            676.0
+        );
+    }
+
+    #[test]
+    fn measured_content_height_is_used_for_tight_main_window_sizing() {
+        assert_eq!(calculate_content_window_height(428.4), 429.0);
+        assert_eq!(calculate_content_window_height(0.0), 220.0);
+        assert_eq!(calculate_content_window_height(f64::NAN), 220.0);
+        assert_eq!(calculate_content_window_height(1200.0), MAX_WINDOW_HEIGHT);
+    }
+
+    #[test]
+    fn measured_content_height_is_capped_to_monitor_work_area() {
+        let screen_bounds = super::ScreenBounds {
+            left: 0.0,
+            top: 24.0,
+            width: 1440.0,
+            height: 676.0,
+        };
+
+        assert_eq!(
+            calculate_content_window_height_for_screen_bounds(820.0, screen_bounds),
             676.0
         );
     }
@@ -1307,6 +1394,21 @@ mod tests {
         assert_eq!(clamp_preview_height(10.0), 120.0);
         assert_eq!(clamp_preview_height(182.0), 182.0);
         assert_eq!(clamp_preview_height(2000.0), MAX_WINDOW_HEIGHT);
+    }
+
+    #[test]
+    fn preview_height_is_capped_to_monitor_work_area() {
+        let screen_bounds = super::ScreenBounds {
+            left: 0.0,
+            top: 24.0,
+            width: 1440.0,
+            height: 676.0,
+        };
+
+        assert_eq!(
+            clamp_preview_height_for_screen_bounds(1200.0, screen_bounds),
+            676.0
+        );
     }
 
     #[test]

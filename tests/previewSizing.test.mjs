@@ -34,13 +34,13 @@ const {
 } = await importTypeScriptModule("src/utils/preview.ts");
 
 test("history group preview uses compact row sizing", () => {
-  assert.equal(getGroupPreviewHeight(10), 394);
-  assert.equal(getGroupDetailPreviewOffset(3), 102);
+  assert.equal(getGroupPreviewHeight(10), 358);
+  assert.equal(getGroupDetailPreviewOffset(3), 93);
 });
 
 test("history group preview height expands only when the detail needs it", () => {
-  assert.equal(getGroupPreviewHeightWithDetail(10, 220, 2), 394);
-  assert.equal(getGroupPreviewHeightWithDetail(10, 260, 8), 532);
+  assert.equal(getGroupPreviewHeightWithDetail(10, 220, 2), 358);
+  assert.equal(getGroupPreviewHeightWithDetail(10, 260, 8), 508);
 });
 
 test("item detail preview sizing follows the compact preview chrome", () => {
@@ -49,7 +49,7 @@ test("item detail preview sizing follows the compact preview chrome", () => {
       kind: "text",
       text: "short copied text",
     }),
-    192,
+    204,
   );
   assert.equal(getItemPreviewAnchorTop(100), 54);
 });

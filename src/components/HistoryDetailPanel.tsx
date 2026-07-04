@@ -2,6 +2,7 @@
 
 import { getTranslations } from "../i18n";
 import type { AppLanguage, HistoryListItem } from "../types";
+import { ui } from "../uiStyles";
 import { HistoryPreviewDetailContent } from "./HistoryPreviewDetailContent";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
@@ -35,40 +36,48 @@ export function HistoryDetailPanel({
   className = "",
   role = "dialog",
 }: HistoryDetailPanelProps) {
-  const panelClassName = `app-history-preview app-history-detail-preview ${className}`.trim();
+  const panelClassName = [ui.historyPreview, ui.historyDetailPreview, className]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div aria-label={ariaLabel} className={panelClassName} role={role}>
-      <div className="app-history-preview-header">
-        <span className="app-history-preview-kicker">
+      <div className={ui.historyPreviewHeader}>
+        <span className={ui.historyPreviewKicker}>
           {translations.itemPreviewKicker}
         </span>
-        <span className="app-history-preview-range">
+        <span className={ui.historyPreviewRange}>
           {translations.kindLabels[item.kind]} #{item.position}
         </span>
       </div>
 
-      <div className="app-history-detail-body">
-        <div className="app-history-detail-content-region">
+      <div className={ui.historyDetailBody}>
+        <div className={ui.historyDetailContentRegion}>
           <HistoryPreviewDetailContent item={item} translations={translations} />
         </div>
 
-        <dl className="app-history-detail-meta">
-          <div>
-            <dt>{translations.sourceAppLabel}</dt>
-            <dd>{item.sourceApp ?? translations.sourceAppFallback}</dd>
+        <dl className={ui.historyDetailMeta}>
+          <div className={ui.historyDetailMetaItem}>
+            <dt className={ui.historyDetailMetaLabel}>{translations.sourceAppLabel}</dt>
+            <dd className={ui.historyDetailMetaValue}>
+              {item.sourceApp ?? translations.sourceAppFallback}
+            </dd>
           </div>
-          <div>
-            <dt>{translations.firstCopiedTimeLabel}</dt>
-            <dd>{formatHistoryTimestamp(item.firstCopiedAt, language)}</dd>
+          <div className={ui.historyDetailMetaItem}>
+            <dt className={ui.historyDetailMetaLabel}>{translations.firstCopiedTimeLabel}</dt>
+            <dd className={ui.historyDetailMetaValue}>
+              {formatHistoryTimestamp(item.firstCopiedAt, language)}
+            </dd>
           </div>
-          <div>
-            <dt>{translations.lastCopiedTimeLabel}</dt>
-            <dd>{formatHistoryTimestamp(item.lastCopiedAt, language)}</dd>
+          <div className={ui.historyDetailMetaItem}>
+            <dt className={ui.historyDetailMetaLabel}>{translations.lastCopiedTimeLabel}</dt>
+            <dd className={ui.historyDetailMetaValue}>
+              {formatHistoryTimestamp(item.lastCopiedAt, language)}
+            </dd>
           </div>
-          <div>
-            <dt>{translations.copyCountLabel}</dt>
-            <dd>{item.copyCount}</dd>
+          <div className={ui.historyDetailMetaItem}>
+            <dt className={ui.historyDetailMetaLabel}>{translations.copyCountLabel}</dt>
+            <dd className={ui.historyDetailMetaValue}>{item.copyCount}</dd>
           </div>
         </dl>
       </div>

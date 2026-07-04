@@ -1,6 +1,6 @@
 // 应用根组件。根据 Tauri 当前窗口 label，在主界面和独立 preview 窗口之间切换渲染。
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { AboutWindow } from "./components/AboutWindow";
 import { AppFooter } from "./components/AppFooter";
@@ -11,6 +11,7 @@ import { HistoryGroupNav } from "./components/HistoryGroupNav";
 import { HistoryList } from "./components/HistoryList";
 import { Modal } from "./components/Modal";
 import { PreferencesWindow } from "./components/PreferencesWindow";
+import { AlertIcon } from "./components/UiIcons";
 import { useApplyAppTheme } from "./hooks/useApplyAppTheme";
 import { useClipboardApp } from "./hooks/useClipboardApp";
 import { getTranslations } from "./i18n";
@@ -20,6 +21,7 @@ import {
   listenToMainWindowShown,
   sendHistoryPreviewKeyboardNavigation,
 } from "./lib/tauri";
+import { adjustWindowHeightToContent } from "./services/ipc/commands";
 import {
   getGroupPreviewEntryKey,
   getGroupPreviewReturnKey,
@@ -28,6 +30,7 @@ import {
   serializeMainKeyboardNavigationTarget,
   shouldClearPreviewForMainKeyboardTarget,
 } from "./utils/keyboardNavigation";
+import { ui } from "./uiStyles";
 
 function App() {
   const windowLabel = getCurrentWindowLabel();
@@ -64,6 +67,10 @@ function MainWindow() {
     useState<string | null>(null);
   const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
   const activeMainKeyboardTargetIdRef = useRef<string | null>(null);
+  const headerMeasureRef = useRef<HTMLDivElement | null>(null);
+  const contentMeasureRef = useRef<HTMLDivElement | null>(null);
+  const footerMeasureRef = useRef<HTMLDivElement | null>(null);
+  const lastMeasuredWindowHeightRef = useRef<number | null>(null);
   // 自定义 Hook 把剪贴板历史、设置、窗口命令等逻辑集中起来，组件只负责组装界面。
   const {
     visibleHistory,
@@ -89,6 +96,79 @@ function MainWindow() {
   } = useClipboardApp();
   useApplyAppTheme(settings.appearanceTheme);
   const t = getTranslations(settings.language);
+
+  const measureAndApplyMainWindowHeight = useCallback(() => {
+    const headerHeight = headerMeasureRef.current?.getBoundingClientRect().height ?? 0;
+    const contentHeight = contentMeasureRef.current?.scrollHeight ?? 0;
+    const footerHeight = footerMeasureRef.current?.getBoundingClientRect().height ?? 0;
+    const contentWindowHeight = Math.ceil(headerHeight + contentHeight + footerHeight);
+
+    if (contentWindowHeight <= 0) {
+      return;
+    }
+
+    if (lastMeasuredWindowHeightRef.current === contentWindowHeight) {
+      return;
+    }
+
+    lastMeasuredWindowHeightRef.current = contentWindowHeight;
+    void adjustWindowHeightToContent(contentWindowHeight).catch((error) => {
+      console.error("按内容调整窗口高度失败:", error);
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    let animationFrameId: number | null = null;
+    const observedElements = [
+      headerMeasureRef.current,
+      contentMeasureRef.current,
+      footerMeasureRef.current,
+    ].filter((element): element is HTMLDivElement => element !== null);
+    const scheduleMeasurement = () => {
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+
+      animationFrameId = window.requestAnimationFrame(() => {
+        animationFrameId = null;
+        measureAndApplyMainWindowHeight();
+      });
+    };
+
+    scheduleMeasurement();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", scheduleMeasurement);
+
+      return () => {
+        window.removeEventListener("resize", scheduleMeasurement);
+
+        if (animationFrameId !== null) {
+          window.cancelAnimationFrame(animationFrameId);
+        }
+      };
+    }
+
+    const resizeObserver = new ResizeObserver(scheduleMeasurement);
+    observedElements.forEach((element) => resizeObserver.observe(element));
+    window.addEventListener("resize", scheduleMeasurement);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", scheduleMeasurement);
+
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [
+    hasHistory,
+    historyGroups.length,
+    measureAndApplyMainWindowHeight,
+    searchQuery,
+    settings.showHistoryItemNumbers,
+    visibleHistory.length,
+  ]);
 
   const updateActiveMainKeyboardTarget = useCallback((targetId: string | null) => {
     activeMainKeyboardTargetIdRef.current = targetId;
@@ -440,69 +520,76 @@ function MainWindow() {
 
   return (
     <div
-      className={`app-frame ${isKeyboardNavigating ? "is-keyboard-navigating" : ""}`}
+      className={ui.appFrame}
       onPointerMove={() => setIsKeyboardNavigating(false)}
     >
-      <div className="app-panel">
-        <AppHeader
-          inputRef={searchInputRef}
-          searchQuery={searchQuery}
-          translations={t.header}
-          onSearchFocus={handleSearchFocus}
-          onSearchQueryChange={setSearchQuery}
-        />
-
-        <div className="app-main-scroll-region">
-          <div className="app-body">
-            <HistoryList
-              hasHistory={hasHistory}
-              items={visibleHistory}
-              translations={t.history}
-              onDeleteItem={deleteHistoryItem}
-              onOpenItemPreview={openHistoryItemPreviewFromTarget}
-              onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
-              onSelectItem={selectHistoryItem}
-              showItemNumbers={settings.showHistoryItemNumbers}
-              selectedItemId={activeHistoryItemId ?? undefined}
-            />
-          </div>
-
-          <HistoryGroupNav
-            groups={historyGroups}
-            previewGroupIndex={previewHistoryGroupIndex}
-            translations={t.history}
-            onOpenPreview={openHistoryGroupPreviewFromTarget}
-            onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
+      <div className={ui.appPanel}>
+        <div className={ui.mainHeaderMeasure} ref={headerMeasureRef}>
+          <AppHeader
+            inputRef={searchInputRef}
+            searchQuery={searchQuery}
+            translations={t.header}
+            onSearchFocus={handleSearchFocus}
+            onSearchQueryChange={setSearchQuery}
           />
         </div>
 
-        <AppFooter
-          canClearHistory={hasHistory}
-          selectedAction={activeFooterAction}
-          translations={t.footer}
-          onClearHistory={openClearHistoryConfirm}
-          onKeyboardTargetChange={handleFooterKeyboardTargetChange}
-          onOpenAbout={openAboutDialog}
-          onOpenPreferences={openPreferencesDialog}
-          onPreviewDismissRequest={closeHistoryGroupPreview}
-          onQuit={quit}
-        />
+        <div className={ui.mainScrollRegion}>
+          <div className={ui.mainScrollContent} ref={contentMeasureRef}>
+            <div className={ui.appBody}>
+              <HistoryList
+                hasHistory={hasHistory}
+                isKeyboardNavigating={isKeyboardNavigating}
+                items={visibleHistory}
+                translations={t.history}
+                onDeleteItem={deleteHistoryItem}
+                onOpenItemPreview={openHistoryItemPreviewFromTarget}
+                onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
+                onSelectItem={selectHistoryItem}
+                showItemNumbers={settings.showHistoryItemNumbers}
+                selectedItemId={activeHistoryItemId ?? undefined}
+              />
+            </div>
+
+            <HistoryGroupNav
+              groups={historyGroups}
+              previewGroupIndex={previewHistoryGroupIndex}
+              translations={t.history}
+              onOpenPreview={openHistoryGroupPreviewFromTarget}
+              onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
+            />
+          </div>
+        </div>
+
+        <div className={ui.mainFooterMeasure} ref={footerMeasureRef}>
+          <AppFooter
+            canClearHistory={hasHistory}
+            selectedAction={activeFooterAction}
+            translations={t.footer}
+            onClearHistory={openClearHistoryConfirm}
+            onKeyboardTargetChange={handleFooterKeyboardTargetChange}
+            onOpenAbout={openAboutDialog}
+            onOpenPreferences={openPreferencesDialog}
+            onPreviewDismissRequest={closeHistoryGroupPreview}
+            onQuit={quit}
+          />
+        </div>
 
         {/* JSX 里用三元表达式做条件渲染；不显示时返回 null。 */}
         {isClearConfirmOpen ? (
           <Modal
-            className="app-clear-confirm-modal"
+            className={ui.clearConfirmModal}
             footer={
               <>
                 <button
-                  className="app-modal-secondary-btn"
+                  className={`${ui.modalButton} ${ui.modalSecondaryButton}`}
                   onClick={() => setIsClearConfirmOpen(false)}
                   type="button"
                 >
                   {t.clearHistoryConfirm.cancel}
                 </button>
                 <button
-                  className="app-modal-btn app-modal-danger-btn"
+                  className={`${ui.modalButton} ${ui.modalDangerButton}`}
                   onClick={confirmClearHistory}
                   type="button"
                 >
@@ -513,9 +600,11 @@ function MainWindow() {
             onRequestClose={() => setIsClearConfirmOpen(false)}
             title={t.clearHistoryConfirm.title}
           >
-            <div className="app-clear-confirm">
-              <span className="app-clear-confirm-mark" aria-hidden="true" />
-              <p className="app-clear-confirm-message">
+            <div className={ui.clearConfirm}>
+              <span className={ui.clearConfirmMark} aria-hidden="true">
+                <AlertIcon className="size-4" />
+              </span>
+              <p className={ui.clearConfirmMessage}>
                 {t.clearHistoryConfirm.message}
               </p>
             </div>

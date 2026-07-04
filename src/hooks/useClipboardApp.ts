@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { adjustWindowHeight } from "../services/ipc/commands";
 import type { HistoryListItem } from "../types";
 import { useClipboardActions } from "./useClipboardActions";
 import { useClipboardDataController } from "./useClipboardDataController";
@@ -69,16 +68,6 @@ export function useClipboardApp() {
     settings,
     visibleHistory,
   });
-
-  useEffect(() => {
-    // 内容条数变化后让 Rust 调整透明窗口高度；preview 已拆成独立窗口，主窗口宽度保持固定。
-    void adjustWindowHeight(
-      visibleHistory.length,
-      historyGroups.length,
-    ).catch((error) => {
-      console.error("调整窗口高度失败:", error);
-    });
-  }, [historyGroups.length, visibleHistory.length]);
 
   useEffect(() => {
     clearPreviewState();

@@ -1,4 +1,5 @@
 import { hideCurrentWindow } from "../lib/tauri";
+import { ui, windowControls } from "../uiStyles";
 
 export type DialogWindowControlLabels = {
   close: string;
@@ -24,7 +25,7 @@ export function DialogWindowControls({ labels }: DialogWindowControlsProps) {
     close: (
       <button
         aria-label={labels.close}
-        className="app-window-control app-window-control-close"
+        className={`${ui.windowControl} ${ui.windowControlClose}`}
         key="close"
         onClick={() => {
           void hideCurrentWindow();
@@ -36,7 +37,7 @@ export function DialogWindowControls({ labels }: DialogWindowControlsProps) {
     maximize: (
       <button
         aria-label={labels.maximizeUnavailable}
-        className="app-window-control app-window-control-maximize"
+        className={`${ui.windowControl} ${ui.windowControlMaximize}`}
         disabled
         key="maximize"
         title={labels.maximizeUnavailable}
@@ -46,7 +47,7 @@ export function DialogWindowControls({ labels }: DialogWindowControlsProps) {
     minimize: (
       <button
         aria-label={labels.minimizeUnavailable}
-        className="app-window-control app-window-control-minimize"
+        className={`${ui.windowControl} ${ui.windowControlMinimize}`}
         disabled
         key="minimize"
         title={labels.minimizeUnavailable}
@@ -56,7 +57,7 @@ export function DialogWindowControls({ labels }: DialogWindowControlsProps) {
   };
 
   return (
-    <div className={`app-window-controls is-${side}`} data-dialog-drag-exclude>
+    <div className={windowControls(side)} data-dialog-drag-exclude>
       {side === "left"
         ? [controls.close, controls.minimize, controls.maximize]
         : [controls.minimize, controls.maximize, controls.close]}

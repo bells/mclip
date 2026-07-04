@@ -2,26 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-async function readAppCss() {
-  return readFile("src/App.css", "utf8");
-}
-
-function cssRule(css, selector) {
-  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = css.match(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`));
-
-  assert.ok(match, `${selector} rule should exist`);
-  return match[1];
-}
-
-function cssRules(css, selector) {
-  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const matches = Array.from(
-    css.matchAll(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`, "g")),
-  );
-
-  assert.ok(matches.length > 0, `${selector} rule should exist`);
-  return matches.map((match) => match[1]);
+async function readStylesCss() {
+  return readFile("src/styles.css", "utf8");
 }
 
 function themeVariables(css, selector) {
@@ -111,24 +93,24 @@ function contrastRatio(foreground, background) {
 }
 
 test("light theme readable tokens meet contrast targets", async () => {
-  const css = await readAppCss();
+  const css = await readStylesCss();
   const variables = {
     ...themeVariables(css, ":root"),
     ...themeVariables(css, ':root[data-app-theme="light"]'),
   };
   const requiredPairs = [
-    ["--app-ink", "--app-surface", 4.5],
-    ["--app-ink-soft", "--app-surface", 4.5],
-    ["--app-ink-dim", "--app-surface", 4.5],
-    ["--app-placeholder-ink", "--app-surface", 4.5],
-    ["--app-index-ink", "--app-surface", 4.5],
-    ["--app-meta-label-ink", "--app-surface-translucent", 4.5],
-    ["--app-kicker-ink", "--app-surface-translucent", 4.5],
-    ["--app-accent", "--app-surface", 4.5],
-    ["--app-accent-cool", "--app-surface", 4.5],
-    ["--app-danger", "--app-surface", 4.5],
-    ["--app-focus-ring", "--app-surface", 3],
-    ["--app-line-strong", "--app-surface", 3],
+    ["--mclip-ink", "--mclip-surface", 4.5],
+    ["--mclip-ink-soft", "--mclip-surface", 4.5],
+    ["--mclip-ink-dim", "--mclip-surface", 4.5],
+    ["--mclip-placeholder", "--mclip-surface", 4.5],
+    ["--mclip-index", "--mclip-surface", 4.5],
+    ["--mclip-meta", "--mclip-surface-translucent", 4.5],
+    ["--mclip-kicker", "--mclip-surface-translucent", 4.5],
+    ["--mclip-accent", "--mclip-surface", 4.5],
+    ["--mclip-accent-cool", "--mclip-surface", 4.5],
+    ["--mclip-danger", "--mclip-surface", 4.5],
+    ["--mclip-focus", "--mclip-surface", 3],
+    ["--mclip-line-strong", "--mclip-surface", 3],
   ];
 
   for (const [foregroundToken, backgroundToken, minimum] of requiredPairs) {
@@ -147,38 +129,17 @@ test("light theme readable tokens meet contrast targets", async () => {
   }
 });
 
-test("light theme readability selectors use semantic color tokens", async () => {
-  const css = await readAppCss();
+test("light theme readability classes use semantic color tokens", async () => {
+  const stylesSource = await readFile("src/uiStyles.ts", "utf8");
 
-  assert.match(cssRule(css, ".app-item-index"), /color:\s*var\(--app-index-ink\);/);
-  assert.match(
-    cssRule(css, ".app-history-preview-index"),
-    /color:\s*var\(--app-index-ink\);/,
-  );
-  assert.match(
-    cssRule(css, ".app-history-detail-meta dt"),
-    /color:\s*var\(--app-meta-label-ink\);/,
-  );
-  assert.match(
-    cssRule(css, ".app-history-preview-kicker"),
-    /color:\s*var\(--app-kicker-ink\);/,
-  );
-  assert.match(
-    cssRule(css, ".app-search::placeholder"),
-    /color:\s*var\(--app-placeholder-ink\);/,
-  );
-  assert.match(
-    cssRule(css, ".app-modal-version"),
-    /color:\s*var\(--app-meta-label-ink\);/,
-  );
-  assert.match(
-    cssRule(css, ".app-settings-group-label"),
-    /color:\s*var\(--app-meta-label-ink\);/,
-  );
-  assert.ok(
-    cssRules(css, ".app-settings-note").some((rule) =>
-      /color:\s*var\(--app-meta-label-ink\);/.test(rule),
-    ),
-    ".app-settings-note should use the metadata label token in its specific rule",
-  );
+  for (const token of [
+    "--mclip-index",
+    "--mclip-meta",
+    "--mclip-kicker",
+    "--mclip-placeholder",
+    "--mclip-accent-cool",
+    "--mclip-danger",
+  ]) {
+    assert.match(stylesSource, new RegExp(`var\\(${token}\\)`));
+  }
 });

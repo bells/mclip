@@ -2,6 +2,7 @@
 
 import { getTranslations } from "../i18n";
 import type { HistoryItemPreviewPayload } from "../types";
+import { ui } from "../uiStyles";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
@@ -21,7 +22,7 @@ export function HistoryItemPreviewWindow({
 }: HistoryItemPreviewWindowProps) {
   return (
     <div
-      className="history-preview-window"
+      className={ui.previewWindow}
       onMouseEnter={onPointerInside}
       onMouseMove={onPointerInside}
       onMouseLeave={onRequestClose}

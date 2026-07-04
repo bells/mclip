@@ -2,6 +2,7 @@
 
 import { getTranslations } from "../i18n";
 import type { HistoryListItem } from "../types";
+import { ui } from "../uiStyles";
 import { getTextHistoryAffordance } from "../utils/historyAffordance";
 import { ImageThumb } from "./ImageThumb";
 
@@ -19,13 +20,13 @@ export function HistoryPreviewDetailContent({
   // HistoryListItem 是联合类型，判断 kind 后 TypeScript 会自动收窄字段类型。
   if (item.kind === "image") {
     return (
-      <div className="app-history-detail-image-wrap">
+      <div className={ui.historyDetailImageWrap}>
         <ImageThumb
           alt={item.displayText}
-          className="app-history-detail-image"
+          className={ui.historyDetailImage}
           imagePath={item.imagePath}
         />
-        <div className="app-history-detail-image-caption">
+        <div className={ui.historyDetailImageCaption}>
           {translations.imageSizeLabel(item.width, item.height)} · {item.byteSize > 1024 * 1024
             ? `${(item.byteSize / (1024 * 1024)).toFixed(1)} MB`
             : item.byteSize > 1024
@@ -38,9 +39,9 @@ export function HistoryPreviewDetailContent({
 
   if (item.kind === "files") {
     return (
-      <div className="app-history-detail-files">
+      <div className={ui.historyDetailFiles}>
         {item.filePaths.map((filePath) => (
-          <div className="app-history-detail-file" key={filePath}>
+          <div className={ui.historyDetailFile} key={filePath}>
             {filePath}
           </div>
         ))}
@@ -51,21 +52,24 @@ export function HistoryPreviewDetailContent({
   const textAffordance = getTextHistoryAffordance(item.text);
 
   return (
-    <div className="app-history-detail-content">
+    <div className={ui.historyDetailContent}>
       {textAffordance?.kind === "color" ? (
-        <div className="app-history-detail-affordance app-history-affordance">
-          <span
-            className="app-history-color-swatch"
-            style={{ background: textAffordance.color }}
-            aria-hidden="true"
-          />
+        <div className={ui.historyDetailAffordance}>
+          <span className={ui.historyAffordance} aria-hidden="true">
+            <span
+              className={ui.historyColorSwatch}
+              style={{ background: textAffordance.color }}
+            />
+          </span>
           <span>{textAffordance.color}</span>
         </div>
       ) : null}
       {textAffordance?.kind === "emoji" ? (
-        <div className="app-history-detail-affordance app-history-affordance">
-          <span className="app-history-emoji-badge" aria-hidden="true">
-            {textAffordance.emoji}
+        <div className={ui.historyDetailAffordance}>
+          <span className={ui.historyAffordance} aria-hidden="true">
+            <span className={ui.historyEmojiBadge}>
+              {textAffordance.emoji}
+            </span>
           </span>
         </div>
       ) : null}

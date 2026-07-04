@@ -38,9 +38,10 @@ use crate::diagnostics::{
 use crate::history::{clear_history, delete_history_item, get_history};
 use crate::settings::{get_settings, load_settings, AppLanguage, AppSettings, MenuBarIconStyle};
 use crate::window::{
-    adjust_window_height, configure_main_window, get_history_preview_pointer_position,
-    hide_history_preview_detail_window, hide_history_preview_window, hide_main_window,
-    is_pointer_over_history_preview_window, is_pointer_over_preview_window, show_about_window,
+    adjust_window_height, adjust_window_height_to_content, configure_main_window,
+    get_history_preview_pointer_position, hide_history_preview_detail_window,
+    hide_history_preview_window, hide_main_window, is_pointer_over_history_preview_window,
+    is_pointer_over_preview_window, show_about_window,
     show_history_group_preview_with_detail_window, show_history_preview_detail_window,
     show_history_preview_window, show_main_window, show_preferences_window, toggle_main_window,
     TrayWindowAnchor, WindowPlacement,
@@ -414,6 +415,7 @@ pub fn run() {
             clear_history,
             delete_history_item,
             adjust_window_height,
+            adjust_window_height_to_content,
             show_history_preview_window,
             show_history_group_preview_with_detail_window,
             show_history_preview_detail_window,

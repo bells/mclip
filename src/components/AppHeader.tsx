@@ -5,7 +5,9 @@ import type { RefObject } from "react";
 import appIconUrl from "../../app-icon.png";
 import { APP_NAME } from "../constants";
 import type { AppTranslations } from "../i18n";
+import { ui } from "../uiStyles";
 import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
+import { SearchIcon } from "./UiIcons";
 
 // Props 类型描述父组件必须传入哪些数据和回调；TypeScript 会在使用组件时检查。
 type AppHeaderProps = {
@@ -24,23 +26,23 @@ export function AppHeader({
   onSearchQueryChange,
 }: AppHeaderProps) {
   return (
-    <header className="app-header">
-      <div className="app-brand" aria-label={APP_NAME}>
+    <header className={ui.header}>
+      <div className={ui.brand} aria-label={APP_NAME}>
         <img
           alt=""
           aria-hidden="true"
-          className="app-brand-icon"
+          className={ui.brandIcon}
           draggable={false}
           src={appIconUrl}
         />
-        <span className="app-kicker">{APP_NAME}</span>
+        <span className={ui.kicker}>{APP_NAME}</span>
       </div>
-      <label className="app-search-shell">
-        <span className="app-search-icon" aria-hidden="true" />
+      <label className={ui.searchShell}>
+        <SearchIcon className={ui.searchIcon} />
         <input
           aria-label={translations.searchPlaceholder}
           autoComplete="off"
-          className="app-search"
+          className={ui.search}
           data-main-keyboard-target={serializeMainKeyboardNavigationTarget({
             kind: "search",
           })}
