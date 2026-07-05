@@ -174,10 +174,12 @@ export const ui = {
     "mclip-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 text-[12px] leading-5 text-[var(--mclip-ink-soft)]",
   dialogStatusBar: (controlSide: WindowControlSide) =>
     [
-      "flex h-9 shrink-0 items-center gap-3 border-b border-[var(--mclip-titlebar-line)] bg-[var(--mclip-titlebar-bg)] px-3 text-[var(--mclip-titlebar-ink)]",
+      "relative flex h-9 shrink-0 items-center gap-3 border-b border-[var(--mclip-titlebar-line)] bg-[var(--mclip-titlebar-bg)] px-3 text-[var(--mclip-titlebar-ink)]",
       controlSide === "left" ? "justify-start" : "justify-between",
       controlSide === "right" ? "flex-row-reverse" : "",
     ].filter(Boolean).join(" "),
+  dialogCenteredTitle:
+    "pointer-events-none absolute left-1/2 max-w-[calc(100%-120px)] -translate-x-1/2 overflow-hidden text-ellipsis whitespace-nowrap text-center",
   windowControls: "flex items-center gap-2",
   windowControl:
     `size-3 rounded-full border border-black/15 transition-transform duration-150 disabled:opacity-45 ${focusRing}`,
@@ -210,6 +212,15 @@ export const ui = {
   settingsPrimaryGrid: "grid grid-cols-2 gap-2",
   settingsCompactField: `${fieldSurface} grid gap-1.5 p-2`,
   settingsRow,
+  settingsSwitchGroup: "grid gap-2",
+  settingsSwitchActions: "flex flex-wrap items-center gap-2 pl-8",
+  settingsSwitchRow:
+    "grid w-full grid-cols-[auto_minmax(0,1fr)] items-start gap-3 px-3 py-1.5 text-left",
+  settingsSwitchRowDisabled: "opacity-65",
+  settingsSwitchBox:
+    `${focusRing} mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] text-transparent transition-colors duration-150 hover:bg-[var(--mclip-control-bg-hover)] disabled:cursor-not-allowed disabled:opacity-60`,
+  settingsSwitchBoxOn:
+    "border-[#0a84ff] bg-[#0a84ff] text-white hover:bg-[#0a84ff]",
   settingsSection: `${fieldSurface} grid gap-2 p-3`,
   settingsSectionHeading: "grid gap-1",
   settingsGroupLabel: "text-[11px] font-semibold text-[var(--mclip-meta)]",
@@ -235,12 +246,6 @@ export const ui = {
   stepperButton: `${focusRing} flex h-8 items-center justify-center rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] text-[14px] font-semibold text-[var(--mclip-ink)] transition-colors duration-150 hover:bg-[var(--mclip-control-bg-hover)] disabled:cursor-not-allowed disabled:opacity-45`,
   stepperInput:
     `${focusRing} h-8 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-surface)] px-1 text-center text-[12px] font-semibold tabular-nums text-[var(--mclip-ink)] outline-none`,
-  switch:
-    `${focusRing} relative h-7 w-[46px] rounded-full border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] transition-colors duration-150`,
-  switchOn: "border-[var(--mclip-accent-cool)] bg-[var(--mclip-selection-strong)]",
-  switchThumb:
-    "absolute left-1 top-1 size-[18px] rounded-full bg-[var(--mclip-ink)] transition-transform duration-150",
-  switchThumbOn: "translate-x-[18px] bg-[var(--mclip-accent-cool)]",
   historyTypeList:
     "overflow-hidden rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line)]",
   historyTypeLabel: "text-[12px] font-semibold text-[var(--mclip-ink-soft)]",
@@ -363,8 +368,15 @@ export function dialogFrame(className = "") {
   return [ui.dialogFrame, className].filter(Boolean).join(" ");
 }
 
-export function dialogStatusBar(controlSide: WindowControlSide) {
-  return ui.dialogStatusBar(controlSide);
+export function dialogStatusBar(controlSide: WindowControlSide, centerTitle = false) {
+  if (!centerTitle) {
+    return ui.dialogStatusBar(controlSide);
+  }
+
+  return [
+    "relative flex h-9 shrink-0 items-center gap-3 border-b border-[var(--mclip-titlebar-line)] bg-[var(--mclip-titlebar-bg)] px-3 text-[var(--mclip-titlebar-ink)]",
+    controlSide === "left" ? "justify-start" : "justify-end",
+  ].join(" ");
 }
 
 export function windowControls(side: WindowControlSide) {
@@ -384,12 +396,17 @@ export function settingsTab(isActive: boolean) {
   ].join(" ");
 }
 
-export function switchControl(isOn: boolean) {
-  return [ui.switch, isOn ? ui.switchOn : ""].filter(Boolean).join(" ");
+export function settingsSwitchRow(isDisabled = false) {
+  return [
+    ui.settingsSwitchRow,
+    isDisabled ? ui.settingsSwitchRowDisabled : "",
+  ].filter(Boolean).join(" ");
 }
 
-export function switchThumb(isOn: boolean) {
-  return [ui.switchThumb, isOn ? ui.switchThumbOn : ""].filter(Boolean).join(" ");
+export function settingsSwitchBox(isOn: boolean) {
+  return [ui.settingsSwitchBox, isOn ? ui.settingsSwitchBoxOn : ""]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export function historyTypeRow(isOn: boolean) {

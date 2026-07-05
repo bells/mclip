@@ -54,10 +54,12 @@ test("dialog status bar keeps native-style title and control layout", async () =
   ]);
 
   assert.match(statusBarSource, /getPreferredWindowControlSide/);
-  assert.match(statusBarSource, /ui\.dialogStatusBar\(controlSide\)/);
+  assert.match(statusBarSource, /dialogStatusBar\(controlSide\)/);
+  assert.match(statusBarSource, /centerTitle\?: boolean/);
   assert.match(controlsSource, /data-dialog-drag-exclude/);
   assert.match(stylesCss, /--mclip-titlebar-bg/);
-  assert.match(stylesSource, /dialogStatusBar\(controlSide: WindowControlSide\)/);
+  assert.match(stylesSource, /dialogStatusBar\(controlSide: WindowControlSide, centerTitle = false\)/);
+  assert.match(stylesSource, /dialogCenteredTitle:/);
   assert.match(stylesSource, /controlSide === "left"/);
   assert.match(stylesSource, /controlSide === "right"/);
   assert.doesNotMatch(stylesCss, /dialog-statusbar::after/);

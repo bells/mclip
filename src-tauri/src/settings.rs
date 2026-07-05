@@ -27,9 +27,10 @@ pub enum AppLanguage {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum MenuBarIconStyle {
-    #[default]
     AppIcon,
+    #[default]
     Light,
+    M,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -426,10 +427,10 @@ mod tests {
     }
 
     #[test]
-    fn default_settings_use_app_icon_menu_bar_style() {
+    fn default_settings_use_light_menu_bar_style() {
         let value = serde_json::to_value(AppSettings::default()).unwrap();
 
-        assert_eq!(value["menuBarIconStyle"].as_str(), Some("appIcon"));
+        assert_eq!(value["menuBarIconStyle"].as_str(), Some("light"));
     }
 
     #[test]
@@ -578,6 +579,28 @@ mod tests {
         let value = serde_json::to_value(settings).unwrap();
 
         assert_eq!(value["menuBarIconStyle"].as_str(), Some("light"));
+    }
+
+    #[test]
+    fn settings_deserialize_m_menu_bar_icon_style() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{
+              "autoPaste": false,
+              "launchAtLogin": false,
+              "language": "en",
+              "maxHistoryCount": 50,
+              "enabledHistoryTypes": {
+                "text": true,
+                "image": true,
+                "files": true
+              },
+              "menuBarIconStyle": "m"
+            }"#,
+        )
+        .unwrap();
+        let value = serde_json::to_value(settings).unwrap();
+
+        assert_eq!(value["menuBarIconStyle"].as_str(), Some("m"));
     }
 
     #[test]

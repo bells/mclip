@@ -2,7 +2,7 @@
 
 export type AppLanguage = "zhCn" | "en";
 export type HistoryKind = "text" | "image" | "files";
-export type MenuBarIconStyle = "appIcon" | "light";
+export type MenuBarIconStyle = "appIcon" | "light" | "m";
 export type AppearanceTheme = "system" | "light" | "dark";
 
 export type EnabledHistoryTypes = Record<HistoryKind, boolean>;

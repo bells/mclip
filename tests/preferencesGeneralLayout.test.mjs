@@ -25,12 +25,55 @@ test("general preferences lead with language and menu bar icon in a two-column r
   assert.match(source, /className=\{ui\.settingsCompactField\}[^]*t\.menuBarIconStyleLabel/);
 });
 
+test("preferences title is centered in the dialog status bar", async () => {
+  const source = await readSource("src/components/PreferencesWindow.tsx");
+
+  assert.match(source, /<DialogStatusBar\s+centerTitle/);
+});
+
+test("item number visibility lives in the general tab", async () => {
+  const source = await readSource("src/components/PreferencesWindow.tsx");
+  const generalIndex = source.indexOf('activeTab === "general"');
+  const storageIndex = source.indexOf('activeTab === "storage"');
+  const itemNumbersIndex = source.indexOf("t.showHistoryItemNumbersLabel");
+
+  assert.notEqual(itemNumbersIndex, -1, "item number setting should be rendered");
+  assert.ok(
+    generalIndex < itemNumbersIndex && itemNumbersIndex < storageIndex,
+    "item number setting should appear in the general tab before storage begins",
+  );
+  assert.doesNotMatch(
+    source.slice(storageIndex),
+    /t\.showHistoryItemNumbersLabel/,
+    "storage tab should not render item number visibility",
+  );
+});
+
+test("general switches use a compact checkbox control without row-click behavior", async () => {
+  const source = await readSource("src/components/PreferencesWindow.tsx");
+  const stylesSource = await readSource("src/uiStyles.ts");
+
+  assert.match(source, /function SettingsSwitchItem/);
+  assert.match(source, /<div className=\{settingsSwitchRow\(disabled\)\}>/);
+  assert.match(source, /<button[\s\S]*aria-pressed=\{checked\}[\s\S]*onClick=\{onClick\}/);
+  assert.match(source, /settingsSwitchBox\(checked\)/);
+  assert.match(source, /label=\{t\.showHistoryItemNumbersLabel\}/);
+  assert.doesNotMatch(source, /switchControl/);
+  assert.doesNotMatch(source, /<button[\s\S]*className=\{settingsSwitchRow/);
+  assert.match(stylesSource, /settingsSwitchRow:/);
+  assert.match(stylesSource, /grid-cols-\[auto_minmax\(0,1fr\)\]/);
+  assert.match(stylesSource, /settingsSwitchBox:/);
+  assert.match(stylesSource, /settingsSwitchBoxOn:[\s\S]*#0a84ff/);
+});
+
 test("menu bar icon style uses a compact select instead of option cards", async () => {
   const source = await readSource("src/components/PreferencesWindow.tsx");
 
   assert.match(source, /className=\{ui\.menuBarIconSelect\}/);
   assert.match(source, /className=\{ui\.menuBarIconSelectControl\}/);
   assert.match(source, /value=\{settingsDraft\.menuBarIconStyle\}/);
+  assert.match(source, /menu-bar-icon-m-128\.png/);
+  assert.match(source, /<option value="m">\{t\.menuBarIconStyleM\}<\/option>/);
   assert.match(
     source,
     /updateMenuBarIconStyle\(\s*event\.target\.value as MenuBarIconStyle,?\s*\)/,

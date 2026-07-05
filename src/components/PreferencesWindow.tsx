@@ -1,10 +1,11 @@
 // 独立偏好设置窗口：配置变更后立即写入，后端广播 settings-updated，主窗口同步刷新。
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
 import appIconUrl from "../../app-icon.png";
 import lightMenuBarIconUrl from "../../src-tauri/icons/menu-bar-icon-light-128.png";
+import mMenuBarIconUrl from "../../src-tauri/icons/menu-bar-icon-m-128.png";
 import {
   clampHistoryGroupItemCount,
   clampHistoryCount,
@@ -39,8 +40,8 @@ import type {
 import {
   historyTypeRow,
   settingsTab,
-  switchControl,
-  switchThumb,
+  settingsSwitchBox,
+  settingsSwitchRow,
   ui,
 } from "../uiStyles";
 import { normalizeSettings } from "../utils/settings";
@@ -50,6 +51,52 @@ import { CheckIcon } from "./UiIcons";
 
 type PreferencesTab = "general" | "storage" | "cli";
 type VisibleItemCountSetting = "mainWindowItemCount" | "historyGroupItemCount";
+
+type SettingsSwitchItemProps = {
+  checked: boolean;
+  children?: ReactNode;
+  description: string;
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+};
+
+function SettingsSwitchItem({
+  checked,
+  children,
+  description,
+  disabled = false,
+  label,
+  onClick,
+}: SettingsSwitchItemProps) {
+  const labelId = useId();
+  const descriptionId = useId();
+
+  return (
+    <div className={settingsSwitchRow(disabled)}>
+      <button
+        aria-describedby={descriptionId}
+        aria-labelledby={labelId}
+        aria-pressed={checked}
+        className={settingsSwitchBox(checked)}
+        disabled={disabled}
+        onClick={onClick}
+        type="button"
+      >
+        {checked ? <CheckIcon className="size-3.5" /> : null}
+      </button>
+      <div className={ui.settingsCopy}>
+        <div className={ui.settingsLabel} id={labelId}>
+          {label}
+        </div>
+        <div className={ui.settingsDescription} id={descriptionId}>
+          {description}
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export function PreferencesWindow() {
   // settingsDraft 保留了旧命名，但现在每次控件变更都会立即写入后端。
@@ -82,8 +129,13 @@ export function PreferencesWindow() {
   const translations = getTranslations(settingsDraft.language);
   useApplyAppTheme(settingsDraft.appearanceTheme);
   const t = translations.preferences;
+  const menuBarIconPreviewUrls: Record<MenuBarIconStyle, string> = {
+    appIcon: appIconUrl,
+    light: lightMenuBarIconUrl,
+    m: mMenuBarIconUrl,
+  };
   const selectedMenuBarIconUrl =
-    settingsDraft.menuBarIconStyle === "light" ? lightMenuBarIconUrl : appIconUrl;
+    menuBarIconPreviewUrls[settingsDraft.menuBarIconStyle];
   const mainWindowItemCountMax = settingsDraft.maxHistoryCount;
 
   const syncSettingsState = (nextSettings: AppSettings) => {
@@ -550,6 +602,7 @@ export function PreferencesWindow() {
     <DialogWindowFrame className={ui.preferencesWindowFrame}>
       <div className={`${ui.dialogPanel} ${ui.settingsWindowPanel}`}>
         <DialogStatusBar
+          centerTitle
           controlsLabels={translations.windowControls}
           title={t.title}
         />
@@ -562,12 +615,12 @@ export function PreferencesWindow() {
                 ["storage", t.storageTab],
                 ["cli", t.cliTab],
               ] as const).map(([tab, label]) => (
-                  <button
-                    aria-selected={activeTab === tab}
-                    className={settingsTab(activeTab === tab)}
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    role="tab"
+                <button
+                  aria-selected={activeTab === tab}
+                  className={settingsTab(activeTab === tab)}
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  role="tab"
                   type="button"
                 >
                   {label}
@@ -616,6 +669,7 @@ export function PreferencesWindow() {
                       >
                         <option value="appIcon">{t.menuBarIconStyleAppIcon}</option>
                         <option value="light">{t.menuBarIconStyleLight}</option>
+                        <option value="m">{t.menuBarIconStyleM}</option>
                       </select>
                     </div>
                   </div>
@@ -637,59 +691,42 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
-                <div className={ui.settingsRow}>
-                  <div className={ui.settingsCopy}>
-                    <div className={ui.settingsLabel}>
-                      {t.showMainWindowBrandLabel}
-                    </div>
-                    <div className={ui.settingsDescription}>
-                      {t.showMainWindowBrandDescription}
-                    </div>
-                  </div>
+                <SettingsSwitchItem
+                  checked={settingsDraft.showMainWindowBrand}
+                  description={t.showMainWindowBrandDescription}
+                  label={t.showMainWindowBrandLabel}
+                  onClick={toggleMainWindowBrand}
+                />
 
-                  <button
-                    aria-label={t.showMainWindowBrandLabel}
-                    aria-pressed={settingsDraft.showMainWindowBrand}
-                    className={switchControl(settingsDraft.showMainWindowBrand)}
-                    onClick={toggleMainWindowBrand}
-                    type="button"
+                <SettingsSwitchItem
+                  checked={settingsDraft.showHistoryItemNumbers}
+                  description={t.showHistoryItemNumbersDescription}
+                  label={t.showHistoryItemNumbersLabel}
+                  onClick={toggleHistoryItemNumbers}
+                />
+
+                <SettingsSwitchItem
+                  checked={settingsDraft.launchAtLogin}
+                  description={t.launchAtLoginDescription}
+                  label={t.launchAtLoginLabel}
+                  onClick={toggleLaunchAtLogin}
+                />
+
+                <div className={ui.settingsSwitchGroup}>
+                  <SettingsSwitchItem
+                    checked={settingsDraft.autoPaste}
+                    description={t.autoPasteDescription}
+                    disabled={isCheckingAutoPastePermission}
+                    label={t.autoPasteLabel}
+                    onClick={() => void toggleAutoPaste()}
                   >
-                    <span className={switchThumb(settingsDraft.showMainWindowBrand)} />
-                  </button>
-                </div>
-
-                <div className={ui.settingsRow}>
-                  <div className={ui.settingsCopy}>
-                    <div className={ui.settingsLabel}>{t.launchAtLoginLabel}</div>
-                    <div className={ui.settingsDescription}>
-                      {t.launchAtLoginDescription}
-                    </div>
-                  </div>
-
-                  <button
-                    aria-label={t.launchAtLoginLabel}
-                    aria-pressed={settingsDraft.launchAtLogin}
-                    className={switchControl(settingsDraft.launchAtLogin)}
-                    onClick={toggleLaunchAtLogin}
-                    type="button"
-                  >
-                    <span className={switchThumb(settingsDraft.launchAtLogin)} />
-                  </button>
-                </div>
-
-                <div className={ui.settingsRow}>
-                  <div className={ui.settingsCopy}>
-                    <div className={ui.settingsLabel}>{t.autoPasteLabel}</div>
-                    <div className={ui.settingsDescription}>
-                      {t.autoPasteDescription}
-                    </div>
                     {isMacOs ? (
-                      <div className={ui.settingsNote}>
+                      <span className={ui.settingsNote}>
                         {t.autoPastePermissionNote}
-                      </div>
+                      </span>
                     ) : null}
                     {isMacOs && autoPastePermissionStatus ? (
-                      <div
+                      <span
                         className={`${ui.settingsNote} ${
                           autoPastePermissionStatus.isGranted
                             ? ui.settingsNoteOk
@@ -699,23 +736,12 @@ export function PreferencesWindow() {
                         {autoPastePermissionStatus.isGranted
                           ? t.autoPastePermissionGranted
                           : t.autoPastePermissionStatus(autoPastePermissionStatus.appPath)}
-                      </div>
+                      </span>
                     ) : null}
-                  </div>
+                  </SettingsSwitchItem>
 
-                  <div className={ui.settingsRowActions}>
-                    <button
-                      aria-label={t.autoPasteLabel}
-                      aria-pressed={settingsDraft.autoPaste}
-                      className={switchControl(settingsDraft.autoPaste)}
-                      disabled={isCheckingAutoPastePermission}
-                      onClick={() => void toggleAutoPaste()}
-                      type="button"
-                    >
-                      <span className={switchThumb(settingsDraft.autoPaste)} />
-                    </button>
-
-                    {isMacOs ? (
+                  {isMacOs ? (
+                    <div className={ui.settingsSwitchActions}>
                       <button
                         className={ui.settingsActionButton}
                         onClick={openAutoPastePermission}
@@ -723,9 +749,7 @@ export function PreferencesWindow() {
                       >
                         {t.autoPastePermissionAction}
                       </button>
-                    ) : null}
 
-                    {isMacOs ? (
                       <button
                         className={ui.settingsActionButton}
                         disabled={isCheckingAutoPastePermission}
@@ -734,8 +758,8 @@ export function PreferencesWindow() {
                       >
                         {t.autoPastePermissionRefreshAction}
                       </button>
-                    ) : null}
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ) : null}
@@ -920,27 +944,6 @@ export function PreferencesWindow() {
                       +
                     </button>
                   </div>
-                </div>
-
-                <div className={ui.settingsRow}>
-                  <div className={ui.settingsCopy}>
-                    <div className={ui.settingsLabel}>
-                      {t.showHistoryItemNumbersLabel}
-                    </div>
-                    <div className={ui.settingsDescription}>
-                      {t.showHistoryItemNumbersDescription}
-                    </div>
-                  </div>
-
-                  <button
-                    aria-label={t.showHistoryItemNumbersLabel}
-                    aria-pressed={settingsDraft.showHistoryItemNumbers}
-                    className={switchControl(settingsDraft.showHistoryItemNumbers)}
-                    onClick={toggleHistoryItemNumbers}
-                    type="button"
-                  >
-                    <span className={switchThumb(settingsDraft.showHistoryItemNumbers)} />
-                  </button>
                 </div>
 
                 <div className={ui.settingsSection}>

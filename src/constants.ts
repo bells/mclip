@@ -28,7 +28,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   language: "en",
   launchAtLogin: false,
   maxHistoryCount: 50,
-  menuBarIconStyle: "appIcon",
+  menuBarIconStyle: "light",
   mainWindowItemCount: DEFAULT_VISIBLE_ITEM_COUNT,
   historyGroupItemCount: DEFAULT_VISIBLE_ITEM_COUNT,
   showHistoryItemNumbers: true,

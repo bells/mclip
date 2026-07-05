@@ -52,6 +52,7 @@ const TOGGLE_WINDOW_SHORTCUT: &str = "CommandOrControl+Shift+V";
 const TRAY_ICON_ID: &str = "main";
 const APP_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../../app-icon.png");
 const LIGHT_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/menu-bar-icon-light.png");
+const M_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/menu-bar-icon-m.png");
 #[cfg(any(target_os = "macos", test))]
 const TRAY_POSITION_AUTOSAVE_NAME: &str = "com.watson.mclip.tray.main";
 
@@ -175,6 +176,7 @@ fn menu_bar_icon_bytes(style: &MenuBarIconStyle) -> &'static [u8] {
     match style {
         MenuBarIconStyle::AppIcon => APP_MENU_BAR_ICON_BYTES,
         MenuBarIconStyle::Light => LIGHT_MENU_BAR_ICON_BYTES,
+        MenuBarIconStyle::M => M_MENU_BAR_ICON_BYTES,
     }
 }
 
@@ -183,7 +185,7 @@ fn menu_bar_icon(style: &MenuBarIconStyle) -> Result<Image<'static>, String> {
 }
 
 fn menu_bar_icon_is_template(style: &MenuBarIconStyle) -> bool {
-    matches!(style, MenuBarIconStyle::Light)
+    matches!(style, MenuBarIconStyle::Light | MenuBarIconStyle::M)
 }
 
 fn set_tray_icon(app_handle: &AppHandle, style: &MenuBarIconStyle) -> Result<(), String> {
@@ -571,16 +573,20 @@ mod tests {
     fn menu_bar_icon_styles_load_valid_assets() {
         let app_icon = menu_bar_icon(&MenuBarIconStyle::AppIcon).unwrap();
         let light_icon = menu_bar_icon(&MenuBarIconStyle::Light).unwrap();
+        let m_icon = menu_bar_icon(&MenuBarIconStyle::M).unwrap();
 
         assert_eq!(app_icon.width(), 1024);
         assert_eq!(app_icon.height(), 1024);
         assert_eq!(light_icon.width(), 512);
         assert_eq!(light_icon.height(), 512);
+        assert_eq!(m_icon.width(), 512);
+        assert_eq!(m_icon.height(), 512);
     }
 
     #[test]
-    fn only_light_menu_bar_icon_uses_macos_template_rendering() {
+    fn template_menu_bar_icons_use_macos_template_rendering() {
         assert!(!menu_bar_icon_is_template(&MenuBarIconStyle::AppIcon));
         assert!(menu_bar_icon_is_template(&MenuBarIconStyle::Light));
+        assert!(menu_bar_icon_is_template(&MenuBarIconStyle::M));
     }
 }
