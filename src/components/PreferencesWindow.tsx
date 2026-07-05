@@ -804,16 +804,6 @@ export function PreferencesWindow() {
                   </div>
 
                   <div className={ui.stepper}>
-                    <button
-                      aria-label={t.decreaseMaxHistoryCount}
-                      className={ui.stepperButton}
-                      onClick={() =>
-                        updateMaxHistoryCount(settingsDraft.maxHistoryCount - 1)
-                      }
-                      type="button"
-                    >
-                      -
-                    </button>
                     <input
                       aria-label={t.maxHistoryCountAriaLabel}
                       className={ui.stepperInput}
@@ -826,19 +816,10 @@ export function PreferencesWindow() {
                           event.currentTarget.blur();
                         }
                       }}
+                      step={1}
                       type="number"
                       value={maxHistoryCountInput}
                     />
-                    <button
-                      aria-label={t.increaseMaxHistoryCount}
-                      className={ui.stepperButton}
-                      onClick={() =>
-                        updateMaxHistoryCount(settingsDraft.maxHistoryCount + 1)
-                      }
-                      type="button"
-                    >
-                      +
-                    </button>
                   </div>
                 </div>
 
@@ -856,19 +837,6 @@ export function PreferencesWindow() {
                   </div>
 
                   <div className={ui.stepper}>
-                    <button
-                      aria-label={t.decreaseMainWindowItemCount}
-                      className={ui.stepperButton}
-                      onClick={() =>
-                        updateVisibleItemCount(
-                          "mainWindowItemCount",
-                          settingsDraft.mainWindowItemCount - 1,
-                        )
-                      }
-                      type="button"
-                    >
-                      -
-                    </button>
                     <input
                       aria-label={t.mainWindowItemCountAriaLabel}
                       className={ui.stepperInput}
@@ -888,22 +856,10 @@ export function PreferencesWindow() {
                           event.currentTarget.blur();
                         }
                       }}
+                      step={1}
                       type="number"
                       value={visibleItemCountInputs.mainWindowItemCount}
                     />
-                    <button
-                      aria-label={t.increaseMainWindowItemCount}
-                      className={ui.stepperButton}
-                      onClick={() =>
-                        updateVisibleItemCount(
-                          "mainWindowItemCount",
-                          settingsDraft.mainWindowItemCount + 1,
-                        )
-                      }
-                      type="button"
-                    >
-                      +
-                    </button>
                   </div>
                 </div>
 
@@ -921,19 +877,6 @@ export function PreferencesWindow() {
                   </div>
 
                   <div className={ui.stepper}>
-                    <button
-                      aria-label={t.decreaseHistoryGroupItemCount}
-                      className={ui.stepperButton}
-                      onClick={() =>
-                        updateVisibleItemCount(
-                          "historyGroupItemCount",
-                          settingsDraft.historyGroupItemCount - 1,
-                        )
-                      }
-                      type="button"
-                    >
-                      -
-                    </button>
                     <input
                       aria-label={t.historyGroupItemCountAriaLabel}
                       className={ui.stepperInput}
@@ -953,26 +896,14 @@ export function PreferencesWindow() {
                           event.currentTarget.blur();
                         }
                       }}
+                      step={1}
                       type="number"
                       value={visibleItemCountInputs.historyGroupItemCount}
                     />
-                    <button
-                      aria-label={t.increaseHistoryGroupItemCount}
-                      className={ui.stepperButton}
-                      onClick={() =>
-                        updateVisibleItemCount(
-                          "historyGroupItemCount",
-                          settingsDraft.historyGroupItemCount + 1,
-                        )
-                      }
-                      type="button"
-                    >
-                      +
-                    </button>
                   </div>
                 </div>
 
-                <div className={ui.settingsSection}>
+                <div className={`${ui.settingsSection} ${ui.historyTypesSection}`}>
                   <div className={ui.settingsSectionHeading}>
                     <div className={ui.settingsLabel}>{t.typesLabel}</div>
                     <div className={ui.settingsDescription}>{t.typesDescription}</div>

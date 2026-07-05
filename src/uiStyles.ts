@@ -9,7 +9,7 @@ const iconButton =
 const fieldSurface =
   "rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)]";
 const settingsRow =
-  "flex items-start justify-between gap-4 rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] px-3 py-2";
+  "grid grid-cols-[minmax(0,1fr)_112px] items-center gap-4 rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] px-3 py-2";
 const settingsSelect =
   `${focusRing} h-8 w-full rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-2 text-[12px] font-medium text-[var(--mclip-ink)] outline-none`;
 const previewSurface =
@@ -218,10 +218,14 @@ export const ui = {
     "grid w-full grid-cols-[auto_minmax(0,1fr)] items-start gap-3 px-3 py-1.5 text-left",
   settingsSwitchRowDisabled: "opacity-65",
   settingsSwitchBox:
-    `${focusRing} mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] text-transparent transition-colors duration-150 hover:bg-[var(--mclip-control-bg-hover)] disabled:cursor-not-allowed disabled:opacity-60`,
+    `${focusRing} mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-[7px] border-2 text-transparent shadow-sm transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60`,
+  settingsSwitchBoxOff:
+    "border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] hover:bg-[var(--mclip-control-bg-hover)]",
   settingsSwitchBoxOn:
-    "border-[#0a84ff] bg-[#0a84ff] text-white hover:bg-[#0a84ff]",
+    "border-[#0a84ff] bg-[#0a84ff] text-white shadow-[0_0_0_1px_rgba(10,132,255,0.18)] hover:bg-[#0a84ff]",
   settingsSection: `${fieldSurface} grid gap-2 p-3`,
+  historyTypesSection:
+    "grid-cols-[minmax(0,1fr)_auto] items-center gap-4",
   settingsSectionHeading: "grid gap-1",
   settingsGroupLabel: "text-[11px] font-semibold text-[var(--mclip-meta)]",
   settingsCopy: "grid min-w-0 gap-1",
@@ -246,12 +250,11 @@ export const ui = {
   menuBarIconOptionLightSurface: "bg-[#24261f]",
   menuBarIconOptionMSurface: "bg-[#f4f1e8]",
   menuBarIconOptionImage: "size-5 object-contain",
-  stepper: "grid grid-cols-[32px_54px_32px] items-center gap-1",
-  stepperButton: `${focusRing} flex h-8 items-center justify-center rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] text-[14px] font-semibold text-[var(--mclip-ink)] transition-colors duration-150 hover:bg-[var(--mclip-control-bg-hover)] disabled:cursor-not-allowed disabled:opacity-45`,
+  stepper: "flex w-[112px] items-center justify-end",
   stepperInput:
-    `${focusRing} h-8 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-surface)] px-1 text-center text-[12px] font-semibold tabular-nums text-[var(--mclip-ink)] outline-none`,
+    `${focusRing} h-8 w-[96px] rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-2 text-left text-[12px] font-semibold tabular-nums text-[var(--mclip-ink)] outline-none`,
   historyTypeList:
-    "overflow-hidden rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line)]",
+    "grid grid-cols-3 justify-self-end overflow-hidden rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-surface)]",
   historyTypeLabel: "text-[12px] font-semibold text-[var(--mclip-ink-soft)]",
   historyTypeCheck:
     "flex size-5 items-center justify-center rounded-full border border-[var(--mclip-line-strong)] text-[var(--mclip-accent-cool)]",
@@ -414,14 +417,17 @@ export function settingsSwitchRow(isDisabled = false) {
 }
 
 export function settingsSwitchBox(isOn: boolean) {
-  return [ui.settingsSwitchBox, isOn ? ui.settingsSwitchBoxOn : ""]
+  return [
+    ui.settingsSwitchBox,
+    isOn ? ui.settingsSwitchBoxOn : ui.settingsSwitchBoxOff,
+  ]
     .filter(Boolean)
     .join(" ");
 }
 
 export function historyTypeRow(isOn: boolean) {
   return [
-    "grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-[var(--mclip-line)] px-3 text-left last:border-b-0 transition-colors duration-150",
+    "grid h-8 min-w-[68px] grid-cols-[auto_auto] items-center justify-center gap-2 border-r border-[var(--mclip-line)] px-2.5 text-left last:border-r-0 transition-colors duration-150",
     isOn
       ? "bg-[var(--mclip-selection)]"
       : "hover:bg-[var(--mclip-row-hover-bg)]",

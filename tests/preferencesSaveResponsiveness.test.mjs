@@ -40,6 +40,19 @@ test("storage controls stay interactive while settings persist", async () => {
   );
 
   assert.doesNotMatch(storagePanel, /disabled=\{isSavingSettings/);
-  assert.match(storagePanel, /onClick=\{\(\) =>\s*updateMaxHistoryCount/);
+  assert.match(
+    storagePanel,
+    /onChange=\{\(event\) => updateMaxHistoryCountInput\(event\.target\.value\)\}/,
+  );
+  assert.doesNotMatch(storagePanel, /className=\{ui\.stepperButton\}/);
   assert.match(storagePanel, /onClick=\{\(\) => toggleHistoryType\(kind\)\}/);
+});
+
+test("history type choices render as one compact row", async () => {
+  const stylesSource = await readFile("src/uiStyles.ts", "utf8");
+
+  assert.match(stylesSource, /historyTypesSection:[\s\S]*grid-cols-\[minmax\(0,1fr\)_auto\]/);
+  assert.match(stylesSource, /historyTypeList:[\s\S]*grid-cols-3/);
+  assert.match(stylesSource, /border-r border-\[var\(--mclip-line\)\]/);
+  assert.doesNotMatch(stylesSource, /max-w-\[220px\]/);
 });

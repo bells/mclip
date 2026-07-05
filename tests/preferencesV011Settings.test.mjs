@@ -11,8 +11,10 @@ test("preferences expose theme, visible item counts, and row number visibility",
 
   assert.match(source, /updateAppearanceTheme/);
   assert.match(source, /value=\{settingsDraft\.appearanceTheme\}/);
-  assert.match(source, /updateVisibleItemCount\(\s*"mainWindowItemCount"/);
-  assert.match(source, /updateVisibleItemCount\(\s*"historyGroupItemCount"/);
+  assert.match(source, /updateVisibleItemCountInput\(\s*"mainWindowItemCount"/);
+  assert.match(source, /updateVisibleItemCountInput\(\s*"historyGroupItemCount"/);
+  assert.match(source, /commitVisibleItemCountInput\("mainWindowItemCount"\)/);
+  assert.match(source, /commitVisibleItemCountInput\("historyGroupItemCount"\)/);
   assert.match(source, /settingsDraft\.showHistoryItemNumbers/);
   assert.match(source, /toggleHistoryItemNumbers/);
 });
