@@ -209,7 +209,7 @@ export const ui = {
     "grid grid-cols-3 gap-1 rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] p-1",
   settingsTabPanel:
     "mclip-scrollbar grid min-h-0 content-start gap-3 overflow-y-auto pr-0.5",
-  settingsPrimaryGrid: "grid grid-cols-2 gap-2",
+  settingsPrimaryGrid: "grid grid-cols-3 gap-2",
   settingsCompactField: `${fieldSurface} grid gap-1.5 p-2`,
   settingsRow,
   settingsSwitchGroup: "grid gap-2",
@@ -237,11 +237,15 @@ export const ui = {
     "rounded-[var(--mclip-radius-sm)] border border-[color-mix(in_srgb,var(--mclip-accent-cool)_28%,transparent)] bg-[color-mix(in_srgb,var(--mclip-accent-cool)_9%,transparent)] px-3 py-2 text-[11px] font-semibold text-[var(--mclip-accent-cool)]",
   settingsSelect: settingsSelect,
   languageSelect: "",
-  menuBarIconSelect: "grid grid-cols-[auto_1fr] items-center gap-2",
-  menuBarIconSelectPreview:
-    "flex size-8 items-center justify-center rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)]",
-  menuBarIconSelectImage: "size-5 object-contain",
-  menuBarIconSelectControl: settingsSelect,
+  menuBarIconOptions: "grid grid-cols-3 gap-1",
+  menuBarIconOption:
+    `${focusRing} flex h-8 items-center justify-center rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] transition-colors duration-150 hover:border-[var(--mclip-accent-cool)]`,
+  menuBarIconOptionActive:
+    "border-[var(--mclip-accent-cool)] shadow-[0_0_0_2px_rgba(115,208,200,0.16)]",
+  menuBarIconOptionAppSurface: "bg-[var(--mclip-surface)]",
+  menuBarIconOptionLightSurface: "bg-[#24261f]",
+  menuBarIconOptionMSurface: "bg-[#f4f1e8]",
+  menuBarIconOptionImage: "size-5 object-contain",
   stepper: "grid grid-cols-[32px_54px_32px] items-center gap-1",
   stepperButton: `${focusRing} flex h-8 items-center justify-center rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] text-[14px] font-semibold text-[var(--mclip-ink)] transition-colors duration-150 hover:bg-[var(--mclip-control-bg-hover)] disabled:cursor-not-allowed disabled:opacity-45`,
   stepperInput:
@@ -394,6 +398,12 @@ export function settingsTab(isActive: boolean) {
       : "text-[var(--mclip-ink-dim)] hover:bg-[var(--mclip-control-bg-hover)]",
     focusRing,
   ].join(" ");
+}
+
+export function menuBarIconOption(isActive: boolean) {
+  return [ui.menuBarIconOption, isActive ? ui.menuBarIconOptionActive : ""]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export function settingsSwitchRow(isDisabled = false) {

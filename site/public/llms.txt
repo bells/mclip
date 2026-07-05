@@ -29,7 +29,7 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 - The main app window shows the latest 10 items by default and groups older history by 10 by default; both display counts are configurable
 - Preferences include appearance theme, main/group display counts, and row number visibility
 - Global shortcut: CommandOrControl+Shift+V
-- Interface languages: Chinese and English
+- Interface languages: Chinese and English; Follow System uses Chinese for zh locales and English for English or unsupported locales
 - Public source repository: https://github.com/bells/mclip
 
 ## AI Agent and CLI

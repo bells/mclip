@@ -25,7 +25,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     image: true,
     text: true,
   },
-  language: "en",
+  language: "system",
   launchAtLogin: false,
   maxHistoryCount: 50,
   menuBarIconStyle: "light",

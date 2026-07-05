@@ -36,7 +36,10 @@ use crate::diagnostics::{
     open_logs_dir, open_project_link, write_client_log,
 };
 use crate::history::{clear_history, delete_history_item, get_history};
-use crate::settings::{get_settings, load_settings, AppLanguage, AppSettings, MenuBarIconStyle};
+use crate::settings::{
+    get_settings, load_settings, resolve_app_language, AppLanguage, AppSettings, MenuBarIconStyle,
+    ResolvedAppLanguage,
+};
 use crate::window::{
     adjust_window_height, adjust_window_height_to_content, configure_main_window,
     get_history_preview_pointer_position, hide_history_preview_detail_window,
@@ -57,9 +60,9 @@ const M_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/menu-bar-icon-m.pn
 const TRAY_POSITION_AUTOSAVE_NAME: &str = "com.watson.mclip.tray.main";
 
 fn tray_tooltip(language: &AppLanguage) -> &'static str {
-    match language {
-        AppLanguage::ZhCn => "更好用的剪贴板工具 mclip",
-        AppLanguage::En => "A better clipboard history tool, mclip",
+    match resolve_app_language(language) {
+        ResolvedAppLanguage::ZhCn => "更好用的剪贴板工具 mclip",
+        ResolvedAppLanguage::En => "A better clipboard history tool, mclip",
     }
 }
 
@@ -567,6 +570,7 @@ mod tests {
             tray_tooltip(&AppLanguage::En),
             "A better clipboard history tool, mclip"
         );
+        assert!(!tray_tooltip(&AppLanguage::System).is_empty());
     }
 
     #[test]

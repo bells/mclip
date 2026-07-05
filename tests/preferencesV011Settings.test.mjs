@@ -17,6 +17,22 @@ test("preferences expose theme, visible item counts, and row number visibility",
   assert.match(source, /toggleHistoryItemNumbers/);
 });
 
+test("language settings support following the system language", async () => {
+  const [constantsSource, settingsSource, languageSource, i18nSource] = await Promise.all([
+    readSource("src/constants.ts"),
+    readSource("src/utils/settings.ts"),
+    readSource("src/utils/language.ts"),
+    readSource("src/i18n.ts"),
+  ]);
+
+  assert.match(constantsSource, /language:\s*"system"/);
+  assert.match(settingsSource, /const APP_LANGUAGES:[\s\S]*"system"[\s\S]*"zhCn"[\s\S]*"en"/);
+  assert.match(languageSource, /startsWith\("zh"\)/);
+  assert.match(languageSource, /return "en";/);
+  assert.match(i18nSource, /languageSystem:/);
+  assert.match(i18nSource, /resolveAppLanguage\(language\)/);
+});
+
 test("main window count uses max history count as its dynamic maximum", async () => {
   const preferencesSource = await readSource("src/components/PreferencesWindow.tsx");
   const constantsSource = await readSource("src/constants.ts");
@@ -54,6 +70,7 @@ test("preferences translations include v0.1.1 settings in both languages", async
     "appearanceThemeSystem",
     "appearanceThemeLight",
     "appearanceThemeDark",
+    "languageSystem",
     "mainWindowItemCountLabel",
     "historyGroupItemCountLabel",
     "showHistoryItemNumbersLabel",

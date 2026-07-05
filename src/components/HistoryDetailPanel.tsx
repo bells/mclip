@@ -3,6 +3,7 @@
 import { getTranslations } from "../i18n";
 import type { AppLanguage, HistoryListItem } from "../types";
 import { ui } from "../uiStyles";
+import { resolveAppLanguage } from "../utils/language";
 import { HistoryPreviewDetailContent } from "./HistoryPreviewDetailContent";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
@@ -17,7 +18,7 @@ type HistoryDetailPanelProps = {
 };
 
 function formatHistoryTimestamp(timestamp: number, language: AppLanguage) {
-  const locale = language === "zhCn" ? "zh-CN" : "en-US";
+  const locale = resolveAppLanguage(language) === "zhCn" ? "zh-CN" : "en-US";
 
   return new Intl.DateTimeFormat(locale, {
     month: "short",

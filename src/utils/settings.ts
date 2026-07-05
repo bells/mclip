@@ -6,8 +6,9 @@ import {
   clampMainWindowItemCount,
   DEFAULT_SETTINGS,
 } from "../constants";
-import type { AppSettings, MenuBarIconStyle } from "../types";
+import type { AppLanguage, AppSettings, MenuBarIconStyle } from "../types";
 
+const APP_LANGUAGES: readonly AppLanguage[] = ["system", "zhCn", "en"];
 const MENU_BAR_ICON_STYLES: readonly MenuBarIconStyle[] = [
   "appIcon",
   "light",
@@ -26,7 +27,9 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
     ...DEFAULT_SETTINGS,
     ...settings,
     enabledHistoryTypes,
-    language: settings.language === "zhCn" ? "zhCn" : "en",
+    language: APP_LANGUAGES.includes(settings.language)
+      ? settings.language
+      : DEFAULT_SETTINGS.language,
     maxHistoryCount,
     menuBarIconStyle: MENU_BAR_ICON_STYLES.includes(settings.menuBarIconStyle)
       ? settings.menuBarIconStyle

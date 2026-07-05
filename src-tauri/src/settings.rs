@@ -17,9 +17,17 @@ pub const MIN_VISIBLE_ITEM_COUNT: u32 = 5;
 pub const MAX_VISIBLE_ITEM_COUNT: u32 = 20;
 pub const SETTINGS_UPDATED_EVENT: &str = "settings-updated";
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum AppLanguage {
+    #[default]
+    System,
+    ZhCn,
+    En,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResolvedAppLanguage {
     ZhCn,
     En,
 }
@@ -142,17 +150,24 @@ fn default_show_main_window_brand() -> bool {
 }
 
 fn default_language() -> AppLanguage {
-    resolve_supported_language(&system_locale())
+    AppLanguage::System
 }
 
-fn resolve_supported_language(locale: &str) -> AppLanguage {
+fn resolve_supported_language(locale: &str) -> ResolvedAppLanguage {
     let normalized_locale = locale.to_lowercase();
 
-    // 首次安装时只区分中文与其它语言；非中文环境统一回退英文。
     if normalized_locale.starts_with("zh") {
-        AppLanguage::ZhCn
+        ResolvedAppLanguage::ZhCn
     } else {
-        AppLanguage::En
+        ResolvedAppLanguage::En
+    }
+}
+
+pub fn resolve_app_language(language: &AppLanguage) -> ResolvedAppLanguage {
+    match language {
+        AppLanguage::System => resolve_supported_language(&system_locale()),
+        AppLanguage::ZhCn => ResolvedAppLanguage::ZhCn,
+        AppLanguage::En => ResolvedAppLanguage::En,
     }
 }
 
@@ -361,9 +376,10 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
 #[cfg(test)]
 mod tests {
     use super::{
-        resolve_supported_language, AppLanguage, AppSettings, AppearanceTheme, HistoryTypes,
-        DEFAULT_VISIBLE_ITEM_COUNT, MAX_MAX_HISTORY_COUNT, MAX_VISIBLE_ITEM_COUNT,
-        MIN_MAX_HISTORY_COUNT, MIN_VISIBLE_ITEM_COUNT,
+        resolve_app_language, resolve_supported_language, AppLanguage, AppSettings,
+        AppearanceTheme, HistoryTypes, ResolvedAppLanguage, DEFAULT_VISIBLE_ITEM_COUNT,
+        MAX_MAX_HISTORY_COUNT, MAX_VISIBLE_ITEM_COUNT, MIN_MAX_HISTORY_COUNT,
+        MIN_VISIBLE_ITEM_COUNT,
     };
     use crate::history::HistoryKind;
 
@@ -391,12 +407,32 @@ mod tests {
 
     #[test]
     fn resolve_supported_language_detects_chinese_locale() {
-        assert_eq!(resolve_supported_language("zh-CN"), AppLanguage::ZhCn);
+        assert_eq!(
+            resolve_supported_language("zh-CN"),
+            ResolvedAppLanguage::ZhCn
+        );
+    }
+
+    #[test]
+    fn resolve_supported_language_detects_english_locale() {
+        assert_eq!(resolve_supported_language("en-US"), ResolvedAppLanguage::En);
     }
 
     #[test]
     fn resolve_supported_language_falls_back_to_english() {
-        assert_eq!(resolve_supported_language("tr-TR"), AppLanguage::En);
+        assert_eq!(resolve_supported_language("tr-TR"), ResolvedAppLanguage::En);
+    }
+
+    #[test]
+    fn resolve_app_language_preserves_explicit_language() {
+        assert_eq!(
+            resolve_app_language(&AppLanguage::ZhCn),
+            ResolvedAppLanguage::ZhCn
+        );
+        assert_eq!(
+            resolve_app_language(&AppLanguage::En),
+            ResolvedAppLanguage::En
+        );
     }
 
     #[test]
@@ -431,6 +467,13 @@ mod tests {
         let value = serde_json::to_value(AppSettings::default()).unwrap();
 
         assert_eq!(value["menuBarIconStyle"].as_str(), Some("light"));
+    }
+
+    #[test]
+    fn default_settings_follow_system_language() {
+        let value = serde_json::to_value(AppSettings::default()).unwrap();
+
+        assert_eq!(value["language"].as_str(), Some("system"));
     }
 
     #[test]
@@ -601,6 +644,28 @@ mod tests {
         let value = serde_json::to_value(settings).unwrap();
 
         assert_eq!(value["menuBarIconStyle"].as_str(), Some("m"));
+    }
+
+    #[test]
+    fn settings_deserialize_system_language() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{
+              "autoPaste": false,
+              "launchAtLogin": false,
+              "language": "system",
+              "maxHistoryCount": 50,
+              "enabledHistoryTypes": {
+                "text": true,
+                "image": true,
+                "files": true
+              },
+              "menuBarIconStyle": "light"
+            }"#,
+        )
+        .unwrap();
+        let value = serde_json::to_value(settings).unwrap();
+
+        assert_eq!(value["language"].as_str(), Some("system"));
     }
 
     #[test]

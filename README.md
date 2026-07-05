@@ -25,7 +25,7 @@
 - 支持搜索、方向键选择、回车复制、`Esc` 收起窗口。
 - 支持偏好设置：登录时启动、界面语言、外观主题、菜单栏图标样式、自动粘贴、最大历史条数、主界面/历史分组展示条数、复制项序号显示、主界面 Logo 显示和保存类型。
 - 关于窗口支持手动检查 GitHub Releases 上的新版本。
-- 支持中英文界面，首次启动会根据系统语言选择中文或英文。
+- 支持中英文界面，语言可选择跟随系统；中文系统显示中文，英语和其它未支持语言显示英文。
 
 ### 安装使用
 
@@ -176,7 +176,7 @@ Current version: `0.1.0`
 - Supports search, arrow-key selection, Enter-to-copy, and Escape-to-hide.
 - Preferences include launch at login, display language, appearance theme, menu bar icon style, auto paste, maximum history count, main/group display counts, row number visibility, main-window logo visibility, and enabled content types.
 - The About window can manually check GitHub Releases for a newer version.
-- Supports Chinese and English UI. The first launch follows the system language when possible.
+- Supports Chinese and English UI. Language can follow the system: Chinese systems use Chinese, while English and other unsupported languages use English.
 
 ### Installation
 

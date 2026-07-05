@@ -1,7 +1,8 @@
 // 前端文案表。新增界面文案时在这里同时补中文和英文，组件只消费 translations。
 
 import { APP_NAME } from "./constants";
-import type { AppLanguage } from "./types";
+import type { AppLanguage, ResolvedAppLanguage } from "./types";
+import { resolveAppLanguage } from "./utils/language";
 
 export const translations = {
   zhCn: {
@@ -127,6 +128,7 @@ export const translations = {
       languageEnglish: "English",
       languageLabel: "语言",
       languageChinese: "中文",
+      languageSystem: "跟随系统",
       launchAtLoginDescription: `在系统登录后自动启动 ${APP_NAME}。`,
       launchAtLoginLabel: "登录时启动",
       menuBarIconStyleAppIcon: "彩色叶子",
@@ -292,6 +294,7 @@ export const translations = {
       languageEnglish: "English",
       languageLabel: "Language",
       languageChinese: "中文",
+      languageSystem: "Follow System",
       launchAtLoginDescription: `Automatically start ${APP_NAME} after system login.`,
       launchAtLoginLabel: "Launch at login",
       menuBarIconStyleAppIcon: "Color Leaf",
@@ -335,9 +338,9 @@ export const translations = {
   },
 } as const;
 
-export type AppTranslations = (typeof translations)[AppLanguage];
+export type AppTranslations = (typeof translations)[ResolvedAppLanguage];
 
 export function getTranslations(language: AppLanguage): AppTranslations {
   // 防御旧配置或异常输入：未知语言统一回退英文。
-  return translations[language] ?? translations.en;
+  return translations[resolveAppLanguage(language)] ?? translations.en;
 }

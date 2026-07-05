@@ -57,18 +57,22 @@ mod tests {
     use super::{write_text_atomically, write_text_atomically_if_changed};
     use std::fs;
     use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    static NEXT_TEST_PATH_ID: AtomicU64 = AtomicU64::new(0);
 
     fn unique_test_path(file_name: &str) -> PathBuf {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
+        let path_id = NEXT_TEST_PATH_ID.fetch_add(1, Ordering::Relaxed);
 
         std::env::temp_dir()
             .join(format!(
-                "mclip-storage-test-{}-{timestamp}",
-                std::process::id()
+                "mclip-storage-test-{}-{timestamp}-{path_id}",
+                std::process::id(),
             ))
             .join(file_name)
     }

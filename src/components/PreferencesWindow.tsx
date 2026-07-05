@@ -39,6 +39,7 @@ import type {
 } from "../types";
 import {
   historyTypeRow,
+  menuBarIconOption,
   settingsTab,
   settingsSwitchBox,
   settingsSwitchRow,
@@ -134,8 +135,31 @@ export function PreferencesWindow() {
     light: lightMenuBarIconUrl,
     m: mMenuBarIconUrl,
   };
-  const selectedMenuBarIconUrl =
-    menuBarIconPreviewUrls[settingsDraft.menuBarIconStyle];
+  const menuBarIconOptions: Array<{
+    iconUrl: string;
+    label: string;
+    style: MenuBarIconStyle;
+    surfaceClassName: string;
+  }> = [
+    {
+      iconUrl: menuBarIconPreviewUrls.appIcon,
+      label: t.menuBarIconStyleAppIcon,
+      style: "appIcon",
+      surfaceClassName: ui.menuBarIconOptionAppSurface,
+    },
+    {
+      iconUrl: menuBarIconPreviewUrls.light,
+      label: t.menuBarIconStyleLight,
+      style: "light",
+      surfaceClassName: ui.menuBarIconOptionLightSurface,
+    },
+    {
+      iconUrl: menuBarIconPreviewUrls.m,
+      label: t.menuBarIconStyleM,
+      style: "m",
+      surfaceClassName: ui.menuBarIconOptionMSurface,
+    },
+  ];
   const mainWindowItemCountMax = settingsDraft.maxHistoryCount;
 
   const syncSettingsState = (nextSettings: AppSettings) => {
@@ -639,39 +663,10 @@ export function PreferencesWindow() {
                       onChange={(event) => updateLanguage(event.target.value as AppLanguage)}
                       value={settingsDraft.language}
                     >
+                      <option value="system">{t.languageSystem}</option>
                       <option value="zhCn">{t.languageChinese}</option>
                       <option value="en">{t.languageEnglish}</option>
                     </select>
-                  </div>
-
-                  <div className={ui.settingsCompactField}>
-                    <div className={ui.settingsLabel}>{t.menuBarIconStyleLabel}</div>
-                    <div className={ui.menuBarIconSelect}>
-                      <span
-                        aria-hidden="true"
-                        className={ui.menuBarIconSelectPreview}
-                      >
-                        <img
-                          className={ui.menuBarIconSelectImage}
-                          src={selectedMenuBarIconUrl}
-                          alt=""
-                        />
-                      </span>
-                      <select
-                        aria-label={t.menuBarIconStyleLabel}
-                        className={ui.menuBarIconSelectControl}
-                        onChange={(event) =>
-                          updateMenuBarIconStyle(
-                            event.target.value as MenuBarIconStyle,
-                          )
-                        }
-                        value={settingsDraft.menuBarIconStyle}
-                      >
-                        <option value="appIcon">{t.menuBarIconStyleAppIcon}</option>
-                        <option value="light">{t.menuBarIconStyleLight}</option>
-                        <option value="m">{t.menuBarIconStyleM}</option>
-                      </select>
-                    </div>
                   </div>
 
                   <div className={ui.settingsCompactField}>
@@ -689,7 +684,45 @@ export function PreferencesWindow() {
                       <option value="dark">{t.appearanceThemeDark}</option>
                     </select>
                   </div>
+
+                  <div className={ui.settingsCompactField}>
+                    <div className={ui.settingsLabel}>{t.menuBarIconStyleLabel}</div>
+                    <div
+                      aria-label={t.menuBarIconStyleLabel}
+                      className={ui.menuBarIconOptions}
+                      role="radiogroup"
+                    >
+                      {menuBarIconOptions.map((option) => (
+                        <button
+                          aria-checked={settingsDraft.menuBarIconStyle === option.style}
+                          aria-label={option.label}
+                          className={`${menuBarIconOption(
+                            settingsDraft.menuBarIconStyle === option.style,
+                          )} ${option.surfaceClassName}`}
+                          key={option.style}
+                          onClick={() => updateMenuBarIconStyle(option.style)}
+                          role="radio"
+                          title={option.label}
+                          type="button"
+                        >
+                          <img
+                            alt=""
+                            aria-hidden="true"
+                            className={ui.menuBarIconOptionImage}
+                            src={option.iconUrl}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+
+                <SettingsSwitchItem
+                  checked={settingsDraft.launchAtLogin}
+                  description={t.launchAtLoginDescription}
+                  label={t.launchAtLoginLabel}
+                  onClick={toggleLaunchAtLogin}
+                />
 
                 <SettingsSwitchItem
                   checked={settingsDraft.showMainWindowBrand}
@@ -703,13 +736,6 @@ export function PreferencesWindow() {
                   description={t.showHistoryItemNumbersDescription}
                   label={t.showHistoryItemNumbersLabel}
                   onClick={toggleHistoryItemNumbers}
-                />
-
-                <SettingsSwitchItem
-                  checked={settingsDraft.launchAtLogin}
-                  description={t.launchAtLoginDescription}
-                  label={t.launchAtLoginLabel}
-                  onClick={toggleLaunchAtLogin}
                 />
 
                 <div className={ui.settingsSwitchGroup}>
