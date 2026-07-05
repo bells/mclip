@@ -52,6 +52,9 @@ export function AboutWindow() {
   const t = translations.about;
   const isCheckingUpdates = updateStatus.kind === "checking";
   const isUpdateAvailable = updateStatus.kind === "available";
+  const updateActionsClassName = isUpdateAvailable
+    ? ui.aboutUpdateActionsSplit
+    : ui.aboutUpdateActions;
 
   useEffect(() => {
     let isActive = true;
@@ -218,37 +221,49 @@ export function AboutWindow() {
     <DialogWindowFrame className={ui.aboutWindowFrame}>
       <div className={ui.dialogPanel}>
         <DialogStatusBar
+          centerTitle
           controlsLabels={translations.windowControls}
           title={t.title}
         />
 
-        <div className={ui.dialogContent}>
-          <div className={ui.modalIdentity}>
-            <img className={ui.aboutIcon} src={appIconUrl} alt="" aria-hidden="true" />
-            <h2 className={ui.modalAppName}>{APP_NAME}</h2>
-            <span className={ui.modalVersion}>{t.version(appVersion)}</span>
-          </div>
-          <p className={ui.modalDescription}>{t.description}</p>
-          <div className={ui.aboutLinks} aria-label={t.linksLabel}>
+        <div className={ui.aboutContent}>
+          <section className={ui.aboutHero} aria-labelledby="about-app-name">
+            <div className={ui.aboutHeroIdentity}>
+              <img
+                className={ui.aboutHeroIcon}
+                src={appIconUrl}
+                alt=""
+                aria-hidden="true"
+              />
+              <h2 className={ui.aboutHeroName} id="about-app-name">
+                {APP_NAME}
+              </h2>
+              <span className={ui.aboutHeroVersion}>{t.version(appVersion)}</span>
+            </div>
+            <p className={ui.aboutDescription}>{t.description}</p>
+          </section>
+
+          <div className={ui.aboutPrimaryActions} aria-label={t.linksLabel}>
             {([
               ["github", t.githubLabel],
               ["homepage", t.homepageLabel],
             ] as const).map(([target, label]) => (
               <button
-                className={ui.aboutLinkButton}
+                className={ui.aboutAccentButton}
                 key={target}
                 onClick={() => {
                   void handleOpenProjectLink(target);
                 }}
                 type="button"
               >
-                <span className={ui.aboutLinkLabel}>{label}</span>
+                {label}
               </button>
             ))}
           </div>
-          <div className={ui.updateActions}>
+
+          <div className={updateActionsClassName}>
             <button
-              className={ui.diagnosticsButton}
+              className={ui.aboutButton}
               disabled={isCheckingUpdates}
               onClick={() => {
                 void handleCheckUpdates();
@@ -259,7 +274,7 @@ export function AboutWindow() {
             </button>
             {isUpdateAvailable ? (
               <button
-                className={ui.diagnosticsButton}
+                className={ui.aboutAccentButton}
                 onClick={() => {
                   void handleOpenLatestRelease();
                 }}
@@ -270,37 +285,37 @@ export function AboutWindow() {
             ) : null}
           </div>
           <p
-            className={`${ui.updateStatus} ${
+            className={`${ui.aboutStatus} ${
               updateStatus.kind === "error" ? ui.updateStatusError : ""
             }`}
             aria-live="polite"
           >
             {getUpdateStatusMessage()}
           </p>
-          <div className={ui.diagnosticsActions}>
+          <div className={ui.aboutDiagnosticsActions}>
             <button
-              className={ui.diagnosticsButton}
+              className={ui.aboutDiagnosticsButton}
               onClick={handleOpenLogs}
               type="button"
             >
               {t.openLogs}
             </button>
             <button
-              className={ui.diagnosticsButton}
+              className={ui.aboutDiagnosticsButton}
               onClick={handleCopyDiagnostics}
               type="button"
             >
               {t.copyDiagnostics}
             </button>
             <button
-              className={ui.diagnosticsButton}
+              className={ui.aboutDiagnosticsButton}
               onClick={handleReportIssue}
               type="button"
             >
               {t.reportIssue}
             </button>
           </div>
-          <p className={ui.diagnosticsStatus} aria-live="polite">
+          <p className={ui.aboutStatus} aria-live="polite">
             {diagnosticMessage}
           </p>
         </div>

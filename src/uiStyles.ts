@@ -4,6 +4,8 @@ const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mclip-focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mclip-surface)]";
 const compactButton =
   "inline-flex min-h-8 items-center justify-center rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] px-3 text-[11px] font-semibold text-[var(--mclip-ink-soft)] transition-colors duration-150 hover:bg-[var(--mclip-control-bg-hover)] disabled:cursor-not-allowed disabled:opacity-45";
+const aboutButton =
+  `${focusRing} inline-flex min-h-[42px] items-center justify-center rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] px-4 text-center text-[14px] font-bold leading-5 text-[var(--mclip-ink-soft)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors duration-150 hover:border-[var(--mclip-accent-cool)] hover:bg-[var(--mclip-control-bg-hover)] disabled:cursor-not-allowed disabled:opacity-45`;
 const iconButton =
   "inline-flex size-7 items-center justify-center rounded-md text-[var(--mclip-ink-dim)] opacity-0 transition-colors transition-opacity duration-150";
 const fieldSurface =
@@ -186,22 +188,30 @@ export const ui = {
   windowControlClose: "bg-[#ff5f57] hover:brightness-110",
   windowControlMinimize: "bg-[#ffbd2e]",
   windowControlMaximize: "bg-[#28c840]",
-  aboutIcon:
-    "size-10 shrink-0 rounded-[10px] border border-[var(--mclip-line)] object-cover",
-  modalIdentity: "grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1",
-  modalAppName: "m-0 text-[18px] font-semibold leading-6 text-[var(--mclip-ink)]",
-  modalVersion: "text-[11px] font-semibold text-[var(--mclip-meta)]",
-  modalDescription: "m-0 text-[12px] leading-5 text-[var(--mclip-ink-dim)]",
-  aboutLinks: "grid grid-cols-2 gap-2",
-  aboutLinkButton: `${compactButton} justify-center`,
-  aboutLinkLabel:
-    "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[var(--mclip-accent-cool)]",
-  diagnosticsActions: "grid grid-cols-3 gap-2",
-  updateActions: "grid grid-cols-2 gap-2",
-  diagnosticsButton: compactButton,
-  updateStatus: "min-h-4 text-[11px] font-semibold text-[var(--mclip-accent-cool)]",
+  aboutContent:
+    "mclip-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-7 pt-5 text-center text-[var(--mclip-ink-soft)]",
+  aboutHero:
+    "grid justify-items-center gap-3",
+  aboutHeroIdentity:
+    "flex max-w-full flex-wrap items-center justify-center gap-x-3 gap-y-2",
+  aboutHeroIcon:
+    "size-12 shrink-0 rounded-[13px] border border-[var(--mclip-line-strong)] object-cover shadow-[var(--mclip-soft-shadow)]",
+  aboutHeroName:
+    "m-0 text-[30px] font-bold leading-none tracking-normal text-[var(--mclip-ink)]",
+  aboutHeroVersion:
+    "text-[14px] font-bold leading-5 text-[var(--mclip-meta)]",
+  aboutDescription:
+    "m-0 mx-auto max-w-[600px] text-[14px] font-medium leading-6 text-[var(--mclip-ink-dim)]",
+  aboutPrimaryActions: "mt-6 grid grid-cols-2 gap-3",
+  aboutUpdateActions: "mt-3 grid gap-3",
+  aboutUpdateActionsSplit: "mt-3 grid grid-cols-2 gap-3",
+  aboutDiagnosticsActions: "mt-auto grid grid-cols-3 gap-3 pt-9",
+  aboutButton,
+  aboutAccentButton: `${aboutButton} text-[var(--mclip-accent-cool)]`,
+  aboutDiagnosticsButton: `${aboutButton} min-h-[52px] px-3`,
+  aboutStatus:
+    "min-h-5 pt-2 text-[12px] font-semibold leading-5 text-[var(--mclip-accent-cool)]",
   updateStatusError: "text-[var(--mclip-danger)]",
-  diagnosticsStatus: "min-h-4 text-[11px] font-semibold text-[var(--mclip-accent-cool)]",
 
   settingsWindowPanel: "h-full",
   settingsContent: "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-3",
