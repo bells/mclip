@@ -114,6 +114,9 @@ export const ui = {
   historyPreview: previewSurface,
   historyPreviewHeader:
     "flex shrink-0 items-center justify-between gap-3 border-b border-[var(--mclip-line)] px-3 py-2",
+  historyPreviewHeaderActions: "flex shrink-0 items-center gap-2",
+  historyDetailActionButton:
+    `inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--mclip-ink-dim)] transition-colors duration-150 hover:bg-[var(--mclip-row-hover-bg)] hover:text-[var(--mclip-danger)] ${focusRing}`,
   historyPreviewKicker:
     "text-[10px] font-bold uppercase tracking-normal text-[var(--mclip-kicker)]",
   historyPreviewRange:
@@ -290,7 +293,7 @@ export function appFrame(isKeyboardNavigating: boolean) {
 
 export function historyItemRow(isSelected: boolean, isKeyboardNavigating: boolean) {
   return [
-    "relative grid min-h-8 w-full grid-cols-[minmax(0,1fr)_auto] items-center rounded-[var(--mclip-radius-sm)] transition-colors transition-shadow duration-150",
+    "relative grid min-h-8 w-full grid-cols-[minmax(0,1fr)] items-center rounded-[var(--mclip-radius-sm)] transition-colors transition-shadow duration-150",
     isKeyboardNavigating ? "" : "group",
     isSelected
       ? "[background:var(--mclip-selected-bg)] shadow-[inset_0_0_0_1px_var(--mclip-selection-strong)]"
@@ -304,17 +307,6 @@ export function historyItem(showItemNumbers: boolean) {
   return [
     "grid min-h-8 w-full min-w-0 items-center gap-2 rounded-[var(--mclip-radius-sm)] px-2 py-1 text-left",
     showItemNumbers ? "grid-cols-[26px_minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)]",
-    focusRing,
-  ].join(" ");
-}
-
-export function historyDeleteButton(isVisible: boolean) {
-  return [
-    iconButton,
-    isVisible
-      ? "pointer-events-auto opacity-100"
-      : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
-    "hover:text-[var(--mclip-danger)]",
     focusRing,
   ].join(" ");
 }

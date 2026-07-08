@@ -27,6 +27,15 @@ type MainKeyboardNavigationContext = {
   visibleHistoryCount: number;
 };
 
+type MainHistoryDeleteKeyContext = {
+  activeTarget: MainKeyboardNavigationTarget | null;
+  hasModifier: boolean;
+  isClearConfirmOpen: boolean;
+  isEditingText: boolean;
+  isKeyboardPreviewGroupActive: boolean;
+  key: string;
+};
+
 const FOOTER_ACTIONS: FooterKeyboardAction[] = [
   "clearHistory",
   "preferences",
@@ -184,6 +193,31 @@ export function getNextGroupPreviewItemIndex(
   }
 
   return Math.max(0, Math.min(itemCount - 1, currentIndex + direction));
+}
+
+export function getMainHistoryDeleteTargetIndex({
+  activeTarget,
+  hasModifier,
+  isClearConfirmOpen,
+  isEditingText,
+  isKeyboardPreviewGroupActive,
+  key,
+}: MainHistoryDeleteKeyContext): number | null {
+  if (key !== "Delete" && key !== "Backspace") {
+    return null;
+  }
+
+  if (
+    hasModifier ||
+    isClearConfirmOpen ||
+    isEditingText ||
+    isKeyboardPreviewGroupActive ||
+    activeTarget?.kind !== "history-item"
+  ) {
+    return null;
+  }
+
+  return activeTarget.index;
 }
 
 type GroupPreviewPointerActivationContext = {

@@ -383,6 +383,9 @@ export function HistoryPreviewWindow() {
       <HistoryItemPreviewWindow
         preview={preview}
         translations={t}
+        onDeleteItem={(id) => {
+          void deletePreviewItem(id);
+        }}
         onPointerInside={notifyPointerInside}
         onRequestClose={() => {
           void requestHistoryPreviewClose();

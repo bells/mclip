@@ -2,7 +2,7 @@
 
 import type { AppTranslations } from "../i18n";
 import type { HistoryListItem } from "../types";
-import { historyDeleteButton, historyItem, historyItemRow, ui } from "../uiStyles";
+import { historyItem, historyItemRow, ui } from "../uiStyles";
 import {
   getTextHistoryAffordance,
   type HistoryTextAffordance,
@@ -10,7 +10,6 @@ import {
 import { getHistoryListDisplayText } from "../utils/history";
 import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
 import { ImageThumb } from "./ImageThumb";
-import { TrashIcon } from "./UiIcons";
 
 // Props 类型让组件的输入更清晰：数据在父组件中维护，列表只发出用户操作。
 type HistoryListProps = {
@@ -18,7 +17,6 @@ type HistoryListProps = {
   isKeyboardNavigating: boolean;
   items: HistoryListItem[];
   translations: AppTranslations["history"];
-  onDeleteItem: (id: string) => void;
   onOpenItemPreview: (
     item: HistoryListItem,
     anchorTop: number,
@@ -58,7 +56,6 @@ export function HistoryList({
   isKeyboardNavigating,
   items,
   translations,
-  onDeleteItem,
   onOpenItemPreview,
   onScheduleClosePreview,
   onSelectItem,
@@ -104,8 +101,8 @@ export function HistoryList({
               );
             }}
             onMouseLeave={onScheduleClosePreview}
-            >
-              <button
+          >
+            <button
               className={historyItem(showItemNumbers)}
               data-main-keyboard-target={targetId}
               onClick={() => onSelectItem(item.id)}
@@ -140,19 +137,6 @@ export function HistoryList({
                   <span className={ui.historyDisplayText}>{displayText}</span>
                 </span>
               )}
-            </button>
-            <button
-              aria-label={translations.deleteItemAriaLabel}
-              className={historyDeleteButton(selectedItemId === item.id)}
-              onClick={(event) => {
-                // 阻止删除按钮的点击继续冒泡到外层行，避免同时触发选择/复制。
-                event.stopPropagation();
-                onDeleteItem(item.id);
-              }}
-              title={translations.deleteItemAriaLabel}
-              type="button"
-            >
-              <TrashIcon className={ui.deleteIcon} />
             </button>
           </div>
         );

@@ -1,5 +1,7 @@
 // 通用历史详情面板：单条详情 preview 和分组 hover 详情共用同一套三段式结构。
 
+import type { ReactNode } from "react";
+
 import { getTranslations } from "../i18n";
 import type { AppLanguage, HistoryListItem } from "../types";
 import { ui } from "../uiStyles";
@@ -14,6 +16,7 @@ type HistoryDetailPanelProps = {
   language: AppLanguage;
   translations: HistoryTranslations;
   className?: string;
+  headerAction?: ReactNode;
   role?: "dialog" | "region";
 };
 
@@ -35,6 +38,7 @@ export function HistoryDetailPanel({
   language,
   translations,
   className = "",
+  headerAction,
   role = "dialog",
 }: HistoryDetailPanelProps) {
   const panelClassName = [ui.historyPreview, ui.historyDetailPreview, className]
@@ -47,8 +51,11 @@ export function HistoryDetailPanel({
         <span className={ui.historyPreviewKicker}>
           {translations.itemPreviewKicker}
         </span>
-        <span className={ui.historyPreviewRange}>
-          {translations.kindLabels[item.kind]} #{item.position}
+        <span className={ui.historyPreviewHeaderActions}>
+          {headerAction}
+          <span className={ui.historyPreviewRange}>
+            {translations.kindLabels[item.kind]} #{item.position}
+          </span>
         </span>
       </div>
 

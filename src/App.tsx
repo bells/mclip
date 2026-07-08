@@ -25,6 +25,7 @@ import { adjustWindowHeightToContent } from "./services/ipc/commands";
 import {
   getGroupPreviewEntryKey,
   getGroupPreviewReturnKey,
+  getMainHistoryDeleteTargetIndex,
   getNextMainKeyboardNavigationTarget,
   parseMainKeyboardNavigationTarget,
   serializeMainKeyboardNavigationTarget,
@@ -53,6 +54,19 @@ function App() {
   }
 
   return <MainWindow />;
+}
+
+function isTextEditingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target.isContentEditable
+  );
 }
 
 function MainWindow() {
@@ -335,6 +349,8 @@ function MainWindow() {
     const handleKeyDown = (event: KeyboardEvent) => {
       // 浏览器键盘事件来自 DOM，不是 React 的合成事件，所以类型是 KeyboardEvent。
       const hasMetaModifier = event.metaKey || event.ctrlKey;
+      const hasAnyModifier =
+        event.metaKey || event.ctrlKey || event.altKey || event.shiftKey;
       const normalizedKey = event.key.toLowerCase();
       const activeElement =
         document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -374,6 +390,26 @@ function MainWindow() {
       if (hasMetaModifier && event.key === ",") {
         event.preventDefault();
         openPreferencesDialog();
+        return;
+      }
+
+      const deleteTargetIndex = getMainHistoryDeleteTargetIndex({
+        activeTarget,
+        hasModifier: hasAnyModifier,
+        isClearConfirmOpen,
+        isEditingText: isTextEditingTarget(event.target),
+        isKeyboardPreviewGroupActive: keyboardPreviewGroupIndex !== null,
+        key: event.key,
+      });
+
+      if (deleteTargetIndex !== null) {
+        event.preventDefault();
+
+        const targetItem = visibleHistory[deleteTargetIndex];
+        if (targetItem) {
+          void deleteHistoryItem(targetItem.id);
+        }
+
         return;
       }
 
@@ -454,6 +490,7 @@ function MainWindow() {
     closeHistoryGroupPreview,
     clearKeyboardPreviewGroup,
     activePreviewSide,
+    deleteHistoryItem,
     enterKeyboardPreviewGroup,
     focusKeyboardNavigationTarget,
     hideWindow,
@@ -465,6 +502,7 @@ function MainWindow() {
     previewHistoryGroupIndex,
     selectKeyboardPreviewGroupItem,
     selectHighlightedHistoryItem,
+    visibleHistory,
   ]);
 
   const openClearHistoryConfirm = () => {
@@ -544,7 +582,6 @@ function MainWindow() {
                 isKeyboardNavigating={isKeyboardNavigating}
                 items={visibleHistory}
                 translations={t.history}
-                onDeleteItem={deleteHistoryItem}
                 onOpenItemPreview={openHistoryItemPreviewFromTarget}
                 onScheduleClosePreview={scheduleHistoryGroupPreviewClose}
                 onSelectItem={selectHistoryItem}

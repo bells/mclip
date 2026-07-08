@@ -30,6 +30,7 @@ const {
   getGroupPreviewReturnKey,
   getNextGroupPreviewItemIndex,
   getNextMainKeyboardNavigationTarget,
+  getMainHistoryDeleteTargetIndex,
   shouldClearPreviewForMainKeyboardTarget,
   shouldActivateGroupPreviewPointerItem,
   serializeMainKeyboardNavigationTarget,
@@ -227,5 +228,77 @@ test("group preview pointer polling resumes hover after keyboard navigation only
       itemId: null,
     }),
     false,
+  );
+});
+
+test("delete key targets only the active main history item", () => {
+  assert.equal(
+    getMainHistoryDeleteTargetIndex({
+      activeTarget: {
+        index: 2,
+        kind: "history-item",
+      },
+      hasModifier: false,
+      isClearConfirmOpen: false,
+      isEditingText: false,
+      isKeyboardPreviewGroupActive: false,
+      key: "Delete",
+    }),
+    2,
+  );
+  assert.equal(
+    getMainHistoryDeleteTargetIndex({
+      activeTarget: {
+        index: 2,
+        kind: "history-item",
+      },
+      hasModifier: false,
+      isClearConfirmOpen: false,
+      isEditingText: false,
+      isKeyboardPreviewGroupActive: false,
+      key: "Backspace",
+    }),
+    2,
+  );
+  assert.equal(
+    getMainHistoryDeleteTargetIndex({
+      activeTarget: {
+        kind: "search",
+      },
+      hasModifier: false,
+      isClearConfirmOpen: false,
+      isEditingText: true,
+      isKeyboardPreviewGroupActive: false,
+      key: "Backspace",
+    }),
+    null,
+  );
+  assert.equal(
+    getMainHistoryDeleteTargetIndex({
+      activeTarget: {
+        index: 2,
+        kind: "history-item",
+      },
+      hasModifier: true,
+      isClearConfirmOpen: false,
+      isEditingText: false,
+      isKeyboardPreviewGroupActive: false,
+      key: "Delete",
+    }),
+    null,
+  );
+  assert.equal(
+    getMainHistoryDeleteTargetIndex({
+      activeTarget: {
+        index: 2,
+        kind: "history-item",
+      },
+      hasModifier: false,
+      isClearConfirmOpen: false,
+      isEditingText: false,
+      isKeyboardPreviewGroupActive: true,
+      key: "Delete",
+    }),
+    null,
   );
 });
