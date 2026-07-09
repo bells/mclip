@@ -59,3 +59,63 @@ test("main footer and archive groups keep the compact one-row-per-action contrac
   assert.doesNotMatch(archiveListMatch[1], /overflow-y-auto/);
   assert.match(stylesSource, /archiveRow[\s\S]*h-\[34px\]/);
 });
+
+test("main history rows and archive rows align their leading affordance with footer icons", async () => {
+  const stylesSource = await readSource("src/uiStyles.ts");
+  const appBodyMatch = stylesSource.match(/appBody:\s*"([^"]+)"/);
+  const archiveMatch = stylesSource.match(/archive:\s*"([^"]+)"/);
+  const footerMatch = stylesSource.match(/footer:\s*\n\s*"([^"]+)"/);
+  const itemIndexMatch = stylesSource.match(/itemIndex:\s*\n\s*"([^"]+)"/);
+  const historyPreviewIndexMatch = stylesSource.match(
+    /historyPreviewIndex:\s*\n\s*"([^"]+)"/,
+  );
+  const historyItemMatch = stylesSource.match(
+    /export function historyItem\([\s\S]*?return \[([\s\S]*?)\n\s*\]\.join/,
+  );
+  const archiveRowMatch = stylesSource.match(
+    /export function archiveRow[\s\S]*?return \[([\s\S]*?)\n\s*\]\.join/,
+  );
+  const previewItemMatch = stylesSource.match(
+    /export function previewItem\([\s\S]*?return \[([\s\S]*?)\n\s*\]\.join/,
+  );
+  const menuItemMatch = stylesSource.match(
+    /export function menuItem[\s\S]*?return \[([\s\S]*?)\n\s*\]\.join/,
+  );
+
+  assert.ok(appBodyMatch);
+  assert.ok(archiveMatch);
+  assert.ok(footerMatch);
+  assert.ok(itemIndexMatch);
+  assert.ok(historyPreviewIndexMatch);
+  assert.ok(historyItemMatch);
+  assert.ok(archiveRowMatch);
+  assert.ok(previewItemMatch);
+  assert.ok(menuItemMatch);
+  assert.match(appBodyMatch[1], /px-\[6px\]/);
+  assert.match(archiveMatch[1], /px-\[6px\]/);
+  assert.match(footerMatch[1], /px-\[6px\]/);
+  assert.match(itemIndexMatch[1], /min-w-\[14px\]/);
+  assert.match(itemIndexMatch[1], /text-left/);
+  assert.match(historyPreviewIndexMatch[1], /min-w-\[14px\]/);
+  assert.match(historyPreviewIndexMatch[1], /text-left/);
+  assert.match(historyItemMatch[1], /gap-1\.5/);
+  assert.match(historyItemMatch[1], /pl-1\.5/);
+  assert.match(historyItemMatch[1], /pr-2/);
+  assert.match(
+    historyItemMatch[1],
+    /grid-cols-\[minmax\(14px,max-content\)_minmax\(0,1fr\)\]/,
+  );
+  assert.match(archiveRowMatch[1], /grid-cols-\[14px_minmax\(0,1fr\)_18px\]/);
+  assert.match(archiveRowMatch[1], /gap-1\.5/);
+  assert.match(archiveRowMatch[1], /pl-1\.5/);
+  assert.match(archiveRowMatch[1], /pr-\[10px\]/);
+  assert.match(previewItemMatch[1], /gap-1\.5/);
+  assert.match(previewItemMatch[1], /pl-1\.5/);
+  assert.match(previewItemMatch[1], /pr-2/);
+  assert.match(
+    previewItemMatch[1],
+    /grid-cols-\[minmax\(14px,max-content\)_minmax\(0,1fr\)\]/,
+  );
+  assert.match(menuItemMatch[1], /pl-1\.5/);
+  assert.match(menuItemMatch[1], /pr-2/);
+});

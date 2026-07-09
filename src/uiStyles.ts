@@ -25,7 +25,7 @@ export const ui = {
     "h-screen w-screen overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))]",
   appPanel:
     "relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[var(--mclip-radius-lg)] border border-[var(--mclip-line)] [background:var(--mclip-panel-bg)] text-[var(--mclip-ink)] shadow-[var(--mclip-shadow)]",
-  appBody: "relative z-[1] shrink-0 overflow-hidden px-[7px] py-1",
+  appBody: "relative z-[1] shrink-0 overflow-hidden px-[6px] py-1",
   mainScrollRegion: (isScrollable: boolean) =>
     [
       "relative z-[1] min-h-0 flex-1 overflow-x-hidden overscroll-contain",
@@ -53,7 +53,7 @@ export const ui = {
   empty:
     "mx-0 my-1 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-surface-translucent)] px-3 py-4 text-center text-[12px] font-medium leading-5 text-[var(--mclip-ink-soft)]",
   itemIndex:
-    "w-[26px] shrink-0 text-right text-[11px] font-semibold tabular-nums text-[var(--mclip-index)]",
+    "min-w-[14px] shrink-0 text-left text-[11px] font-semibold tabular-nums text-[var(--mclip-index)]",
   itemText: listText,
   historyTextWithAffordance: "flex min-w-0 items-center gap-2",
   historyDisplayText: "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
@@ -67,7 +67,7 @@ export const ui = {
     "size-[26px] shrink-0 rounded-md border border-[var(--mclip-line)] object-cover",
   deleteIcon: "size-3.5",
 
-  archive: "px-[7px] pb-[6px] pt-0",
+  archive: "px-[6px] pb-[6px] pt-0",
   archiveDivider: "mx-1 mb-1 h-px bg-[var(--mclip-line)]",
   archiveList: "grid content-start gap-1",
   archiveEntry: "min-w-0",
@@ -166,7 +166,7 @@ export const ui = {
   historyPreviewList:
     "mclip-scrollbar grid max-h-full gap-0.5 overflow-y-auto overflow-x-hidden p-1.5",
   historyPreviewIndex:
-    "w-[22px] shrink-0 text-right text-[11px] font-semibold tabular-nums text-[var(--mclip-index)]",
+    "min-w-[14px] shrink-0 text-left text-[11px] font-semibold tabular-nums text-[var(--mclip-index)]",
   historyPreviewText: listText,
   historyPreviewDetailWindow:
     "flex h-screen w-screen items-start overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))]",
@@ -307,15 +307,17 @@ export function historyItemRow(isSelected: boolean, isKeyboardNavigating: boolea
 
 export function historyItem(showItemNumbers: boolean) {
   return [
-    "grid min-h-8 w-full min-w-0 items-center gap-2 rounded-[var(--mclip-radius-sm)] px-2 py-1 text-left",
-    showItemNumbers ? "grid-cols-[26px_minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)]",
+    "grid min-h-8 w-full min-w-0 items-center gap-1.5 rounded-[var(--mclip-radius-sm)] py-1 pl-1.5 pr-2 text-left",
+    showItemNumbers
+      ? "grid-cols-[minmax(14px,max-content)_minmax(0,1fr)]"
+      : "grid-cols-[minmax(0,1fr)]",
     focusRing,
   ].join(" ");
 }
 
 export function archiveRow(isActive: boolean) {
   return [
-    "grid h-[34px] w-full grid-cols-[28px_minmax(0,1fr)_18px] items-center rounded-[var(--mclip-radius-sm)] py-0 pl-[5px] pr-[10px] text-left transition-colors duration-150",
+    "grid h-[34px] w-full grid-cols-[14px_minmax(0,1fr)_18px] items-center gap-1.5 rounded-[var(--mclip-radius-sm)] py-0 pl-1.5 pr-[10px] text-left transition-colors duration-150",
     isActive
       ? "[background:var(--mclip-selected-bg)] shadow-[inset_0_0_0_1px_var(--mclip-selection-strong)]"
       : "hover:bg-[var(--mclip-row-hover-bg)]",
@@ -358,8 +360,10 @@ export function previewItemRow(isSelected: boolean, isKeyboardNavigating: boolea
 
 export function previewItem(showHistoryItemNumbers: boolean) {
   return [
-    "grid min-h-[29px] w-full min-w-0 items-center gap-2 rounded-[var(--mclip-radius-sm)] px-2 py-0.5 text-left",
-    showHistoryItemNumbers ? "grid-cols-[22px_minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)]",
+    "grid min-h-[29px] w-full min-w-0 items-center gap-1.5 rounded-[var(--mclip-radius-sm)] py-0.5 pl-1.5 pr-2 text-left",
+    showHistoryItemNumbers
+      ? "grid-cols-[minmax(14px,max-content)_minmax(0,1fr)]"
+      : "grid-cols-[minmax(0,1fr)]",
     focusRing,
   ].join(" ");
 }
