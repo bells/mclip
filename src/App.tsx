@@ -33,6 +33,8 @@ import {
 } from "./utils/keyboardNavigation";
 import { ui } from "./uiStyles";
 
+const MAIN_SCROLL_CONSTRAINT_EPSILON = 1;
+
 function App() {
   const windowLabel = getCurrentWindowLabel();
 
@@ -80,6 +82,7 @@ function MainWindow() {
   const [activeMainKeyboardTargetId, setActiveMainKeyboardTargetId] =
     useState<string | null>(null);
   const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
+  const [isMainScrollConstrained, setIsMainScrollConstrained] = useState(false);
   const activeMainKeyboardTargetIdRef = useRef<string | null>(null);
   const headerMeasureRef = useRef<HTMLDivElement | null>(null);
   const contentMeasureRef = useRef<HTMLDivElement | null>(null);
@@ -120,6 +123,16 @@ function MainWindow() {
     if (contentWindowHeight <= 0) {
       return;
     }
+
+    const currentWindowHeight = Math.ceil(window.innerHeight);
+    const nextIsMainScrollConstrained =
+      contentWindowHeight >
+      currentWindowHeight + MAIN_SCROLL_CONSTRAINT_EPSILON;
+    setIsMainScrollConstrained((currentValue) =>
+      currentValue === nextIsMainScrollConstrained
+        ? currentValue
+        : nextIsMainScrollConstrained,
+    );
 
     if (lastMeasuredWindowHeightRef.current === contentWindowHeight) {
       return;
@@ -574,7 +587,7 @@ function MainWindow() {
           />
         </div>
 
-        <div className={ui.mainScrollRegion}>
+        <div className={ui.mainScrollRegion(isMainScrollConstrained)}>
           <div className={ui.mainScrollContent} ref={contentMeasureRef}>
             <div className={ui.appBody}>
               <HistoryList

@@ -27,7 +27,6 @@ const ARCHIVE_DIVIDER_HEIGHT: f64 = 5.0;
 const ARCHIVE_BOTTOM_PADDING: f64 = 6.0;
 const ARCHIVE_ROW_HEIGHT: f64 = 34.0;
 const ARCHIVE_ROW_GAP: f64 = 4.0;
-const MAX_VISIBLE_ARCHIVE_GROUP_ROWS: u32 = 5;
 const FOOTER_HEIGHT: f64 = 129.0;
 const PER_ITEM_HEIGHT: f64 = 32.0;
 const EMPTY_STATE_HEIGHT: f64 = 120.0;
@@ -709,9 +708,7 @@ fn calculate_window_height(item_count: u32, group_count: u32) -> f64 {
     } else {
         item_count as f64 * PER_ITEM_HEIGHT
     };
-    let visible_archive_group_count = group_count
-        .saturating_sub(1)
-        .min(MAX_VISIBLE_ARCHIVE_GROUP_ROWS);
+    let visible_archive_group_count = group_count.saturating_sub(1);
     let group_rows_height = calculate_archive_group_height(visible_archive_group_count);
 
     (HEADER_HEIGHT + BODY_VERTICAL_PADDING + group_rows_height + FOOTER_HEIGHT + content_height)
@@ -1224,9 +1221,9 @@ mod tests {
     }
 
     #[test]
-    fn group_nav_height_only_counts_five_archive_rows() {
+    fn group_nav_height_counts_all_archive_rows_until_window_cap() {
         assert_eq!(calculate_window_height(10, 6), 706.0);
-        assert_eq!(calculate_window_height(10, 7), 706.0);
+        assert_eq!(calculate_window_height(10, 7), 744.0);
     }
 
     #[test]

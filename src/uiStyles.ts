@@ -26,8 +26,11 @@ export const ui = {
   appPanel:
     "relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[var(--mclip-radius-lg)] border border-[var(--mclip-line)] [background:var(--mclip-panel-bg)] text-[var(--mclip-ink)] shadow-[var(--mclip-shadow)]",
   appBody: "relative z-[1] shrink-0 overflow-hidden px-[7px] py-1",
-  mainScrollRegion:
-    "mclip-scrollbar relative z-[1] min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain",
+  mainScrollRegion: (isScrollable: boolean) =>
+    [
+      "relative z-[1] min-h-0 flex-1 overflow-x-hidden overscroll-contain",
+      isScrollable ? "mclip-scrollbar overflow-y-auto" : "overflow-y-hidden",
+    ].join(" "),
   mainScrollContent: "grid content-start",
   mainHeaderMeasure: "shrink-0",
   mainFooterMeasure: "shrink-0",
@@ -66,8 +69,7 @@ export const ui = {
 
   archive: "px-[7px] pb-[6px] pt-0",
   archiveDivider: "mx-1 mb-1 h-px bg-[var(--mclip-line)]",
-  archiveList:
-    "mclip-scrollbar grid max-h-[186px] content-start gap-1 overflow-y-auto overflow-x-hidden pr-1 overscroll-contain",
+  archiveList: "grid content-start gap-1",
   archiveEntry: "min-w-0",
   archiveFolderIcon: "size-3.5 shrink-0 text-[var(--mclip-index)]",
   archiveLabel: "min-w-0 flex-1 text-left text-[12px] font-medium text-[var(--mclip-ink-soft)]",
