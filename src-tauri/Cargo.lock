@@ -2169,7 +2169,6 @@ dependencies = [
  "base64 0.22.1",
  "core-graphics",
  "image",
- "objc2-app-kit",
  "objc2-foundation",
  "raw-window-handle",
  "serde",

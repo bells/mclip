@@ -20,8 +20,25 @@ test("group items update and show the independent preview-detail window", async 
   assert.match(previewSource, /getItemPreviewHeight\(requestedItem\)/);
   assert.match(previewSource, /hoveredItemIdRef\.current !== requestedItem\.id/);
   assert.match(eventsSource, /PREVIEW_DETAIL_WINDOW_LABEL/);
+  assert.match(eventsSource, /HISTORY_PREVIEW_DETAIL_UPDATED_EVENT/);
+  assert.match(
+    eventsSource,
+    /PREVIEW_DETAIL_WINDOW_LABEL,[\s\S]*HISTORY_PREVIEW_DETAIL_UPDATED_EVENT/,
+  );
   assert.match(commandsSource, /PreviewFamilyPosition/);
   assert.doesNotMatch(commandsSource, /show_history_group_preview_with_detail_window/);
+});
+
+test("group and detail windows cannot consume each other's payload events", async () => {
+  const [eventsSource, detailSource] = await Promise.all([
+    readSource("src/services/ipc/events.ts"),
+    readSource("src/components/HistoryPreviewDetailWindow.tsx"),
+  ]);
+
+  assert.match(eventsSource, /history-preview-updated/);
+  assert.match(eventsSource, /history-preview-detail-updated/);
+  assert.match(detailSource, /listenToHistoryPreviewDetailUpdated/);
+  assert.doesNotMatch(detailSource, /listenToHistoryPreviewUpdated/);
 });
 
 test("group list no longer embeds a detail panel", async () => {
@@ -43,4 +60,17 @@ test("pointer hit testing keeps both preview windows in one family", async () =>
     windowSource,
     /is_pointer_over_window\(app_handle, PREVIEW_WINDOW_LABEL\)\?[\s\S]*is_pointer_over_window\(app_handle, PREVIEW_DETAIL_WINDOW_LABEL\)\?/,
   );
+});
+
+test("detail sizing and placement share the group monitor physical coordinate space", async () => {
+  const [windowSource, cargoSource] = await Promise.all([
+    readSource("src-tauri/src/window.rs"),
+    readSource("src-tauri/Cargo.toml"),
+  ]);
+
+  assert.match(windowSource, /let preview_scale_factor = preview_window/);
+  assert.match(windowSource, /set_size\(Size::Physical\(PhysicalSize/);
+  assert.match(windowSource, /set_position\(Position::Physical\(PhysicalPosition/);
+  assert.doesNotMatch(windowSource, /align_preview_detail_x|detail_ns_window\.frame/);
+  assert.doesNotMatch(cargoSource, /objc2-app-kit/);
 });

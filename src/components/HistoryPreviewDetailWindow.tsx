@@ -7,8 +7,8 @@ import { getTranslations } from "../i18n";
 import {
   deleteHistoryItem,
   hideHistoryPreviewDetailWindow,
+  listenToHistoryPreviewDetailUpdated,
   listenToHistoryPreviewPlacementUpdated,
-  listenToHistoryPreviewUpdated,
   notifyHistoryPreviewPointerEntered,
   requestHistoryPreviewClose,
   type PreviewWindowSide,
@@ -28,8 +28,8 @@ export function HistoryPreviewDetailWindow() {
   useEffect(() => {
     let unlisten: (() => void) | undefined;
 
-    void listenToHistoryPreviewUpdated((payload) => {
-      setPreview(payload.kind === "item" ? payload : null);
+    void listenToHistoryPreviewDetailUpdated((payload) => {
+      setPreview(payload);
       setIsDeleting(false);
     }).then((unsubscribe) => {
       unlisten = unsubscribe;

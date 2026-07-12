@@ -25,11 +25,11 @@
 
 ### 1. 分组列表与 hover 详情使用两个原生窗口
 
-`preview` 在分组模式下只渲染分组标题和列表；hover 或键盘激活某条记录时，通过现有的 `updateHistoryPreviewDetailWindow` 把 `HistoryItemPreviewPayload` 定向发送给 `preview-detail`，再调用 `show_history_preview_detail_window` 按该条记录的详情高度定位。`preview-detail` 继续复用 `HistoryDetailPanel`，并保持 `set_focusable(false)`。
+`preview` 在分组模式下只渲染分组标题和列表；hover 或键盘激活某条记录时，通过 `updateHistoryPreviewDetailWindow` 使用独立的 `history-preview-detail-updated` typed event 把 `HistoryItemPreviewPayload` 定向发送给 `preview-detail`，再调用 `show_history_preview_detail_window` 按该条记录的详情高度定位。分组 payload 继续使用 `history-preview-updated`；两个窗口不能复用同一事件名，否则应用级 listener 会让分组窗口误消费 item payload 并替换自身内容。`preview-detail` 继续复用 `HistoryDetailPanel`，并保持 `set_focusable(false)`。
 
 `show_history_preview_detail_window` 必须保持分组窗口位置不变，并把详情窗口放在分组窗口左侧或右侧，二者始终相邻且互不覆盖。分组在主窗口左侧时详情优先位于分组更左侧；分组在主窗口右侧时详情优先位于分组更右侧。如果外侧越过屏幕工作区，则只把详情翻到分组另一侧，允许详情覆盖主界面，但不能覆盖或替代分组列表。即使两侧都无法完整容纳详情，也优先保持详情与分组的相邻关系，不通过水平钳制把两个 preview 窗口叠在一起。
 
-窗口关系先用跨平台 Tauri 物理坐标计算；macOS 透明窗口在不同 WebView 间可能出现 backing-scale 换算差异，因此显示详情后再通过一个窄的 AppKit bridge 读取实际 `NSWindow.frame` 并只校正详情 X。React payload、窗口可见性和生命周期仍由现有 Tauri/React 状态流管理，AppKit 不持有第二份状态。
+窗口关系统一使用分组窗口所在显示器的 Tauri 物理坐标计算。详情窗口即将移动到该显示器，因此其物理宽高也使用分组窗口的 scale factor 一次性确定，并以 `Size::Physical` 和 `Position::Physical` 应用；不能读取仍隐藏或刚 resize 的详情 `NSWindow.frame` 做二次校正，否则旧 frame 会把详情重新放回分组矩形并保留旧命中高度。React payload、窗口可见性和生命周期仍由现有 Tauri/React 状态流管理。
 
 这条路径取代分组模式下的组合宽度/高度布局。`show_history_group_preview_with_detail_window`、组合网格样式和 `getGroupPreviewHeightWithDetail` 在确认无调用后移除，避免两套详情窗口模型继续并存。
 
@@ -66,6 +66,7 @@ Rust 继续作为最终安全边界，把期望高度限制到最小预览高度
 - [Risk] 首次估算高度与 DOM 实测高度不同，窗口可能产生一次很小的尺寸调整 → 使用接近当前布局的 fallback、像素容差和单次稳定测量，避免循环 resize。
 - [Risk] 字体、图片加载或主题切换会改变自然高度 → 使用 `ResizeObserver` 或等价的受控重新测量，并缓存最后已应用高度。
 - [Risk] hover 快速切换时旧 payload 或旧 show promise 晚到，详情可能短暂显示错误条目 → 为详情更新沿用 preview request revision/token，并在完成显示前校验当前 active item id。
+- [Risk] 隐藏的详情窗口仍保留上次所在显示器的 scale factor 或旧 frame → 始终以当前分组窗口所在显示器为目标，用同一 scale factor 同步设置详情物理尺寸与位置，不使用隐藏窗口旧 frame 参与最终几何计算。
 - [Risk] 删除由 `preview-detail` 发起后，分组窗口短暂保留旧行 → 删除成功先隐藏详情并清除 active item，随后以 `history-updated` 推送为唯一刷新来源。
 - [Trade-off] 两个透明原生窗口比单一组合窗口多一次 event/invoke 往返，但换来独立尺寸、正确命中区域和更清晰的组件职责。
 

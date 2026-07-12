@@ -3,8 +3,8 @@
 
 use serde::Serialize;
 use tauri::{
-    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Monitor, PhysicalPosition, Position,
-    Rect, Runtime, Size, WebviewWindow,
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Monitor, PhysicalPosition,
+    PhysicalSize, Position, Rect, Runtime, Size, WebviewWindow,
 };
 use tauri_plugin_positioner::{Position as TrayPosition, WindowExt};
 
@@ -422,7 +422,10 @@ pub fn show_history_preview_detail_window(
         return Ok(default_preview_family_position());
     }
 
-    let detail_scale_factor = preview_detail_window
+    // The detail is moving onto the preview's monitor. Use that monitor's
+    // scale for both its physical size and position instead of the hidden
+    // detail window's possibly stale scale/frame.
+    let preview_scale_factor = preview_window
         .scale_factor()
         .map_err(|error| error.to_string())?;
     let main_position = main_window
@@ -435,22 +438,34 @@ pub fn show_history_preview_detail_window(
         .outer_size()
         .map_err(|error| error.to_string())?;
     let clamped_detail_width = clamp_preview_width(detail_width);
-    let clamped_detail_height = clamp_preview_height(detail_height);
-    let physical_detail_width = clamped_detail_width * detail_scale_factor;
-    let physical_detail_height = clamped_detail_height * detail_scale_factor;
+    let current_monitor = preview_window
+        .current_monitor()
+        .map_err(|error| error.to_string())?;
+    let logical_screen_bounds = current_monitor
+        .as_ref()
+        .map(monitor_work_area_bounds)
+        .unwrap_or_else(|| {
+            fallback_screen_bounds(
+                f64::from(preview_position.x) / preview_scale_factor,
+                f64::from(preview_position.y) / preview_scale_factor,
+            )
+        });
+    let clamped_detail_height =
+        clamp_preview_height_for_screen_bounds(detail_height, logical_screen_bounds);
+    let physical_detail_width = clamped_detail_width * preview_scale_factor;
+    let physical_detail_height = clamped_detail_height * preview_scale_factor;
     let preferred_side = if preview_position.x < main_position.x {
         PreviewWindowSide::Left
     } else {
         PreviewWindowSide::Right
     };
-    let screen_bounds = main_window
-        .current_monitor()
-        .map_err(|error| error.to_string())?
-        .map(|monitor| monitor_physical_work_area_bounds(&monitor))
+    let screen_bounds = current_monitor
+        .as_ref()
+        .map(monitor_physical_work_area_bounds)
         .unwrap_or_else(|| {
-            fallback_screen_bounds(f64::from(main_position.x), f64::from(main_position.y))
+            fallback_screen_bounds(f64::from(preview_position.x), f64::from(preview_position.y))
         });
-    let mut position = calculate_preview_family_position(PreviewFamilyPositionInput {
+    let position = calculate_preview_family_position(PreviewFamilyPositionInput {
         group_x: f64::from(preview_position.x),
         group_y: f64::from(preview_position.y),
         group_width: f64::from(preview_size.width),
@@ -461,9 +476,9 @@ pub fn show_history_preview_detail_window(
     });
 
     preview_detail_window
-        .set_size(Size::Logical(LogicalSize {
-            width: clamped_detail_width,
-            height: clamped_detail_height,
+        .set_size(Size::Physical(PhysicalSize {
+            width: physical_detail_width.round().max(1.0) as u32,
+            height: physical_detail_height.round().max(1.0) as u32,
         }))
         .map_err(|error| error.to_string())?;
     preview_detail_window
@@ -472,15 +487,6 @@ pub fn show_history_preview_detail_window(
             position.detail.y.round() as i32,
         )))
         .map_err(|error| error.to_string())?;
-    #[cfg(target_os = "macos")]
-    {
-        position = macos_window::align_preview_detail_x(
-            &main_window,
-            &preview_window,
-            &preview_detail_window,
-            preferred_side,
-        )?;
-    }
     preview_detail_window
         .emit(HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT, position.detail)
         .map_err(|error| error.to_string())?;
@@ -1109,15 +1115,6 @@ fn apply_window_corner_radius(app_handle: &AppHandle, label: &str, radius: f64) 
 mod macos_window {
     use std::ffi::{c_char, c_void};
 
-    use objc2_app_kit::NSWindow;
-    use objc2_foundation::NSPoint;
-    use tauri::WebviewWindow;
-
-    use super::{
-        calculate_preview_family_position, PreviewFamilyPosition, PreviewFamilyPositionInput,
-        PreviewWindowSide, ScreenBounds,
-    };
-
     type ObjcId = *mut c_void;
 
     #[allow(clashing_extern_declarations)]
@@ -1183,69 +1180,6 @@ mod macos_window {
             // renders a sharp rectangle that bleeds past the contentView clip.
             layer_backed_view_set_corner_radius(ns_view as ObjcId, radius);
         }
-    }
-
-    pub fn align_preview_detail_x(
-        main_window: &WebviewWindow,
-        preview_window: &WebviewWindow,
-        detail_window: &WebviewWindow,
-        preferred_side: PreviewWindowSide,
-    ) -> Result<PreviewFamilyPosition, String> {
-        let main_ns_window = main_window.ns_window().map_err(|error| error.to_string())?;
-        let preview_ns_window = preview_window
-            .ns_window()
-            .map_err(|error| error.to_string())?;
-        let detail_ns_window = detail_window
-            .ns_window()
-            .map_err(|error| error.to_string())?;
-
-        let main_ns_window: &NSWindow = unsafe { &*main_ns_window.cast() };
-        let preview_ns_window: &NSWindow = unsafe { &*preview_ns_window.cast() };
-        let detail_ns_window: &NSWindow = unsafe { &*detail_ns_window.cast() };
-        let main_frame = main_ns_window.frame();
-        let preview_frame = preview_ns_window.frame();
-        let detail_frame = detail_ns_window.frame();
-        let visible_frame = preview_ns_window
-            .screen()
-            .or_else(|| main_ns_window.screen())
-            .map(|screen| screen.visibleFrame())
-            .ok_or_else(|| "无法获取历史预览所在屏幕".to_string())?;
-        let position = calculate_preview_family_position(PreviewFamilyPositionInput {
-            group_x: preview_frame.origin.x,
-            group_y: preview_frame.origin.y,
-            group_width: preview_frame.size.width,
-            detail_width: detail_frame.size.width,
-            detail_height: detail_frame.size.height,
-            preferred_side,
-            screen_bounds: ScreenBounds {
-                left: visible_frame.origin.x,
-                top: visible_frame.origin.y,
-                width: visible_frame.size.width,
-                height: visible_frame.size.height,
-            },
-        });
-
-        // Tauri's cross-window logical/physical conversion can use different
-        // backing scales for transparent windows on macOS. Read the actual
-        // NSWindow frames and correct only X so group and detail stay adjacent.
-        detail_ns_window.setFrameOrigin(NSPoint::new(position.detail.x, detail_frame.origin.y));
-
-        Ok(PreviewFamilyPosition {
-            group: super::PreviewWindowPosition {
-                x: preview_frame.origin.x,
-                y: preview_frame.origin.y,
-                side: if preview_frame.origin.x < main_frame.origin.x {
-                    PreviewWindowSide::Left
-                } else {
-                    PreviewWindowSide::Right
-                },
-            },
-            detail: super::PreviewWindowPosition {
-                x: position.detail.x,
-                y: detail_frame.origin.y,
-                side: position.detail.side,
-            },
-        })
     }
 }
 

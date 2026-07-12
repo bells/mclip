@@ -12,6 +12,8 @@
 - [x] 2.3 Keep `HistoryPreviewDetailWindow` synchronized with active-item payload, theme, placement side, pointer-enter/leave signals, and preview-family dismissal without making the window focusable.
 - [x] 2.4 Remove the unused combined group/detail TypeScript wrapper, Rust command, sizing helper, styles, handler registration, and obsolete tests after confirming no remaining callers.
 - [x] 2.5 Extend frontend and Rust window tests for independent detail height, rapid active-item changes, left/right placement, monitor boundary clamping, and pointer movement across both preview windows.
+- [x] 2.6 Replace the macOS post-resize `NSWindow.frame` correction with one same-monitor physical size/position transaction so stale hidden-window geometry cannot overlap the group or retain the group's hit-test height.
+- [x] 2.7 Give `preview-detail` a distinct typed payload event so the application-level listener in `preview` cannot consume the item payload, replace the group list, and hide the real detail window.
 
 ## 3. Detail-Owned Delete Action
 

@@ -14,6 +14,8 @@ import type { PreviewWindowPosition } from "./commands";
 const HISTORY_UPDATED_EVENT = "history-updated";
 const SETTINGS_UPDATED_EVENT = "settings-updated";
 const HISTORY_PREVIEW_UPDATED_EVENT = "history-preview-updated";
+const HISTORY_PREVIEW_DETAIL_UPDATED_EVENT =
+  "history-preview-detail-updated";
 const HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT =
   "history-preview-placement-updated";
 const HISTORY_PREVIEW_KEYBOARD_NAVIGATION_EVENT =
@@ -41,7 +43,7 @@ export function updateHistoryPreviewDetailWindow(
 ) {
   return emitTo(
     PREVIEW_DETAIL_WINDOW_LABEL,
-    HISTORY_PREVIEW_UPDATED_EVENT,
+    HISTORY_PREVIEW_DETAIL_UPDATED_EVENT,
     payload,
   );
 }
@@ -126,6 +128,17 @@ export function listenToHistoryPreviewUpdated(
   return listen<HistoryPreviewPayload>(HISTORY_PREVIEW_UPDATED_EVENT, (event) => {
     handler(event.payload);
   });
+}
+
+export function listenToHistoryPreviewDetailUpdated(
+  handler: (payload: HistoryItemPreviewPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<HistoryItemPreviewPayload>(
+    HISTORY_PREVIEW_DETAIL_UPDATED_EVENT,
+    (event) => {
+      handler(event.payload);
+    },
+  );
 }
 
 export function listenToHistoryPreviewPlacementUpdated(
