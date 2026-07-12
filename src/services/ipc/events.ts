@@ -6,6 +6,7 @@ import type {
   HistoryItemPreviewPayload,
   HistoryPreviewGroupItemActivatedPayload,
   HistoryPreviewKeyboardNavigationPayload,
+  HistoryPreviewMeasuredPayload,
   HistoryPreviewPayload,
 } from "../../types";
 import type { PreviewWindowPosition } from "./commands";
@@ -19,6 +20,7 @@ const HISTORY_PREVIEW_KEYBOARD_NAVIGATION_EVENT =
   "history-preview-keyboard-navigation";
 const HISTORY_PREVIEW_GROUP_ITEM_ACTIVATED_EVENT =
   "history-preview-group-item-activated";
+const HISTORY_PREVIEW_MEASURED_EVENT = "history-preview-measured";
 const HISTORY_PREVIEW_CLOSE_REQUESTED_EVENT = "history-preview-close-requested";
 const HISTORY_PREVIEW_POINTER_ENTERED_EVENT = "history-preview-pointer-entered";
 const HISTORY_PREVIEW_SELECTION_STARTED_EVENT =
@@ -61,6 +63,22 @@ export function notifyHistoryPreviewGroupItemActivated(
     MAIN_WINDOW_LABEL,
     HISTORY_PREVIEW_GROUP_ITEM_ACTIVATED_EVENT,
     payload,
+  );
+}
+
+export function reportHistoryPreviewMeasured(
+  payload: HistoryPreviewMeasuredPayload,
+) {
+  return emitTo(MAIN_WINDOW_LABEL, HISTORY_PREVIEW_MEASURED_EVENT, payload);
+}
+
+export function notifyHistoryPreviewPlacementUpdated(
+  placement: PreviewWindowPosition,
+) {
+  return emitTo(
+    MAIN_WINDOW_LABEL,
+    HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT,
+    placement,
   );
 }
 
@@ -137,6 +155,17 @@ export function listenToHistoryPreviewGroupItemActivated(
 ): Promise<UnlistenFn> {
   return listen<HistoryPreviewGroupItemActivatedPayload>(
     HISTORY_PREVIEW_GROUP_ITEM_ACTIVATED_EVENT,
+    (event) => {
+      handler(event.payload);
+    },
+  );
+}
+
+export function listenToHistoryPreviewMeasured(
+  handler: (payload: HistoryPreviewMeasuredPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<HistoryPreviewMeasuredPayload>(
+    HISTORY_PREVIEW_MEASURED_EVENT,
     (event) => {
       handler(event.payload);
     },

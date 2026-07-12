@@ -128,3 +128,8 @@ export type HistoryPreviewKeyboardNavigationPayload =
 export type HistoryPreviewGroupItemActivatedPayload = {
   groupIndex: number;
 };
+
+export type HistoryPreviewMeasuredPayload = {
+  groupIndex: number;
+  height: number;
+};

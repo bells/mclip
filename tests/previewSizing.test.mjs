@@ -26,21 +26,28 @@ async function importTypeScriptModule(sourcePath) {
 }
 
 const {
-  getGroupDetailPreviewOffset,
+  getGroupPreviewNaturalHeight,
   getGroupPreviewHeight,
-  getGroupPreviewHeightWithDetail,
   getItemPreviewAnchorTop,
   getItemPreviewHeight,
+  normalizeMeasuredPreviewHeight,
+  shouldApplyMeasuredPreviewHeight,
 } = await importTypeScriptModule("src/utils/preview.ts");
 
 test("history group preview uses compact row sizing", () => {
   assert.equal(getGroupPreviewHeight(10), 358);
-  assert.equal(getGroupDetailPreviewOffset(3), 93);
 });
 
-test("history group preview height expands only when the detail needs it", () => {
-  assert.equal(getGroupPreviewHeightWithDetail(10, 220, 2), 358);
-  assert.equal(getGroupPreviewHeightWithDetail(10, 260, 8), 508);
+test("history group preview natural height follows rendered content", () => {
+  assert.equal(getGroupPreviewNaturalHeight(37.2, 312.1, 2), 352);
+  assert.equal(normalizeMeasuredPreviewHeight(Number.NaN), null);
+  assert.equal(normalizeMeasuredPreviewHeight(0), null);
+});
+
+test("history group preview ignores duplicate measured heights", () => {
+  assert.equal(shouldApplyMeasuredPreviewHeight(null, 352), true);
+  assert.equal(shouldApplyMeasuredPreviewHeight(352, 353), false);
+  assert.equal(shouldApplyMeasuredPreviewHeight(352, 354), true);
 });
 
 test("item detail preview sizing follows the compact preview chrome", () => {

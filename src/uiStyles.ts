@@ -6,8 +6,6 @@ const compactButton =
   "inline-flex min-h-8 items-center justify-center rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] px-3 text-[11px] font-semibold text-[var(--mclip-ink-soft)] transition-colors duration-150 hover:bg-[var(--mclip-control-bg-hover)] disabled:cursor-not-allowed disabled:opacity-45";
 const aboutButton =
   `${focusRing} inline-flex min-h-[42px] items-center justify-center rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] px-4 text-center text-[14px] font-bold leading-5 text-[var(--mclip-ink-soft)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors duration-150 hover:border-[var(--mclip-accent-cool)] hover:bg-[var(--mclip-control-bg-hover)] disabled:cursor-not-allowed disabled:opacity-45`;
-const iconButton =
-  "inline-flex size-7 items-center justify-center rounded-md text-[var(--mclip-ink-dim)] opacity-0 transition-colors transition-opacity duration-150";
 const fieldSurface =
   "rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)]";
 const settingsRow =
@@ -118,7 +116,7 @@ export const ui = {
     "flex shrink-0 items-center justify-between gap-3 border-b border-[var(--mclip-line)] px-3 py-2",
   historyPreviewHeaderActions: "flex shrink-0 items-center gap-2",
   historyDetailActionButton:
-    `inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--mclip-ink-dim)] transition-colors duration-150 hover:bg-[var(--mclip-row-hover-bg)] hover:text-[var(--mclip-danger)] ${focusRing}`,
+    `inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--mclip-ink-dim)] transition-colors duration-150 hover:bg-[var(--mclip-row-hover-bg)] hover:text-[var(--mclip-danger)] disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`,
   historyPreviewKicker:
     "text-[10px] font-bold uppercase tracking-normal text-[var(--mclip-kicker)]",
   historyPreviewRange:
@@ -151,17 +149,9 @@ export const ui = {
   historyDetailMetaValue:
     "m-0 min-w-0 whitespace-normal break-words text-[11px] font-semibold leading-4 text-[var(--mclip-ink-soft)] [overflow-wrap:anywhere]",
   historyGroupPreviewWindow:
-    "grid h-screen w-screen overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))]",
-  historyGroupPreviewWindowWithDetail:
-    "grid-cols-[minmax(0,320px)_minmax(0,304px)] gap-0",
-  historyGroupPreviewWindowDetailLeft:
-    "grid-cols-[minmax(0,304px)_minmax(0,320px)]",
-  historyGroupDetailPane:
-    "min-h-0 max-h-[calc(100vh-var(--detail-preview-offset,0px))] translate-y-[var(--detail-preview-offset,0)] overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))]",
-  historyGroupHoverDetail:
-    "h-[min(var(--detail-preview-height),calc(100vh-var(--detail-preview-offset,0px)))] max-h-full",
+    "flex h-screen w-screen overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))]",
   historyGroupPreview:
-    "flex h-[var(--group-preview-height)] max-h-screen min-h-0 flex-col",
+    "flex h-full max-h-screen min-h-0 w-full flex-col",
   historyGroupPreviewBody: "min-h-0 flex-1 overflow-hidden",
   historyPreviewList:
     "mclip-scrollbar grid max-h-full gap-0.5 overflow-y-auto overflow-x-hidden p-1.5",
@@ -337,18 +327,9 @@ export function menuItem(isSelected: boolean, isDanger: boolean, isDisabled = fa
   ].join(" ");
 }
 
-export function previewWindow(hasDetail: boolean, detailSide: "left" | "right", isKeyboardNavigating: boolean) {
-  return [
-    ui.historyGroupPreviewWindow,
-    hasDetail ? ui.historyGroupPreviewWindowWithDetail : "grid-cols-[minmax(0,320px)]",
-    hasDetail && detailSide === "left" ? ui.historyGroupPreviewWindowDetailLeft : "",
-    isKeyboardNavigating ? "is-keyboard-navigating" : "",
-  ].filter(Boolean).join(" ");
-}
-
 export function previewItemRow(isSelected: boolean, isKeyboardNavigating: boolean) {
   return [
-    "relative grid min-h-[29px] grid-cols-[minmax(0,1fr)_auto] items-center rounded-[var(--mclip-radius-sm)] text-[var(--mclip-ink-soft)] transition-colors transition-shadow duration-150",
+    "relative min-h-[29px] rounded-[var(--mclip-radius-sm)] text-[var(--mclip-ink-soft)] transition-colors transition-shadow duration-150",
     isKeyboardNavigating ? "" : "group",
     isSelected
       ? "[background:var(--mclip-selected-bg)] shadow-[inset_0_0_0_1px_var(--mclip-selection-strong)]"
@@ -364,17 +345,6 @@ export function previewItem(showHistoryItemNumbers: boolean) {
     showHistoryItemNumbers
       ? "grid-cols-[minmax(14px,max-content)_minmax(0,1fr)]"
       : "grid-cols-[minmax(0,1fr)]",
-    focusRing,
-  ].join(" ");
-}
-
-export function previewDeleteButton(isVisible: boolean) {
-  return [
-    iconButton,
-    isVisible
-      ? "pointer-events-auto opacity-100"
-      : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
-    "hover:text-[var(--mclip-danger)]",
     focusRing,
   ].join(" ");
 }

@@ -15,6 +15,11 @@ export type PreviewWindowPosition = {
   side: PreviewWindowSide;
 };
 
+export type PreviewFamilyPosition = {
+  group: PreviewWindowPosition;
+  detail: PreviewWindowPosition;
+};
+
 export type ProjectLinkTarget = "github" | "homepage" | "latestRelease";
 
 export type WindowPointerPosition = {
@@ -103,23 +108,10 @@ export function showHistoryPreviewWindow(
   });
 }
 
-export function showHistoryGroupPreviewWithDetailWindow(
-  groupX: number,
-  groupY: number,
-  previewHeight: number,
-  groupWidth: number,
-  detailWidth: number,
-) {
-  return invoke<PreviewWindowPosition>(
-    "show_history_group_preview_with_detail_window",
-    {
-      detailWidth,
-      groupWidth,
-      groupX,
-      groupY,
-      previewHeight,
-    },
-  );
+export function resizeHistoryPreviewWindow(previewHeight: number) {
+  return invoke<PreviewWindowPosition>("resize_history_preview_window", {
+    previewHeight,
+  });
 }
 
 export function hideHistoryPreviewWindow() {
@@ -133,12 +125,10 @@ export function hideHistoryPreviewDetailWindow() {
 export function showHistoryPreviewDetailWindow(
   detailHeight: number,
   detailWidth: number,
-  previewWidth: number,
 ) {
-  return invoke<PreviewWindowPosition>("show_history_preview_detail_window", {
+  return invoke<PreviewFamilyPosition>("show_history_preview_detail_window", {
     detailHeight,
     detailWidth,
-    previewWidth,
   });
 }
 

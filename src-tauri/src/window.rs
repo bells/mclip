@@ -32,7 +32,7 @@ const PER_ITEM_HEIGHT: f64 = 32.0;
 const EMPTY_STATE_HEIGHT: f64 = 120.0;
 const MIN_PREVIEW_WINDOW_WIDTH: f64 = 240.0;
 const MAX_PREVIEW_WINDOW_WIDTH: f64 = 680.0;
-const MIN_PREVIEW_WINDOW_HEIGHT: f64 = 120.0;
+const MIN_PREVIEW_WINDOW_HEIGHT: f64 = 80.0;
 // Keep the preview flush with the main window so the pointer can cross into it
 // without passing through a dead hover gap.
 const PREVIEW_WINDOW_GAP: f64 = 0.0;
@@ -112,24 +112,30 @@ struct PreviewWindowPositionInput {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct PreviewDetailWindowPositionInput {
-    preview_x: f64,
-    preview_y: f64,
-    preview_width: f64,
-    detail_width: f64,
-    detail_height: f64,
-    side: PreviewWindowSide,
+struct PreviewWindowResizeInput {
+    current_x: f64,
+    current_y: f64,
+    main_x: f64,
+    preview_height: f64,
     screen_bounds: ScreenBounds,
 }
 
 #[derive(Debug, Clone, Copy)]
-struct GroupPreviewWithDetailWindowPositionInput {
+struct PreviewFamilyPositionInput {
     group_x: f64,
     group_y: f64,
     group_width: f64,
     detail_width: f64,
-    preview_height: f64,
+    detail_height: f64,
+    preferred_side: PreviewWindowSide,
     screen_bounds: ScreenBounds,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreviewFamilyPosition {
+    group: PreviewWindowPosition,
+    detail: PreviewWindowPosition,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -281,13 +287,9 @@ pub fn show_history_preview_window(
 }
 
 #[tauri::command]
-pub fn show_history_group_preview_with_detail_window(
+pub fn resize_history_preview_window(
     app_handle: AppHandle,
-    group_x: f64,
-    group_y: f64,
     preview_height: f64,
-    group_width: f64,
-    detail_width: f64,
 ) -> Result<PreviewWindowPosition, String> {
     let Some(main_window) = app_handle.get_webview_window("main") else {
         return Ok(default_preview_window_position());
@@ -303,64 +305,70 @@ pub fn show_history_group_preview_with_detail_window(
             .is_visible()
             .map_err(|error| error.to_string())?
     {
-        hide_history_preview_detail_window(app_handle)?;
         return Ok(default_preview_window_position());
     }
 
-    hide_history_preview_detail_window(app_handle.clone())?;
-
-    let scale_factor = main_window
+    let scale_factor = preview_window
         .scale_factor()
         .map_err(|error| error.to_string())?;
     let main_position = main_window
         .outer_position()
+        .map_err(|error| error.to_string())?;
+    let preview_position = preview_window
+        .outer_position()
+        .map_err(|error| error.to_string())?;
+    let preview_size = preview_window
+        .outer_size()
         .map_err(|error| error.to_string())?
         .to_logical::<f64>(scale_factor);
-    let screen_bounds = main_window
+    let current_monitor = preview_window
         .current_monitor()
-        .map_err(|error| error.to_string())?
-        .map(|monitor| monitor_work_area_bounds(&monitor))
-        .unwrap_or_else(|| fallback_screen_bounds(main_position.x, main_position.y));
-    let clamped_group_width = clamp_preview_width(group_width);
-    let clamped_detail_width = clamp_preview_width(detail_width);
-    let clamped_preview_height = clamp_preview_height(preview_height);
-    let preview_width = clamped_group_width + clamped_detail_width;
-    let position = calculate_group_preview_with_detail_window_position(
-        GroupPreviewWithDetailWindowPositionInput {
-            group_x,
-            group_y,
-            group_width: clamped_group_width,
-            detail_width: clamped_detail_width,
-            preview_height: clamped_preview_height,
-            screen_bounds,
-        },
-    );
-
+        .map_err(|error| error.to_string())?;
+    let logical_screen_bounds = current_monitor
+        .as_ref()
+        .map(monitor_work_area_bounds)
+        .unwrap_or_else(|| {
+            fallback_screen_bounds(
+                f64::from(preview_position.x) / scale_factor,
+                f64::from(preview_position.y) / scale_factor,
+            )
+        });
+    let physical_screen_bounds = current_monitor
+        .as_ref()
+        .map(monitor_physical_work_area_bounds)
+        .unwrap_or_else(|| {
+            fallback_screen_bounds(f64::from(preview_position.x), f64::from(preview_position.y))
+        });
+    let clamped_preview_height =
+        clamp_preview_height_for_screen_bounds(preview_height, logical_screen_bounds);
+    // Height measurements arrive after the group and detail have already been
+    // positioned as a family. Keep the group's X coordinate untouched so a
+    // late resize cannot move it back over the independent detail window.
     preview_window
         .set_size(Size::Logical(LogicalSize {
-            width: preview_width,
+            width: preview_size.width,
             height: clamped_preview_height,
         }))
         .map_err(|error| error.to_string())?;
-    preview_window
-        .set_position(Position::Logical(LogicalPosition {
-            x: position.x,
-            y: position.y,
-        }))
+    let resized_preview_position = preview_window
+        .outer_position()
         .map_err(|error| error.to_string())?;
-
-    if !main_window
-        .is_visible()
-        .map_err(|error| error.to_string())?
-        || !preview_window
-            .is_visible()
-            .map_err(|error| error.to_string())?
-    {
-        hide_history_preview_window(app_handle)?;
-        return Ok(default_preview_window_position());
-    }
-
-    preview_window.show().map_err(|error| error.to_string())?;
+    let resized_preview_size = preview_window
+        .outer_size()
+        .map_err(|error| error.to_string())?;
+    let position = calculate_preview_window_resize_position(PreviewWindowResizeInput {
+        current_x: f64::from(resized_preview_position.x),
+        current_y: f64::from(resized_preview_position.y),
+        main_x: f64::from(main_position.x),
+        preview_height: f64::from(resized_preview_size.height),
+        screen_bounds: physical_screen_bounds,
+    });
+    preview_window
+        .set_position(Position::Physical(PhysicalPosition::new(
+            position.x.round() as i32,
+            position.y.round() as i32,
+        )))
+        .map_err(|error| error.to_string())?;
 
     Ok(position)
 }
@@ -391,17 +399,16 @@ pub fn show_history_preview_detail_window(
     app_handle: AppHandle,
     detail_height: f64,
     detail_width: f64,
-    preview_width: f64,
-) -> Result<PreviewWindowPosition, String> {
+) -> Result<PreviewFamilyPosition, String> {
     let Some(main_window) = app_handle.get_webview_window("main") else {
-        return Ok(default_preview_window_position());
+        return Ok(default_preview_family_position());
     };
     let Some(preview_window) = app_handle.get_webview_window(PREVIEW_WINDOW_LABEL) else {
-        return Ok(default_preview_window_position());
+        return Ok(default_preview_family_position());
     };
     let Some(preview_detail_window) = app_handle.get_webview_window(PREVIEW_DETAIL_WINDOW_LABEL)
     else {
-        return Ok(default_preview_window_position());
+        return Ok(default_preview_family_position());
     };
 
     if !main_window
@@ -412,27 +419,26 @@ pub fn show_history_preview_detail_window(
             .map_err(|error| error.to_string())?
     {
         hide_history_preview_detail_window(app_handle)?;
-        return Ok(default_preview_window_position());
+        return Ok(default_preview_family_position());
     }
 
-    let preview_scale_factor = preview_window
-        .scale_factor()
-        .map_err(|error| error.to_string())?;
-    let main_scale_factor = main_window
+    let detail_scale_factor = preview_detail_window
         .scale_factor()
         .map_err(|error| error.to_string())?;
     let main_position = main_window
         .outer_position()
-        .map_err(|error| error.to_string())?
-        .to_logical::<f64>(main_scale_factor);
+        .map_err(|error| error.to_string())?;
     let preview_position = preview_window
         .outer_position()
-        .map_err(|error| error.to_string())?
-        .to_logical::<f64>(preview_scale_factor);
+        .map_err(|error| error.to_string())?;
+    let preview_size = preview_window
+        .outer_size()
+        .map_err(|error| error.to_string())?;
     let clamped_detail_width = clamp_preview_width(detail_width);
     let clamped_detail_height = clamp_preview_height(detail_height);
-    let clamped_preview_width = clamp_preview_width(preview_width);
-    let side = if preview_position.x < main_position.x {
+    let physical_detail_width = clamped_detail_width * detail_scale_factor;
+    let physical_detail_height = clamped_detail_height * detail_scale_factor;
+    let preferred_side = if preview_position.x < main_position.x {
         PreviewWindowSide::Left
     } else {
         PreviewWindowSide::Right
@@ -440,15 +446,17 @@ pub fn show_history_preview_detail_window(
     let screen_bounds = main_window
         .current_monitor()
         .map_err(|error| error.to_string())?
-        .map(|monitor| monitor_work_area_bounds(&monitor))
-        .unwrap_or_else(|| fallback_screen_bounds(main_position.x, main_position.y));
-    let position = calculate_preview_detail_window_position(PreviewDetailWindowPositionInput {
-        preview_x: preview_position.x,
-        preview_y: preview_position.y,
-        preview_width: clamped_preview_width,
-        detail_width: clamped_detail_width,
-        detail_height: clamped_detail_height,
-        side,
+        .map(|monitor| monitor_physical_work_area_bounds(&monitor))
+        .unwrap_or_else(|| {
+            fallback_screen_bounds(f64::from(main_position.x), f64::from(main_position.y))
+        });
+    let mut position = calculate_preview_family_position(PreviewFamilyPositionInput {
+        group_x: f64::from(preview_position.x),
+        group_y: f64::from(preview_position.y),
+        group_width: f64::from(preview_size.width),
+        detail_width: physical_detail_width,
+        detail_height: physical_detail_height,
+        preferred_side,
         screen_bounds,
     });
 
@@ -459,13 +467,22 @@ pub fn show_history_preview_detail_window(
         }))
         .map_err(|error| error.to_string())?;
     preview_detail_window
-        .set_position(Position::Logical(LogicalPosition {
-            x: position.x,
-            y: position.y,
-        }))
+        .set_position(Position::Physical(PhysicalPosition::new(
+            position.detail.x.round() as i32,
+            position.detail.y.round() as i32,
+        )))
         .map_err(|error| error.to_string())?;
+    #[cfg(target_os = "macos")]
+    {
+        position = macos_window::align_preview_detail_x(
+            &main_window,
+            &preview_window,
+            &preview_detail_window,
+            preferred_side,
+        )?;
+    }
     preview_detail_window
-        .emit(HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT, position)
+        .emit(HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT, position.detail)
         .map_err(|error| error.to_string())?;
 
     if !main_window
@@ -476,7 +493,7 @@ pub fn show_history_preview_detail_window(
             .map_err(|error| error.to_string())?
     {
         hide_history_preview_detail_window(app_handle)?;
-        return Ok(default_preview_window_position());
+        return Ok(default_preview_family_position());
     }
 
     preview_detail_window
@@ -789,6 +806,15 @@ fn default_preview_window_position() -> PreviewWindowPosition {
     }
 }
 
+fn default_preview_family_position() -> PreviewFamilyPosition {
+    let position = default_preview_window_position();
+
+    PreviewFamilyPosition {
+        group: position,
+        detail: position,
+    }
+}
+
 fn monitor_work_area_bounds(monitor: &Monitor) -> ScreenBounds {
     let scale_factor = monitor.scale_factor();
     let work_area = monitor.work_area();
@@ -915,135 +941,87 @@ fn calculate_preview_window_position_for_side(
     }
 }
 
-fn calculate_preview_detail_window_position(
-    input: PreviewDetailWindowPositionInput,
+fn calculate_preview_window_resize_position(
+    input: PreviewWindowResizeInput,
 ) -> PreviewWindowPosition {
-    let side = choose_preview_detail_window_side(input);
-    let x = clamp_window_axis(
-        calculate_preview_detail_window_x(input, side),
-        input.detail_width,
-        input.screen_bounds.left,
-        input.screen_bounds.right(),
-    );
-
     PreviewWindowPosition {
-        x,
+        x: input.current_x,
         y: clamp_window_axis(
-            input.preview_y,
-            input.detail_height,
-            input.screen_bounds.top,
-            input.screen_bounds.bottom(),
-        ),
-        side,
-    }
-}
-
-fn choose_preview_detail_window_side(input: PreviewDetailWindowPositionInput) -> PreviewWindowSide {
-    if preview_detail_window_fits_on_side(input, input.side) {
-        return input.side;
-    }
-
-    let opposite_side = match input.side {
-        PreviewWindowSide::Left => PreviewWindowSide::Right,
-        PreviewWindowSide::Right => PreviewWindowSide::Left,
-    };
-
-    if preview_detail_window_fits_on_side(input, opposite_side) {
-        return opposite_side;
-    }
-
-    if available_preview_detail_space(input, PreviewWindowSide::Right)
-        >= available_preview_detail_space(input, PreviewWindowSide::Left)
-    {
-        PreviewWindowSide::Right
-    } else {
-        PreviewWindowSide::Left
-    }
-}
-
-fn preview_detail_window_fits_on_side(
-    input: PreviewDetailWindowPositionInput,
-    side: PreviewWindowSide,
-) -> bool {
-    let x = calculate_preview_detail_window_x(input, side);
-
-    x >= input.screen_bounds.left && x + input.detail_width <= input.screen_bounds.right()
-}
-
-fn calculate_preview_detail_window_x(
-    input: PreviewDetailWindowPositionInput,
-    side: PreviewWindowSide,
-) -> f64 {
-    match side {
-        PreviewWindowSide::Left => input.preview_x - input.detail_width,
-        PreviewWindowSide::Right => input.preview_x + input.preview_width,
-    }
-}
-
-fn available_preview_detail_space(
-    input: PreviewDetailWindowPositionInput,
-    side: PreviewWindowSide,
-) -> f64 {
-    match side {
-        PreviewWindowSide::Left => (input.preview_x - input.screen_bounds.left).max(0.0),
-        PreviewWindowSide::Right => {
-            (input.screen_bounds.right() - (input.preview_x + input.preview_width)).max(0.0)
-        }
-    }
-}
-
-fn calculate_group_preview_with_detail_window_position(
-    input: GroupPreviewWithDetailWindowPositionInput,
-) -> PreviewWindowPosition {
-    let side = choose_group_preview_detail_side(input);
-    let preview_width = input.group_width + input.detail_width;
-    let x = match side {
-        PreviewWindowSide::Left => input.group_x - input.detail_width,
-        PreviewWindowSide::Right => input.group_x,
-    };
-
-    PreviewWindowPosition {
-        x: clamp_window_axis(
-            x,
-            preview_width,
-            input.screen_bounds.left,
-            input.screen_bounds.right(),
-        ),
-        y: clamp_window_axis(
-            input.group_y,
+            input.current_y,
             input.preview_height,
             input.screen_bounds.top,
             input.screen_bounds.bottom(),
         ),
-        side,
+        side: if input.current_x < input.main_x {
+            PreviewWindowSide::Left
+        } else {
+            PreviewWindowSide::Right
+        },
     }
 }
 
-fn choose_group_preview_detail_side(
-    input: GroupPreviewWithDetailWindowPositionInput,
-) -> PreviewWindowSide {
-    let right_fits =
-        input.group_x + input.group_width + input.detail_width <= input.screen_bounds.right();
-    if right_fits {
-        return PreviewWindowSide::Right;
+fn calculate_preview_family_position(input: PreviewFamilyPositionInput) -> PreviewFamilyPosition {
+    let detail_side = choose_preview_detail_side(input);
+    let detail_x = calculate_preview_detail_x(input, detail_side);
+
+    PreviewFamilyPosition {
+        group: PreviewWindowPosition {
+            x: input.group_x,
+            y: input.group_y,
+            side: input.preferred_side,
+        },
+        detail: PreviewWindowPosition {
+            x: detail_x,
+            y: clamp_window_axis(
+                input.group_y,
+                input.detail_height,
+                input.screen_bounds.top,
+                input.screen_bounds.bottom(),
+            ),
+            side: detail_side,
+        },
+    }
+}
+
+fn choose_preview_detail_side(input: PreviewFamilyPositionInput) -> PreviewWindowSide {
+    if preview_detail_fits_on_side(input, input.preferred_side) {
+        return input.preferred_side;
     }
 
-    let left_fits = input.group_x - input.detail_width >= input.screen_bounds.left;
-    if left_fits {
-        return PreviewWindowSide::Left;
+    let opposite_side = match input.preferred_side {
+        PreviewWindowSide::Left => PreviewWindowSide::Right,
+        PreviewWindowSide::Right => PreviewWindowSide::Left,
+    };
+
+    if preview_detail_fits_on_side(input, opposite_side) {
+        return opposite_side;
     }
 
-    if available_group_preview_detail_space(input, PreviewWindowSide::Right)
-        >= available_group_preview_detail_space(input, PreviewWindowSide::Left)
+    if available_preview_detail_space(input, input.preferred_side)
+        >= available_preview_detail_space(input, opposite_side)
     {
-        PreviewWindowSide::Right
+        input.preferred_side
     } else {
-        PreviewWindowSide::Left
+        opposite_side
     }
 }
 
-fn available_group_preview_detail_space(
-    input: GroupPreviewWithDetailWindowPositionInput,
+fn preview_detail_fits_on_side(input: PreviewFamilyPositionInput, side: PreviewWindowSide) -> bool {
+    let detail_x = calculate_preview_detail_x(input, side);
+
+    detail_x >= input.screen_bounds.left
+        && detail_x + input.detail_width <= input.screen_bounds.right()
+}
+
+fn calculate_preview_detail_x(input: PreviewFamilyPositionInput, side: PreviewWindowSide) -> f64 {
+    match side {
+        PreviewWindowSide::Left => input.group_x - input.detail_width,
+        PreviewWindowSide::Right => input.group_x + input.group_width,
+    }
+}
+
+fn available_preview_detail_space(
+    input: PreviewFamilyPositionInput,
     side: PreviewWindowSide,
 ) -> f64 {
     match side {
@@ -1131,6 +1109,15 @@ fn apply_window_corner_radius(app_handle: &AppHandle, label: &str, radius: f64) 
 mod macos_window {
     use std::ffi::{c_char, c_void};
 
+    use objc2_app_kit::NSWindow;
+    use objc2_foundation::NSPoint;
+    use tauri::WebviewWindow;
+
+    use super::{
+        calculate_preview_family_position, PreviewFamilyPosition, PreviewFamilyPositionInput,
+        PreviewWindowSide, ScreenBounds,
+    };
+
     type ObjcId = *mut c_void;
 
     #[allow(clashing_extern_declarations)]
@@ -1196,6 +1183,69 @@ mod macos_window {
             // renders a sharp rectangle that bleeds past the contentView clip.
             layer_backed_view_set_corner_radius(ns_view as ObjcId, radius);
         }
+    }
+
+    pub fn align_preview_detail_x(
+        main_window: &WebviewWindow,
+        preview_window: &WebviewWindow,
+        detail_window: &WebviewWindow,
+        preferred_side: PreviewWindowSide,
+    ) -> Result<PreviewFamilyPosition, String> {
+        let main_ns_window = main_window.ns_window().map_err(|error| error.to_string())?;
+        let preview_ns_window = preview_window
+            .ns_window()
+            .map_err(|error| error.to_string())?;
+        let detail_ns_window = detail_window
+            .ns_window()
+            .map_err(|error| error.to_string())?;
+
+        let main_ns_window: &NSWindow = unsafe { &*main_ns_window.cast() };
+        let preview_ns_window: &NSWindow = unsafe { &*preview_ns_window.cast() };
+        let detail_ns_window: &NSWindow = unsafe { &*detail_ns_window.cast() };
+        let main_frame = main_ns_window.frame();
+        let preview_frame = preview_ns_window.frame();
+        let detail_frame = detail_ns_window.frame();
+        let visible_frame = preview_ns_window
+            .screen()
+            .or_else(|| main_ns_window.screen())
+            .map(|screen| screen.visibleFrame())
+            .ok_or_else(|| "无法获取历史预览所在屏幕".to_string())?;
+        let position = calculate_preview_family_position(PreviewFamilyPositionInput {
+            group_x: preview_frame.origin.x,
+            group_y: preview_frame.origin.y,
+            group_width: preview_frame.size.width,
+            detail_width: detail_frame.size.width,
+            detail_height: detail_frame.size.height,
+            preferred_side,
+            screen_bounds: ScreenBounds {
+                left: visible_frame.origin.x,
+                top: visible_frame.origin.y,
+                width: visible_frame.size.width,
+                height: visible_frame.size.height,
+            },
+        });
+
+        // Tauri's cross-window logical/physical conversion can use different
+        // backing scales for transparent windows on macOS. Read the actual
+        // NSWindow frames and correct only X so group and detail stay adjacent.
+        detail_ns_window.setFrameOrigin(NSPoint::new(position.detail.x, detail_frame.origin.y));
+
+        Ok(PreviewFamilyPosition {
+            group: super::PreviewWindowPosition {
+                x: preview_frame.origin.x,
+                y: preview_frame.origin.y,
+                side: if preview_frame.origin.x < main_frame.origin.x {
+                    PreviewWindowSide::Left
+                } else {
+                    PreviewWindowSide::Right
+                },
+            },
+            detail: super::PreviewWindowPosition {
+                x: position.detail.x,
+                y: detail_frame.origin.y,
+                side: position.detail.side,
+            },
+        })
     }
 }
 
@@ -1388,7 +1438,7 @@ mod tests {
 
     #[test]
     fn preview_height_is_clamped_to_supported_range() {
-        assert_eq!(clamp_preview_height(10.0), 120.0);
+        assert_eq!(clamp_preview_height(10.0), 80.0);
         assert_eq!(clamp_preview_height(182.0), 182.0);
         assert_eq!(clamp_preview_height(2000.0), MAX_WINDOW_HEIGHT);
     }
@@ -1504,192 +1554,163 @@ mod tests {
     }
 
     #[test]
-    fn preview_detail_position_appears_right_of_group_preview() {
-        let position = super::calculate_preview_detail_window_position(
-            super::PreviewDetailWindowPositionInput {
-                preview_x: 420.0,
-                preview_y: 60.0,
-                preview_width: 320.0,
-                detail_width: 312.0,
-                detail_height: 220.0,
-                side: super::PreviewWindowSide::Right,
-                screen_bounds: super::ScreenBounds {
-                    left: 0.0,
-                    top: 0.0,
-                    width: 1200.0,
-                    height: 800.0,
-                },
-            },
-        );
-
-        assert_eq!(position.side, super::PreviewWindowSide::Right);
-        assert_eq!(position.x, 740.0);
-        assert_eq!(position.y, 60.0);
-    }
-
-    #[test]
-    fn preview_detail_position_appears_left_of_group_preview() {
-        let position = super::calculate_preview_detail_window_position(
-            super::PreviewDetailWindowPositionInput {
-                preview_x: 440.0,
-                preview_y: 60.0,
-                preview_width: 320.0,
-                detail_width: 312.0,
-                detail_height: 220.0,
-                side: super::PreviewWindowSide::Left,
-                screen_bounds: super::ScreenBounds {
-                    left: 0.0,
-                    top: 0.0,
-                    width: 1200.0,
-                    height: 800.0,
-                },
-            },
-        );
-
-        assert_eq!(position.side, super::PreviewWindowSide::Left);
-        assert_eq!(position.x, 128.0);
-        assert_eq!(position.y, 60.0);
-    }
-
-    #[test]
-    fn preview_detail_position_clamps_to_screen_bottom() {
-        let position = super::calculate_preview_detail_window_position(
-            super::PreviewDetailWindowPositionInput {
-                preview_x: 420.0,
-                preview_y: 720.0,
-                preview_width: 320.0,
-                detail_width: 312.0,
-                detail_height: 220.0,
-                side: super::PreviewWindowSide::Right,
-                screen_bounds: super::ScreenBounds {
-                    left: 0.0,
-                    top: 0.0,
-                    width: 1200.0,
-                    height: 800.0,
-                },
-            },
-        );
-
-        assert_eq!(position.x, 740.0);
-        assert_eq!(position.y, 580.0);
-    }
-
-    #[test]
-    fn preview_detail_position_flips_left_instead_of_covering_group_preview() {
-        let position = super::calculate_preview_detail_window_position(
-            super::PreviewDetailWindowPositionInput {
-                preview_x: 860.0,
-                preview_y: 60.0,
-                preview_width: 320.0,
-                detail_width: 312.0,
-                detail_height: 220.0,
-                side: super::PreviewWindowSide::Right,
-                screen_bounds: super::ScreenBounds {
-                    left: 0.0,
-                    top: 0.0,
-                    width: 1200.0,
-                    height: 800.0,
-                },
-            },
-        );
-
-        assert_eq!(position.side, super::PreviewWindowSide::Left);
-        assert_eq!(position.x, 548.0);
-        assert_eq!(position.y, 60.0);
-    }
-
-    #[test]
-    fn preview_detail_position_flips_right_instead_of_covering_group_preview() {
-        let position = super::calculate_preview_detail_window_position(
-            super::PreviewDetailWindowPositionInput {
-                preview_x: 140.0,
-                preview_y: 60.0,
-                preview_width: 320.0,
-                detail_width: 312.0,
-                detail_height: 220.0,
-                side: super::PreviewWindowSide::Left,
-                screen_bounds: super::ScreenBounds {
-                    left: 0.0,
-                    top: 0.0,
-                    width: 1200.0,
-                    height: 800.0,
-                },
-            },
-        );
-
-        assert_eq!(position.side, super::PreviewWindowSide::Right);
-        assert_eq!(position.x, 460.0);
-        assert_eq!(position.y, 60.0);
-    }
-
-    #[test]
-    fn preview_detail_position_stays_on_screen_when_neither_side_fits() {
-        let position = super::calculate_preview_detail_window_position(
-            super::PreviewDetailWindowPositionInput {
-                preview_x: 180.0,
-                preview_y: 60.0,
-                preview_width: 220.0,
-                detail_width: 312.0,
-                detail_height: 220.0,
-                side: super::PreviewWindowSide::Right,
-                screen_bounds: super::ScreenBounds {
-                    left: 0.0,
-                    top: 0.0,
-                    width: 500.0,
-                    height: 800.0,
-                },
-            },
-        );
-
-        assert_eq!(position.side, super::PreviewWindowSide::Left);
-        assert_eq!(position.x, 0.0);
-        assert_eq!(position.y, 60.0);
-    }
-
-    #[test]
-    fn group_preview_with_detail_keeps_group_as_left_anchor_when_detail_fits_right() {
-        let position = super::calculate_group_preview_with_detail_window_position(
-            super::GroupPreviewWithDetailWindowPositionInput {
+    fn preview_family_places_detail_to_the_right_of_group() {
+        let position =
+            super::calculate_preview_family_position(super::PreviewFamilyPositionInput {
                 group_x: 420.0,
                 group_y: 60.0,
                 group_width: 320.0,
                 detail_width: 312.0,
-                preview_height: 422.0,
+                detail_height: 220.0,
+                preferred_side: super::PreviewWindowSide::Right,
                 screen_bounds: super::ScreenBounds {
                     left: 0.0,
                     top: 0.0,
                     width: 1200.0,
                     height: 800.0,
                 },
-            },
-        );
+            });
 
-        assert_eq!(position.side, super::PreviewWindowSide::Right);
-        assert_eq!(position.x, 420.0);
-        assert_eq!(position.y, 60.0);
+        assert_eq!(position.group.side, super::PreviewWindowSide::Right);
+        assert_eq!(position.group.x, 420.0);
+        assert_eq!(position.detail.x, 740.0);
+        assert_eq!(position.detail.y, 60.0);
     }
 
     #[test]
-    fn group_preview_with_detail_expands_left_when_detail_would_cover_group() {
-        let position = super::calculate_group_preview_with_detail_window_position(
-            super::GroupPreviewWithDetailWindowPositionInput {
+    fn preview_family_places_detail_to_the_left_of_group() {
+        let position =
+            super::calculate_preview_family_position(super::PreviewFamilyPositionInput {
+                group_x: 440.0,
+                group_y: 60.0,
+                group_width: 320.0,
+                detail_width: 312.0,
+                detail_height: 220.0,
+                preferred_side: super::PreviewWindowSide::Left,
+                screen_bounds: super::ScreenBounds {
+                    left: 0.0,
+                    top: 0.0,
+                    width: 1200.0,
+                    height: 800.0,
+                },
+            });
+
+        assert_eq!(position.group.side, super::PreviewWindowSide::Left);
+        assert_eq!(position.detail.x, 128.0);
+        assert_eq!(position.group.x, 440.0);
+        assert_eq!(position.detail.y, 60.0);
+    }
+
+    #[test]
+    fn preview_detail_flips_across_stationary_group_when_outer_side_does_not_fit() {
+        let position =
+            super::calculate_preview_family_position(super::PreviewFamilyPositionInput {
                 group_x: 860.0,
                 group_y: 60.0,
                 group_width: 320.0,
                 detail_width: 312.0,
-                preview_height: 422.0,
+                detail_height: 220.0,
+                preferred_side: super::PreviewWindowSide::Right,
                 screen_bounds: super::ScreenBounds {
                     left: 0.0,
                     top: 0.0,
                     width: 1200.0,
                     height: 800.0,
                 },
-            },
-        );
+            });
+
+        assert_eq!(position.group.side, super::PreviewWindowSide::Right);
+        assert_eq!(position.group.x, 860.0);
+        assert_eq!(position.detail.side, super::PreviewWindowSide::Left);
+        assert_eq!(position.detail.x + 312.0, position.group.x);
+    }
+
+    #[test]
+    fn preview_detail_can_cover_main_without_covering_stationary_group() {
+        let position =
+            super::calculate_preview_family_position(super::PreviewFamilyPositionInput {
+                group_x: 0.0,
+                group_y: 60.0,
+                group_width: 320.0,
+                detail_width: 312.0,
+                detail_height: 220.0,
+                preferred_side: super::PreviewWindowSide::Left,
+                screen_bounds: super::ScreenBounds {
+                    left: 0.0,
+                    top: 0.0,
+                    width: 640.0,
+                    height: 800.0,
+                },
+            });
+
+        assert_eq!(position.group.side, super::PreviewWindowSide::Left);
+        assert_eq!(position.group.x, 0.0);
+        assert_eq!(position.detail.side, super::PreviewWindowSide::Right);
+        assert_eq!(position.detail.x, 320.0);
+    }
+
+    #[test]
+    fn preview_detail_clamps_vertically_without_moving_group() {
+        let position =
+            super::calculate_preview_family_position(super::PreviewFamilyPositionInput {
+                group_x: 420.0,
+                group_y: 720.0,
+                group_width: 320.0,
+                detail_width: 312.0,
+                detail_height: 220.0,
+                preferred_side: super::PreviewWindowSide::Right,
+                screen_bounds: super::ScreenBounds {
+                    left: 0.0,
+                    top: 0.0,
+                    width: 1200.0,
+                    height: 800.0,
+                },
+            });
+
+        assert_eq!(position.group.y, 720.0);
+        assert_eq!(position.detail.y, 580.0);
+    }
+
+    #[test]
+    fn measured_group_resize_preserves_left_side_horizontal_position() {
+        let position =
+            super::calculate_preview_window_resize_position(super::PreviewWindowResizeInput {
+                current_x: 312.0,
+                current_y: 600.0,
+                main_x: 320.0,
+                preview_height: 358.0,
+                screen_bounds: super::ScreenBounds {
+                    left: 0.0,
+                    top: 0.0,
+                    width: 640.0,
+                    height: 800.0,
+                },
+            });
 
         assert_eq!(position.side, super::PreviewWindowSide::Left);
-        assert_eq!(position.x, 548.0);
-        assert_eq!(position.y, 60.0);
+        assert_eq!(position.x, 312.0);
+        assert_eq!(position.y, 442.0);
+    }
+
+    #[test]
+    fn measured_group_resize_preserves_right_side_horizontal_position() {
+        let position =
+            super::calculate_preview_window_resize_position(super::PreviewWindowResizeInput {
+                current_x: 740.0,
+                current_y: 720.0,
+                main_x: 100.0,
+                preview_height: 220.0,
+                screen_bounds: super::ScreenBounds {
+                    left: 0.0,
+                    top: 0.0,
+                    width: 1200.0,
+                    height: 800.0,
+                },
+            });
+
+        assert_eq!(position.side, super::PreviewWindowSide::Right);
+        assert_eq!(position.x, 740.0);
+        assert_eq!(position.y, 580.0);
     }
 
     #[test]

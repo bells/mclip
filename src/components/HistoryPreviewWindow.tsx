@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { GROUP_PREVIEW_DETAIL_WINDOW_WIDTH, GROUP_PREVIEW_WIDTH } from "../constants";
+import { GROUP_PREVIEW_DETAIL_WINDOW_WIDTH } from "../constants";
 import { useApplyAppTheme } from "../hooks/useApplyAppTheme";
 import { getTranslations } from "../i18n";
 import {
@@ -11,28 +11,24 @@ import {
   hideHistoryPreviewDetailWindow,
   hideHistoryPreviewWindow,
   hideMainWindow,
+  listenToHistoryUpdated,
   listenToHistoryPreviewKeyboardNavigation,
-  listenToHistoryPreviewPlacementUpdated,
   listenToHistoryPreviewUpdated,
   notifyHistoryPreviewGroupItemActivated,
   notifyHistoryPreviewPointerEntered,
+  notifyHistoryPreviewPlacementUpdated,
   notifyHistoryPreviewSelectionCancelled,
   notifyHistoryPreviewSelectionStarted,
   pasteClipboard,
   requestHistoryPreviewClose,
-  showHistoryGroupPreviewWithDetailWindow,
-  type PreviewWindowPosition,
-  type PreviewWindowSide,
+  showHistoryPreviewDetailWindow,
+  updateHistoryPreviewDetailWindow,
 } from "../lib/tauri";
 import type { HistoryPreviewPayload } from "../types";
 import { getNextGroupPreviewItemIndex } from "../utils/keyboardNavigation";
-import {
-  getGroupDetailPreviewOffset,
-  getGroupPreviewHeight,
-  getGroupPreviewHeightWithDetail,
-  getItemPreviewHeight,
-} from "../utils/preview";
+import { getItemPreviewHeight } from "../utils/preview";
 import { shouldAutoPasteAfterHistoryPreviewSelection } from "../utils/selectionBehavior";
+import { reconcilePreviewWithHistoryIds } from "../utils/previewHistory";
 import { HistoryGroupPreviewWindow } from "./HistoryGroupPreviewWindow";
 import { HistoryItemPreviewWindow } from "./HistoryItemPreviewWindow";
 
@@ -40,18 +36,14 @@ export function HistoryPreviewWindow() {
   // preview 为 null 时窗口没有可展示数据，组件会返回 null。
   const [preview, setPreview] = useState<HistoryPreviewPayload | null>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
-  const [groupPlacement, setGroupPlacement] = useState<PreviewWindowPosition | null>(null);
-  const [groupDetailSide, setGroupDetailSide] =
-    useState<PreviewWindowSide>("right");
   const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
   // ref 适合保存不参与渲染的可变值；这里记录上次通知主窗口的时间。
   const lastPointerNotifyAtRef = useRef(0);
-  const latestPlacementRef = useRef<PreviewWindowPosition | null>(null);
   const previewRef = useRef<HistoryPreviewPayload | null>(null);
   const hoveredItemIdRef = useRef<string | null>(null);
   const isKeyboardNavigatingRef = useRef(false);
   const pendingKeyboardActivationGroupIndexRef = useRef<number | null>(null);
-  const previewKindRef = useRef<HistoryPreviewPayload["kind"] | null>(null);
+  const detailUpdateQueueRef = useRef<Promise<void>>(Promise.resolve());
   useApplyAppTheme(preview?.appearanceTheme ?? "system");
 
   function setPreviewKeyboardNavigating(nextValue: boolean) {
@@ -134,20 +126,76 @@ export function HistoryPreviewWindow() {
         payload.kind === "group" &&
         pendingKeyboardActivationGroupIndexRef.current === payload.group.index;
 
-      previewKindRef.current = payload.kind;
+      const previousPreview = previewRef.current;
+      const activeItemId = hoveredItemIdRef.current;
+      const shouldPreserveActiveItem =
+        payload.kind === "group" &&
+        previousPreview?.kind === "group" &&
+        previousPreview.group.index === payload.group.index &&
+        activeItemId !== null &&
+        payload.items.some((item) => item.id === activeItemId);
+
       previewRef.current = payload;
       setPreview(payload);
-      setPreviewKeyboardNavigating(shouldActivatePendingKeyboardItem);
+      setPreviewKeyboardNavigating(
+        shouldActivatePendingKeyboardItem ||
+          (shouldPreserveActiveItem && isKeyboardNavigatingRef.current),
+      );
 
       if (shouldActivatePendingKeyboardItem) {
         pendingKeyboardActivationGroupIndexRef.current = null;
         setActiveGroupPreviewItemId(payload.items[0]?.id ?? null);
-      } else {
+      } else if (!shouldPreserveActiveItem) {
         setActiveGroupPreviewItemId(null);
+        void hideHistoryPreviewDetailWindow();
       }
-      setGroupPlacement(payload.kind === "group" ? latestPlacementRef.current : null);
-      setGroupDetailSide("right");
-      void hideHistoryPreviewDetailWindow();
+    }).then((unsubscribe) => {
+      if (isActive) {
+        unlisten = unsubscribe;
+        return;
+      }
+
+      unsubscribe();
+    });
+
+    return () => {
+      isActive = false;
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    let unlisten: (() => void) | undefined;
+
+    void listenToHistoryUpdated((history) => {
+      const existingIds = new Set(history.map((item) => item.id));
+      const currentPreview = previewRef.current;
+
+      if (!currentPreview) {
+        return;
+      }
+
+      const reconciliation = reconcilePreviewWithHistoryIds(
+        currentPreview,
+        hoveredItemIdRef.current,
+        existingIds,
+      );
+
+      if (reconciliation.shouldClearActiveItem) {
+        setActiveGroupPreviewItemId(null);
+        void hideHistoryPreviewDetailWindow();
+      }
+
+      if (!reconciliation.preview) {
+        previewRef.current = null;
+        setPreview(null);
+        void hideHistoryPreviewWindow();
+        return;
+      }
+
+      previewRef.current = reconciliation.preview;
+      setPreview(reconciliation.preview);
     }).then((unsubscribe) => {
       if (isActive) {
         unlisten = unsubscribe;
@@ -170,30 +218,6 @@ export function HistoryPreviewWindow() {
   useEffect(() => {
     hoveredItemIdRef.current = hoveredItemId;
   }, [hoveredItemId]);
-
-  useEffect(() => {
-    let isActive = true;
-    let unlisten: (() => void) | undefined;
-
-    void listenToHistoryPreviewPlacementUpdated((placement) => {
-      latestPlacementRef.current = placement;
-      if (previewKindRef.current === "group") {
-        setGroupPlacement(placement);
-      }
-    }).then((unsubscribe) => {
-      if (isActive) {
-        unlisten = unsubscribe;
-        return;
-      }
-
-      unsubscribe();
-    });
-
-    return () => {
-      isActive = false;
-      unlisten?.();
-    };
-  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -269,34 +293,6 @@ export function HistoryPreviewWindow() {
   const deletePreviewItem = async (id: string) => {
     try {
       await deleteHistoryItem(id);
-
-      // 函数式 setState 可以拿到最新 state，适合基于当前 preview 删除某一项。
-      setPreview((currentPreview) => {
-        if (!currentPreview) {
-          return currentPreview;
-        }
-
-        if (currentPreview.kind === "item") {
-          if (currentPreview.item.id === id) {
-            void hideHistoryPreviewWindow();
-            return null;
-          }
-
-          return currentPreview;
-        }
-
-        const nextItems = currentPreview.items.filter((item) => item.id !== id);
-
-        if (nextItems.length === 0) {
-          void hideHistoryPreviewWindow();
-          return null;
-        }
-
-        return {
-          ...currentPreview,
-          items: nextItems,
-        };
-      });
     } catch (error) {
       console.error("删除历史分组记录失败:", error);
     }
@@ -323,52 +319,51 @@ export function HistoryPreviewWindow() {
     preview?.kind === "group" && hoveredItemId !== null
       ? preview.items.find((item) => item.id === hoveredItemId) ?? null
       : null;
-  const hoveredItemIndex =
-    preview?.kind === "group" && hoveredItemId !== null
-      ? preview.items.findIndex((item) => item.id === hoveredItemId)
-      : -1;
-  const groupDetailOffset =
-    hoveredItemIndex < 0 ? 0 : getGroupDetailPreviewOffset(hoveredItemIndex);
-  const groupPreviewHeight =
-    preview?.kind === "group" ? getGroupPreviewHeight(preview.items.length) : null;
-  const detailPreviewHeight =
-    hoveredItem === null ? null : getItemPreviewHeight(hoveredItem);
 
   useEffect(() => {
-    if (
-      !hoveredItem ||
-      preview?.kind !== "group" ||
-      !groupPlacement ||
-      groupPreviewHeight === null ||
-      detailPreviewHeight === null
-    ) {
-      void hideHistoryPreviewDetailWindow().catch((error) => {
-        console.error("隐藏历史分组详情预览失败:", error);
-      });
-      return;
-    }
+    const requestedItem = hoveredItem;
+    const requestedPreview = preview?.kind === "group" ? preview : null;
 
-    void showHistoryGroupPreviewWithDetailWindow(
-      groupPlacement.x,
-      groupPlacement.y,
-      getGroupPreviewHeightWithDetail(
-        preview.items.length,
-        detailPreviewHeight,
-        hoveredItemIndex,
-      ),
-      GROUP_PREVIEW_WIDTH,
-      GROUP_PREVIEW_DETAIL_WINDOW_WIDTH,
-    )
-      .then((placement) => setGroupDetailSide(placement.side))
+    detailUpdateQueueRef.current = detailUpdateQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        if (!requestedItem || !requestedPreview) {
+          await hideHistoryPreviewDetailWindow();
+          return;
+        }
+
+        if (hoveredItemIdRef.current !== requestedItem.id) {
+          return;
+        }
+
+        await updateHistoryPreviewDetailWindow({
+          autoPaste: requestedPreview.autoPaste,
+          appearanceTheme: requestedPreview.appearanceTheme,
+          item: requestedItem,
+          kind: "item",
+          language: requestedPreview.language,
+        });
+
+        if (hoveredItemIdRef.current !== requestedItem.id) {
+          return;
+        }
+
+        const placement = await showHistoryPreviewDetailWindow(
+          getItemPreviewHeight(requestedItem),
+          GROUP_PREVIEW_DETAIL_WINDOW_WIDTH,
+        );
+
+        if (hoveredItemIdRef.current !== requestedItem.id) {
+          return;
+        }
+
+        await notifyHistoryPreviewPlacementUpdated(placement.group);
+      })
       .catch((error) => {
-        console.error("显示历史分组详情预览失败:", error);
+        console.error("更新历史分组详情预览失败:", error);
       });
   }, [
-    detailPreviewHeight,
-    groupPlacement,
-    groupPreviewHeight,
     hoveredItem,
-    hoveredItemIndex,
     preview,
   ]);
 
@@ -397,17 +392,9 @@ export function HistoryPreviewWindow() {
   return (
     <HistoryGroupPreviewWindow
       hoveredItemId={hoveredItemId}
-      hoveredItem={hoveredItem}
-      detailSide={groupDetailSide}
-      detailOffset={groupDetailOffset}
-      detailPreviewHeight={detailPreviewHeight}
-      groupPreviewHeight={groupPreviewHeight ?? getGroupPreviewHeight(preview.items.length)}
       isKeyboardNavigating={isKeyboardNavigating}
       preview={preview}
       translations={t}
-      onDeleteItem={(id) => {
-        void deletePreviewItem(id);
-      }}
       onHoveredItemChange={(id) => setActiveGroupPreviewItemId(id, "pointer")}
       onPointerNavigation={markPointerNavigation}
       onPointerInside={notifyPointerInside}

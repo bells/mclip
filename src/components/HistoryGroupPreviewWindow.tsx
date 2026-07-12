@@ -1,41 +1,34 @@
 // 历史分组 preview：只负责展示某个分组里的多条历史记录。
 
-import { type CSSProperties, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 
 import { getTranslations } from "../i18n";
-import { getHistoryPreviewPointerPosition, type PreviewWindowSide } from "../lib/tauri";
-import type { HistoryGroupInfo, HistoryGroupPreviewPayload, HistoryListItem } from "../types";
 import {
-  previewDeleteButton,
-  previewItem,
-  previewItemRow,
-  previewWindow,
-  ui,
-} from "../uiStyles";
+  getHistoryPreviewPointerPosition,
+  reportHistoryPreviewMeasured,
+} from "../lib/tauri";
+import type { HistoryGroupInfo, HistoryGroupPreviewPayload, HistoryListItem } from "../types";
+import { previewItem, previewItemRow, ui } from "../uiStyles";
 import {
   getTextHistoryAffordance,
   type HistoryTextAffordance,
 } from "../utils/historyAffordance";
 import { getHistoryListDisplayText } from "../utils/history";
 import { shouldActivateGroupPreviewPointerItem } from "../utils/keyboardNavigation";
-import { HistoryDetailPanel } from "./HistoryDetailPanel";
+import {
+  getGroupPreviewNaturalHeight,
+  shouldApplyMeasuredPreviewHeight,
+} from "../utils/preview";
 import { ImageThumb } from "./ImageThumb";
-import { TrashIcon } from "./UiIcons";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
 const POINTER_POLL_INTERVAL_MS = 48;
 
 type HistoryGroupPreviewWindowProps = {
-  detailSide: PreviewWindowSide;
-  detailOffset: number;
-  detailPreviewHeight: number | null;
-  groupPreviewHeight: number;
   hoveredItemId: string | null;
-  hoveredItem: HistoryListItem | null;
   isKeyboardNavigating: boolean;
   preview: HistoryGroupPreviewPayload;
   translations: HistoryTranslations;
-  onDeleteItem: (id: string) => void;
   onHoveredItemChange: (id: string | null) => void;
   onPointerNavigation: () => void;
   onPointerInside: () => void;
@@ -82,16 +75,10 @@ function renderHistoryTextAffordance(affordance: HistoryTextAffordance | null) {
 }
 
 export function HistoryGroupPreviewWindow({
-  detailSide,
-  detailOffset,
-  detailPreviewHeight,
-  groupPreviewHeight,
   hoveredItemId,
-  hoveredItem,
   isKeyboardNavigating,
   preview,
   translations,
-  onDeleteItem,
   onHoveredItemChange,
   onPointerNavigation,
   onPointerInside,
@@ -99,28 +86,13 @@ export function HistoryGroupPreviewWindow({
   onSelectItem,
 }: HistoryGroupPreviewWindowProps) {
   const hoveredItemIdRef = useRef(hoveredItemId);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const lastReportedHeightRef = useRef<number | null>(null);
   const lastPolledPointerPositionRef = useRef<{ x: number; y: number } | null>(
     null,
   );
-  const previewStyle = {
-    "--detail-preview-offset": `${detailOffset}px`,
-    "--detail-preview-height":
-      detailPreviewHeight === null ? undefined : `${detailPreviewHeight}px`,
-    "--group-preview-height": `${groupPreviewHeight}px`,
-  } as CSSProperties;
-  const detailPanel =
-    hoveredItem === null ? null : (
-      <div className={ui.historyGroupDetailPane}>
-        <HistoryDetailPanel
-          ariaLabel={translations.itemPreviewAriaLabel}
-          className={ui.historyGroupHoverDetail}
-          item={hoveredItem}
-          language={preview.language}
-          role="region"
-          translations={translations}
-        />
-      </div>
-    );
 
   useEffect(() => {
     hoveredItemIdRef.current = hoveredItemId;
@@ -137,14 +109,65 @@ export function HistoryGroupPreviewWindow({
     onHoveredItemChange(id);
   }, [onHoveredItemChange, onPointerNavigation]);
 
-  const clearActiveItem = useCallback(() => {
-    if (hoveredItemIdRef.current === null) {
+  const reportNaturalHeight = useCallback(() => {
+    const panel = panelRef.current;
+    const header = headerRef.current;
+    const list = listRef.current;
+
+    if (!panel || !header || !list) {
       return;
     }
 
-    hoveredItemIdRef.current = null;
-    onHoveredItemChange(null);
-  }, [onHoveredItemChange]);
+    const panelStyle = window.getComputedStyle(panel);
+    const borderHeight =
+      Number.parseFloat(panelStyle.borderTopWidth) +
+      Number.parseFloat(panelStyle.borderBottomWidth);
+    const measuredHeight = getGroupPreviewNaturalHeight(
+      header.getBoundingClientRect().height,
+      list.scrollHeight,
+      Number.isFinite(borderHeight) ? borderHeight : 0,
+    );
+
+    if (
+      measuredHeight === null ||
+      !shouldApplyMeasuredPreviewHeight(
+        lastReportedHeightRef.current,
+        measuredHeight,
+      )
+    ) {
+      return;
+    }
+
+    lastReportedHeightRef.current = measuredHeight;
+    void reportHistoryPreviewMeasured({
+      groupIndex: preview.group.index,
+      height: measuredHeight,
+    }).catch((error) => {
+      console.error("上报历史分组预览高度失败:", error);
+    });
+  }, [preview.group.index]);
+
+  useLayoutEffect(() => {
+    lastReportedHeightRef.current = null;
+    const animationFrameId = window.requestAnimationFrame(reportNaturalHeight);
+    const resizeObserver = new ResizeObserver(reportNaturalHeight);
+    const header = headerRef.current;
+    const list = listRef.current;
+
+    if (header) {
+      resizeObserver.observe(header);
+    }
+    if (list) {
+      resizeObserver.observe(list);
+    }
+    window.addEventListener("resize", reportNaturalHeight);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", reportNaturalHeight);
+    };
+  }, [preview.items, reportNaturalHeight]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -213,24 +236,25 @@ export function HistoryGroupPreviewWindow({
 
   return (
     <div
-      className={previewWindow(Boolean(hoveredItem), detailSide, isKeyboardNavigating)}
-      style={previewStyle}
+      className={`${ui.historyGroupPreviewWindow} ${
+        isKeyboardNavigating ? "is-keyboard-navigating" : ""
+      }`}
       onMouseEnter={onPointerInside}
       onMouseMove={onPointerInside}
       onMouseLeave={() => {
         onRequestClose();
       }}
     >
-      {detailSide === "left" ? detailPanel : null}
       <div
         aria-label={translations.previewAriaLabel(
           preview.group.startPosition,
           preview.group.endPosition,
         )}
         className={`${ui.historyPreview} ${ui.historyGroupPreview}`}
+        ref={panelRef}
         role="menu"
       >
-        <div className={ui.historyPreviewHeader}>
+        <div className={ui.historyPreviewHeader} ref={headerRef}>
           <span className={ui.historyPreviewKicker}>
             {translations.groupPreviewKicker}
           </span>
@@ -242,6 +266,7 @@ export function HistoryGroupPreviewWindow({
         <div className={ui.historyGroupPreviewBody}>
           <div
             className={ui.historyPreviewList}
+            ref={listRef}
             onPointerMove={(event) => {
               // target 可能是按钮里的子元素，closest 可以向上找到带 data 属性的条目行。
               const itemId = findPreviewItemId(event.target);
@@ -323,28 +348,12 @@ export function HistoryGroupPreviewWindow({
                       </span>
                     )}
                   </button>
-                  <button
-                    aria-label={translations.deleteItemAriaLabel}
-                    className={previewDeleteButton(item.id === hoveredItemId)}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (hoveredItemIdRef.current === item.id) {
-                        clearActiveItem();
-                      }
-                      onDeleteItem(item.id);
-                    }}
-                    title={translations.deleteItemAriaLabel}
-                    type="button"
-                  >
-                    <TrashIcon className={ui.deleteIcon} />
-                  </button>
                 </div>
               );
             })}
           </div>
         </div>
       </div>
-      {detailSide === "right" ? detailPanel : null}
     </div>
   );
 }

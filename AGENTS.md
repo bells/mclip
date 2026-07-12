@@ -74,7 +74,7 @@ src/
   components/HistoryGroupNav.tsx      历史分组按钮
   components/HistoryPreviewWindow.tsx 独立 preview 容器，按 payload kind 分发
   components/HistoryGroupPreviewWindow.tsx
-                                      历史分组 preview 和 hover 详情
+                                      历史分组 preview 列表与 hover/键盘激活追踪
   components/HistoryItemPreviewWindow.tsx
                                       单条历史详情 preview
   components/HistoryPreviewDetailWindow.tsx
@@ -155,14 +155,14 @@ preview 必须保持独立窗口：
 
 - 主窗口不应该为了右侧预览被撑宽。
 - 主窗口高度只跟左侧列表、分组行和 footer 有关。
-- 分组 preview 初始宽度接近主窗口，只有 hover 到具体条目时才展开详情。
+- 分组 preview 始终保持接近主窗口的宽度；hover 到具体条目时由独立 `preview-detail` 窗口显示详情，不扩展分组窗口。
 - preview 窗口必须 `set_focusable(false)`，避免它抢焦点后触发 main 失焦隐藏。
 
 关键实现：
 
 - 前端 `HistoryGroupNav` 和 `HistoryList` 用 `getBoundingClientRect().top` 传入 anchor top。
 - Rust `show_history_preview_window` 根据 main 窗口位置、anchor、preview 尺寸和屏幕边界定位。
-- Rust `show_history_preview_detail_window` 与 `show_history_group_preview_with_detail_window` 负责详情窗口或展开态分组窗口定位。
+- Rust `show_history_preview_detail_window` 保持分组 preview 原位，把独立详情紧贴在分组左侧或右侧；外侧放不下时只翻转详情，允许详情覆盖主窗口。macOS 会基于实际 `NSWindow.frame` 做窄范围的 X 坐标校正，避免透明窗口因 backing scale 换算而重叠。
 - `PREVIEW_WINDOW_GAP` 是 `0.0`，保持主窗口和 preview 贴边，避免鼠标穿过空白缝隙导致 hover 断掉。
 
 ## Preview 交互

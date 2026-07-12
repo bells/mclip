@@ -2,6 +2,7 @@ import type { HistoryListItem } from "../types";
 
 const GROUP_PREVIEW_BASE_HEIGHT = 48;
 const GROUP_PREVIEW_ROW_HEIGHT = 31;
+const PREVIEW_HEIGHT_CHANGE_TOLERANCE = 1;
 const ITEM_PREVIEW_BASE_HEIGHT = 62;
 const ITEM_PREVIEW_META_HEIGHT = 94;
 const ITEM_PREVIEW_BODY_MIN_HEIGHT = 48;
@@ -14,18 +15,31 @@ export function getGroupPreviewHeight(itemCount: number) {
   return GROUP_PREVIEW_BASE_HEIGHT + itemCount * GROUP_PREVIEW_ROW_HEIGHT;
 }
 
-export function getGroupDetailPreviewOffset(itemIndex: number) {
-  return Math.max(0, itemIndex) * GROUP_PREVIEW_ROW_HEIGHT;
+export function getGroupPreviewNaturalHeight(
+  headerHeight: number,
+  listScrollHeight: number,
+  borderHeight = 0,
+) {
+  return normalizeMeasuredPreviewHeight(
+    headerHeight + listScrollHeight + borderHeight,
+  );
 }
 
-export function getGroupPreviewHeightWithDetail(
-  itemCount: number,
-  detailHeight: number,
-  itemIndex: number,
+export function normalizeMeasuredPreviewHeight(height: number) {
+  if (!Number.isFinite(height) || height <= 0) {
+    return null;
+  }
+
+  return Math.ceil(height);
+}
+
+export function shouldApplyMeasuredPreviewHeight(
+  currentHeight: number | null,
+  nextHeight: number,
 ) {
-  return Math.max(
-    getGroupPreviewHeight(itemCount),
-    detailHeight + getGroupDetailPreviewOffset(itemIndex),
+  return (
+    currentHeight === null ||
+    Math.abs(currentHeight - nextHeight) > PREVIEW_HEIGHT_CHANGE_TOLERANCE
   );
 }
 

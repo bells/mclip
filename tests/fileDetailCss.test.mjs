@@ -35,13 +35,16 @@ test("history detail content does not create empty filler below short values", a
   assert.doesNotMatch(contentClass, /min-h-full/);
 });
 
-test("history group hover detail keeps metadata visible near the screen bottom", async () => {
-  const stylesSource = await readSource("src/uiStyles.ts");
+test("independent history detail keeps metadata visible near the screen bottom", async () => {
+  const [stylesSource, detailWindowSource] = await Promise.all([
+    readSource("src/uiStyles.ts"),
+    readSource("src/components/HistoryPreviewDetailWindow.tsx"),
+  ]);
 
-  assert.match(stylesSource, /historyGroupDetailPane:[\s\S]*max-h-\[calc\(100vh-var\(--detail-preview-offset,0px\)\)\]/);
-  assert.match(stylesSource, /historyGroupDetailPane:[\s\S]*overflow-hidden/);
-  assert.match(stylesSource, /historyGroupHoverDetail:[\s\S]*h-\[min\(var\(--detail-preview-height\),calc\(100vh-var\(--detail-preview-offset,0px\)\)\)\]/);
+  assert.match(stylesSource, /historyPreviewDetailWindow:[\s\S]*h-screen/);
   assert.match(stylesSource, /historyDetailBody:[\s\S]*grid-rows-\[minmax\(0,1fr\)_auto\]/);
   assert.match(stylesSource, /historyDetailContentRegion:[\s\S]*overflow-y-auto/);
   assert.match(stylesSource, /historyDetailMeta:[\s\S]*shrink-0/);
+  assert.match(detailWindowSource, /<HistoryDetailPanel/);
+  assert.doesNotMatch(stylesSource, /historyGroupDetailPane/);
 });

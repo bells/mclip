@@ -9,11 +9,14 @@ import {
 import {
   hideHistoryPreviewWindow,
   isPointerOverHistoryPreviewWindow,
+  resizeHistoryPreviewWindow,
   showHistoryPreviewWindow,
   type PreviewWindowSide,
 } from "../services/ipc/commands";
 import {
   listenToHistoryPreviewCloseRequested,
+  listenToHistoryPreviewMeasured,
+  listenToHistoryPreviewPlacementUpdated,
   listenToHistoryPreviewPointerEntered,
   listenToHistoryPreviewSelectionCancelled,
   listenToHistoryPreviewSelectionStarted,
@@ -26,6 +29,7 @@ import {
   getGroupPreviewHeight,
   getItemPreviewAnchorTop,
   getItemPreviewHeight,
+  shouldApplyMeasuredPreviewHeight,
 } from "../utils/preview";
 import {
   beginPreviewOpenRequest,
@@ -72,8 +76,13 @@ export function useHistoryPreviewController({
   const [previewAnchorTop, setPreviewAnchorTop] = useState<number | null>(null);
   const [previewWindowSide, setPreviewWindowSide] =
     useState<PreviewWindowSide | null>(null);
+  const [measuredGroupPreview, setMeasuredGroupPreview] = useState<{
+    groupIndex: number;
+    height: number;
+  } | null>(null);
   const previewCloseTimerRef = useRef<number | null>(null);
   const previewDismissalStateRef = useRef(createPreviewDismissalState());
+  const activePreviewTargetRef = useRef<string | null>(null);
   const onMainWindowShownRef = useRef(onMainWindowShown);
 
   const previewHistory = useMemo(
@@ -116,10 +125,12 @@ export function useHistoryPreviewController({
   function clearPreviewState() {
     cancelPendingPreviewOpenRequests();
     clearScheduledPreviewClose();
+    activePreviewTargetRef.current = null;
     setPreviewHistoryGroupIndex(null);
     setPreviewHistoryItemId(null);
     setPreviewAnchorTop(null);
     setPreviewWindowSide(null);
+    setMeasuredGroupPreview(null);
   }
 
   function beginSelectionPreviewDismissal() {
@@ -127,10 +138,12 @@ export function useHistoryPreviewController({
       previewDismissalStateRef.current,
     );
     clearScheduledPreviewClose();
+    activePreviewTargetRef.current = null;
     setPreviewHistoryGroupIndex(null);
     setPreviewHistoryItemId(null);
     setPreviewAnchorTop(null);
     setPreviewWindowSide(null);
+    setMeasuredGroupPreview(null);
   }
 
   function resetSelectionPreviewDismissal() {
@@ -139,12 +152,23 @@ export function useHistoryPreviewController({
     );
   }
 
+  function preparePreviewTarget(target: string) {
+    if (activePreviewTargetRef.current === target) {
+      return;
+    }
+
+    activePreviewTargetRef.current = target;
+    setPreviewWindowSide(null);
+    setMeasuredGroupPreview(null);
+  }
+
   function openHistoryGroupPreview(groupIndex: number, anchorTop: number) {
     if (!canStartPreviewOpenRequest(previewDismissalStateRef.current)) {
       return;
     }
 
     clearScheduledPreviewClose();
+    preparePreviewTarget(`group:${groupIndex}`);
     setPreviewHistoryGroupIndex(groupIndex);
     setPreviewHistoryItemId(null);
     setPreviewAnchorTop(anchorTop);
@@ -156,6 +180,7 @@ export function useHistoryPreviewController({
     }
 
     clearScheduledPreviewClose();
+    preparePreviewTarget(`item:${item.id}`);
     setPreviewHistoryGroupIndex(null);
     setPreviewHistoryItemId(item.id);
     setPreviewAnchorTop(anchorTop);
@@ -199,6 +224,8 @@ export function useHistoryPreviewController({
     let unlistenSelectionStarted: UnlistenFn | undefined;
     let unlistenSelectionCancelled: UnlistenFn | undefined;
     let unlistenMainWindowShown: UnlistenFn | undefined;
+    let unlistenMeasured: UnlistenFn | undefined;
+    let unlistenPlacement: UnlistenFn | undefined;
 
     void listenToHistoryPreviewCloseRequested(() => {
       void isPointerOverHistoryPreviewWindow()
@@ -247,12 +274,38 @@ export function useHistoryPreviewController({
       unlistenMainWindowShown = unsubscribe;
     });
 
+    void listenToHistoryPreviewMeasured((measurement) => {
+      setMeasuredGroupPreview((currentMeasurement) => {
+        if (
+          currentMeasurement?.groupIndex === measurement.groupIndex &&
+          !shouldApplyMeasuredPreviewHeight(
+            currentMeasurement.height,
+            measurement.height,
+          )
+        ) {
+          return currentMeasurement;
+        }
+
+        return measurement;
+      });
+    }).then((unsubscribe) => {
+      unlistenMeasured = unsubscribe;
+    });
+
+    void listenToHistoryPreviewPlacementUpdated((placement) => {
+      setPreviewWindowSide(placement.side);
+    }).then((unsubscribe) => {
+      unlistenPlacement = unsubscribe;
+    });
+
     return () => {
       unlistenCloseRequested?.();
       unlistenPointerEntered?.();
       unlistenSelectionStarted?.();
       unlistenSelectionCancelled?.();
       unlistenMainWindowShown?.();
+      unlistenMeasured?.();
+      unlistenPlacement?.();
     };
   }, []);
 
@@ -334,6 +387,7 @@ export function useHistoryPreviewController({
     }
 
     const request = beginPreviewOpenRequest(previewDismissalStateRef.current);
+    const previewHeight = getGroupPreviewHeight(previewHistory.length);
 
     void updateHistoryPreviewWindow({
       autoPaste: settings.autoPaste,
@@ -351,7 +405,7 @@ export function useHistoryPreviewController({
 
         const placement = await showHistoryPreviewWindow(
           previewAnchorTop,
-          getGroupPreviewHeight(previewHistory.length),
+          previewHeight,
           GROUP_PREVIEW_WIDTH,
           GROUP_PREVIEW_WITH_DETAIL_WIDTH,
         );
@@ -376,6 +430,47 @@ export function useHistoryPreviewController({
     settings.autoPaste,
     settings.language,
     settings.showHistoryItemNumbers,
+  ]);
+
+  useEffect(() => {
+    if (
+      previewWindowSide === null ||
+      previewHistoryItemId !== null ||
+      previewHistoryGroupIndex === null ||
+      measuredGroupPreview?.groupIndex !== previewHistoryGroupIndex ||
+      !canStartPreviewOpenRequest(previewDismissalStateRef.current)
+    ) {
+      return;
+    }
+
+    const request = beginPreviewOpenRequest(previewDismissalStateRef.current);
+    const requestedGroupIndex = previewHistoryGroupIndex;
+    let isCancelled = false;
+
+    void resizeHistoryPreviewWindow(measuredGroupPreview.height)
+      .then((placement) => {
+        if (
+          isCancelled ||
+          requestedGroupIndex !== measuredGroupPreview.groupIndex ||
+          !canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)
+        ) {
+          return;
+        }
+
+        setPreviewWindowSide(placement.side);
+      })
+      .catch((error) => {
+        console.error("调整历史分组预览高度失败:", error);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    measuredGroupPreview,
+    previewHistoryGroupIndex,
+    previewHistoryItemId,
+    previewWindowSide,
   ]);
 
   return {

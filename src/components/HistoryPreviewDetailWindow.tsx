@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useApplyAppTheme } from "../hooks/useApplyAppTheme";
 import { getTranslations } from "../i18n";
 import {
+  deleteHistoryItem,
+  hideHistoryPreviewDetailWindow,
   listenToHistoryPreviewPlacementUpdated,
   listenToHistoryPreviewUpdated,
   notifyHistoryPreviewPointerEntered,
@@ -14,10 +16,12 @@ import {
 import type { HistoryItemPreviewPayload } from "../types";
 import { ui } from "../uiStyles";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
+import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
 
 export function HistoryPreviewDetailWindow() {
   const [preview, setPreview] = useState<HistoryItemPreviewPayload | null>(null);
   const [previewSide, setPreviewSide] = useState<PreviewWindowSide>("right");
+  const [isDeleting, setIsDeleting] = useState(false);
   const lastPointerNotifyAtRef = useRef(0);
   useApplyAppTheme(preview?.appearanceTheme ?? "system");
 
@@ -26,6 +30,7 @@ export function HistoryPreviewDetailWindow() {
 
     void listenToHistoryPreviewUpdated((payload) => {
       setPreview(payload.kind === "item" ? payload : null);
+      setIsDeleting(false);
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
     });
@@ -65,6 +70,22 @@ export function HistoryPreviewDetailWindow() {
   }
 
   const translations = getTranslations(preview.language).history;
+  const deletePreviewItem = async () => {
+    if (isDeleting) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await deleteHistoryItem(preview.item.id);
+      setPreview(null);
+      await hideHistoryPreviewDetailWindow();
+    } catch (error) {
+      setIsDeleting(false);
+      console.error("删除历史分组详情记录失败:", error);
+    }
+  };
 
   return (
     <div
@@ -79,6 +100,15 @@ export function HistoryPreviewDetailWindow() {
     >
       <HistoryDetailPanel
         ariaLabel={translations.itemPreviewAriaLabel}
+        headerAction={
+          <HistoryDetailDeleteButton
+            disabled={isDeleting}
+            label={translations.deleteItemAriaLabel}
+            onDelete={() => {
+              void deletePreviewItem();
+            }}
+          />
+        }
         item={preview.item}
         language={preview.language}
         role="region"

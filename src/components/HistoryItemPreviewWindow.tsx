@@ -4,7 +4,7 @@ import { getTranslations } from "../i18n";
 import type { HistoryItemPreviewPayload } from "../types";
 import { ui } from "../uiStyles";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
-import { TrashIcon } from "./UiIcons";
+import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
 
@@ -33,18 +33,10 @@ export function HistoryItemPreviewWindow({
       <HistoryDetailPanel
         ariaLabel={translations.itemPreviewAriaLabel}
         headerAction={
-          <button
-            aria-label={translations.deleteItemAriaLabel}
-            className={ui.historyDetailActionButton}
-            onClick={(event) => {
-              event.stopPropagation();
-              onDeleteItem(preview.item.id);
-            }}
-            title={translations.deleteItemAriaLabel}
-            type="button"
-          >
-            <TrashIcon className={ui.deleteIcon} />
-          </button>
+          <HistoryDetailDeleteButton
+            label={translations.deleteItemAriaLabel}
+            onDelete={() => onDeleteItem(preview.item.id)}
+          />
         }
         item={preview.item}
         language={preview.language}
