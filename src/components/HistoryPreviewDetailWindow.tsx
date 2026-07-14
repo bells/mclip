@@ -89,9 +89,8 @@ export function HistoryPreviewDetailWindow() {
 
   return (
     <div
-      className={`${ui.historyPreviewDetailWindow} ${
-        previewSide === "left" ? "pr-2" : "pl-2"
-      }`}
+      className={ui.historyPreviewDetailWindow}
+      data-preview-side={previewSide}
       onMouseEnter={notifyPointerInside}
       onMouseMove={notifyPointerInside}
       onMouseLeave={() => {

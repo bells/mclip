@@ -123,10 +123,12 @@ export function hideHistoryPreviewDetailWindow() {
 }
 
 export function showHistoryPreviewDetailWindow(
+  detailAnchorTop: number,
   detailHeight: number,
   detailWidth: number,
 ) {
   return invoke<PreviewFamilyPosition>("show_history_preview_detail_window", {
+    detailAnchorTop,
     detailHeight,
     detailWidth,
   });

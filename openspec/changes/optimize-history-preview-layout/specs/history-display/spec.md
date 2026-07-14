@@ -33,6 +33,8 @@ The system SHALL display the active item from an archive group in a separate det
 - **WHEN** the pointer hovers an item in an open archive group preview
 - **THEN** that row is highlighted
 - **AND** a separate detail preview appears adjacent to the group preview
+- **AND** the detail content region aligns vertically with the active row when the monitor work area permits
+- **AND** the detail and group surfaces meet without a transparent gap
 - **AND** the group preview height does not change because the detail opened.
 
 #### Scenario: Keyboard activates an archive item

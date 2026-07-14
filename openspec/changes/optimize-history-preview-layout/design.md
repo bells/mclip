@@ -29,6 +29,8 @@
 
 `show_history_preview_detail_window` 必须保持分组窗口位置不变，并把详情窗口放在分组窗口左侧或右侧，二者始终相邻且互不覆盖。分组在主窗口左侧时详情优先位于分组更左侧；分组在主窗口右侧时详情优先位于分组更右侧。如果外侧越过屏幕工作区，则只把详情翻到分组另一侧，允许详情覆盖主界面，但不能覆盖或替代分组列表。即使两侧都无法完整容纳详情，也优先保持详情与分组的相邻关系，不通过水平钳制把两个 preview 窗口叠在一起。
 
+详情的垂直锚点来自当前激活行的 `getBoundingClientRect().top`，并复用主界面单条详情的 `getItemPreviewAnchorTop` 内容区偏移；Rust 将这个逻辑坐标换算到分组窗口所在显示器的物理坐标，再做工作区钳制。这样在空间允许时，详情的内容区而不是标题顶边与 hover 行处于同一水平线。详情窗口使用与主界面单条详情相同的原生宽度，React 根容器不再在相邻侧保留透明 padding，保证详情表面与分组表面贴边且原生命中区域连续。
+
 窗口关系统一使用分组窗口所在显示器的 Tauri 物理坐标计算。详情窗口即将移动到该显示器，因此其物理宽高也使用分组窗口的 scale factor 一次性确定，并以 `Size::Physical` 和 `Position::Physical` 应用；不能读取仍隐藏或刚 resize 的详情 `NSWindow.frame` 做二次校正，否则旧 frame 会把详情重新放回分组矩形并保留旧命中高度。React payload、窗口可见性和生命周期仍由现有 Tauri/React 状态流管理。
 
 这条路径取代分组模式下的组合宽度/高度布局。`show_history_group_preview_with_detail_window`、组合网格样式和 `getGroupPreviewHeightWithDetail` 在确认无调用后移除，避免两套详情窗口模型继续并存。
@@ -45,7 +47,7 @@ Rust 继续作为最终安全边界，把期望高度限制到最小预览高度
 
 ### 3. 详情高度统一走单条详情尺寸规则
 
-主界面条目详情和分组 hover 详情都使用 `getItemPreviewHeight(item)` 计算期望高度，并由 Rust 的 preview 高度 clamp 处理显示器边界。切换 hover 项时先更新 `preview-detail` payload，再按新条目重新设置尺寸和位置；分组窗口本身不 resize。详情内容区在最大高度内滚动，标题和元信息区保持可见。
+主界面条目详情和分组 hover 详情都使用 `getItemPreviewHeight(item)` 计算期望高度，并使用 `getItemPreviewAnchorTop(rowTop)` 让详情内容区对齐触发行；Rust 的 preview 高度 clamp 继续处理显示器边界。切换 hover 项时先更新 `preview-detail` payload，再按新条目和新行锚点重新设置尺寸和位置；分组窗口本身不 resize。详情内容区在最大高度内滚动，标题和元信息区保持可见。
 
 这比使用分组高度或“当前 hover 行偏移 + 详情高度”更符合详情自身的内容模型，也保证同一条记录从主界面或分组打开时得到一致的面板比例。
 

@@ -8,9 +8,9 @@ export const GITHUB_LATEST_RELEASE_API_URL =
   "https://api.github.com/repos/bells/mclip/releases/latest";
 export const ITEM_PREVIEW_WIDTH = 304;
 export const GROUP_PREVIEW_WIDTH = 320;
-// The independent detail window keeps its visual gap inside the native hit
-// area, so the detail panel itself remains the same width as main-item detail.
-export const GROUP_PREVIEW_DETAIL_WINDOW_WIDTH = ITEM_PREVIEW_WIDTH + 8;
+// Group details use the same visual and native width as main-item details so
+// their surface can sit flush against the group window without a dead gap.
+export const GROUP_PREVIEW_DETAIL_WINDOW_WIDTH = ITEM_PREVIEW_WIDTH;
 export const GROUP_PREVIEW_WITH_DETAIL_WIDTH =
   GROUP_PREVIEW_WIDTH + GROUP_PREVIEW_DETAIL_WINDOW_WIDTH;
 

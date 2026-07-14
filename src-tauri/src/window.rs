@@ -124,6 +124,7 @@ struct PreviewWindowResizeInput {
 struct PreviewFamilyPositionInput {
     group_x: f64,
     group_y: f64,
+    detail_y: f64,
     group_width: f64,
     detail_width: f64,
     detail_height: f64,
@@ -397,6 +398,7 @@ pub fn hide_history_preview_detail_window(app_handle: AppHandle) -> Result<(), S
 #[tauri::command]
 pub fn show_history_preview_detail_window(
     app_handle: AppHandle,
+    detail_anchor_top: f64,
     detail_height: f64,
     detail_width: f64,
 ) -> Result<PreviewFamilyPosition, String> {
@@ -454,6 +456,11 @@ pub fn show_history_preview_detail_window(
         clamp_preview_height_for_screen_bounds(detail_height, logical_screen_bounds);
     let physical_detail_width = clamped_detail_width * preview_scale_factor;
     let physical_detail_height = clamped_detail_height * preview_scale_factor;
+    if !detail_anchor_top.is_finite() {
+        return Err("history preview detail anchor must be finite".to_string());
+    }
+    let physical_detail_y =
+        f64::from(preview_position.y) + detail_anchor_top * preview_scale_factor;
     let preferred_side = if preview_position.x < main_position.x {
         PreviewWindowSide::Left
     } else {
@@ -468,6 +475,7 @@ pub fn show_history_preview_detail_window(
     let position = calculate_preview_family_position(PreviewFamilyPositionInput {
         group_x: f64::from(preview_position.x),
         group_y: f64::from(preview_position.y),
+        detail_y: physical_detail_y,
         group_width: f64::from(preview_size.width),
         detail_width: physical_detail_width,
         detail_height: physical_detail_height,
@@ -979,7 +987,7 @@ fn calculate_preview_family_position(input: PreviewFamilyPositionInput) -> Previ
         detail: PreviewWindowPosition {
             x: detail_x,
             y: clamp_window_axis(
-                input.group_y,
+                input.detail_y,
                 input.detail_height,
                 input.screen_bounds.top,
                 input.screen_bounds.bottom(),
@@ -1493,6 +1501,7 @@ mod tests {
             super::calculate_preview_family_position(super::PreviewFamilyPositionInput {
                 group_x: 420.0,
                 group_y: 60.0,
+                detail_y: 60.0,
                 group_width: 320.0,
                 detail_width: 312.0,
                 detail_height: 220.0,
@@ -1517,6 +1526,7 @@ mod tests {
             super::calculate_preview_family_position(super::PreviewFamilyPositionInput {
                 group_x: 440.0,
                 group_y: 60.0,
+                detail_y: 60.0,
                 group_width: 320.0,
                 detail_width: 312.0,
                 detail_height: 220.0,
@@ -1541,6 +1551,7 @@ mod tests {
             super::calculate_preview_family_position(super::PreviewFamilyPositionInput {
                 group_x: 860.0,
                 group_y: 60.0,
+                detail_y: 60.0,
                 group_width: 320.0,
                 detail_width: 312.0,
                 detail_height: 220.0,
@@ -1565,6 +1576,7 @@ mod tests {
             super::calculate_preview_family_position(super::PreviewFamilyPositionInput {
                 group_x: 0.0,
                 group_y: 60.0,
+                detail_y: 60.0,
                 group_width: 320.0,
                 detail_width: 312.0,
                 detail_height: 220.0,
@@ -1589,6 +1601,7 @@ mod tests {
             super::calculate_preview_family_position(super::PreviewFamilyPositionInput {
                 group_x: 420.0,
                 group_y: 720.0,
+                detail_y: 720.0,
                 group_width: 320.0,
                 detail_width: 312.0,
                 detail_height: 220.0,
@@ -1603,6 +1616,30 @@ mod tests {
 
         assert_eq!(position.group.y, 720.0);
         assert_eq!(position.detail.y, 580.0);
+    }
+
+    #[test]
+    fn preview_detail_uses_the_active_group_row_anchor() {
+        let position =
+            super::calculate_preview_family_position(super::PreviewFamilyPositionInput {
+                group_x: 420.0,
+                group_y: 60.0,
+                detail_y: 248.0,
+                group_width: 320.0,
+                detail_width: 304.0,
+                detail_height: 220.0,
+                preferred_side: super::PreviewWindowSide::Right,
+                screen_bounds: super::ScreenBounds {
+                    left: 0.0,
+                    top: 0.0,
+                    width: 1200.0,
+                    height: 800.0,
+                },
+            });
+
+        assert_eq!(position.group.y, 60.0);
+        assert_eq!(position.detail.y, 248.0);
+        assert_eq!(position.detail.x, position.group.x + 320.0);
     }
 
     #[test]

@@ -26,11 +26,28 @@ import {
 } from "../lib/tauri";
 import type { HistoryPreviewPayload } from "../types";
 import { getNextGroupPreviewItemIndex } from "../utils/keyboardNavigation";
-import { getItemPreviewHeight } from "../utils/preview";
+import { getItemPreviewAnchorTop, getItemPreviewHeight } from "../utils/preview";
 import { shouldAutoPasteAfterHistoryPreviewSelection } from "../utils/selectionBehavior";
 import { reconcilePreviewWithHistoryIds } from "../utils/previewHistory";
 import { HistoryGroupPreviewWindow } from "./HistoryGroupPreviewWindow";
 import { HistoryItemPreviewWindow } from "./HistoryItemPreviewWindow";
+
+function getGroupPreviewItemAnchorTop(itemId: string) {
+  const itemElements = document.querySelectorAll<HTMLElement>(
+    "[data-preview-item-id]",
+  );
+  const activeItemElement = Array.from(itemElements).find(
+    (element) => element.dataset.previewItemId === itemId,
+  );
+
+  if (!activeItemElement) {
+    return null;
+  }
+
+  return getItemPreviewAnchorTop(
+    activeItemElement.getBoundingClientRect().top,
+  );
+}
 
 export function HistoryPreviewWindow() {
   // preview 为 null 时窗口没有可展示数据，组件会返回 null。
@@ -348,7 +365,13 @@ export function HistoryPreviewWindow() {
           return;
         }
 
+        const detailAnchorTop = getGroupPreviewItemAnchorTop(requestedItem.id);
+        if (detailAnchorTop === null) {
+          return;
+        }
+
         const placement = await showHistoryPreviewDetailWindow(
+          detailAnchorTop,
           getItemPreviewHeight(requestedItem),
           GROUP_PREVIEW_DETAIL_WINDOW_WIDTH,
         );

@@ -14,6 +14,8 @@
 - [x] 2.5 Extend frontend and Rust window tests for independent detail height, rapid active-item changes, left/right placement, monitor boundary clamping, and pointer movement across both preview windows.
 - [x] 2.6 Replace the macOS post-resize `NSWindow.frame` correction with one same-monitor physical size/position transaction so stale hidden-window geometry cannot overlap the group or retain the group's hit-test height.
 - [x] 2.7 Give `preview-detail` a distinct typed payload event so the application-level listener in `preview` cannot consume the item payload, replace the group list, and hide the real detail window.
+- [x] 2.8 Pass the active rendered group-row anchor through the typed detail-window IPC and reuse the main-item content-offset rule so archive detail content aligns with the hovered or keyboard-active row.
+- [x] 2.9 Remove the detail window's internal side padding, restore the main-item native width, and cover edge-to-edge adjacency plus row-anchor placement with focused frontend and Rust tests.
 
 ## 3. Detail-Owned Delete Action
 
@@ -26,5 +28,5 @@
 
 - [x] 4.1 Run the focused Node tests for preview sizing, deletion affordances, keyboard navigation, dismissal, and listener lifecycle, plus the focused Rust `window` tests.
 - [x] 4.2 Run `npm run check` and `git diff --check`, resolving all TypeScript, formatting, Rust test/check, and clippy failures.
-- [ ] 4.3 Run the Tauri app on macOS and manually verify the three reported screenshot paths: no trailing group blank space, delete only in detail, and compact independent text/image/file detail windows near both screen edges.
+- [x] 4.3 Run the Tauri app on macOS and manually verify the three reported screenshot paths: no trailing group blank space, delete only in detail, and compact independent text/image/file detail windows near both screen edges.
 - [x] 4.4 Review `AGENTS.md` preview-window descriptions and targeted code comments, updating only statements made inaccurate by removing the combined group/detail path.
