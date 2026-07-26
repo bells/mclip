@@ -16,6 +16,28 @@ test("Chinese and English homepages expose the core product promise", async () =
   assert.match(en, /Download mclip/);
 });
 
+test("site publishes the v0.1.1 release and current product capabilities", async () => {
+  const zh = await read("src/pages/zh/index.astro");
+  const en = await read("src/pages/en/index.astro");
+  const zhChangelog = await read("src/pages/zh/changelog.astro");
+  const enChangelog = await read("src/pages/en/changelog.astro");
+  const layout = await read("src/layouts/SiteLayout.astro");
+  const llms = await read("public/llms.txt");
+
+  assert.match(zh, /当前版本 0\.1\.1/);
+  assert.match(en, /Current version 0\.1\.1/);
+  assert.match(zhChangelog, /0\.1\.1/);
+  assert.match(zhChangelog, /Tailwind CSS 4/);
+  assert.match(enChangelog, /0\.1\.1/);
+  assert.match(enChangelog, /System\/Light\/Dark/);
+  assert.match(layout, /softwareVersion: "0\.1\.1"/);
+  assert.match(llms, /Current public version: 0\.1\.1/);
+  assert.match(llms, /independent detail window/);
+  assert.match(zh, /Windows CLI 用户请在 Git Bash/);
+  assert.match(en, /Windows CLI users should run it from Git Bash/);
+  assert.match(llms, /On Windows, run the shell installer from Git Bash/);
+});
+
 test("site includes trust, installation, and FAQ content", async () => {
   const zh = await read("src/pages/zh/index.astro");
   const en = await read("src/pages/en/index.astro");

@@ -17,8 +17,8 @@ const features = [
     body: "保存常见复制场景：一段文字、一张截图、Finder 或资源管理器里的文件。选择文件历史时会回填系统文件列表，而不是只复制绝对路径。",
   },
   {
-    title: "独立预览窗口",
-    body: "最新 10 条默认保持紧凑，更多历史默认按 10 条分组；主界面和分组展示条数都可调整，长文件名在列表中间省略并保留扩展名，详情显示完整绝对路径。",
+    title: "紧凑的独立预览",
+    body: "最新 10 条默认保持紧凑，更多历史默认按 10 条分组；分组按真实内容定高，hover 详情使用独立窗口，长文件名在列表中间省略并在详情显示完整绝对路径。",
   },
   {
     title: "搜索和键盘操作",
@@ -29,8 +29,8 @@ const features = [
     body: "剪贴板历史、设置和图片资源只保存在本机。mclip 不上传剪贴板内容。",
   },
   {
-    title: "中英文和跨平台",
-    body: "支持 macOS 和 Windows，界面可跟随系统语言；中文系统显示中文，其它语言显示英文。",
+    title: "主题、语言和跨平台",
+    body: "支持 macOS 和 Windows，界面可跟随系统深浅色与系统语言；也可调整主界面/分组条数、序号和主窗口 Logo。",
   },
 ];
 
@@ -97,7 +97,7 @@ const faqItems = [
     description="mclip 常驻菜单栏或系统托盘。需要时一键唤起，快速搜索文字、图片和文件历史，用完继续回到手头工作。"
     primaryCta="下载 mclip"
     secondaryCta="查看 GitHub"
-    note="当前版本 0.1.0，下载入口指向 GitHub Releases。"
+    note="当前版本 0.1.1，下载入口指向 GitHub Releases。"
     utilityLabel="macOS 和 Windows 菜单栏工具"
     proofItems={[
       "主窗口默认只显示最新 10 条，可调整",
@@ -129,7 +129,7 @@ const faqItems = [
       "mclip-cli copy --index 1",
     ]}
     points={agentCliPoints}
-    note="安装脚本会优先下载 GitHub Release 里的预构建 mclip-cli；只有预构建不可用时才回退到本地或源码构建。"
+    note="安装脚本会优先下载 GitHub Release 里的预构建 mclip-cli；只有预构建不可用时才回退到本地或源码构建。Windows CLI 用户请在 Git Bash 或兼容 POSIX shell 中运行。"
   />
 
   <section class="privacy-band">
@@ -144,7 +144,7 @@ const faqItems = [
   <InstallGuide
     id="install"
     title="先从 GitHub Release 开始"
-    intro="第一版官网保持诚实：直接告诉用户如何下载，也明确当前 macOS 未 notarize、Windows 未签名。"
+    intro="官网直接说明下载方式，也明确当前 macOS 未 notarize、Windows 未签名。"
     items={installItems}
   />
 

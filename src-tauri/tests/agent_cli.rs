@@ -148,7 +148,10 @@ fn version_commands_do_not_read_history_file() {
         ]);
 
         assert_eq!(output.status.code(), Some(0), "{version_arg}");
-        assert_eq!(String::from_utf8_lossy(&output.stdout), "mclip-cli 0.1.0\n");
+        assert_eq!(
+            String::from_utf8_lossy(&output.stdout),
+            format!("mclip-cli {}\n", env!("CARGO_PKG_VERSION")),
+        );
         assert!(String::from_utf8_lossy(&output.stderr).is_empty());
     }
 }

@@ -90,18 +90,24 @@ jobs:
 
             - 文本、图片、文件三类剪贴板历史，重复复制会自动更新到最新位置。
             - 最近历史快速访问，主界面和历史分组展示条数可配置，默认分别为 10。
-            - 独立预览窗口，可在不撑宽主窗口的情况下查看历史详情。
+            - 主窗口搜索栏和底部操作区固定，大条数历史只滚动中间内容并受显示器工作区保护。
+            - 历史分组按真实内容定高，hover 详情使用独立窗口，删除动作统一放在详情标题区。
             - 搜索、复制、删除、清空历史，以及 `CommandOrControl+Shift+V` 全局快捷键。
-            - 偏好设置：登录时启动、语言、外观主题、菜单栏图标样式、自动粘贴、展示条数、序号显示、最大历史条数和保存类型。
+            - 偏好设置：登录时启动、语言、外观主题、菜单栏图标样式、自动粘贴、展示条数、序号、主窗口 Logo、最大历史条数和保存类型。
+            - 颜色代码、Emoji、长文件名与完整文件路径提供更清晰的展示，但复制内容保持原样。
+            - `mclip-cli` 提供 Agent 模式、无需读取历史的 help/version 和预构建二进制安装。
             - 剪贴板历史仅保存在本机，不会上传到云端。
 
             ## Included in this release
 
             - Text, image, and file clipboard history, with repeated copies moved back to the top.
             - Quick access to recent history, with configurable main-window and archive-group item counts, both defaulting to 10.
-            - Separate preview windows for details, keeping the main window compact.
+            - Fixed search and footer regions, with large histories scrolling only in the middle and native height capped to the monitor work area.
+            - Content-sized archive windows, independent hover details, and a consistent detail-owned delete action.
             - Search, copy, delete, clear history, and the `CommandOrControl+Shift+V` global shortcut.
-            - Preferences for launch at login, language, appearance theme, menu bar icon style, auto paste, display counts, row numbers, maximum history size, and enabled history types.
+            - Preferences for launch at login, language, appearance theme, menu bar icon style, auto paste, display counts, row numbers, main-window branding, maximum history size, and enabled history types.
+            - Clearer color-code, emoji, long-file-name, and full-path presentation without changing copied content.
+            - `mclip-cli` Agent Mode, history-independent help/version, and prebuilt-binary installation.
             - Clipboard history stays on your device and is not uploaded.
 
             ## 下载 / Downloads
@@ -117,6 +123,10 @@ jobs:
             ```bash
             curl -fsSL https://www.mclip.cn/install.sh | sh
             ```
+
+            Windows CLI 用户请在 Git Bash 或兼容 POSIX shell 中运行；桌面应用仍使用下方 `.msi` / `.exe` 安装包。
+
+            Windows CLI users should run the command from Git Bash or another POSIX-compatible shell. Install the desktop app itself from the `.msi` / `.exe` assets below.
 
             ## 安装提示 / Installation notes
 

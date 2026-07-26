@@ -1,6 +1,6 @@
 # mclip Project Memory
 
-Last refreshed: 2026-06-06
+Last refreshed: 2026-07-26
 
 This file records working memory for future maintainers and agents. It is not a replacement for `AGENTS.md` or `README.md`: use those for the live project map, commands, and release-facing docs. Use this file to remember prior decisions, accepted behavior, repeated failure modes, and the user's preferences.
 
@@ -10,7 +10,19 @@ If this file conflicts with live code, trust the live code first, then update th
 
 `mclip` is a tray-first clipboard history utility for macOS and Windows. It should feel like a compact desktop tool, not a normal always-open app and not a marketing page.
 
-The current stack is React 19, TypeScript, Vite, Tauri 2, and Rust. The app is versioned from `package.json`; current known version is `0.1.0`.
+The current stack is React 19, TypeScript, Vite, Tailwind CSS 4, Tauri 2, and Rust. The public site is an Astro app under `site/`. The desktop app is versioned from `package.json`; current version is `0.1.1`.
+
+## v0.1.1 Decisions
+
+- Tailwind CSS owns component styling through utility strings collected in `src/uiStyles.ts`; `src/styles.css` remains the thin global/theme entrypoint. `src/App.css` was deleted.
+- All five Tauri windows resolve the same `system | light | dark` appearance setting.
+- `mainWindowItemCount` can grow up to sanitized `maxHistoryCount`; `historyGroupItemCount` stays in the compact `5..=20` range.
+- Large main-window counts scroll only the middle history/archive region. Search and footer actions remain fixed, and Rust caps native height to the monitor work area.
+- `showHistoryItemNumbers` and `showMainWindowBrand` affect presentation only. They do not change stored history or keyboard item positions.
+- Archive `preview` renders only the group title/list and reports its rendered natural height. The active row detail lives in the independent `preview-detail` native window.
+- Main-item and archive-item details share the same detail panel and detail-owned delete action. Archive rows no longer carry inline delete buttons.
+- Color-code and emoji affordances are frontend-only; copy-back always uses the original text.
+- `mclip-cli` help/version commands do not read history. The public shell installer prefers matching GitHub Release binaries and falls back to local/source builds.
 
 The GitHub project URL is:
 
@@ -53,7 +65,7 @@ For group preview behavior, accepted UX is:
 
 - Group preview starts close to main-window width.
 - It does not preselect the first row.
-- It expands or opens detail only after a real hover.
+- It opens an independent `preview-detail` only after a real hover or keyboard activation.
 - Row highlight should follow real pointer movement.
 - Main-window row highlight and group-preview row highlight should use the same active/hover visual rules for mouse and keyboard. Do not let stale DOM focus draw a second highlighted row.
 - Selecting/copying from preview must dismiss the preview completely, with no late reopen.
@@ -61,13 +73,15 @@ For group preview behavior, accepted UX is:
 
 Important implementation anchors:
 
-- `src/hooks/useClipboardApp.ts` owns preview state, anchor top, dismissal state, and async show/hide lifecycle.
+- `src/hooks/useHistoryPreviewController.ts` owns preview state, anchor top, dismissal state, request revisions, measured group height, and async show/hide lifecycle; `useClipboardApp.ts` composes it with data/actions.
 - `src/utils/previewDismissal.ts` guards against in-flight preview opens and post-selection hover reopen.
 - `tests/previewDismissal.test.mjs` is the fast regression guard for dismissal races.
-- `src/lib/tauri.ts` centralizes preview event names and Tauri command wrappers.
+- `src/services/ipc/commands.ts`, `events.ts`, and `windows.ts` own the typed Tauri boundary; `src/lib/tauri.ts` is the compatibility facade used by components.
 - `src-tauri/src/window.rs` does native pointer hit testing and window positioning.
 - `HistoryGroupPreviewWindow` depends on `data-preview-item-id` and pointer polling through `get_history_preview_pointer_position`; do not replace that with button-only `onMouseEnter`.
 - `is_pointer_over_preview_window` must continue checking both `preview` and `preview-detail`.
+- Measured group resize must preserve the group window's current X position. Moving it after the detail opens can overlap the independent detail window.
+- Detail size and position use the group preview monitor's scale factor and one physical-coordinate transaction. Do not reintroduce a macOS-only post-resize `NSWindow.frame` correction.
 
 Past failure modes:
 
@@ -118,10 +132,11 @@ About and Preferences are independent Tauri windows, not main-window modals.
 
 For About:
 
-- Show the real GitHub URL as static readable content.
+- Keep GitHub and homepage as explicit buttons; raw URL text is intentionally not shown.
 - Keep `APP_NAME` and app version on one line.
 - Prefer the real app icon from `src-tauri/icons/128x128.png` for the About identity mark.
 - Keep top and bottom spacing comfortable; tiny dialog polish can require adjusting `src-tauri/tauri.conf.json` window height as well as CSS.
+- Keep manual update checking explicit. Network access to GitHub Releases should happen only after the user clicks the check action.
 
 For localized About or Preferences copy, update `src/i18n.ts` in both languages.
 
@@ -140,12 +155,14 @@ Windows coverage should include:
 - Launch at login.
 - Chinese/English UI and system-language default.
 
-2026-06-06 Windows audit notes:
+2026-07-26 v0.1.1 Windows audit notes:
 
-- Latest `main` CI run checked at the time of this refresh was `27053563047` (`统一高亮`), and both `check (windows-2022)` and `check (macos-latest)` passed.
-- Local full gate `npm run check` passed on macOS.
-- Local `cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc` reached the Tauri build script and failed on missing `llvm-rc`; treat this as host tooling on this macOS machine unless code-specific Windows errors appear before that point.
-- Existing draft `v0.1.0` release was verified to contain Windows installer assets `mclip_0.1.0_x64-setup.exe` and `mclip_0.1.0_x64_en-US.msi`; the corresponding `publish (windows-2022)` release job succeeded. This does not replace creating a fresh tag for later commits.
+- The current branch had no GitHub Actions runs yet, so there is no branch-specific Windows runner result to cite.
+- Local `cargo check` and `cargo clippy` for `x86_64-pc-windows-msvc` completed successfully on macOS, covering Windows conditional compilation, Win32 API bindings, Tauri dependencies, and the current Rust/TS-facing native commands.
+- `cargo test --target x86_64-pc-windows-msvc --all-targets --no-run` compiled the dependency and application graph to the final link step, then stopped because this macOS host does not have the MSVC `link.exe`. No Rust compile diagnostic appeared before that host-tool boundary.
+- This cross-target compile does not verify Explorer clipboard behavior, tray interaction, WebView2 rendering, multi-monitor DPI placement, Startup-folder launch, installer UX, or SmartScreen on a real Windows system. The `windows-2022` CI/release jobs and a Windows smoke pass remain the release authority.
+- The published `v0.1.0` release was verified to contain Windows installer assets `mclip_0.1.0_x64-setup.exe` and `mclip_0.1.0_x64_en-US.msi`; the corresponding `publish (windows-2022)` release job succeeded. This does not replace creating a fresh tag for later commits.
+- The public shell installer handles the Windows `.exe` name correctly, but its `curl ... | sh` entrypoint requires Git Bash or another POSIX-compatible shell; normal desktop installation continues through the `.msi`/`.exe` assets.
 - Windows installability remains unsigned/SmartScreen-limited, with WebView2 `downloadBootstrapper` configured for missing runtime installs.
 
 Current release constraints:
@@ -157,7 +174,7 @@ Current release constraints:
 
 Known environment caveats:
 
-- On macOS, local Windows-target validation can fail with `llvm-rc not found`; treat that as host tooling unless the touched code proves otherwise.
+- Windows-target test linking requires the MSVC Rust target plus Visual Studio's `link.exe`, which is not available on a normal macOS host. Keep successful cross-target `check`/`clippy` separate from this expected host linker limitation.
 - Native dev launch can be blocked by local sandbox binding issues such as `listen EPERM ... :1420`. In that case, use repo-native checks and separate the environment issue from app code.
 - Local packaging failures, especially DMG creation, can be environment-specific. Separate packaging environment problems from code regressions early.
 
@@ -177,6 +194,9 @@ Fast checks:
 npm run build
 node --test tests/previewDismissal.test.mjs
 cargo check --manifest-path src-tauri/Cargo.toml
+cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
+npm run site:test
+npm run site:build
 git diff --check
 ```
 
@@ -186,7 +206,7 @@ If a full check fails, separate baseline or environment failures from the files 
 
 ## Code Areas To Search First
 
-- Preview bugs: `src/hooks/useClipboardApp.ts`, `src/lib/tauri.ts`, `src/utils/preview.ts`, `src/utils/previewDismissal.ts`, `src/components/HistoryGroupPreviewWindow.tsx`, `src/components/HistoryPreviewWindow.tsx`, `src/components/HistoryPreviewDetailWindow.tsx`, `src-tauri/src/window.rs`, `tests/previewDismissal.test.mjs`.
+- Preview bugs: `src/hooks/useHistoryPreviewController.ts`, `src/services/ipc/commands.ts`, `src/services/ipc/events.ts`, `src/utils/preview.ts`, `src/utils/previewDismissal.ts`, `src/utils/previewHistory.ts`, `src/components/HistoryGroupPreviewWindow.tsx`, `src/components/HistoryPreviewWindow.tsx`, `src/components/HistoryPreviewDetailWindow.tsx`, `src-tauri/src/window.rs`, and the preview/group sizing tests.
 - Clipboard/history bugs: `src-tauri/src/clipboard.rs`, `src-tauri/src/history.rs`, `src/types.ts`, `src/components/HistoryPreviewDetailContent.tsx`.
 - Diagnostics bugs: `src-tauri/src/diagnostics.rs`, `src/utils/diagnostics.ts`, `src/main.tsx`, `src/components/AboutWindow.tsx`.
 - Settings bugs: `src-tauri/src/settings.rs`, `src/utils/settings.ts`, `src/components/PreferencesWindow.tsx`, `src/constants.ts`.
@@ -198,6 +218,6 @@ If a full check fails, separate baseline or environment failures from the files 
 - Preserve user worktree changes that are unrelated to the task.
 - Prefer `rg` for searching.
 - Use `apply_patch` for manual edits.
-- Update command names/events in `src/lib/tauri.ts` and Rust `generate_handler!` together.
+- Update command names/events in `src/services/ipc/*`, the `src/lib/tauri.ts` compatibility facade, and Rust `generate_handler!` together.
 - When adding Tauri API calls or windows, update capabilities and window label routing.
 - Keep docs aligned with the live tree; stale docs have caused confusion before.

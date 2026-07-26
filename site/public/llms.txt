@@ -22,12 +22,15 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 - Product name: mclip
 - Product type: local-first clipboard history desktop app
 - Platforms: macOS and Windows
-- Current public version: 0.1.0
+- Current public version: 0.1.1
 - Main workflow: open from the menu bar or system tray, search clipboard history, preview an item, copy it, then return to the current task
 - Clipboard content types: text, images, and files
 - File history restores a system file list instead of copying path-only text
 - The main app window shows the latest 10 items by default and groups older history by 10 by default; both display counts are configurable
-- Preferences include appearance theme, main/group display counts, and row number visibility
+- Preferences include appearance theme, main/group display counts, row number visibility, and main-window branding
+- System, light, and dark appearance applies across the main, preview, preview-detail, About, and Preferences windows
+- Archive previews size to rendered content; an active archive row opens an independent detail window with a detail-owned delete action
+- Text presentation recognizes color codes and common emoji without changing the original copied text
 - Global shortcut: CommandOrControl+Shift+V
 - Interface languages: Chinese and English; Follow System uses Chinese for zh locales and English for English or unsupported locales
 - Public source repository: https://github.com/bells/mclip
@@ -66,6 +69,7 @@ curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
 The installer prefers prebuilt mclip-cli binaries from GitHub Releases. Rust/Cargo and Git are only needed when the prebuilt download is unavailable and the script falls back to a source build.
+On Windows, run the shell installer from Git Bash or another POSIX-compatible shell. Install the desktop app itself from the GitHub Release .msi or .exe asset.
 
 ## Privacy and trust
 

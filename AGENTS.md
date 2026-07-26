@@ -6,10 +6,13 @@
 
 技术栈：
 
-- 前端：React 19、TypeScript、Vite
+- 前端：React 19、TypeScript、Vite、Tailwind CSS 4
 - 桌面壳：Tauri 2
 - 后端：Rust
+- 官网：Astro 6，目录 `site/`
 - 打包发布：GitHub Actions + `tauri-apps/tauri-action`
+
+当前版本：`0.1.1`。应用版本以根目录 `package.json` 为发布真相，Tauri 通过 `src-tauri/tauri.conf.json` 的 `"version": "../package.json"` 读取；Cargo 和官网 package 版本也要同步。
 
 适用 skill：
 
@@ -40,6 +43,8 @@ npm run cli -- list --limit 5 --json
 npm run cli:test
 npm run cli:build
 npm run cli:install
+npm run site:test
+npm run site:build
 ```
 
 `npm run check` 会执行：
@@ -50,7 +55,7 @@ npm run cli:install
 - Rust 编译检查：`cargo check --manifest-path src-tauri/Cargo.toml`
 - Rust clippy：`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`
 
-提交前优先跑 `npm run check`。如果只改 TSX/CSS 文档化小界面，可以先跑 `npm run build` 快速确认，再跑完整检查。
+提交前优先跑 `npm run check`。如果只改 TSX/CSS 文档化小界面，可以先跑 `npm run build` 快速确认，再跑完整检查。官网或发布文案有变化时还要跑 `npm run site:test`、`npm run site:build` 和 `git diff --check`。
 
 CLI 是 AI Agent/终端入口。`npm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持 `--help`/`help`、`--version`/`-V`/`version`，Agent 聚合命令 `agent`、只读命令 `list/get/search/context`，以及操作命令 `add/copy/delete/clear`。help/version 不应读取历史文件；`agent` 输出最近历史、命令能力表和安全边界，默认 Markdown，`--json` 输出结构化包；`add` 只写历史不覆盖系统剪贴板，`copy` 才会写回系统剪贴板，`clear` 必须带 `--yes`。`npm run cli:test` 是 CLI 的快速回归测试，`npm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
 
@@ -60,15 +65,25 @@ CLI 是 AI Agent/终端入口。`npm run cli -- ...` 会运行 `mclip-cli`，默
 install.sh                             mclip-cli 的 curl | sh 安装脚本，默认安装到用户目录
 site/public/install.sh                 Vercel 官网公开的安装脚本副本，必须和根目录 install.sh 保持一致
 site/vercel.json                       官网 Vercel 配置，根路径 / 直接 307 跳转到 /en/
+site/src/pages/{zh,en}/index.astro     双语官网首页
+site/src/pages/{zh,en}/changelog.astro 双语版本更新日志
+site/public/llms.txt                   AI/搜索可读取的公开产品事实
 
 src/
-  App.tsx                             根据 Tauri window label 分流 main/preview/about/preferences
-  App.css                             全局样式、透明窗口裁剪、主窗口和所有弹窗视觉
+  App.tsx                             根据五个 Tauri window label 分流，并渲染主窗口 shell
+  styles.css                          Tailwind 入口、全局 reset、语义主题 token
+  uiStyles.ts                         组件 Tailwind class 映射；样式迁移后不再使用 App.css
   constants.ts                        app 名称、GitHub URL、preview 宽度、默认设置
   i18n.ts                             中文和英文文案表
   types.ts                            前后端共享的 camelCase 数据类型
-  hooks/useClipboardApp.ts            主窗口状态中心和 preview 联动
-  lib/tauri.ts                        前端 Tauri invoke/event 封装
+  hooks/useClipboardApp.ts            组合数据、操作和 preview controller 的主入口
+  hooks/useClipboardDataController.ts 历史/设置读取、事件订阅、过滤与分组
+  hooks/useHistoryPreviewController.ts
+                                      preview 状态、请求 revision、跨窗口 payload 与尺寸
+  services/ipc/commands.ts            typed Tauri command 封装
+  services/ipc/events.ts              typed Tauri event 封装
+  services/ipc/windows.ts             当前/主窗口操作
+  lib/tauri.ts                        对组件保留的 IPC 兼容 facade
   components/AppHeader.tsx            搜索栏
   components/HistoryList.tsx          最新历史列表，文件名列表展示使用中间省略以保留扩展名
   components/HistoryGroupNav.tsx      历史分组按钮
@@ -80,6 +95,8 @@ src/
   components/HistoryPreviewDetailWindow.tsx
                                       分组 hover 的独立详情窗口
   components/HistoryDetailPanel.tsx   详情页的三段式外壳
+  components/HistoryDetailDeleteButton.tsx
+                                      主列表详情/分组详情复用的删除动作
   components/HistoryPreviewDetailContent.tsx
                                       文本/图片/文件详情内容渲染
   components/ImageThumb.tsx           通过 Rust command 读取图片 base64 后渲染
@@ -87,7 +104,9 @@ src/
   components/PreferencesWindow.tsx    偏好设置窗口
   components/Modal.tsx                主窗口内确认弹窗
   utils/history.ts                    历史过滤、分组、分页和文件名列表展示纯函数
+  utils/historyAffordance.ts          颜色代码与 Emoji 的前端展示识别
   utils/preview.ts                    preview 高度和偏移计算
+  utils/previewHistory.ts             preview payload 历史 reconciliation
   utils/selectionBehavior.ts          历史选择后的附加行为判断
   utils/settings.ts                   前端设置 normalize
 
@@ -111,7 +130,7 @@ src-tauri/
 
 .github/workflows/
   ci.yml                              macOS 和 Windows 检查
-  release.yml                         tag 发布打包，生成 draft release
+  release.yml                         tag 发布打包，生成 draft release 和 mclip-cli 资产
 
 src-tauri/tests/
   agent_cli.rs                        CLI 真实二进制集成测试，覆盖 agent/list/get/search/context/add/delete/clear
@@ -120,7 +139,7 @@ src-tauri/tests/
 
 ## 前端状态流
 
-主状态集中在 `src/hooks/useClipboardApp.ts`。
+`src/hooks/useClipboardApp.ts` 是组合入口，数据状态集中在 `useClipboardDataController.ts`，preview 生命周期集中在 `useHistoryPreviewController.ts`。
 
 主要职责：
 
@@ -129,9 +148,10 @@ src-tauri/tests/
 - 监听后端 `settings-updated` 事件刷新语言和偏好设置。
 - 根据搜索词计算 `filteredHistory`。
 - 按设置计算主窗口显示条数和历史分组条数，默认都是 10。
-- 维护 `previewHistoryGroupIndex`、`previewHistoryItemId`、`previewAnchorTop`。
-- 调用 `adjust_window_height` 让 Rust 调整主窗口高度。
-- 推送 item/group preview payload 到独立 `preview` 窗口。
+- 维护 `previewHistoryGroupIndex`、`previewHistoryItemId`、`previewAnchorTop` 和 async request revision。
+- 调用 `adjust_window_height_to_content`，由 Rust 按显示器工作区限制主窗口高度。
+- 推送 item/group payload 到 `preview`，推送分组激活项 payload 到独立 `preview-detail`。
+- 接收分组 DOM 实测高度，通过 `resize_history_preview_window` 只调整高度并保留当前 X。
 - 处理复制、自动粘贴、删除、清空历史、打开 About、打开 Preferences、退出应用等操作。
 
 维护注意：
@@ -139,6 +159,7 @@ src-tauri/tests/
 - `searchQueryRef` 用来避免事件回调拿到旧搜索词闭包。
 - `previewHistoryGroupIndex`、`previewHistoryItemId` 和 `previewAnchorTop` 必须一起维护。
 - 关闭 preview 时要清理延迟关闭 timer。
+- 异步 show 完成前必须核对 request revision 和当前 active item，避免旧请求把已关闭或已切换的详情重新打开。
 - 搜索词变化、新剪贴板内容进入、删除条目、打开 About/Preferences 时都要关闭旧 preview。
 
 ## 窗口模型
@@ -162,7 +183,8 @@ preview 必须保持独立窗口：
 
 - 前端 `HistoryGroupNav` 和 `HistoryList` 用 `getBoundingClientRect().top` 传入 anchor top。
 - Rust `show_history_preview_window` 根据 main 窗口位置、anchor、preview 尺寸和屏幕边界定位。
-- Rust `show_history_preview_detail_window` 保持分组 preview 原位，把独立详情紧贴在分组左侧或右侧；外侧放不下时只翻转详情，允许详情覆盖主窗口。macOS 会基于实际 `NSWindow.frame` 做窄范围的 X 坐标校正，避免透明窗口因 backing scale 换算而重叠。
+- Rust `show_history_preview_detail_window` 保持分组 preview 原位，把独立详情紧贴在分组左侧或右侧；外侧放不下时只翻转详情，允许详情覆盖主窗口。尺寸与位置统一使用分组窗口所在显示器的 scale factor 和物理坐标，一次性应用，避免隐藏详情窗口的旧 frame/scale 造成重叠。
+- `resize_history_preview_window` 只能根据实测内容调整分组高度和 Y，不得改变当前 X，否则会覆盖已经打开的独立详情。
 - `PREVIEW_WINDOW_GAP` 是 `0.0`，保持主窗口和 preview 贴边，避免鼠标穿过空白缝隙导致 hover 断掉。
 
 ## Preview 交互
@@ -179,7 +201,7 @@ preview 必须保持独立窗口：
 - 前端用跨窗口事件做快速提示。
 - Rust 用系统鼠标坐标和 preview 窗口矩形做最终命中判断。
 - `is_pointer_over_preview_window` 同时检查 `preview` 和 `preview-detail`。
-- `HistoryGroupPreviewWindow` 既有 CSS `:hover`，也用 pointermove 主动追踪。
+- `HistoryGroupPreviewWindow` 使用 pointermove 主动追踪，并通过 Tailwind 状态 class 展示激活行。
 - `data-preview-item-id` 是 hover 高亮和 `document.elementFromPoint(...)` 追踪的关键，不要移除。
 
 不要把 pointermove 逻辑改成只在 button 上 `onMouseEnter`。透明独立 Tauri 窗口里快速移动时容易丢事件。
@@ -217,8 +239,8 @@ Windows 监听注意：
 - 由 `src-tauri/src/history.rs` 管理。
 - 存在系统 app config 目录的 `history.json`。
 - CLI 通过 `load_history_from_path` 复用同一份历史解析逻辑；桌面端历史损坏时仍回退为空并写日志，CLI 会把解析错误输出到 stderr。CLI 写入通过 path-based helper 复用稳定 id、去重、原子写入和图片资源清理逻辑。
-- CLI 安装默认写到用户目录，例如 macOS/Linux 的 `~/.local/bin/mclip-cli`；不要在未明确确认前写 `/usr/local/bin` 或使用 `sudo`。
-- 公开安装命令使用 `curl -fsSL https://www.mclip.cn/install.sh | sh`；脚本优先下载 GitHub Release 里的预构建 `mclip-cli`，不可用时才回退到本地/源码构建。`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
+- CLI 安装默认写到用户目录：macOS/Linux 使用 `~/.local/bin/mclip-cli`，Windows 使用 `%LOCALAPPDATA%\mclip\bin\mclip-cli.exe`（必要时回退到用户目录）；不要在未明确确认前写 `/usr/local/bin`、系统级 Windows 目录或使用 `sudo`。
+- 公开安装命令使用 `curl -fsSL https://www.mclip.cn/install.sh | sh`；Windows 用户需要在 Git Bash 或兼容 POSIX shell 中运行。脚本优先下载 GitHub Release 里的预构建 `mclip-cli`，不可用时才回退到本地/源码构建。`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
 - 新内容先生成稳定 id，再与已有历史合并。
 - 超过最大条数会截断。
 - 删除和裁剪历史后要清理未使用图片资源。
@@ -276,10 +298,8 @@ Tauri capability 文件：
 透明与圆角：
 
 - Tauri 窗口启用了 `transparent: true`。
-- `main` 根容器 `.app-frame` 使用 `border-radius` + `clip-path`。
-- preview 根容器 `.history-preview-window` 使用 `border-radius` + `clip-path`。
-- About 和 Preferences 使用 `.app-dialog-frame` / `.app-dialog-panel`。
-- About 和 Preferences 的拖动区域只能是共享状态栏 `.app-dialog-statusbar` / `[data-dialog-drag-region]`，内容区不可拖动。
+- 各窗口根容器的 Tailwind class 仍必须保留圆角、`overflow-hidden`/裁剪和透明背景边界。
+- About 和 Preferences 的拖动区域只能是共享 `DialogStatusBar` 的 `[data-dialog-drag-region]`，内容区不可拖动。
 - macOS 额外用 `raw-window-handle` + AppKit 给 WebView 和 contentView 做圆角裁剪。
 
 ## Windows 覆盖点
@@ -304,7 +324,13 @@ Windows 特有实现：
 - 安装器：`bundle.windows.webviewInstallMode` 使用 `downloadBootstrapper`，缺少 WebView2 时会静默下载运行时。
 - 代码签名：当前未配置，用户可能看到 SmartScreen。
 
-无法在 macOS 本地完整替代 Windows 真机验证。改 Windows 专属代码时，至少跑本地 `npm run check`，并确认 GitHub Actions 的 `windows-2022` job 通过。
+无法在 macOS 本地完整替代 Windows 真机验证。改 Windows 专属代码时，至少跑本地 `npm run check` 和：
+
+```bash
+cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
+```
+
+该命令只验证条件编译、Windows API 和依赖兼容；发布结论仍要以 GitHub Actions `windows-2022` 与 Windows 真机 smoke 为准。
 
 ## GitHub Actions 与发布
 
@@ -324,19 +350,20 @@ Release：
 - 使用 `tauri-apps/tauri-action@v0`
 - 生成 GitHub Release draft
 - macOS 和 Windows 都会打包
+- 每个 runner 会构建并上传对应平台/架构的 `mclip-cli` 预构建资产
 - 发布前校验 tag 版本和 `package.json` 版本一致
 
 发版示例：
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 发布注意：
 
 - Tauri 版本配置使用 `src-tauri/tauri.conf.json` 里的 `"version": "../package.json"`，安装包文件名会跟随 `package.json`。
-- 发版前先更新 `package.json` 版本，再创建同版本 tag。例如 `package.json` 是 `0.1.0`，tag 必须是 `v0.1.0`。
+- 发版前同步根 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、`Cargo.lock`、`site/package.json`、官网版本文案，再创建同版本 tag。例如 `package.json` 是 `0.1.1`，tag 必须是 `v0.1.1`。
 - `release.yml` 的 Release body 需要同时提示 macOS 未 notarize 和 Windows 未签名。
 
 ## macOS 发布
@@ -405,16 +432,17 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - 不要让 preview 或 `preview-detail` 窗口 focusable。
 - 不要把主窗口 `resizable` 改回 `true`。
 - 改 preview 尺寸时，同步检查 `src/constants.ts`、`src/utils/preview.ts`、`src-tauri/src/window.rs` 和 Rust 单元测试。
+- 改分组实测高度时同步检查 `src/utils/previewHistory.ts`、`HistoryGroupPreviewWindow.tsx`、`useHistoryPreviewController.ts` 和 `resize_history_preview_window`，后者必须保留 X。
 - 改历史条数逻辑时，前端 clamp 和后端 sanitize 都要同步考虑。
 - 改主界面/历史分组展示条数时，同步检查 `DEFAULT_VISIBLE_ITEM_COUNT`、前端 clamp、后端 sanitize、`getHistoryGroups` 和键盘/preview 逻辑。
 - 改保存类型时，同步检查 `HistoryKind`、`HistoryTypes`、`PreferencesWindow`、`clipboard.rs` 和 `history.rs`。
 - 改文件历史展示时，同步检查 `src/utils/history.ts`、`HistoryList.tsx`、`HistoryGroupPreviewWindow.tsx` 和 `HistoryPreviewDetailContent.tsx`；列表可省略，详情不能省略。
 - 改文件复制/粘贴语义时，同步检查 `src-tauri/src/clipboard.rs` 的文件列表读取、`file://` 文本兼容和 `HistoryEntry::Files` 写回逻辑。
 - 改语言文案时，中文和英文都要补齐。
-- 改 Tauri 命令或事件名时，要同步更新 `src/lib/tauri.ts` 和 Rust `generate_handler!`。
+- 改 Tauri 命令或事件名时，要同步更新 `src/services/ipc/*`、`src/lib/tauri.ts` facade 和 Rust `generate_handler!`。
 - 新增窗口时，同步更新 `tauri.conf.json`、两个 capability 文件、`src/App.tsx` 和 AGENTS 代码地图。
 - 新增 Tauri API 时，同步检查 `src-tauri/capabilities/default.json`。
-- 发布前至少跑 `npm run check`。
+- 发布前至少跑 `npm run check`、Windows target check、`npm run site:test`、`npm run site:build` 和 `git diff --check`。
 
 ## 当前已知限制
 

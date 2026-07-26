@@ -17,8 +17,8 @@ const features = [
     body: "mclip keeps the everyday things you copy: text snippets, screenshots, and files from Finder or File Explorer. Selecting file history restores a system file list, not just path text.",
   },
   {
-    title: "Separate preview windows",
-    body: "The latest 10 items stay compact by default and older history is grouped by 10 by default. Main and group display counts are configurable, and long file names keep extensions in lists while details show the full absolute path.",
+    title: "Compact, independent previews",
+    body: "The latest 10 items stay compact by default and older history is grouped by 10. Archive windows size to rendered content, hover details stay independent, and long file names preserve extensions while details show the full absolute path.",
   },
   {
     title: "Search and keyboard flow",
@@ -29,8 +29,8 @@ const features = [
     body: "Clipboard history, settings, and image assets stay on your computer. mclip does not upload clipboard contents.",
   },
   {
-    title: "Bilingual and cross-platform",
-    body: "mclip supports macOS and Windows, with Chinese and English UI. Follow System uses Chinese for Chinese systems and English for other languages.",
+    title: "Themes, languages, and platforms",
+    body: "mclip supports macOS and Windows, follows system appearance and language, and lets you tune main/archive counts, row numbers, and main-window branding.",
   },
 ];
 
@@ -97,7 +97,7 @@ const faqItems = [
     description="mclip lives in the menu bar or system tray. Open it when you need a previous text snippet, image, or file, then return to work without a large window taking over."
     primaryCta="Download mclip"
     secondaryCta="View on GitHub"
-    note="Current version 0.1.0. Downloads are served from GitHub Releases."
+    note="Current version 0.1.1. Downloads are served from GitHub Releases."
     utilityLabel="Menu bar utility for macOS and Windows"
     proofItems={[
       "Main window shows the latest 10 items by default",
@@ -129,7 +129,7 @@ const faqItems = [
       "mclip-cli copy --index 1",
     ]}
     points={agentCliPoints}
-    note="The installer prefers prebuilt mclip-cli binaries from GitHub Releases and falls back to local/source builds only when a prebuilt binary is unavailable."
+    note="The installer prefers prebuilt mclip-cli binaries from GitHub Releases and falls back to local/source builds only when a prebuilt binary is unavailable. Windows CLI users should run it from Git Bash or another POSIX-compatible shell."
   />
 
   <section class="privacy-band">
@@ -144,7 +144,7 @@ const faqItems = [
   <InstallGuide
     id="install"
     title="Start with GitHub Releases"
-    intro="The first public site stays honest: download is direct, and the current macOS notarization and Windows signing limitations are visible before install."
+    intro="Downloads stay direct, and the current macOS notarization and Windows signing limitations are visible before install."
     items={installItems}
   />
 

@@ -10,7 +10,16 @@
 
 `mclip` 是一个常驻托盘的剪贴板历史工具。它专注于桌面日常复制场景：快速唤起、搜索、回填历史内容，并在不打断当前工作的前提下查看更早的记录。
 
-当前版本：`0.1.0`
+当前版本：`0.1.1`
+
+### v0.1.1 更新重点
+
+- 完成 Tailwind CSS 4 界面迁移，统一主窗口、preview、About、Preferences 和确认弹窗的深浅色视觉与可访问焦点状态。
+- 新增跟随系统/浅色/深色主题，以及主界面条数、历史分组条数、复制项序号、主窗口 Logo 等显示偏好。
+- 主窗口在大历史条数下固定搜索栏和底部操作区，仅滚动中间历史区域，并按显示器工作区限制窗口高度。
+- 历史分组窗口按真实内容自适应高度；hover 详情使用独立 `preview-detail` 窗口，删除入口统一放在详情标题区。
+- 增强颜色代码、Emoji、长文件名和完整文件路径展示，同时保持原始复制内容不变。
+- `mclip-cli` 增加无需读取历史文件的 help/version 能力；公开安装脚本优先下载 GitHub Release 预构建二进制。
 
 ### 主要功能
 
@@ -67,13 +76,15 @@ CLI 默认读取本机 mclip 配置目录中的 `history.json`。排查或测试
 npm run cli -- --history-path /path/to/history.json list --json
 ```
 
-偏好设置的“通用”页会显示 `mclip-cli` 是否已安装，并提供一键安装按钮。默认安装到用户目录下的 `~/.local/bin/mclip-cli`，不会使用 `sudo` 写系统目录。
+偏好设置的“通用”页会显示 `mclip-cli` 是否已安装，并提供一键安装按钮。macOS/Linux 默认安装到 `~/.local/bin/mclip-cli`，Windows 默认安装到 `%LOCALAPPDATA%\mclip\bin\mclip-cli.exe`（缺少 `LOCALAPPDATA` 时回退到用户目录）；不会使用 `sudo` 或写系统级安装目录。
 
 也可以直接从命令行安装：
 
 ```bash
 curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
+
+Windows CLI 用户请在 Git Bash（或兼容的 POSIX shell）中执行该命令；桌面应用仍应使用 GitHub Releases 提供的 `.msi` 或 `.exe` 安装包。
 
 当前 CLI 不启动桌面 UI。`--help`/`help` 输出帮助，`--version`、`-V` 和 `version` 输出版本号，且这些信息命令不会读取历史文件。`agent` 会输出一个面向 AI Agent 的聚合包，包含最近历史、可用命令能力表和安全边界，默认 Markdown，也支持 `--json`；`list/get/search/context` 只读取历史并输出 text、JSON、raw 或 Markdown；`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy` 会把指定历史项写回系统剪贴板；`delete` 和 `clear --yes` 会修改本地 `history.json`。公开安装脚本会优先下载 GitHub Release 里的预构建 `mclip-cli`，只有预构建不可用时才回退到本地或源码构建，此时才需要 Rust/Cargo 和 Git。
 
@@ -128,10 +139,17 @@ npm run cli:test
 npm run cli:build
 npm run cli:install
 npm run site:dev
+npm run site:test
 npm run site:build
 ```
 
-`npm run check` 会执行前端构建、Rust 格式检查、Rust 单元测试、Rust 编译检查和 clippy。
+`npm run check` 会执行前端构建、Rust 格式检查、Rust 单元测试、Rust 编译检查和 clippy。发布前还应运行 `npm run site:test`、`npm run site:build` 和 `git diff --check`。
+
+在 macOS 上可以额外运行下面的 Windows 目标编译检查；它能发现条件编译、Windows API 和依赖层面的错误，但不能替代 Windows 真机交互与安装测试：
+
+```bash
+cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
+```
 
 官网位于 `site/`，使用 Astro 生成静态页面。`npm run site:dev` 用于本地预览官网，`npm run site:build` 会输出到 `site/dist/`。
 
@@ -142,11 +160,11 @@ Vercel 部署时，根路径 `/` 由 `site/vercel.json` 在边缘层重定向到
 Release 由 GitHub Actions 触发：
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
-发布前必须保证 tag 版本和 `package.json` 版本一致，例如 `package.json` 为 `0.1.0` 时 tag 必须是 `v0.1.0`。
+发布前必须保证 tag 版本和 `package.json` 版本一致，例如 `package.json` 为 `0.1.1` 时 tag 必须是 `v0.1.1`。Release workflow 会同时构建 macOS/Windows 安装包和对应 runner 架构的 `mclip-cli` 预构建资产，并生成 draft release。
 
 ### 当前限制
 
@@ -161,7 +179,16 @@ git push origin v0.1.0
 
 `mclip` is a tray-first clipboard history app for everyday desktop copying. It is designed to open quickly, stay compact, search local history, and restore previous clipboard items without taking over the screen.
 
-Current version: `0.1.0`
+Current version: `0.1.1`
+
+### v0.1.1 Highlights
+
+- Completes the Tailwind CSS 4 UI migration across the main window, previews, About, Preferences, and confirmation surfaces, with consistent light/dark styling and visible focus states.
+- Adds System/Light/Dark appearance plus configurable main/archive counts, row numbers, and main-window branding.
+- Keeps search and footer actions fixed for large history counts, scrolls only the history region, and caps the native window to the monitor work area.
+- Sizes archive previews from rendered content, moves hover details into the independent `preview-detail` window, and keeps deletion in the detail header.
+- Improves color-code, emoji, long-file-name, and full-path presentation without changing copied content.
+- Adds history-independent CLI help/version behavior and makes the public installer prefer prebuilt GitHub Release binaries.
 
 ### Features
 
@@ -218,13 +245,15 @@ By default, the CLI reads `history.json` from the local mclip app configuration 
 npm run cli -- --history-path /path/to/history.json list --json
 ```
 
-The General tab in Preferences shows whether `mclip-cli` is installed and provides a one-click install button. It installs to the user directory at `~/.local/bin/mclip-cli` by default and does not use `sudo` to write system directories.
+The General tab in Preferences shows whether `mclip-cli` is installed and provides a one-click install button. It installs to `~/.local/bin/mclip-cli` on macOS/Linux and `%LOCALAPPDATA%\mclip\bin\mclip-cli.exe` on Windows (falling back to the user profile when `LOCALAPPDATA` is unavailable). It does not use `sudo` or write to a system-wide install directory.
 
 You can also install directly from the terminal:
 
 ```bash
 curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
+
+Windows CLI users should run this command from Git Bash or another POSIX-compatible shell. The desktop app should still be installed from the `.msi` or `.exe` asset on GitHub Releases.
 
 The current CLI does not start the desktop UI. `--help`/`help` prints help, and `--version`, `-V`, and `version` print the version without reading the history file. `agent` emits an AI-agent-ready bundle with recent history, command capabilities, and safety boundaries; it defaults to Markdown and supports `--json`. `list/get/search/context` only read history and emit text, JSON, raw, or Markdown output; `add` writes text into history without replacing the current system clipboard; `copy` writes a selected history item back to the system clipboard; `delete` and `clear --yes` modify the local `history.json`. The public install script prefers prebuilt `mclip-cli` binaries from GitHub Releases and falls back to local/source builds only when a prebuilt binary is unavailable, so Rust/Cargo and Git are no longer required for the normal path.
 
@@ -277,10 +306,17 @@ npm run cli:test
 npm run cli:build
 npm run cli:install
 npm run site:dev
+npm run site:test
 npm run site:build
 ```
 
-`npm run check` runs the frontend build, Rust formatting check, Rust tests, Rust compile check, and clippy.
+`npm run check` runs the frontend build, Rust formatting check, Rust tests, Rust compile check, and clippy. Before release, also run `npm run site:test`, `npm run site:build`, and `git diff --check`.
+
+On macOS, the following Windows-target compile is an additional check for conditional compilation, Windows APIs, and dependency compatibility. It does not replace interaction and installer testing on a real Windows machine:
+
+```bash
+cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
+```
 
 The product site lives in `site/` and uses Astro to generate static pages. Use `npm run site:dev` to preview it locally and `npm run site:build` to write `site/dist/`.
 
@@ -291,11 +327,11 @@ On Vercel, the root path `/` is redirected to `/en/` by `site/vercel.json` at th
 GitHub Actions publishes release drafts from version tags:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
-The tag version must match `package.json`. For example, package version `0.1.0` must be released with tag `v0.1.0`.
+The tag version must match `package.json`. For example, package version `0.1.1` must be released with tag `v0.1.1`. The release workflow builds macOS/Windows installers and a prebuilt `mclip-cli` asset for each runner architecture, then creates a draft release.
 
 ### Known Limitations
 
