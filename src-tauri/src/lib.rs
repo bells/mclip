@@ -453,6 +453,11 @@ pub fn run() {
                 configure_tray_position_persistence(app.handle());
                 log_info(app.handle(), "app", "mclip started");
 
+                #[cfg(debug_assertions)]
+                if std::env::var("MCLIP_SMOKE_WINDOW").as_deref() == Ok("preferences") {
+                    let _ = show_preferences_window(app.handle().clone());
+                }
+
                 Ok(())
             }
         })

@@ -129,7 +129,7 @@ const faqItems = [
       "mclip-cli copy --index 1",
     ]}
     points={agentCliPoints}
-    note="The installer prefers prebuilt mclip-cli binaries from GitHub Releases and falls back to local/source builds only when a prebuilt binary is unavailable. Windows CLI users should run it from Git Bash or another POSIX-compatible shell."
+    note="The installer downloads the prebuilt mclip-cli and SHA-256 companion from the same GitHub Release, verifies it before replacing an older CLI, and accepts MCLIP_VERSION for pinned installs. It falls back to a source build only when the binary asset is missing. Windows CLI users should run it from Git Bash or another POSIX-compatible shell."
   />
 
   <section class="privacy-band">

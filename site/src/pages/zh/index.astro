@@ -129,7 +129,7 @@ const faqItems = [
       "mclip-cli copy --index 1",
     ]}
     points={agentCliPoints}
-    note="安装脚本会优先下载 GitHub Release 里的预构建 mclip-cli；只有预构建不可用时才回退到本地或源码构建。Windows CLI 用户请在 Git Bash 或兼容 POSIX shell 中运行。"
+    note="安装脚本会下载同一 GitHub Release 的预构建 mclip-cli 与 SHA-256 校验资产，验证成功后才替换旧 CLI；可用 MCLIP_VERSION 固定版本。只有二进制资产不存在时才回退到源码构建。Windows CLI 用户请在 Git Bash 或兼容 POSIX shell 中运行。"
   />
 
   <section class="privacy-band">

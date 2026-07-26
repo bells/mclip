@@ -45,6 +45,10 @@ import {
   settingsSwitchRow,
   ui,
 } from "../uiStyles";
+import {
+  getCliInstallErrorCode,
+  getCliPrimaryAction,
+} from "../utils/cliInstall";
 import { normalizeSettings } from "../utils/settings";
 import { DialogStatusBar } from "./DialogStatusBar";
 import { DialogWindowFrame } from "./DialogWindowFrame";
@@ -161,6 +165,37 @@ export function PreferencesWindow() {
     },
   ];
   const mainWindowItemCountMax = settingsDraft.maxHistoryCount;
+  const cliPrimaryAction = cliStatus
+    ? getCliPrimaryAction(cliStatus.state, cliStatus.platformSupported)
+    : "none";
+  const cliStateLabel = (() => {
+    switch (cliStatus?.state) {
+      case "current":
+        return t.cliCurrent;
+      case "outdated":
+        return t.cliOutdated;
+      case "newer":
+        return t.cliNewer;
+      case "unknown":
+        return t.cliLegacyVersion;
+      case "notInstalled":
+        return t.cliNotInstalled;
+      default:
+        return t.cliChecking;
+    }
+  })();
+  const cliActionLabel = (() => {
+    switch (cliPrimaryAction) {
+      case "install":
+        return t.cliInstall;
+      case "upgrade":
+        return t.cliUpgrade;
+      case "reinstall":
+        return t.cliReinstall;
+      case "none":
+        return t.cliInstallUnavailable;
+    }
+  })();
 
   const syncSettingsState = (nextSettings: AppSettings) => {
     latestSettingsRef.current = nextSettings;
@@ -596,10 +631,43 @@ export function PreferencesWindow() {
     try {
       const status = await installCli();
       setCliStatus(status);
-      setCliInstallMessage(t.cliInstallSuccess(status.installPath));
+      setCliInstallMessage(
+        t.cliInstallSuccess(status.installPath, status.targetVersion),
+      );
     } catch (error) {
       console.error("安装 mclip-cli 失败:", error);
-      setCliStatusError(t.cliInstallError);
+      const errorCode = getCliInstallErrorCode(error);
+
+      switch (errorCode) {
+        case "CLI_UNSUPPORTED_PLATFORM":
+          setCliStatusError(t.cliPlatformUnsupported);
+          break;
+        case "CLI_RELEASE_UNAVAILABLE":
+          setCliStatusError(t.cliReleaseUnavailableError);
+          break;
+        case "CLI_CHECKSUM_UNAVAILABLE":
+        case "CLI_CHECKSUM_INVALID":
+        case "CLI_CHECKSUM_MISMATCH":
+          setCliStatusError(t.cliIntegrityError);
+          break;
+        case "CLI_REPLACE_FAILED":
+        case "CLI_DESTINATION_UNSAFE":
+          setCliStatusError(t.cliReplaceError);
+          break;
+        case "CLI_INSTALL_BUSY":
+          setCliStatusError(t.cliInstallBusyError);
+          break;
+        case "CLI_POST_INSTALL_VERIFY_FAILED":
+          setCliStatusError(t.cliPostInstallVerifyError);
+          break;
+        case "CLI_DOWNLOAD_TOO_LARGE":
+        case "CLI_DOWNLOAD_FAILED":
+          setCliStatusError(t.cliDownloadError);
+          break;
+        case "UNKNOWN":
+          setCliStatusError(t.cliInstallError);
+          break;
+      }
     } finally {
       setIsInstallingCli(false);
     }
@@ -950,28 +1018,38 @@ export function PreferencesWindow() {
                     <div className={ui.cliStatusCopy}>
                       <span
                         className={`${ui.cliStatusBadge} ${
-                          cliStatus?.isInstalled ? ui.cliStatusBadgeInstalled : ""
+                          cliStatus?.state === "current" ||
+                          cliStatus?.state === "newer"
+                            ? ui.cliStatusBadgeInstalled
+                            : ""
                         }`}
                       >
-                        {cliStatus
-                          ? cliStatus.isInstalled
-                            ? t.cliInstalled
-                            : t.cliNotInstalled
-                          : t.cliChecking}
+                        {cliStateLabel}
                       </span>
                       <div className={ui.settingsNote}>
                         {cliStatus
                           ? t.cliInstallPath(cliStatus.installPath)
                           : t.cliCheckingDescription}
                       </div>
+                      {cliStatus ? (
+                        <div className={ui.settingsNote}>
+                          {t.cliVersionSummary(
+                            cliStatus.installedVersion ?? t.cliUnknownVersion,
+                            cliStatus.targetVersion,
+                          )}
+                        </div>
+                      ) : null}
+                      {cliStatus?.state === "unknown" ? (
+                        <div className={ui.settingsNote}>{t.cliLegacyVersion}</div>
+                      ) : null}
                       {cliStatus && !cliStatus.isOnPath ? (
                         <div className={ui.settingsNote}>
                           {t.cliPathNotOnPath(cliStatus.installDir)}
                         </div>
                       ) : null}
-                      {cliStatus && !cliStatus.sourceAvailable ? (
+                      {cliStatus && !cliStatus.platformSupported ? (
                         <div className={ui.settingsNote}>
-                          {t.cliSourceUnavailable}
+                          {t.cliPlatformUnsupported}
                         </div>
                       ) : null}
                     </div>
@@ -981,18 +1059,14 @@ export function PreferencesWindow() {
                       disabled={
                         isInstallingCli ||
                         !cliStatus ||
-                        !cliStatus.sourceAvailable
+                        cliPrimaryAction === "none"
                       }
                       onClick={handleInstallCli}
                       type="button"
                     >
                       {isInstallingCli
                         ? t.cliInstalling
-                        : cliStatus?.sourceAvailable
-                          ? cliStatus.isInstalled
-                            ? t.cliReinstall
-                            : t.cliInstall
-                          : t.cliInstallUnavailable}
+                        : cliActionLabel}
                     </button>
                   </div>
 

@@ -7,6 +7,12 @@ export type MenuBarIconStyle = "appIcon" | "light" | "m";
 export type AppearanceTheme = "system" | "light" | "dark";
 
 export type EnabledHistoryTypes = Record<HistoryKind, boolean>;
+export type CliInstallState =
+  | "notInstalled"
+  | "current"
+  | "outdated"
+  | "newer"
+  | "unknown";
 
 export type AppSettings = {
   autoPaste: boolean;
@@ -27,9 +33,12 @@ export type CliInstallStatus = {
   installCommand: string;
   installDir: string;
   installPath: string;
+  installedVersion: string | null;
   isInstalled: boolean;
   isOnPath: boolean;
-  sourceAvailable: boolean;
+  platformSupported: boolean;
+  state: CliInstallState;
+  targetVersion: string;
 };
 
 export type AutoPastePermissionStatus = {

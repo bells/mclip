@@ -35,12 +35,28 @@ jobs:
         shell: bash
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
-          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
-            echo "Tag version ($TAG_VERSION) does not match package.json version ($PACKAGE_VERSION)."
-            echo "Update package.json before creating the release tag."
-            exit 1
-          fi
+          ROOT_PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          ROOT_LOCK_VERSION="$(node -p "require('./package-lock.json').packages[''].version")"
+          SITE_PACKAGE_VERSION="$(node -p "require('./site/package.json').version")"
+          SITE_LOCK_VERSION="$(node -p "require('./site/package-lock.json').packages[''].version")"
+          CARGO_PACKAGE_VERSION="$(cargo metadata --manifest-path src-tauri/Cargo.toml --no-deps --format-version 1 | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).packages.find((entry) => entry.name === 'mclip').version")"
+          CARGO_LOCK_VERSION="$(awk '$0 == "name = \"mclip\"" { getline; gsub(/^version = \"|\"$/, ""); print; exit }' src-tauri/Cargo.lock)"
+
+          for VERSION_SOURCE in \
+            "package.json:$ROOT_PACKAGE_VERSION" \
+            "package-lock.json:$ROOT_LOCK_VERSION" \
+            "site/package.json:$SITE_PACKAGE_VERSION" \
+            "site/package-lock.json:$SITE_LOCK_VERSION" \
+            "src-tauri/Cargo.toml:$CARGO_PACKAGE_VERSION" \
+            "src-tauri/Cargo.lock:$CARGO_LOCK_VERSION"
+          do
+            SOURCE_NAME="${VERSION_SOURCE%%:*}"
+            SOURCE_VERSION="${VERSION_SOURCE#*:}"
+            if [ "$TAG_VERSION" != "$SOURCE_VERSION" ]; then
+              echo "Tag version ($TAG_VERSION) does not match $SOURCE_NAME ($SOURCE_VERSION)."
+              exit 1
+            fi
+          done
 
       - name: Build mclip-cli release binary
         run: cargo build --manifest-path src-tauri/Cargo.toml --bin mclip-cli --release
@@ -49,31 +65,32 @@ jobs:
         id: cli_asset
         shell: bash
         run: |
-          case "$RUNNER_OS" in
-            macOS) PLATFORM="darwin" ;;
-            Windows) PLATFORM="windows" ;;
-            Linux) PLATFORM="linux" ;;
-            *) echo "Unsupported runner OS: $RUNNER_OS" >&2; exit 1 ;;
+          case "$RUNNER_OS:$RUNNER_ARCH" in
+            macOS:ARM64)
+              ASSET_NAME="mclip-cli-darwin-arm64"
+              SOURCE_PATH="src-tauri/target/release/mclip-cli"
+              ;;
+            Windows:X64)
+              ASSET_NAME="mclip-cli-windows-x64.exe"
+              SOURCE_PATH="src-tauri/target/release/mclip-cli.exe"
+              ;;
+            *)
+              echo "No published mclip-cli asset mapping for $RUNNER_OS:$RUNNER_ARCH" >&2
+              exit 1
+              ;;
           esac
 
-          case "$RUNNER_ARCH" in
-            X64) ARCH="x64" ;;
-            ARM64) ARCH="arm64" ;;
-            *) echo "Unsupported runner arch: $RUNNER_ARCH" >&2; exit 1 ;;
-          esac
-
-          EXTENSION=""
-          SOURCE_PATH="src-tauri/target/release/mclip-cli"
-          if [ "$PLATFORM" = "windows" ]; then
-            EXTENSION=".exe"
-            SOURCE_PATH="${SOURCE_PATH}.exe"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          CLI_VERSION="$("$SOURCE_PATH" --version)"
+          if [ "$CLI_VERSION" != "mclip-cli $TAG_VERSION" ]; then
+            echo "Built CLI version ($CLI_VERSION) does not match tag version ($TAG_VERSION)." >&2
+            exit 1
           fi
 
           mkdir -p cli-dist
-          cp "$SOURCE_PATH" "cli-dist/mclip-cli-${PLATFORM}-${ARCH}${EXTENSION}"
-          echo "platform=$PLATFORM" >> "$GITHUB_OUTPUT"
-          echo "arch=$ARCH" >> "$GITHUB_OUTPUT"
-          echo "extension=$EXTENSION" >> "$GITHUB_OUTPUT"
+          cp "$SOURCE_PATH" "cli-dist/$ASSET_NAME"
+          node -e "const crypto=require('crypto');const fs=require('fs');const path=require('path');const file=process.argv[1];const digest=crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');fs.writeFileSync(file+'.sha256', digest+'  '+path.basename(file)+'\\n');" "cli-dist/$ASSET_NAME"
+          echo "asset_name=$ASSET_NAME" >> "$GITHUB_OUTPUT"
 
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -95,7 +112,7 @@ jobs:
             - 搜索、复制、删除、清空历史，以及 `CommandOrControl+Shift+V` 全局快捷键。
             - 偏好设置：登录时启动、语言、外观主题、菜单栏图标样式、自动粘贴、展示条数、序号、主窗口 Logo、最大历史条数和保存类型。
             - 颜色代码、Emoji、长文件名与完整文件路径提供更清晰的展示，但复制内容保持原样。
-            - `mclip-cli` 提供 Agent 模式、无需读取历史的 help/version 和预构建二进制安装。
+            - `mclip-cli` 提供 Agent 模式、无需读取历史的 help/version、版本感知升级和 SHA-256 校验的预构建安装。
             - 剪贴板历史仅保存在本机，不会上传到云端。
 
             ## Included in this release
@@ -107,7 +124,7 @@ jobs:
             - Search, copy, delete, clear history, and the `CommandOrControl+Shift+V` global shortcut.
             - Preferences for launch at login, language, appearance theme, menu bar icon style, auto paste, display counts, row numbers, main-window branding, maximum history size, and enabled history types.
             - Clearer color-code, emoji, long-file-name, and full-path presentation without changing copied content.
-            - `mclip-cli` Agent Mode, history-independent help/version, and prebuilt-binary installation.
+            - `mclip-cli` Agent Mode, history-independent help/version, version-aware upgrades, and SHA-256-verified prebuilt installation.
             - Clipboard history stays on your device and is not uploaded.
 
             ## 下载 / Downloads
@@ -116,9 +133,9 @@ jobs:
 
             Choose the installer for your platform from the Assets below.
 
-            CLI 用户可以使用公开安装脚本，默认优先下载本 Release 的预构建 `mclip-cli`：
+            CLI 用户可以使用公开安装脚本，默认下载本 Release 的预构建 `mclip-cli` 及其 SHA-256 校验资产：
 
-            CLI users can use the public install script, which prefers the prebuilt `mclip-cli` from this release:
+            CLI users can use the public install script, which downloads the prebuilt `mclip-cli` and its SHA-256 companion from this release:
 
             ```bash
             curl -fsSL https://www.mclip.cn/install.sh | sh
@@ -156,4 +173,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          files: cli-dist/mclip-cli-${{ steps.cli_asset.outputs.platform }}-${{ steps.cli_asset.outputs.arch }}${{ steps.cli_asset.outputs.extension }}
+          files: |
+            cli-dist/${{ steps.cli_asset.outputs.asset_name }}
+            cli-dist/${{ steps.cli_asset.outputs.asset_name }}.sha256

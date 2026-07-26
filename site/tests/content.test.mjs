@@ -28,14 +28,20 @@ test("site publishes the v0.1.1 release and current product capabilities", async
   assert.match(en, /Current version 0\.1\.1/);
   assert.match(zhChangelog, /0\.1\.1/);
   assert.match(zhChangelog, /Tailwind CSS 4/);
+  assert.match(zhChangelog, /mclip-cli 版本与安全升级/);
+  assert.match(zhChangelog, /SHA-256/);
   assert.match(enChangelog, /0\.1\.1/);
   assert.match(enChangelog, /System\/Light\/Dark/);
+  assert.match(enChangelog, /mclip-cli versioning and verified upgrades/);
   assert.match(layout, /softwareVersion: "0\.1\.1"/);
   assert.match(llms, /Current public version: 0\.1\.1/);
   assert.match(llms, /independent detail window/);
   assert.match(zh, /Windows CLI 用户请在 Git Bash/);
+  assert.match(zh, /SHA-256 校验资产/);
   assert.match(en, /Windows CLI users should run it from Git Bash/);
+  assert.match(en, /SHA-256 companion/);
   assert.match(llms, /On Windows, run the shell installer from Git Bash/);
+  assert.match(llms, /preserves an existing CLI on verification failure/);
 });
 
 test("site includes trust, installation, and FAQ content", async () => {
@@ -103,6 +109,8 @@ test("site introduces AI Agent and mclip-cli workflows", async () => {
   assert.match(llms, /mclip-cli clear --yes/);
   assert.match(llms, /mclip-cli/);
   assert.match(llms, /https:\/\/www\.mclip\.cn\/install\.sh/);
+  assert.match(llms, /MCLIP_VERSION/);
+  assert.match(llms, /missing\/outdated\/unknown\/current\/newer/);
 });
 
 test("shared SEO metadata declares bilingual routes and social image", async () => {

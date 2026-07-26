@@ -57,7 +57,7 @@ npm run site:build
 
 提交前优先跑 `npm run check`。如果只改 TSX/CSS 文档化小界面，可以先跑 `npm run build` 快速确认，再跑完整检查。官网或发布文案有变化时还要跑 `npm run site:test`、`npm run site:build` 和 `git diff --check`。
 
-CLI 是 AI Agent/终端入口。`npm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持 `--help`/`help`、`--version`/`-V`/`version`，Agent 聚合命令 `agent`、只读命令 `list/get/search/context`，以及操作命令 `add/copy/delete/clear`。help/version 不应读取历史文件；`agent` 输出最近历史、命令能力表和安全边界，默认 Markdown，`--json` 输出结构化包；`add` 只写历史不覆盖系统剪贴板，`copy` 才会写回系统剪贴板，`clear` 必须带 `--yes`。`npm run cli:test` 是 CLI 的快速回归测试，`npm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
+CLI 是 AI Agent/终端入口。`npm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持 `--help`/`help`、`--version`/`-V`/`version`，Agent 聚合命令 `agent`、只读命令 `list/get/search/context`，以及操作命令 `add/copy/delete/clear`。help/version 不应读取历史文件；CLI 与桌面应用共用产品版本，Release 前 tag、两个 package/lockfile、Cargo package/lockfile 和构建后二进制输出必须一致。`agent` 输出最近历史、命令能力表和安全边界，默认 Markdown，`--json` 输出结构化包；`add` 只写历史不覆盖系统剪贴板，`copy` 才会写回系统剪贴板，`clear` 必须带 `--yes`。`npm run cli:test` 是 CLI 的快速回归测试，`npm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
 
 ## 代码地图
 
@@ -120,7 +120,7 @@ src-tauri/
   src/main.rs                         发布版 Windows 隐藏控制台，转入 lib.rs
   src/lib.rs                          Tauri 应用入口、托盘、快捷键、命令注册
   src/agent_cli.rs                    CLI 参数解析、Agent 模式、历史筛选、操作命令和 text/json/raw/markdown 输出
-  src/cli_install.rs                  mclip-cli 安装状态检测和一键安装命令
+  src/cli_install.rs                  mclip-cli 版本状态、Release 下载、SHA-256 校验和可回滚安装
   src/window.rs                       主窗口和 preview/about/preferences 的尺寸、定位、显示隐藏
   src/clipboard.rs                    剪贴板读写、文件列表回填、图片处理、Windows 事件监听、macOS changeCount 轮询
   src/history.rs                      历史持久化、去重、裁剪、图片资源清理
@@ -239,8 +239,9 @@ Windows 监听注意：
 - 由 `src-tauri/src/history.rs` 管理。
 - 存在系统 app config 目录的 `history.json`。
 - CLI 通过 `load_history_from_path` 复用同一份历史解析逻辑；桌面端历史损坏时仍回退为空并写日志，CLI 会把解析错误输出到 stderr。CLI 写入通过 path-based helper 复用稳定 id、去重、原子写入和图片资源清理逻辑。
-- CLI 安装默认写到用户目录：macOS/Linux 使用 `~/.local/bin/mclip-cli`，Windows 使用 `%LOCALAPPDATA%\mclip\bin\mclip-cli.exe`（必要时回退到用户目录）；不要在未明确确认前写 `/usr/local/bin`、系统级 Windows 目录或使用 `sudo`。
-- 公开安装命令使用 `curl -fsSL https://www.mclip.cn/install.sh | sh`；Windows 用户需要在 Git Bash 或兼容 POSIX shell 中运行。脚本优先下载 GitHub Release 里的预构建 `mclip-cli`，不可用时才回退到本地/源码构建。`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
+- CLI 安装默认写到用户目录：macOS/Linux 使用 `~/.local/bin/mclip-cli`，Windows 使用 `%LOCALAPPDATA%\mclip\bin\mclip-cli.exe`（必要时回退到用户目录）；不要在未明确确认前写 `/usr/local/bin`、系统级 Windows 目录、修改 shell profile 或使用 `sudo`。
+- Preferences 的 Agent CLI 页直接探测固定安装路径的 `mclip-cli --version`，状态为 `notInstalled/current/outdated/newer/unknown`；旧版和 unknown 可以升级，current 可以重装，newer 不自动降级。生产安装必须下载与当前桌面版本完全一致的受支持 Release 资产及其 `.sha256`，校验成功后才能可回滚地替换旧 CLI，不依赖 Cargo/Git。
+- 公开安装命令使用 `curl -fsSL https://www.mclip.cn/install.sh | sh`；Windows 用户需要在 Git Bash 或兼容 POSIX shell 中运行。脚本默认下载最新公开 Release，可用 `MCLIP_VERSION` 固定版本；预构建资产必须同时下载和验证 `.sha256`，校验失败不得覆盖旧 CLI。只有二进制资产不存在时才回退到本地/源码构建。`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
 - 新内容先生成稳定 id，再与已有历史合并。
 - 超过最大条数会截断。
 - 删除和裁剪历史后要清理未使用图片资源。
@@ -363,7 +364,7 @@ git push origin v0.1.1
 发布注意：
 
 - Tauri 版本配置使用 `src-tauri/tauri.conf.json` 里的 `"version": "../package.json"`，安装包文件名会跟随 `package.json`。
-- 发版前同步根 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、`Cargo.lock`、`site/package.json`、官网版本文案，再创建同版本 tag。例如 `package.json` 是 `0.1.1`，tag 必须是 `v0.1.1`。
+- 发版前同步根 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、`Cargo.lock`、`site/package.json`、`site/package-lock.json`、官网版本文案和 CLI 输出，再创建同版本 tag。例如产品版本是 `0.1.1`，tag 必须是 `v0.1.1`；Release workflow 会在上传前逐项校验并为每个 CLI 二进制生成同名 `.sha256` 资产。
 - `release.yml` 的 Release body 需要同时提示 macOS 未 notarize 和 Windows 未签名。
 
 ## macOS 发布

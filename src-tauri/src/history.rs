@@ -351,21 +351,25 @@ fn persist_history(app_handle: &AppHandle, history: &[HistoryEntry]) -> Result<(
 }
 
 fn history_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
-    let config_dir = app_handle
-        .path()
-        .app_config_dir()
-        .map_err(|error| error.to_string())?;
-
-    Ok(config_dir.join("history.json"))
+    Ok(app_config_dir(app_handle)?.join("history.json"))
 }
 
 fn image_assets_dir(app_handle: &AppHandle) -> Result<PathBuf, String> {
-    let config_dir = app_handle
+    Ok(app_config_dir(app_handle)?
+        .join("history-assets")
+        .join("images"))
+}
+
+fn app_config_dir(app_handle: &AppHandle) -> Result<PathBuf, String> {
+    #[cfg(debug_assertions)]
+    if let Some(path) = std::env::var_os("MCLIP_APP_CONFIG_DIR") {
+        return Ok(PathBuf::from(path));
+    }
+
+    app_handle
         .path()
         .app_config_dir()
-        .map_err(|error| error.to_string())?;
-
-    Ok(config_dir.join("history-assets").join("images"))
+        .map_err(|error| error.to_string())
 }
 
 fn image_asset_path(app_handle: &AppHandle, content_hash: &str) -> Result<PathBuf, String> {

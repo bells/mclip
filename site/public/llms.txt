@@ -69,6 +69,8 @@ curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
 The installer prefers prebuilt mclip-cli binaries from GitHub Releases. Rust/Cargo and Git are only needed when the prebuilt download is unavailable and the script falls back to a source build.
+The installer downloads the binary and its .sha256 companion from the same Release, verifies SHA-256 before replacement, preserves an existing CLI on verification failure, and accepts MCLIP_VERSION for pinned installs.
+The in-development desktop integration probes the fixed user-level mclip-cli path, distinguishes missing/outdated/unknown/current/newer versions, targets the exact desktop version, and never automatically downgrades a newer CLI.
 On Windows, run the shell installer from Git Bash or another POSIX-compatible shell. Install the desktop app itself from the GitHub Release .msi or .exe asset.
 
 ## Privacy and trust

@@ -248,12 +248,16 @@ fn persist_settings(app_handle: &AppHandle, settings: AppSettings) -> Result<App
 }
 
 fn settings_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
-    let config_dir = app_handle
+    #[cfg(debug_assertions)]
+    if let Some(path) = std::env::var_os("MCLIP_APP_CONFIG_DIR") {
+        return Ok(PathBuf::from(path).join("settings.json"));
+    }
+
+    app_handle
         .path()
         .app_config_dir()
-        .map_err(|error| error.to_string())?;
-
-    Ok(config_dir.join("settings.json"))
+        .map(|config_dir| config_dir.join("settings.json"))
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(target_os = "macos")]

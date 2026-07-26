@@ -76,7 +76,7 @@ CLI 默认读取本机 mclip 配置目录中的 `history.json`。排查或测试
 npm run cli -- --history-path /path/to/history.json list --json
 ```
 
-偏好设置的“通用”页会显示 `mclip-cli` 是否已安装，并提供一键安装按钮。macOS/Linux 默认安装到 `~/.local/bin/mclip-cli`，Windows 默认安装到 `%LOCALAPPDATA%\mclip\bin\mclip-cli.exe`（缺少 `LOCALAPPDATA` 时回退到用户目录）；不会使用 `sudo` 或写系统级安装目录。
+偏好设置的“Agent CLI”页会运行固定安装路径下的 `mclip-cli --version`，显示已安装版本和当前桌面版对应的目标版本，并区分未安装、可升级、版本未知、当前版本和较新版本。未安装时可以安装，旧版或无法识别版本的 legacy CLI 可以升级，当前版本可以重新安装；较新版本不会被自动降级。macOS 默认安装到 `~/.local/bin/mclip-cli`，Windows 默认安装到 `%LOCALAPPDATA%\mclip\bin\mclip-cli.exe`（缺少 `LOCALAPPDATA` 时回退到用户目录）；不会使用 `sudo`、修改 shell profile 或写系统级安装目录。
 
 也可以直接从命令行安装：
 
@@ -86,7 +86,7 @@ curl -fsSL https://www.mclip.cn/install.sh | sh
 
 Windows CLI 用户请在 Git Bash（或兼容的 POSIX shell）中执行该命令；桌面应用仍应使用 GitHub Releases 提供的 `.msi` 或 `.exe` 安装包。
 
-当前 CLI 不启动桌面 UI。`--help`/`help` 输出帮助，`--version`、`-V` 和 `version` 输出版本号，且这些信息命令不会读取历史文件。`agent` 会输出一个面向 AI Agent 的聚合包，包含最近历史、可用命令能力表和安全边界，默认 Markdown，也支持 `--json`；`list/get/search/context` 只读取历史并输出 text、JSON、raw 或 Markdown；`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy` 会把指定历史项写回系统剪贴板；`delete` 和 `clear --yes` 会修改本地 `history.json`。公开安装脚本会优先下载 GitHub Release 里的预构建 `mclip-cli`，只有预构建不可用时才回退到本地或源码构建，此时才需要 Rust/Cargo 和 Git。
+当前 CLI 不启动桌面 UI。`--help`/`help` 输出帮助，`--version`、`-V` 和 `version` 输出与 mclip 产品 Release 一致的版本号，且这些信息命令不会读取历史文件。`agent` 会输出一个面向 AI Agent 的聚合包，包含最近历史、可用命令能力表和安全边界，默认 Markdown，也支持 `--json`；`list/get/search/context` 只读取历史并输出 text、JSON、raw 或 Markdown；`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy` 会把指定历史项写回系统剪贴板；`delete` 和 `clear --yes` 会修改本地 `history.json`。偏好设置会下载与当前桌面版本完全一致的 GitHub Release 资产；公开安装脚本默认下载最新公开 Release，也可通过 `MCLIP_VERSION` 固定版本。两条预构建安装路径都会先验证同 Release 的 SHA-256 资产，校验失败时保留旧 CLI。只有预构建二进制不存在时，公开脚本才回退到本地或源码构建并要求 Rust/Cargo 和 Git。
 
 ### Windows 注意事项
 
@@ -164,7 +164,7 @@ git tag v0.1.1
 git push origin v0.1.1
 ```
 
-发布前必须保证 tag 版本和 `package.json` 版本一致，例如 `package.json` 为 `0.1.1` 时 tag 必须是 `v0.1.1`。Release workflow 会同时构建 macOS/Windows 安装包和对应 runner 架构的 `mclip-cli` 预构建资产，并生成 draft release。
+发布前必须保证 tag、根 `package.json`/lockfile、官网 package/lockfile、Cargo package/lockfile 和构建后的 `mclip-cli --version` 完全一致，例如产品版本为 `0.1.1` 时 tag 必须是 `v0.1.1`。Release workflow 会同时构建 macOS/Windows 安装包、受支持架构的 `mclip-cli` 预构建资产及其 `.sha256` 校验资产，并生成 draft release。
 
 ### 当前限制
 
@@ -245,7 +245,7 @@ By default, the CLI reads `history.json` from the local mclip app configuration 
 npm run cli -- --history-path /path/to/history.json list --json
 ```
 
-The General tab in Preferences shows whether `mclip-cli` is installed and provides a one-click install button. It installs to `~/.local/bin/mclip-cli` on macOS/Linux and `%LOCALAPPDATA%\mclip\bin\mclip-cli.exe` on Windows (falling back to the user profile when `LOCALAPPDATA` is unavailable). It does not use `sudo` or write to a system-wide install directory.
+The Agent CLI tab in Preferences probes `mclip-cli --version` at the fixed user-level install path, shows the installed and desktop-target versions, and distinguishes missing, outdated, unknown legacy, current, and newer CLIs. It offers Install, Upgrade, or Reinstall as appropriate and never downgrades a newer CLI automatically. The default path is `~/.local/bin/mclip-cli` on macOS and `%LOCALAPPDATA%\mclip\bin\mclip-cli.exe` on Windows (falling back to the user profile when `LOCALAPPDATA` is unavailable). It does not use `sudo`, edit shell profiles, or write to system-wide directories.
 
 You can also install directly from the terminal:
 
@@ -255,7 +255,7 @@ curl -fsSL https://www.mclip.cn/install.sh | sh
 
 Windows CLI users should run this command from Git Bash or another POSIX-compatible shell. The desktop app should still be installed from the `.msi` or `.exe` asset on GitHub Releases.
 
-The current CLI does not start the desktop UI. `--help`/`help` prints help, and `--version`, `-V`, and `version` print the version without reading the history file. `agent` emits an AI-agent-ready bundle with recent history, command capabilities, and safety boundaries; it defaults to Markdown and supports `--json`. `list/get/search/context` only read history and emit text, JSON, raw, or Markdown output; `add` writes text into history without replacing the current system clipboard; `copy` writes a selected history item back to the system clipboard; `delete` and `clear --yes` modify the local `history.json`. The public install script prefers prebuilt `mclip-cli` binaries from GitHub Releases and falls back to local/source builds only when a prebuilt binary is unavailable, so Rust/Cargo and Git are no longer required for the normal path.
+The current CLI does not start the desktop UI. `--help`/`help` prints help, and `--version`, `-V`, and `version` print the shared mclip product Release version without reading the history file. `agent` emits an AI-agent-ready bundle with recent history, command capabilities, and safety boundaries; it defaults to Markdown and supports `--json`. `list/get/search/context` only read history and emit text, JSON, raw, or Markdown output; `add` writes text into history without replacing the current system clipboard; `copy` writes a selected history item back to the system clipboard; `delete` and `clear --yes` modify the local `history.json`. Preferences downloads the GitHub Release asset for the exact desktop version; the public installer defaults to the latest published Release and accepts `MCLIP_VERSION` for a pinned install. Both prebuilt paths verify the companion SHA-256 asset before replacement and preserve the previous CLI on failure. The public script falls back to local/source builds only when a prebuilt binary is missing, so Rust/Cargo and Git are not required for the normal path.
 
 ### Windows Notes
 
@@ -331,7 +331,7 @@ git tag v0.1.1
 git push origin v0.1.1
 ```
 
-The tag version must match `package.json`. For example, package version `0.1.1` must be released with tag `v0.1.1`. The release workflow builds macOS/Windows installers and a prebuilt `mclip-cli` asset for each runner architecture, then creates a draft release.
+The tag, root package and lockfile, site package and lockfile, Cargo package and lockfile, and built `mclip-cli --version` must all match. For example, product version `0.1.1` must be released with tag `v0.1.1`. The workflow builds macOS/Windows installers plus each supported `mclip-cli` binary and its `.sha256` companion, then creates a draft release.
 
 ### Known Limitations
 

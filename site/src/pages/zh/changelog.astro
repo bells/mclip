@@ -13,6 +13,16 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
     <a class="back-link" href="/zh/">返回首页</a>
     <h1>更新日志</h1>
     <article class="release-note">
+      <p class="eyebrow">开发中</p>
+      <h2>mclip-cli 版本与安全升级</h2>
+      <p>
+        Agent CLI 偏好设置将识别未安装、旧版、legacy 未知版本、当前版本和较新版本，并提供对应的安装、升级或重装动作，不会自动降级较新 CLI。
+      </p>
+      <p>
+        桌面端会下载与自身版本一致的 Release CLI 与 SHA-256 资产，校验成功后再可回滚地替换用户目录中的旧 CLI；公开安装脚本也使用同一校验契约。
+      </p>
+    </article>
+    <article class="release-note">
       <p class="eyebrow">0.1.1</p>
       <h2>核心体验完善</h2>
       <p>
