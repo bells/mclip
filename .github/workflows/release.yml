@@ -90,6 +90,9 @@ jobs:
           mkdir -p cli-dist
           cp "$SOURCE_PATH" "cli-dist/$ASSET_NAME"
           node -e "const crypto=require('crypto');const fs=require('fs');const path=require('path');const file=process.argv[1];const digest=crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');fs.writeFileSync(file+'.sha256', digest+'  '+path.basename(file)+'\\n');" "cli-dist/$ASSET_NAME"
+          test -s "cli-dist/$ASSET_NAME"
+          test -s "cli-dist/$ASSET_NAME.sha256"
+          node -e "const crypto=require('crypto');const fs=require('fs');const file=process.argv[1];const expected=fs.readFileSync(file+'.sha256','utf8').trim().split(/\\s+/)[0];const actual=crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');if(!/^[0-9a-f]{64}$/i.test(expected)||actual!==expected){throw new Error('prepared CLI checksum does not match '+file)}" "cli-dist/$ASSET_NAME"
           echo "asset_name=$ASSET_NAME" >> "$GITHUB_OUTPUT"
 
       - uses: tauri-apps/tauri-action@v0
@@ -173,6 +176,46 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
+          fail_on_unmatched_files: true
           files: |
             cli-dist/${{ steps.cli_asset.outputs.asset_name }}
             cli-dist/${{ steps.cli_asset.outputs.asset_name }}.sha256
+
+  verify-cli-release-assets:
+    name: Verify CLI release assets
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download and verify the complete CLI asset set
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          EXPECTED_CLI_ASSETS=(
+            "mclip-cli-darwin-arm64"
+            "mclip-cli-darwin-arm64.sha256"
+            "mclip-cli-windows-x64.exe"
+            "mclip-cli-windows-x64.exe.sha256"
+          )
+
+          mkdir -p cli-release-assets
+          gh release download "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir cli-release-assets \
+            --pattern "mclip-cli-*"
+
+          for ASSET_NAME in "${EXPECTED_CLI_ASSETS[@]}"; do
+            if [ ! -s "cli-release-assets/$ASSET_NAME" ]; then
+              echo "Draft Release is missing required CLI asset: $ASSET_NAME" >&2
+              exit 1
+            fi
+          done
+
+          (
+            cd cli-release-assets
+            sha256sum -c mclip-cli-darwin-arm64.sha256
+            sha256sum -c mclip-cli-windows-x64.exe.sha256
+          )

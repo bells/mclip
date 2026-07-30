@@ -1,6 +1,13 @@
 // 独立偏好设置窗口：配置变更后立即写入，后端广播 settings-updated，主窗口同步刷新。
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
 import appIconUrl from "../../app-icon.png";
@@ -39,7 +46,6 @@ import type {
 } from "../types";
 import {
   historyTypeRow,
-  menuBarIconOption,
   settingsTab,
   settingsSwitchBox,
   settingsSwitchRow,
@@ -52,10 +58,215 @@ import {
 import { normalizeSettings } from "../utils/settings";
 import { DialogStatusBar } from "./DialogStatusBar";
 import { DialogWindowFrame } from "./DialogWindowFrame";
-import { CheckIcon } from "./UiIcons";
+import { CheckIcon, ChevronRightIcon } from "./UiIcons";
 
 type PreferencesTab = "general" | "storage" | "cli";
 type VisibleItemCountSetting = "mainWindowItemCount" | "historyGroupItemCount";
+
+type SettingsSelectFieldProps = {
+  children: ReactNode;
+  controlId: string;
+  label: string;
+};
+
+function SettingsSelectField({
+  children,
+  controlId,
+  label,
+}: SettingsSelectFieldProps) {
+  return (
+    <div className={ui.settingsSelectField}>
+      <label className={ui.settingsLabel} htmlFor={controlId}>
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+type MenuBarIconOption = {
+  iconUrl: string;
+  label: string;
+  style: MenuBarIconStyle;
+  surfaceClassName: string;
+};
+
+type MenuBarIconSelectProps = {
+  controlId: string;
+  label: string;
+  onChange: (style: MenuBarIconStyle) => void;
+  options: MenuBarIconOption[];
+  value: MenuBarIconStyle;
+};
+
+function MenuBarIconSelect({
+  controlId,
+  label,
+  onChange,
+  options,
+  value,
+}: MenuBarIconSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const listboxId = `${controlId}-options`;
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.style === value),
+  );
+  const selectedOption = options[selectedIndex] ?? options[0];
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("focusin", handleFocusIn);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("focusin", handleFocusIn);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      optionRefs.current[selectedIndex]?.focus();
+    }
+  }, [isOpen, selectedIndex]);
+
+  const closeAndFocusTrigger = () => {
+    setIsOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const focusOption = (index: number) => {
+    const optionCount = options.length;
+    const nextIndex = (index + optionCount) % optionCount;
+    optionRefs.current[nextIndex]?.focus();
+  };
+
+  const handleOptionKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        focusOption(index + 1);
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        focusOption(index - 1);
+        break;
+      case "Home":
+        event.preventDefault();
+        focusOption(0);
+        break;
+      case "End":
+        event.preventDefault();
+        focusOption(options.length - 1);
+        break;
+      case "Escape":
+        event.preventDefault();
+        event.stopPropagation();
+        closeAndFocusTrigger();
+        break;
+    }
+  };
+
+  if (!selectedOption) {
+    return null;
+  }
+
+  return (
+    <div className={ui.menuBarIconSelect} ref={rootRef}>
+      <button
+        aria-controls={listboxId}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        className={ui.menuBarIconSelectTrigger}
+        id={controlId}
+        onClick={() => setIsOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            setIsOpen(true);
+          }
+        }}
+        ref={triggerRef}
+        title={selectedOption.label}
+        type="button"
+      >
+        <span
+          className={`${ui.menuBarIconImageSurface} ${selectedOption.surfaceClassName}`}
+        >
+          <img
+            alt={selectedOption.label}
+            className={ui.menuBarIconImage}
+            src={selectedOption.iconUrl}
+          />
+        </span>
+        <ChevronRightIcon className={ui.menuBarIconSelectChevron} />
+      </button>
+
+      {isOpen ? (
+        <div
+          aria-label={label}
+          className={ui.menuBarIconSelectOptions}
+          id={listboxId}
+          role="listbox"
+        >
+          {options.map((option, index) => (
+            <button
+              aria-label={option.label}
+              aria-selected={option.style === value}
+              className={`${ui.menuBarIconOption} ${
+                option.style === value ? ui.menuBarIconOptionActive : ""
+              }`}
+              key={option.style}
+              onClick={() => {
+                onChange(option.style);
+                closeAndFocusTrigger();
+              }}
+              onKeyDown={(event) => handleOptionKeyDown(event, index)}
+              ref={(element) => {
+                optionRefs.current[index] = element;
+              }}
+              role="option"
+              title={option.label}
+              type="button"
+            >
+              <span
+                className={`${ui.menuBarIconImageSurface} ${option.surfaceClassName}`}
+              >
+                <img
+                  alt=""
+                  aria-hidden="true"
+                  className={ui.menuBarIconImage}
+                  src={option.iconUrl}
+                />
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 type SettingsSwitchItemProps = {
   checked: boolean;
@@ -121,6 +332,9 @@ export function PreferencesWindow() {
   const settingsSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const settingsSaveRevisionRef = useRef(0);
   const isMacOs = navigator.platform.toLowerCase().includes("mac");
+  const languageSelectId = useId();
+  const appearanceThemeSelectId = useId();
+  const menuBarIconStyleSelectId = useId();
   // 数字输入框单独保存字符串，允许用户编辑中间态，比如暂时清空输入框。
   const [maxHistoryCountInput, setMaxHistoryCountInput] = useState(
     String(DEFAULT_SETTINGS.maxHistoryCount),
@@ -134,31 +348,21 @@ export function PreferencesWindow() {
   const translations = getTranslations(settingsDraft.language);
   useApplyAppTheme(settingsDraft.appearanceTheme);
   const t = translations.preferences;
-  const menuBarIconPreviewUrls: Record<MenuBarIconStyle, string> = {
-    appIcon: appIconUrl,
-    light: lightMenuBarIconUrl,
-    m: mMenuBarIconUrl,
-  };
-  const menuBarIconOptions: Array<{
-    iconUrl: string;
-    label: string;
-    style: MenuBarIconStyle;
-    surfaceClassName: string;
-  }> = [
+  const menuBarIconOptions: MenuBarIconOption[] = [
     {
-      iconUrl: menuBarIconPreviewUrls.appIcon,
+      iconUrl: appIconUrl,
       label: t.menuBarIconStyleAppIcon,
       style: "appIcon",
       surfaceClassName: ui.menuBarIconOptionAppSurface,
     },
     {
-      iconUrl: menuBarIconPreviewUrls.light,
+      iconUrl: lightMenuBarIconUrl,
       label: t.menuBarIconStyleLight,
       style: "light",
       surfaceClassName: ui.menuBarIconOptionLightSurface,
     },
     {
-      iconUrl: menuBarIconPreviewUrls.m,
+      iconUrl: mMenuBarIconUrl,
       label: t.menuBarIconStyleM,
       style: "m",
       surfaceClassName: ui.menuBarIconOptionMSurface,
@@ -723,11 +927,11 @@ export function PreferencesWindow() {
             {activeTab === "general" ? (
               <div className={ui.settingsTabPanel} role="tabpanel">
                 <div className={ui.settingsPrimaryGrid}>
-                  <div className={ui.settingsCompactField}>
-                    <div className={ui.settingsLabel}>{t.languageLabel}</div>
+                  <SettingsSelectField controlId={languageSelectId} label={t.languageLabel}>
                     <select
                       aria-label={t.languageLabel}
-                      className={`${ui.settingsSelect} ${ui.languageSelect}`}
+                      className={ui.settingsSelect}
+                      id={languageSelectId}
                       onChange={(event) => updateLanguage(event.target.value as AppLanguage)}
                       value={settingsDraft.language}
                     >
@@ -735,13 +939,16 @@ export function PreferencesWindow() {
                       <option value="zhCn">{t.languageChinese}</option>
                       <option value="en">{t.languageEnglish}</option>
                     </select>
-                  </div>
+                  </SettingsSelectField>
 
-                  <div className={ui.settingsCompactField}>
-                    <div className={ui.settingsLabel}>{t.appearanceThemeLabel}</div>
+                  <SettingsSelectField
+                    controlId={appearanceThemeSelectId}
+                    label={t.appearanceThemeLabel}
+                  >
                     <select
                       aria-label={t.appearanceThemeLabel}
                       className={ui.settingsSelect}
+                      id={appearanceThemeSelectId}
                       onChange={(event) =>
                         updateAppearanceTheme(event.target.value as AppearanceTheme)
                       }
@@ -751,38 +958,20 @@ export function PreferencesWindow() {
                       <option value="light">{t.appearanceThemeLight}</option>
                       <option value="dark">{t.appearanceThemeDark}</option>
                     </select>
-                  </div>
+                  </SettingsSelectField>
 
-                  <div className={ui.settingsCompactField}>
-                    <div className={ui.settingsLabel}>{t.menuBarIconStyleLabel}</div>
-                    <div
-                      aria-label={t.menuBarIconStyleLabel}
-                      className={ui.menuBarIconOptions}
-                      role="radiogroup"
-                    >
-                      {menuBarIconOptions.map((option) => (
-                        <button
-                          aria-checked={settingsDraft.menuBarIconStyle === option.style}
-                          aria-label={option.label}
-                          className={`${menuBarIconOption(
-                            settingsDraft.menuBarIconStyle === option.style,
-                          )} ${option.surfaceClassName}`}
-                          key={option.style}
-                          onClick={() => updateMenuBarIconStyle(option.style)}
-                          role="radio"
-                          title={option.label}
-                          type="button"
-                        >
-                          <img
-                            alt=""
-                            aria-hidden="true"
-                            className={ui.menuBarIconOptionImage}
-                            src={option.iconUrl}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <SettingsSelectField
+                    controlId={menuBarIconStyleSelectId}
+                    label={t.menuBarIconStyleLabel}
+                  >
+                    <MenuBarIconSelect
+                      controlId={menuBarIconStyleSelectId}
+                      label={t.menuBarIconStyleLabel}
+                      onChange={updateMenuBarIconStyle}
+                      options={menuBarIconOptions}
+                      value={settingsDraft.menuBarIconStyle}
+                    />
+                  </SettingsSelectField>
                 </div>
 
                 <SettingsSwitchItem

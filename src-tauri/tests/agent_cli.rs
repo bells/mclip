@@ -70,6 +70,16 @@ fn write_invalid_history_fixture(name: &str) -> PathBuf {
     path
 }
 
+fn missing_history_fixture(name: &str) -> PathBuf {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time should be after unix epoch")
+        .as_nanos();
+    std::env::temp_dir()
+        .join(format!("mclip-agent-cli-{name}-{unique}"))
+        .join("history.json")
+}
+
 fn run_cli(args: &[&str]) -> std::process::Output {
     Command::new(cli_path())
         .args(args)
@@ -138,21 +148,26 @@ fn command_help_does_not_read_history_file() {
 
 #[test]
 fn version_commands_do_not_read_history_file() {
-    let history_path = write_invalid_history_fixture("version-no-history");
+    let history_paths = [
+        write_invalid_history_fixture("version-invalid-history"),
+        missing_history_fixture("version-missing-history"),
+    ];
 
-    for version_arg in ["--version", "-V", "version"] {
-        let output = run_cli(&[
-            "--history-path",
-            history_path.to_str().expect("history path should be utf-8"),
-            version_arg,
-        ]);
+    for history_path in history_paths {
+        for version_arg in ["--version", "-V", "version"] {
+            let output = run_cli(&[
+                "--history-path",
+                history_path.to_str().expect("history path should be utf-8"),
+                version_arg,
+            ]);
 
-        assert_eq!(output.status.code(), Some(0), "{version_arg}");
-        assert_eq!(
-            String::from_utf8_lossy(&output.stdout),
-            format!("mclip-cli {}\n", env!("CARGO_PKG_VERSION")),
-        );
-        assert!(String::from_utf8_lossy(&output.stderr).is_empty());
+            assert_eq!(output.status.code(), Some(0), "{version_arg}");
+            assert_eq!(
+                String::from_utf8_lossy(&output.stdout),
+                format!("mclip-cli {}\n", env!("CARGO_PKG_VERSION")),
+            );
+            assert!(String::from_utf8_lossy(&output.stderr).is_empty());
+        }
     }
 }
 

@@ -365,6 +365,7 @@ git push origin v0.1.1
 
 - Tauri 版本配置使用 `src-tauri/tauri.conf.json` 里的 `"version": "../package.json"`，安装包文件名会跟随 `package.json`。
 - 发版前同步根 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、`Cargo.lock`、`site/package.json`、`site/package-lock.json`、官网版本文案和 CLI 输出，再创建同版本 tag。例如产品版本是 `0.1.1`，tag 必须是 `v0.1.1`；Release workflow 会在上传前逐项校验并为每个 CLI 二进制生成同名 `.sha256` 资产。
+- Release workflow 的平台矩阵结束后必须从同一 Draft 下载并验证 macOS ARM64、Windows x64 的 CLI 二进制及两个 `.sha256`；发布 Draft、移动 tag 或替换远端资产必须由发布负责人显式执行。
 - `release.yml` 的 Release body 需要同时提示 macOS 未 notarize 和 Windows 未签名。
 
 ## macOS 发布

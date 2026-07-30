@@ -166,6 +166,14 @@ git push origin v0.1.1
 
 发布前必须保证 tag、根 `package.json`/lockfile、官网 package/lockfile、Cargo package/lockfile 和构建后的 `mclip-cli --version` 完全一致，例如产品版本为 `0.1.1` 时 tag 必须是 `v0.1.1`。Release workflow 会同时构建 macOS/Windows 安装包、受支持架构的 `mclip-cli` 预构建资产及其 `.sha256` 校验资产，并生成 draft release。
 
+发布前可检查 Draft 的 CLI 资产：
+
+```bash
+gh release view v0.1.1 --repo bells/mclip --json isDraft,assets --jq '{isDraft, assets: [.assets[].name]}'
+```
+
+必须同时看到 `mclip-cli-darwin-arm64`、`mclip-cli-darwin-arm64.sha256`、`mclip-cli-windows-x64.exe` 和 `mclip-cli-windows-x64.exe.sha256`；Release workflow 会在两个平台任务结束后下载并复核这四个资产。发布 Draft、移动已有 tag 或替换远端资产属于单独的发布操作，不由构建或普通代码验证自动执行。
+
 ### 当前限制
 
 - macOS 剪贴板监听仍使用轮询，但只轮询 `NSPasteboard.changeCount`，检测到变化后才读取完整剪贴板内容。
@@ -332,6 +340,14 @@ git push origin v0.1.1
 ```
 
 The tag, root package and lockfile, site package and lockfile, Cargo package and lockfile, and built `mclip-cli --version` must all match. For example, product version `0.1.1` must be released with tag `v0.1.1`. The workflow builds macOS/Windows installers plus each supported `mclip-cli` binary and its `.sha256` companion, then creates a draft release.
+
+Inspect the draft CLI assets before publication:
+
+```bash
+gh release view v0.1.1 --repo bells/mclip --json isDraft,assets --jq '{isDraft, assets: [.assets[].name]}'
+```
+
+The draft must contain `mclip-cli-darwin-arm64`, `mclip-cli-darwin-arm64.sha256`, `mclip-cli-windows-x64.exe`, and `mclip-cli-windows-x64.exe.sha256`. After both platform jobs finish, the Release workflow downloads and revalidates all four. Publishing the draft, moving an existing tag, or replacing remote assets is a separate release-owner action and is never performed implicitly by a build or ordinary source verification.
 
 ### Known Limitations
 

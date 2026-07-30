@@ -11,7 +11,7 @@ const fieldSurface =
 const settingsRow =
   "grid grid-cols-[minmax(0,1fr)_112px] items-center gap-4 rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] px-3 py-2";
 const settingsSelect =
-  `${focusRing} h-8 w-full rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-2 text-[12px] font-medium text-[var(--mclip-ink)] outline-none`;
+  `${focusRing} h-8 w-[104px] rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-2 text-[12px] font-medium text-[var(--mclip-ink)] outline-none`;
 const previewSurface =
   "relative min-h-0 overflow-hidden rounded-[var(--mclip-radius-lg)] border border-[var(--mclip-line)] [background:var(--mclip-surface-bg)] text-[var(--mclip-ink)] shadow-[var(--mclip-soft-shadow)]";
 const listText =
@@ -67,7 +67,7 @@ export const ui = {
 
   archive: "px-[6px] pb-[6px] pt-0",
   archiveDivider: "mx-1 mb-1 h-px bg-[var(--mclip-line)]",
-  archiveList: "grid content-start gap-1",
+  archiveList: "grid content-start gap-0",
   archiveEntry: "min-w-0",
   archiveFolderIcon: "size-3.5 shrink-0 text-[var(--mclip-index)]",
   archiveLabel: "min-w-0 flex-1 text-left text-[12px] font-medium text-[var(--mclip-ink-soft)]",
@@ -215,7 +215,8 @@ export const ui = {
   settingsTabPanel:
     "mclip-scrollbar grid min-h-0 content-start gap-3 overflow-y-auto pr-0.5",
   settingsPrimaryGrid: "grid grid-cols-3 gap-2",
-  settingsCompactField: `${fieldSurface} grid gap-1.5 p-2`,
+  settingsSelectField:
+    `${fieldSurface} grid min-w-0 grid-cols-[max-content_auto] items-center justify-start gap-2 px-2 py-2`,
   settingsRow,
   settingsSwitchGroup: "grid gap-2",
   settingsSwitchActions: "flex flex-wrap items-center gap-2 pl-8",
@@ -245,16 +246,23 @@ export const ui = {
   settingsStatus:
     "rounded-[var(--mclip-radius-sm)] border border-[color-mix(in_srgb,var(--mclip-accent-cool)_28%,transparent)] bg-[color-mix(in_srgb,var(--mclip-accent-cool)_9%,transparent)] px-3 py-2 text-[11px] font-semibold text-[var(--mclip-accent-cool)]",
   settingsSelect: settingsSelect,
-  languageSelect: "",
-  menuBarIconOptions: "grid grid-cols-3 gap-1",
+  menuBarIconSelect: "relative w-[52px]",
+  menuBarIconSelectTrigger:
+    `${focusRing} flex h-8 w-[52px] items-center justify-between rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-1.5 outline-none transition-colors duration-150 hover:border-[var(--mclip-accent-cool)]`,
+  menuBarIconSelectChevron:
+    "size-3 shrink-0 rotate-90 text-[var(--mclip-ink-dim)]",
+  menuBarIconSelectOptions:
+    "absolute left-0 top-full z-20 mt-1 grid w-[52px] gap-1 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] p-1 shadow-[var(--mclip-soft-shadow)]",
   menuBarIconOption:
-    `${focusRing} flex h-8 items-center justify-center rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] transition-colors duration-150 hover:border-[var(--mclip-accent-cool)]`,
+    `${focusRing} grid h-8 w-full place-items-center rounded-[var(--mclip-radius-sm)] border border-transparent outline-none transition-colors duration-150 hover:border-[var(--mclip-accent-cool)] hover:bg-[var(--mclip-control-bg-hover)]`,
   menuBarIconOptionActive:
-    "border-[var(--mclip-accent-cool)] shadow-[0_0_0_2px_rgba(115,208,200,0.16)]",
+    "border-[var(--mclip-accent-cool)] bg-[var(--mclip-selection)]",
+  menuBarIconImageSurface:
+    "flex size-6 items-center justify-center rounded-[6px] border border-[var(--mclip-line)]",
   menuBarIconOptionAppSurface: "bg-[var(--mclip-surface)]",
   menuBarIconOptionLightSurface: "bg-[#24261f]",
   menuBarIconOptionMSurface: "bg-[#f4f1e8]",
-  menuBarIconOptionImage: "size-5 object-contain",
+  menuBarIconImage: "size-[18px] object-contain",
   stepper: "flex w-[112px] items-center justify-end",
   stepperInput:
     `${focusRing} h-8 w-[96px] rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-2 text-left text-[12px] font-semibold tabular-nums text-[var(--mclip-ink)] outline-none`,
@@ -379,12 +387,6 @@ export function settingsTab(isActive: boolean) {
       : "text-[var(--mclip-ink-dim)] hover:bg-[var(--mclip-control-bg-hover)]",
     focusRing,
   ].join(" ");
-}
-
-export function menuBarIconOption(isActive: boolean) {
-  return [ui.menuBarIconOption, isActive ? ui.menuBarIconOptionActive : ""]
-    .filter(Boolean)
-    .join(" ");
 }
 
 export function settingsSwitchRow(isDisabled = false) {

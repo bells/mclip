@@ -71,3 +71,10 @@ test("multiple file history list display keeps the count suffix", () => {
     "qrcode96965c69...18fbb.pdf +1",
   );
 });
+
+test("archive groups remove decorative gaps without shrinking row targets", async () => {
+  const stylesSource = await readFile("src/uiStyles.ts", "utf8");
+
+  assert.match(stylesSource, /archiveList: "grid content-start gap-0"/);
+  assert.match(stylesSource, /export function archiveRow[\s\S]*"grid h-\[34px\]/);
+});

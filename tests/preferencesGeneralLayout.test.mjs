@@ -6,7 +6,7 @@ async function readSource(path) {
   return readFile(path, "utf8");
 }
 
-test("general preferences lead with language, appearance, and menu bar icon in one row", async () => {
+test("general preferences use one three-column row with inline selectors", async () => {
   const source = await readSource("src/components/PreferencesWindow.tsx");
   const primaryGridIndex = source.indexOf("ui.settingsPrimaryGrid");
   const languageIndex = source.indexOf("t.languageLabel");
@@ -15,7 +15,7 @@ test("general preferences lead with language, appearance, and menu bar icon in o
   const launchAtLoginIndex = source.indexOf("t.launchAtLoginLabel");
   const autoPasteIndex = source.indexOf("t.autoPasteLabel");
 
-  assert.notEqual(primaryGridIndex, -1, "general tab should include a primary settings grid");
+  assert.notEqual(primaryGridIndex, -1, "general tab should include primary settings fields");
   assert.ok(
     languageIndex < appearanceIndex && appearanceIndex < menuBarIconIndex,
     "top settings should be ordered language, appearance, menu bar icon",
@@ -28,10 +28,18 @@ test("general preferences lead with language, appearance, and menu bar icon in o
     primaryGridIndex < autoPasteIndex,
     "top settings should appear before auto paste",
   );
-  assert.match(source, /className=\{ui\.settingsCompactField\}[^]*t\.languageLabel/);
+  assert.match(source, /function SettingsSelectField/);
+  assert.match(source, /<label className=\{ui\.settingsLabel\} htmlFor=\{controlId\}>/);
+  assert.match(
+    source,
+    /<SettingsSelectField controlId=\{languageSelectId\} label=\{t\.languageLabel\}>/,
+  );
   assert.match(source, /<option value="system">\{t\.languageSystem\}<\/option>/);
-  assert.match(source, /className=\{ui\.settingsCompactField\}[^]*t\.appearanceThemeLabel/);
-  assert.match(source, /className=\{ui\.settingsCompactField\}[^]*t\.menuBarIconStyleLabel/);
+  assert.match(source, /controlId=\{appearanceThemeSelectId\}[^]*t\.appearanceThemeLabel/);
+  assert.match(source, /controlId=\{menuBarIconStyleSelectId\}[^]*t\.menuBarIconStyleLabel/);
+  assert.match(source, /id=\{languageSelectId\}/);
+  assert.match(source, /id=\{appearanceThemeSelectId\}/);
+  assert.match(source, /className=\{ui\.menuBarIconSelectTrigger\}[^]*id=\{controlId\}/);
 });
 
 test("preferences title is centered in the dialog status bar", async () => {
@@ -65,14 +73,20 @@ test("general switches use a compact checkbox control without row-click behavior
   const brandIndex = source.indexOf("label={t.showMainWindowBrandLabel}");
   const itemNumbersIndex = source.indexOf("label={t.showHistoryItemNumbersLabel}");
   const autoPasteIndex = source.indexOf("label={t.autoPasteLabel}");
+  const switchItemStart = source.indexOf("function SettingsSwitchItem");
+  const switchItemEnd = source.indexOf("export function PreferencesWindow");
+  const switchItemSource = source.slice(switchItemStart, switchItemEnd);
 
   assert.match(source, /function SettingsSwitchItem/);
-  assert.match(source, /<div className=\{settingsSwitchRow\(disabled\)\}>/);
-  assert.match(source, /<button[\s\S]*aria-pressed=\{checked\}[\s\S]*onClick=\{onClick\}/);
-  assert.match(source, /settingsSwitchBox\(checked\)/);
+  assert.match(switchItemSource, /<div className=\{settingsSwitchRow\(disabled\)\}>/);
+  assert.match(
+    switchItemSource,
+    /<button[\s\S]*aria-pressed=\{checked\}[\s\S]*onClick=\{onClick\}/,
+  );
+  assert.match(switchItemSource, /settingsSwitchBox\(checked\)/);
   assert.match(source, /label=\{t\.showHistoryItemNumbersLabel\}/);
   assert.doesNotMatch(source, /switchControl/);
-  assert.doesNotMatch(source, /<button[\s\S]*className=\{settingsSwitchRow/);
+  assert.doesNotMatch(switchItemSource, /<button[\s\S]*className=\{settingsSwitchRow/);
   assert.ok(
     launchIndex < brandIndex &&
       brandIndex < itemNumbersIndex &&
@@ -85,29 +99,52 @@ test("general switches use a compact checkbox control without row-click behavior
   assert.match(stylesSource, /settingsSwitchBoxOn:[\s\S]*#0a84ff/);
 });
 
-test("menu bar icon style uses icon-only radio buttons", async () => {
+test("menu bar icon style uses an accessible image-only dropdown", async () => {
   const source = await readSource("src/components/PreferencesWindow.tsx");
 
-  assert.match(source, /className=\{ui\.menuBarIconOptions\}/);
-  assert.match(source, /role="radiogroup"/);
-  assert.match(source, /role="radio"/);
-  assert.match(source, /menuBarIconOptions\.map/);
-  assert.match(source, /onClick=\{\(\) => updateMenuBarIconStyle\(option\.style\)\}/);
+  assert.match(source, /value=\{settingsDraft\.menuBarIconStyle\}/);
+  assert.match(source, /function MenuBarIconSelect/);
+  assert.match(source, /aria-haspopup="listbox"/);
+  assert.match(source, /role="listbox"/);
+  assert.match(source, /role="option"/);
+  assert.match(source, /onChange\(option\.style\)/);
+  assert.match(source, /onChange=\{updateMenuBarIconStyle\}/);
+  assert.match(source, /document\.addEventListener\("focusin", handleFocusIn\)/);
+  assert.match(source, /document\.removeEventListener\("focusin", handleFocusIn\)/);
+  assert.match(source, /case "Escape":[\s\S]*event\.stopPropagation\(\)/);
+  assert.match(source, /options\.map/);
+  assert.match(source, /app-icon\.png/);
+  assert.match(source, /menu-bar-icon-light-128\.png/);
   assert.match(source, /menu-bar-icon-m-128\.png/);
+  assert.match(source, /<img[\s\S]*alt=""[\s\S]*aria-hidden="true"/);
   assert.doesNotMatch(source, /<option value="appIcon">/);
-  assert.doesNotMatch(source, /<option value="m">/);
-  assert.doesNotMatch(source, /<option value="light">\{t\.menuBarIconStyleLight\}<\/option>/);
-  assert.doesNotMatch(source, /menuBarIconSelectControl/);
-  assert.doesNotMatch(source, /app-menu-bar-icon-options/);
-  assert.doesNotMatch(source, /app-menu-bar-icon-option/);
+  assert.doesNotMatch(source, /role="radiogroup"/);
+  assert.doesNotMatch(source, /onBlur=\{\(event\) =>/);
 });
 
-test("preference layout Tailwind classes define the compact primary grid and icon controls", async () => {
-  const stylesSource = await readSource("src/uiStyles.ts");
+test("preference layout defines three usable columns for both languages", async () => {
+  const [stylesSource, tauriConfigSource] = await Promise.all([
+    readSource("src/uiStyles.ts"),
+    readSource("src-tauri/tauri.conf.json"),
+  ]);
+  const preferencesWindow = JSON.parse(tauriConfigSource).app.windows.find(
+    (window) => window.label === "preferences",
+  );
 
-  assert.match(stylesSource, /settingsPrimaryGrid:[\s\S]*grid-cols-3/);
-  assert.match(stylesSource, /settingsCompactField:/);
-  assert.match(stylesSource, /settingsSelect:/);
-  assert.match(stylesSource, /menuBarIconOptions:/);
-  assert.match(stylesSource, /menuBarIconOption:/);
+  assert.match(stylesSource, /settingsPrimaryGrid: "grid grid-cols-3 gap-2"/);
+  assert.match(
+    stylesSource,
+    /settingsSelectField:[\s\S]*grid-cols-\[max-content_auto\]/,
+  );
+  assert.match(stylesSource, /const settingsSelect =[\s\S]*w-\[104px\]/);
+  assert.match(stylesSource, /menuBarIconSelectTrigger:[\s\S]*w-\[52px\]/);
+  assert.doesNotMatch(stylesSource, /settingsCompactField:/);
+  assert.deepEqual(
+    {
+      maxWidth: preferencesWindow.maxWidth,
+      minWidth: preferencesWindow.minWidth,
+      width: preferencesWindow.width,
+    },
+    { maxWidth: 760, minWidth: 760, width: 760 },
+  );
 });

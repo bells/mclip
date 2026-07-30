@@ -86,13 +86,29 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 printf '%s\\n' "$url" >> "$FAKE_CURL_LOG"
-if [ "$FAKE_DOWNLOAD_MODE" = "missing-binary" ] && [ "\${url##*.}" != "sha256" ]; then
-  [ "$write_status" = false ] || printf '404'
-  exit 22
-fi
-if [ "$FAKE_DOWNLOAD_MODE" = "network-error" ] && [ "\${url##*.}" != "sha256" ]; then
-  [ "$write_status" = false ] || printf '000'
-  exit 6
+if [ "\${url##*.}" != "sha256" ]; then
+  case "$FAKE_DOWNLOAD_MODE" in
+    missing-binary)
+      [ "$write_status" = false ] || printf '404'
+      exit 22
+      ;;
+    missing-binary-code56)
+      [ "$write_status" = false ] || printf '404'
+      exit 56
+      ;;
+    http-error)
+      [ "$write_status" = false ] || printf '503'
+      exit 0
+      ;;
+    interrupted-transfer)
+      [ "$write_status" = false ] || printf '200'
+      exit 56
+      ;;
+    network-error)
+      [ "$write_status" = false ] || printf '000'
+      exit 6
+      ;;
+  esac
 fi
 if [ "\${url##*.}" = "sha256" ]; then
   [ "$FAKE_CHECKSUM_MODE" != "missing" ] || exit 22
@@ -111,7 +127,7 @@ cp "$FAKE_BINARY" "$FAKE_REPO_DIR/src-tauri/target/release/mclip-cli"
 `,
   );
 
-  if (downloadMode === "missing-binary") {
+  if (downloadMode === "missing-binary" || downloadMode === "missing-binary-code56") {
     await mkdir(path.join(fixtureDir, "src-tauri"));
     await writeFile(path.join(fixtureDir, "src-tauri", "Cargo.toml"), "[package]\n");
   }
@@ -158,6 +174,16 @@ test("public install scripts stay identical and publish checksum assets", async 
   assert.match(releaseWorkflow, /ASSET_NAME="mclip-cli-windows-x64\.exe"/);
   assert.match(releaseWorkflow, /asset_name \}\}\.sha256/);
   assert.match(releaseWorkflow, /mclip-cli \$TAG_VERSION/);
+  assert.match(releaseWorkflow, /fail_on_unmatched_files: true/);
+  assert.match(releaseWorkflow, /verify-cli-release-assets:/);
+  for (const expectedAsset of [
+    "mclip-cli-darwin-arm64",
+    "mclip-cli-darwin-arm64.sha256",
+    "mclip-cli-windows-x64.exe",
+    "mclip-cli-windows-x64.exe.sha256",
+  ]) {
+    assert.match(releaseWorkflow, new RegExp(`"${expectedAsset.replaceAll(".", "\\.")}"`));
+  }
 });
 
 test("installer verifies latest release before replacing an existing CLI", async () => {
@@ -216,6 +242,43 @@ test("missing prebuilt binary falls back to a local source build", async () => {
     "mclip-cli fixture 0.1.1\n",
   );
   assert.match(fixture.result.stdout, /falling back to local\/source build/);
+});
+
+test("final HTTP 404 falls back even when curl exits with code 56", async () => {
+  const fixture = await createInstallerFixture({
+    downloadMode: "missing-binary-code56",
+  });
+
+  assert.equal(fixture.result.status, 0, fixture.result.stderr);
+  assert.equal(
+    await readFile(fixture.installedPath, "utf8"),
+    "mclip-cli fixture 0.1.1\n",
+  );
+  assert.match(fixture.result.stdout, /falling back to local\/source build/);
+});
+
+test("non-404 HTTP failure does not fall back or replace an existing CLI", async () => {
+  const fixture = await createInstallerFixture({
+    downloadMode: "http-error",
+    existingBinary: "old cli\n",
+  });
+
+  assert.notEqual(fixture.result.status, 0);
+  assert.equal(await readFile(fixture.installedPath, "utf8"), "old cli\n");
+  assert.match(fixture.result.stderr, /curl 0, HTTP 503/);
+  assert.doesNotMatch(fixture.result.stdout, /falling back/);
+});
+
+test("interrupted 2xx transfer does not install a partial binary", async () => {
+  const fixture = await createInstallerFixture({
+    downloadMode: "interrupted-transfer",
+    existingBinary: "old cli\n",
+  });
+
+  assert.notEqual(fixture.result.status, 0);
+  assert.equal(await readFile(fixture.installedPath, "utf8"), "old cli\n");
+  assert.match(fixture.result.stderr, /curl 56, HTTP 200/);
+  assert.doesNotMatch(fixture.result.stdout, /falling back/);
 });
 
 test("network failure does not fall back or replace an existing CLI", async () => {

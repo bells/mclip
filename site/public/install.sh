@@ -144,23 +144,37 @@ download_prebuilt_binary() {
   checksum_url="$(release_download_url "$asset_name.sha256")"
 
   log "Downloading prebuilt $asset_name"
-  if binary_http_status="$(curl -fsSL -w '%{http_code}' "$download_url" -o "$downloaded_path")"; then
-    log "Downloading checksum $asset_name.sha256"
-    curl -fsSL "$checksum_url" -o "$checksum_path" ||
-      fail "release checksum is unavailable; existing mclip-cli was preserved"
-    verify_checksum "$downloaded_path" "$checksum_path"
-    copy_binary "$downloaded_path"
-    return 0
+  binary_http_status=""
+  if binary_http_status="$(curl -sSL -w '%{http_code}' "$download_url" -o "$downloaded_path")"; then
+    curl_status=0
   else
     curl_status="$?"
   fi
 
-  if [ "$curl_status" -eq 22 ] && [ "$binary_http_status" = "404" ]; then
-    log "Prebuilt asset is missing; falling back to local/source build."
-    return 1
-  fi
-
-  fail "unable to download the prebuilt CLI (curl $curl_status, HTTP ${binary_http_status:-unknown}); existing mclip-cli was preserved"
+  case "$binary_http_status" in
+    2??)
+      [ "$curl_status" -eq 0 ] ||
+        fail "unable to download the prebuilt CLI (curl $curl_status, HTTP $binary_http_status); existing mclip-cli was preserved"
+      log "Downloading checksum $asset_name.sha256"
+      curl -fsSL "$checksum_url" -o "$checksum_path" ||
+        fail "release checksum is unavailable; existing mclip-cli was preserved"
+      verify_checksum "$downloaded_path" "$checksum_path"
+      copy_binary "$downloaded_path"
+      return 0
+      ;;
+    404)
+      rm -rf "$cleanup_dir"
+      cleanup_dir=""
+      log "Prebuilt asset is missing; falling back to local/source build."
+      return 1
+      ;;
+    000|'')
+      fail "unable to download the prebuilt CLI (curl $curl_status, HTTP unknown); existing mclip-cli was preserved"
+      ;;
+    *)
+      fail "unable to download the prebuilt CLI (curl $curl_status, HTTP $binary_http_status); existing mclip-cli was preserved"
+      ;;
+  esac
 }
 
 build_repo_binary() {
