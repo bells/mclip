@@ -20,11 +20,16 @@ const historyDetailActionButton =
   `inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--mclip-ink-dim)] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
 const listText =
   "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium leading-5 text-[var(--mclip-ink-soft)]";
-const historyTextRowHeight = "h-8";
-const historyImageRowHeight = "h-16";
+const historyTextRowHeight = "h-[32px]";
+const historyImageRowHeight = "h-[64px]";
+const historyImageRowPadding = "py-[2px]";
 
 function historyRowHeight(kind: HistoryKind) {
   return kind === "image" ? historyImageRowHeight : historyTextRowHeight;
+}
+
+function historyRowPadding(kind: HistoryKind) {
+  return kind === "image" ? historyImageRowPadding : "";
 }
 
 export const ui = {
@@ -72,7 +77,7 @@ export const ui = {
     "inline-flex size-5 items-center justify-center rounded-md bg-[var(--mclip-control-bg)] text-[13px] leading-none",
   itemThumbnailWrap: "flex min-w-0 items-center gap-2",
   itemThumbnail:
-    "size-[50px] shrink-0 rounded-md border border-[var(--mclip-line)] object-cover",
+    "size-[60px] shrink-0 rounded-md border border-[var(--mclip-line)] object-cover",
   deleteIcon: "size-3.5",
 
   archive: "-mt-1 px-[6px] pb-0 pt-0",
@@ -339,7 +344,7 @@ export function historyItemRow(
 
 export function historyItem(kind: HistoryKind, showItemNumbers: boolean) {
   return [
-    `grid ${historyRowHeight(kind)} w-full min-w-0 items-center gap-1.5 rounded-[var(--mclip-radius-sm)] pl-1.5 pr-2 text-left`,
+    `grid ${historyRowHeight(kind)} ${historyRowPadding(kind)} w-full min-w-0 items-center gap-1.5 rounded-[var(--mclip-radius-sm)] pl-1.5 pr-2 text-left`,
     showItemNumbers
       ? "grid-cols-[minmax(14px,max-content)_minmax(0,1fr)]"
       : "grid-cols-[minmax(0,1fr)]",
@@ -390,7 +395,7 @@ export function previewItem(
   showHistoryItemNumbers: boolean,
 ) {
   return [
-    `grid ${historyRowHeight(kind)} w-full min-w-0 items-center gap-1.5 rounded-[var(--mclip-radius-sm)] pl-1.5 pr-2 text-left`,
+    `grid ${historyRowHeight(kind)} ${historyRowPadding(kind)} w-full min-w-0 items-center gap-1.5 rounded-[var(--mclip-radius-sm)] pl-1.5 pr-2 text-left`,
     showHistoryItemNumbers
       ? "grid-cols-[minmax(14px,max-content)_minmax(0,1fr)]"
       : "grid-cols-[minmax(0,1fr)]",

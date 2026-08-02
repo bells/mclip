@@ -67,9 +67,13 @@ test("history row density keeps images at 2x text and archive navigation compact
     readSource("src/components/HistoryGroupPreviewWindow.tsx"),
   ]);
 
-  assert.match(stylesSource, /const historyTextRowHeight = "h-8"/);
-  assert.match(stylesSource, /const historyImageRowHeight = "h-16"/);
+  assert.match(stylesSource, /const historyTextRowHeight = "h-\[32px\]"/);
+  assert.match(stylesSource, /const historyImageRowHeight = "h-\[64px\]"/);
+  assert.match(stylesSource, /const historyImageRowPadding = "py-\[2px\]"/);
   assert.match(stylesSource, /kind === "image"/);
+  assert.match(stylesSource, /itemThumbnail:[\s\S]*size-\[60px\]/);
+  assert.match(stylesSource, /historyItem[\s\S]*historyRowPadding\(kind\)/);
+  assert.match(stylesSource, /previewItem[\s\S]*historyRowPadding\(kind\)/);
   assert.match(stylesSource, /archiveRow[\s\S]*h-\[28px\]/);
   assert.match(stylesSource, /archive: "-mt-1[^"]*pb-0/);
   assert.match(
