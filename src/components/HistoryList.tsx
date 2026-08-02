@@ -3,13 +3,10 @@
 import type { AppTranslations } from "../i18n";
 import type { HistoryListItem } from "../types";
 import { historyItem, historyItemRow, ui } from "../uiStyles";
-import {
-  getTextHistoryAffordance,
-  type HistoryTextAffordance,
-} from "../utils/historyAffordance";
 import { getHistoryListDisplayText } from "../utils/history";
 import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
 import { ImageThumb } from "./ImageThumb";
+import { HistoryListText } from "./HistoryListText";
 
 // Props 类型让组件的输入更清晰：数据在父组件中维护，列表只发出用户操作。
 type HistoryListProps = {
@@ -27,29 +24,6 @@ type HistoryListProps = {
   showItemNumbers: boolean;
   selectedItemId?: string;
 };
-
-function renderHistoryTextAffordance(affordance: HistoryTextAffordance | null) {
-  if (affordance === null) {
-    return null;
-  }
-
-  if (affordance.kind === "color") {
-    return (
-      <span className={ui.historyAffordance} aria-hidden="true">
-        <span
-          className={ui.historyColorSwatch}
-          style={{ background: affordance.color }}
-        />
-      </span>
-    );
-  }
-
-  return (
-    <span className={ui.historyAffordance} aria-hidden="true">
-      <span className={ui.historyEmojiBadge}>{affordance.emoji}</span>
-    </span>
-  );
-}
 
 export function HistoryList({
   hasHistory,
@@ -77,8 +51,6 @@ export function HistoryList({
     <div className={ui.historyGroup}>
       {items.map((item, index) => {
         const displayText = getHistoryListDisplayText(item);
-        const textAffordance =
-          item.kind === "text" ? getTextHistoryAffordance(item.text) : null;
         const targetId = serializeMainKeyboardNavigationTarget({
           index,
           kind: "history-item",
@@ -87,6 +59,7 @@ export function HistoryList({
         return (
           <div
             className={historyItemRow(
+              item.kind,
               selectedItemId === item.id,
               isKeyboardNavigating,
             )}
@@ -103,7 +76,7 @@ export function HistoryList({
             onMouseLeave={onScheduleClosePreview}
           >
             <button
-              className={historyItem(showItemNumbers)}
+              className={historyItem(item.kind, showItemNumbers)}
               data-main-keyboard-target={targetId}
               onClick={() => onSelectItem(item.id)}
               onFocus={(event) => {
@@ -127,15 +100,14 @@ export function HistoryList({
                   />
                   <span className={ui.itemText}>{displayText}</span>
                 </span>
+              ) : item.kind === "text" ? (
+                <HistoryListText
+                  className={ui.itemText}
+                  displayText={displayText}
+                  text={item.text}
+                />
               ) : (
-                <span
-                  className={`${ui.itemText} ${
-                    textAffordance ? ui.historyTextWithAffordance : ""
-                  }`}
-                >
-                  {renderHistoryTextAffordance(textAffordance)}
-                  <span className={ui.historyDisplayText}>{displayText}</span>
-                </span>
+                <span className={ui.itemText}>{displayText}</span>
               )}
             </button>
           </div>

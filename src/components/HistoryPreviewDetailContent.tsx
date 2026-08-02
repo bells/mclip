@@ -51,6 +51,16 @@ export function HistoryPreviewDetailContent({
 
   const textAffordance = getTextHistoryAffordance(item.text);
 
+  if (textAffordance?.kind === "emoji") {
+    return (
+      <div className={ui.historyDetailContent}>
+        <span className={ui.historyAffordance}>
+          <span className={ui.historyEmojiBadge}>{textAffordance.emoji}</span>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className={ui.historyDetailContent}>
       {textAffordance?.kind === "color" ? (
@@ -62,15 +72,6 @@ export function HistoryPreviewDetailContent({
             />
           </span>
           <span>{textAffordance.color}</span>
-        </div>
-      ) : null}
-      {textAffordance?.kind === "emoji" ? (
-        <div className={ui.historyDetailAffordance}>
-          <span className={ui.historyAffordance} aria-hidden="true">
-            <span className={ui.historyEmojiBadge}>
-              {textAffordance.emoji}
-            </span>
-          </span>
         </div>
       ) : null}
       <span>{item.text}</span>

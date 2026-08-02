@@ -1,7 +1,8 @@
 import type { HistoryListItem } from "../types";
 
 const GROUP_PREVIEW_BASE_HEIGHT = 48;
-const GROUP_PREVIEW_ROW_HEIGHT = 31;
+const GROUP_PREVIEW_TEXT_ROW_HEIGHT = 32;
+const GROUP_PREVIEW_IMAGE_ROW_HEIGHT = 64;
 const PREVIEW_HEIGHT_CHANGE_TOLERANCE = 1;
 const ITEM_PREVIEW_BASE_HEIGHT = 62;
 const ITEM_PREVIEW_META_HEIGHT = 94;
@@ -11,8 +12,15 @@ const ITEM_PREVIEW_TEXT_CHARS_PER_LINE = 32;
 const ITEM_PREVIEW_TEXT_LINE_HEIGHT = 21;
 const ITEM_PREVIEW_CONTENT_ANCHOR_OFFSET = 46;
 
-export function getGroupPreviewHeight(itemCount: number) {
-  return GROUP_PREVIEW_BASE_HEIGHT + itemCount * GROUP_PREVIEW_ROW_HEIGHT;
+export function getGroupPreviewHeight(items: HistoryListItem[]) {
+  return items.reduce(
+    (height, item) =>
+      height +
+      (item.kind === "image"
+        ? GROUP_PREVIEW_IMAGE_ROW_HEIGHT
+        : GROUP_PREVIEW_TEXT_ROW_HEIGHT),
+    GROUP_PREVIEW_BASE_HEIGHT,
+  );
 }
 
 export function getGroupPreviewNaturalHeight(

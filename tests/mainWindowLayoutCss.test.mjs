@@ -57,7 +57,32 @@ test("main footer and archive groups keep the compact one-row-per-action contrac
   assert.doesNotMatch(archiveListMatch[1], /mclip-scrollbar/);
   assert.doesNotMatch(archiveListMatch[1], /max-h-\[186px\]/);
   assert.doesNotMatch(archiveListMatch[1], /overflow-y-auto/);
-  assert.match(stylesSource, /archiveRow[\s\S]*h-\[34px\]/);
+  assert.match(stylesSource, /archiveRow[\s\S]*h-\[28px\]/);
+});
+
+test("history row density keeps images at 2x text and archive navigation compact", async () => {
+  const [stylesSource, listSource, groupPreviewSource] = await Promise.all([
+    readSource("src/uiStyles.ts"),
+    readSource("src/components/HistoryList.tsx"),
+    readSource("src/components/HistoryGroupPreviewWindow.tsx"),
+  ]);
+
+  assert.match(stylesSource, /const historyTextRowHeight = "h-8"/);
+  assert.match(stylesSource, /const historyImageRowHeight = "h-16"/);
+  assert.match(stylesSource, /kind === "image"/);
+  assert.match(stylesSource, /archiveRow[\s\S]*h-\[28px\]/);
+  assert.match(stylesSource, /archive: "-mt-1[^"]*pb-0/);
+  assert.match(
+    stylesSource,
+    /archiveDivider:\s*\n\s*"[^"]*-mb-px[^"]*h-px/,
+  );
+  assert.match(listSource, /historyItemRow\(\s*item\.kind/);
+  assert.match(listSource, /historyItem\(item\.kind, showItemNumbers\)/);
+  assert.match(groupPreviewSource, /previewItemRow\(\s*item\.kind/);
+  assert.match(
+    groupPreviewSource,
+    /previewItem\(\s*item\.kind,\s*preview\.showHistoryItemNumbers/,
+  );
 });
 
 test("main history rows and archive rows align their leading affordance with footer icons", async () => {

@@ -1,3 +1,5 @@
+import type { HistoryKind } from "./types";
+
 type WindowControlSide = "left" | "right";
 
 const focusRing =
@@ -16,6 +18,12 @@ const previewSurface =
   "relative min-h-0 overflow-hidden rounded-[var(--mclip-radius-lg)] border border-[var(--mclip-line)] [background:var(--mclip-surface-bg)] text-[var(--mclip-ink)] shadow-[var(--mclip-soft-shadow)]";
 const listText =
   "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium leading-5 text-[var(--mclip-ink-soft)]";
+const historyTextRowHeight = "h-8";
+const historyImageRowHeight = "h-16";
+
+function historyRowHeight(kind: HistoryKind) {
+  return kind === "image" ? historyImageRowHeight : historyTextRowHeight;
+}
 
 export const ui = {
   focusRing,
@@ -62,11 +70,12 @@ export const ui = {
     "inline-flex size-5 items-center justify-center rounded-md bg-[var(--mclip-control-bg)] text-[13px] leading-none",
   itemThumbnailWrap: "flex min-w-0 items-center gap-2",
   itemThumbnail:
-    "size-[26px] shrink-0 rounded-md border border-[var(--mclip-line)] object-cover",
+    "size-[50px] shrink-0 rounded-md border border-[var(--mclip-line)] object-cover",
   deleteIcon: "size-3.5",
 
-  archive: "px-[6px] pb-[6px] pt-0",
-  archiveDivider: "mx-1 mb-1 h-px bg-[var(--mclip-line)]",
+  archive: "-mt-1 px-[6px] pb-0 pt-0",
+  archiveDivider:
+    "relative z-[1] mx-1 -mb-px h-px bg-[var(--mclip-line)]",
   archiveList: "grid content-start gap-0",
   archiveEntry: "min-w-0",
   archiveFolderIcon: "size-3.5 shrink-0 text-[var(--mclip-index)]",
@@ -154,7 +163,7 @@ export const ui = {
     "flex h-full max-h-screen min-h-0 w-full flex-col",
   historyGroupPreviewBody: "min-h-0 flex-1 overflow-hidden",
   historyPreviewList:
-    "mclip-scrollbar grid max-h-full gap-0.5 overflow-y-auto overflow-x-hidden p-1.5",
+    "mclip-scrollbar grid max-h-full gap-0 overflow-y-auto overflow-x-hidden p-1.5",
   historyPreviewIndex:
     "min-w-[14px] shrink-0 text-left text-[11px] font-semibold tabular-nums text-[var(--mclip-index)]",
   historyPreviewText: listText,
@@ -291,9 +300,13 @@ export function appFrame(isKeyboardNavigating: boolean) {
     .join(" ");
 }
 
-export function historyItemRow(isSelected: boolean, isKeyboardNavigating: boolean) {
+export function historyItemRow(
+  kind: HistoryKind,
+  isSelected: boolean,
+  isKeyboardNavigating: boolean,
+) {
   return [
-    "relative grid min-h-8 w-full grid-cols-[minmax(0,1fr)] items-center rounded-[var(--mclip-radius-sm)] transition-colors transition-shadow duration-150",
+    `relative grid ${historyRowHeight(kind)} w-full grid-cols-[minmax(0,1fr)] items-center rounded-[var(--mclip-radius-sm)] transition-colors transition-shadow duration-150`,
     isKeyboardNavigating ? "" : "group",
     isSelected
       ? "[background:var(--mclip-selected-bg)] shadow-[inset_0_0_0_1px_var(--mclip-selection-strong)]"
@@ -303,9 +316,9 @@ export function historyItemRow(isSelected: boolean, isKeyboardNavigating: boolea
   ].join(" ");
 }
 
-export function historyItem(showItemNumbers: boolean) {
+export function historyItem(kind: HistoryKind, showItemNumbers: boolean) {
   return [
-    "grid min-h-8 w-full min-w-0 items-center gap-1.5 rounded-[var(--mclip-radius-sm)] py-1 pl-1.5 pr-2 text-left",
+    `grid ${historyRowHeight(kind)} w-full min-w-0 items-center gap-1.5 rounded-[var(--mclip-radius-sm)] pl-1.5 pr-2 text-left`,
     showItemNumbers
       ? "grid-cols-[minmax(14px,max-content)_minmax(0,1fr)]"
       : "grid-cols-[minmax(0,1fr)]",
@@ -315,7 +328,7 @@ export function historyItem(showItemNumbers: boolean) {
 
 export function archiveRow(isActive: boolean) {
   return [
-    "grid h-[34px] w-full grid-cols-[14px_minmax(0,1fr)_18px] items-center gap-1.5 rounded-[var(--mclip-radius-sm)] py-0 pl-1.5 pr-[10px] text-left transition-colors duration-150",
+    "grid h-[28px] w-full grid-cols-[14px_minmax(0,1fr)_18px] items-center gap-1.5 rounded-[var(--mclip-radius-sm)] py-0 pl-1.5 pr-[10px] text-left transition-colors duration-150",
     isActive
       ? "[background:var(--mclip-selected-bg)] shadow-[inset_0_0_0_1px_var(--mclip-selection-strong)]"
       : "hover:bg-[var(--mclip-row-hover-bg)]",
@@ -335,9 +348,13 @@ export function menuItem(isSelected: boolean, isDanger: boolean, isDisabled = fa
   ].join(" ");
 }
 
-export function previewItemRow(isSelected: boolean, isKeyboardNavigating: boolean) {
+export function previewItemRow(
+  kind: HistoryKind,
+  isSelected: boolean,
+  isKeyboardNavigating: boolean,
+) {
   return [
-    "relative min-h-[29px] rounded-[var(--mclip-radius-sm)] text-[var(--mclip-ink-soft)] transition-colors transition-shadow duration-150",
+    `relative ${historyRowHeight(kind)} rounded-[var(--mclip-radius-sm)] text-[var(--mclip-ink-soft)] transition-colors transition-shadow duration-150`,
     isKeyboardNavigating ? "" : "group",
     isSelected
       ? "[background:var(--mclip-selected-bg)] shadow-[inset_0_0_0_1px_var(--mclip-selection-strong)]"
@@ -347,9 +364,12 @@ export function previewItemRow(isSelected: boolean, isKeyboardNavigating: boolea
   ].join(" ");
 }
 
-export function previewItem(showHistoryItemNumbers: boolean) {
+export function previewItem(
+  kind: HistoryKind,
+  showHistoryItemNumbers: boolean,
+) {
   return [
-    "grid min-h-[29px] w-full min-w-0 items-center gap-1.5 rounded-[var(--mclip-radius-sm)] py-0.5 pl-1.5 pr-2 text-left",
+    `grid ${historyRowHeight(kind)} w-full min-w-0 items-center gap-1.5 rounded-[var(--mclip-radius-sm)] pl-1.5 pr-2 text-left`,
     showHistoryItemNumbers
       ? "grid-cols-[minmax(14px,max-content)_minmax(0,1fr)]"
       : "grid-cols-[minmax(0,1fr)]",

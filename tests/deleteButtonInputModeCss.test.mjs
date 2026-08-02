@@ -27,10 +27,16 @@ test("history deletion is owned by shared detail actions", async () => {
     readSource("src/components/HistoryPreviewWindow.tsx"),
   ]);
 
-  assert.match(stylesSource, /historyItemRow\(isSelected: boolean, isKeyboardNavigating: boolean\)/);
+  assert.match(
+    stylesSource,
+    /historyItemRow\([\s\S]*kind: HistoryKind,[\s\S]*isSelected: boolean,[\s\S]*isKeyboardNavigating: boolean/,
+  );
   assert.doesNotMatch(stylesSource, /historyDeleteButton\(isVisible: boolean\)/);
   assert.match(stylesSource, /historyDetailActionButton/);
-  assert.match(stylesSource, /previewItemRow\(isSelected: boolean, isKeyboardNavigating: boolean\)/);
+  assert.match(
+    stylesSource,
+    /previewItemRow\([\s\S]*kind: HistoryKind,[\s\S]*isSelected: boolean,[\s\S]*isKeyboardNavigating: boolean/,
+  );
   assert.match(stylesSource, /isKeyboardNavigating[\s\S]*hover:bg-transparent/);
   assert.match(listSource, /isKeyboardNavigating: boolean/);
   assert.doesNotMatch(listSource, /onDeleteItem/);

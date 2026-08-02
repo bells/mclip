@@ -14,6 +14,8 @@ const RGB_COLOR_PATTERN =
 const EMOJI_TEXT_PATTERN =
   /^[\p{Extended_Pictographic}\p{Emoji_Presentation}\p{Emoji_Modifier}\u200d\ufe0f\s]+$/u;
 const HAS_EMOJI_PATTERN = /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u;
+const FIRST_EMOJI_PATTERN =
+  /^(?:\p{Regional_Indicator}{2}|[#*0-9]\ufe0f?\u20e3|[\p{Extended_Pictographic}\p{Emoji_Presentation}](?:\ufe0f|\p{Emoji_Modifier})?(?:\u200d[\p{Extended_Pictographic}\p{Emoji_Presentation}](?:\ufe0f|\p{Emoji_Modifier})?)*)/u;
 
 function isRgbChannel(value: string) {
   const numericValue = Number(value);
@@ -39,7 +41,7 @@ function isColorCode(value: string) {
 
 function isShortEmojiText(value: string) {
   return (
-    value.length <= 16 &&
+    Array.from(value).length <= 16 &&
     HAS_EMOJI_PATTERN.test(value) &&
     EMOJI_TEXT_PATTERN.test(value)
   );
@@ -62,8 +64,14 @@ export function getTextHistoryAffordance(
   }
 
   if (isShortEmojiText(normalizedText)) {
+    const firstEmoji = normalizedText.match(FIRST_EMOJI_PATTERN)?.[0];
+
+    if (!firstEmoji) {
+      return null;
+    }
+
     return {
-      emoji: normalizedText,
+      emoji: firstEmoji,
       kind: "emoji",
     };
   }

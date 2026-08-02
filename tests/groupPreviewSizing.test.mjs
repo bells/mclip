@@ -22,7 +22,7 @@ test("group preview reports rendered natural height to the main controller", asy
   assert.match(commandSource, /"resize_history_preview_window"/);
   assert.match(
     controllerSource,
-    /const previewHeight = getGroupPreviewHeight\(previewHistory\.length\)/,
+    /const previewHeight = getGroupPreviewHeight\(previewHistory\)/,
   );
   assert.match(
     controllerSource,

@@ -34,8 +34,15 @@ const {
   shouldApplyMeasuredPreviewHeight,
 } = await importTypeScriptModule("src/utils/preview.ts");
 
-test("history group preview uses compact row sizing", () => {
-  assert.equal(getGroupPreviewHeight(10), 358);
+test("history group preview uses the same text and image row heights as the main list", () => {
+  assert.equal(
+    getGroupPreviewHeight([
+      { kind: "text" },
+      { kind: "files" },
+      { kind: "image" },
+    ]),
+    176,
+  );
 });
 
 test("history group preview natural height follows rendered content", () => {

@@ -23,10 +23,9 @@ const PREFERENCES_WINDOW_LABEL: &str = "preferences";
 
 const HEADER_HEIGHT: f64 = 52.0;
 const BODY_VERTICAL_PADDING: f64 = 8.0;
-const ARCHIVE_DIVIDER_HEIGHT: f64 = 5.0;
-const ARCHIVE_BOTTOM_PADDING: f64 = 6.0;
-const ARCHIVE_ROW_HEIGHT: f64 = 34.0;
-const ARCHIVE_ROW_GAP: f64 = 4.0;
+const ARCHIVE_TOP_OVERLAP: f64 = 4.0;
+const ARCHIVE_ROW_HEIGHT: f64 = 28.0;
+const ARCHIVE_ROW_GAP: f64 = 0.0;
 const FOOTER_HEIGHT: f64 = 129.0;
 const PER_ITEM_HEIGHT: f64 = 32.0;
 const EMPTY_STATE_HEIGHT: f64 = 120.0;
@@ -788,9 +787,7 @@ fn calculate_archive_group_height(visible_group_count: u32) -> f64 {
         return 0.0;
     }
 
-    ARCHIVE_DIVIDER_HEIGHT
-        + ARCHIVE_BOTTOM_PADDING
-        + visible_group_count as f64 * ARCHIVE_ROW_HEIGHT
+    visible_group_count as f64 * ARCHIVE_ROW_HEIGHT - ARCHIVE_TOP_OVERLAP
         + visible_group_count.saturating_sub(1) as f64 * ARCHIVE_ROW_GAP
 }
 
@@ -1209,13 +1206,13 @@ mod tests {
 
     #[test]
     fn group_nav_height_is_included_when_multiple_groups_exist() {
-        assert_eq!(calculate_window_height(10, 2), 554.0);
+        assert_eq!(calculate_window_height(10, 2), 533.0);
     }
 
     #[test]
     fn group_nav_height_counts_all_archive_rows_until_window_cap() {
-        assert_eq!(calculate_window_height(10, 6), 706.0);
-        assert_eq!(calculate_window_height(10, 7), 744.0);
+        assert_eq!(calculate_window_height(10, 6), 645.0);
+        assert_eq!(calculate_window_height(10, 7), 673.0);
     }
 
     #[test]

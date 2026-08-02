@@ -55,6 +55,14 @@ test("emoji-only short text produces an emoji affordance", () => {
     emoji: "👍🏽",
     kind: "emoji",
   });
+  assert.deepEqual(getTextHistoryAffordance("😘  😘"), {
+    emoji: "😘",
+    kind: "emoji",
+  });
+  assert.deepEqual(getTextHistoryAffordance("👨‍👩‍👧‍👦 👨‍👩‍👧‍👦"), {
+    emoji: "👨‍👩‍👧‍👦",
+    kind: "emoji",
+  });
 });
 
 test("mixed text with emoji keeps the normal text treatment", () => {

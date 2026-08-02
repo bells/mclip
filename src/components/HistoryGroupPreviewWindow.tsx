@@ -9,16 +9,13 @@ import {
 } from "../lib/tauri";
 import type { HistoryGroupInfo, HistoryGroupPreviewPayload, HistoryListItem } from "../types";
 import { previewItem, previewItemRow, ui } from "../uiStyles";
-import {
-  getTextHistoryAffordance,
-  type HistoryTextAffordance,
-} from "../utils/historyAffordance";
 import { getHistoryListDisplayText } from "../utils/history";
 import { shouldActivateGroupPreviewPointerItem } from "../utils/keyboardNavigation";
 import {
   getGroupPreviewNaturalHeight,
   shouldApplyMeasuredPreviewHeight,
 } from "../utils/preview";
+import { HistoryListText } from "./HistoryListText";
 import { ImageThumb } from "./ImageThumb";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
@@ -49,29 +46,6 @@ function findPreviewItemId(target: EventTarget | null) {
 
   return target.closest<HTMLElement>("[data-preview-item-id]")?.dataset
     .previewItemId ?? null;
-}
-
-function renderHistoryTextAffordance(affordance: HistoryTextAffordance | null) {
-  if (affordance === null) {
-    return null;
-  }
-
-  if (affordance.kind === "color") {
-    return (
-      <span className={ui.historyAffordance} aria-hidden="true">
-        <span
-          className={ui.historyColorSwatch}
-          style={{ background: affordance.color }}
-        />
-      </span>
-    );
-  }
-
-  return (
-    <span className={ui.historyAffordance} aria-hidden="true">
-      <span className={ui.historyEmojiBadge}>{affordance.emoji}</span>
-    </span>
-  );
 }
 
 export function HistoryGroupPreviewWindow({
@@ -277,12 +251,11 @@ export function HistoryGroupPreviewWindow({
           >
             {preview.items.map((item) => {
               const displayText = getHistoryListDisplayText(item);
-              const textAffordance =
-                item.kind === "text" ? getTextHistoryAffordance(item.text) : null;
 
               return (
                 <div
                   className={previewItemRow(
+                    item.kind,
                     item.id === hoveredItemId,
                     isKeyboardNavigating,
                   )}
@@ -302,7 +275,10 @@ export function HistoryGroupPreviewWindow({
                   }}
                 >
                   <button
-                    className={previewItem(preview.showHistoryItemNumbers)}
+                    className={previewItem(
+                      item.kind,
+                      preview.showHistoryItemNumbers,
+                    )}
                     onFocus={() => {
                       activateItem(item.id);
                     }}
@@ -337,15 +313,14 @@ export function HistoryGroupPreviewWindow({
                         />
                         <span className={ui.historyPreviewText}>{displayText}</span>
                       </span>
+                    ) : item.kind === "text" ? (
+                      <HistoryListText
+                        className={ui.historyPreviewText}
+                        displayText={displayText}
+                        text={item.text}
+                      />
                     ) : (
-                      <span
-                        className={`${ui.historyPreviewText} ${
-                          textAffordance ? ui.historyTextWithAffordance : ""
-                        }`}
-                      >
-                        {renderHistoryTextAffordance(textAffordance)}
-                        <span className={ui.historyDisplayText}>{displayText}</span>
-                      </span>
+                      <span className={ui.historyPreviewText}>{displayText}</span>
                     )}
                   </button>
                 </div>

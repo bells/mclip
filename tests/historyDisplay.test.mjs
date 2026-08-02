@@ -72,9 +72,14 @@ test("multiple file history list display keeps the count suffix", () => {
   );
 });
 
-test("archive groups remove decorative gaps without shrinking row targets", async () => {
+test("archive groups use compact rows without decorative gaps", async () => {
   const stylesSource = await readFile("src/uiStyles.ts", "utf8");
 
+  assert.match(stylesSource, /archive: "-mt-1[^"]*pb-0/);
+  assert.match(
+    stylesSource,
+    /archiveDivider:\s*\n\s*"[^"]*-mb-px[^"]*h-px/,
+  );
   assert.match(stylesSource, /archiveList: "grid content-start gap-0"/);
-  assert.match(stylesSource, /export function archiveRow[\s\S]*"grid h-\[34px\]/);
+  assert.match(stylesSource, /export function archiveRow[\s\S]*"grid h-\[28px\]/);
 });

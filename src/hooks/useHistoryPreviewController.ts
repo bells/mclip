@@ -387,7 +387,7 @@ export function useHistoryPreviewController({
     }
 
     const request = beginPreviewOpenRequest(previewDismissalStateRef.current);
-    const previewHeight = getGroupPreviewHeight(previewHistory.length);
+    const previewHeight = getGroupPreviewHeight(previewHistory);
 
     void updateHistoryPreviewWindow({
       autoPaste: settings.autoPaste,
