@@ -12,19 +12,24 @@ import { SearchIcon } from "./UiIcons";
 // Props 类型描述父组件必须传入哪些数据和回调；TypeScript 会在使用组件时检查。
 type AppHeaderProps = {
   inputRef?: RefObject<HTMLInputElement | null>;
+  isActive: boolean;
   searchQuery: string;
   showBrand: boolean;
   translations: AppTranslations["header"];
-  onSearchFocus?: (targetId: string) => void;
+  onSearchTargetActivate?: (
+    targetId: string,
+    source: "focus" | "pointer",
+  ) => void;
   onSearchQueryChange: (value: string) => void;
 };
 
 export function AppHeader({
   inputRef,
+  isActive,
   searchQuery,
   showBrand,
   translations,
-  onSearchFocus,
+  onSearchTargetActivate,
   onSearchQueryChange,
 }: AppHeaderProps) {
   return (
@@ -48,14 +53,23 @@ export function AppHeader({
         <input
           aria-label={translations.searchPlaceholder}
           autoComplete="off"
-          className={ui.search}
+          className={ui.search(isActive)}
           data-main-keyboard-target={serializeMainKeyboardNavigationTarget({
             kind: "search",
           })}
           // 受控组件：输入框的值来自 React state，用户输入后通过回调更新 state。
           onChange={(event) => onSearchQueryChange(event.target.value)}
           onFocus={(event) => {
-            onSearchFocus?.(event.currentTarget.dataset.mainKeyboardTarget ?? "");
+            onSearchTargetActivate?.(
+              event.currentTarget.dataset.mainKeyboardTarget ?? "",
+              "focus",
+            );
+          }}
+          onPointerMove={(event) => {
+            onSearchTargetActivate?.(
+              event.currentTarget.dataset.mainKeyboardTarget ?? "",
+              "pointer",
+            );
           }}
           placeholder={translations.searchPlaceholder}
           ref={inputRef}

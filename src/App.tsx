@@ -1,6 +1,13 @@
 // 应用根组件。根据 Tauri 当前窗口 label，在主界面和独立 preview 窗口之间切换渲染。
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { AboutWindow } from "./components/AboutWindow";
 import { AppFooter } from "./components/AppFooter";
@@ -26,9 +33,12 @@ import { adjustWindowHeightToContent } from "./services/ipc/commands";
 import {
   getGroupPreviewEntryKey,
   getGroupPreviewReturnKey,
-  getMainHistoryDeleteTargetIndex,
+  getMainHistoryDeleteTargetId,
+  getMainPointerActivatedTargetId,
   getNextMainKeyboardNavigationTarget,
+  MAIN_SEARCH_TARGET_ID,
   parseMainKeyboardNavigationTarget,
+  reconcileMainKeyboardNavigationTargetId,
   serializeMainKeyboardNavigationTarget,
   shouldClearPreviewForMainKeyboardTarget,
 } from "./utils/keyboardNavigation";
@@ -84,11 +94,11 @@ function MainWindow() {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [keyboardPreviewGroupIndex, setKeyboardPreviewGroupIndex] =
     useState<number | null>(null);
-  const [activeMainKeyboardTargetId, setActiveMainKeyboardTargetId] =
-    useState<string | null>(null);
+  const [activeMainTargetId, setActiveMainTargetId] =
+    useState(MAIN_SEARCH_TARGET_ID);
   const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
   const [isMainScrollConstrained, setIsMainScrollConstrained] = useState(false);
-  const activeMainKeyboardTargetIdRef = useRef<string | null>(null);
+  const activeMainTargetIdRef = useRef<string>(MAIN_SEARCH_TARGET_ID);
   const headerMeasureRef = useRef<HTMLDivElement | null>(null);
   const contentMeasureRef = useRef<HTMLDivElement | null>(null);
   const footerMeasureRef = useRef<HTMLDivElement | null>(null);
@@ -118,6 +128,14 @@ function MainWindow() {
   } = useClipboardApp();
   useApplyAppTheme(settings.appearanceTheme);
   const t = getTranslations(settings.language);
+  const mainNavigationContext = useMemo(
+    () => ({
+      canClearHistory: hasHistory,
+      historyGroupCount: historyGroups.length,
+      visibleHistoryItemIds: visibleHistory.map((item) => item.id),
+    }),
+    [hasHistory, historyGroups.length, visibleHistory],
+  );
 
   const measureAndApplyMainWindowHeight = useCallback(() => {
     const headerHeight = headerMeasureRef.current?.getBoundingClientRect().height ?? 0;
@@ -203,13 +221,42 @@ function MainWindow() {
     visibleHistory.length,
   ]);
 
-  const updateActiveMainKeyboardTarget = useCallback((targetId: string | null) => {
-    activeMainKeyboardTargetIdRef.current = targetId;
-    setActiveMainKeyboardTargetId(targetId);
+  const updateActiveMainTarget = useCallback((targetId: string) => {
+    activeMainTargetIdRef.current = targetId;
+    setActiveMainTargetId((currentTargetId) =>
+      currentTargetId === targetId ? currentTargetId : targetId,
+    );
   }, []);
 
+  const activateMainTarget = useCallback(
+    (
+      targetId: string,
+      source: "focus" | "pointer",
+      isDisabled = false,
+    ) => {
+      const nextTargetId =
+        source === "pointer"
+          ? getMainPointerActivatedTargetId({
+              ...mainNavigationContext,
+              currentTargetId: activeMainTargetIdRef.current,
+              hasPointerMoved: true,
+              isDisabled,
+              pointerTargetId: targetId,
+            })
+          : reconcileMainKeyboardNavigationTargetId(
+              targetId,
+              mainNavigationContext,
+            );
+
+      updateActiveMainTarget(nextTargetId);
+
+      return nextTargetId;
+    },
+    [mainNavigationContext, updateActiveMainTarget],
+  );
+
   const focusKeyboardNavigationTarget = useCallback((targetId: string) => {
-    updateActiveMainKeyboardTarget(targetId);
+    activateMainTarget(targetId, "focus");
 
     const targetElement = Array.from(
       document.querySelectorAll<HTMLElement>("[data-main-keyboard-target]"),
@@ -217,7 +264,7 @@ function MainWindow() {
 
     targetElement?.focus();
     targetElement?.scrollIntoView({ block: "nearest" });
-  }, [updateActiveMainKeyboardTarget]);
+  }, [activateMainTarget]);
 
   const clearKeyboardPreviewGroup = useCallback((groupIndex: number | null) => {
     setKeyboardPreviewGroupIndex(null);
@@ -258,11 +305,11 @@ function MainWindow() {
     });
   }, []);
 
-  const handleSearchFocus = useCallback(
-    (targetId: string) => {
-      updateActiveMainKeyboardTarget(targetId);
+  const handleSearchTargetActivate = useCallback(
+    (targetId: string, source: "focus" | "pointer") => {
+      const nextTargetId = activateMainTarget(targetId, source);
 
-      if (!shouldClearPreviewForMainKeyboardTarget(targetId)) {
+      if (!shouldClearPreviewForMainKeyboardTarget(nextTargetId)) {
         return;
       }
 
@@ -273,7 +320,7 @@ function MainWindow() {
       clearKeyboardPreviewGroup,
       closeHistoryGroupPreview,
       keyboardPreviewGroupIndex,
-      updateActiveMainKeyboardTarget,
+      activateMainTarget,
     ],
   );
 
@@ -281,21 +328,10 @@ function MainWindow() {
     (direction: -1 | 1) => {
       setIsKeyboardNavigating(true);
 
-      const activeElement =
-        document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const currentTargetId =
-        activeMainKeyboardTargetIdRef.current ??
-        activeElement?.dataset.mainKeyboardTarget ??
-        null;
-
       const nextTarget = getNextMainKeyboardNavigationTarget(
-        currentTargetId,
+        activeMainTargetIdRef.current,
         direction,
-        {
-          canClearHistory: hasHistory,
-          historyGroupCount: historyGroups.length,
-          visibleHistoryCount: visibleHistory.length,
-        },
+        mainNavigationContext,
       );
 
       if (nextTarget === null) {
@@ -308,28 +344,22 @@ function MainWindow() {
     },
     [
       focusKeyboardNavigationTarget,
-      hasHistory,
-      historyGroups.length,
-      visibleHistory.length,
+      mainNavigationContext,
     ],
   );
 
   useEffect(() => {
     // 第二个参数是空数组，表示这个 effect 只在组件首次挂载后执行一次。
-    updateActiveMainKeyboardTarget(
-      serializeMainKeyboardNavigationTarget({ kind: "search" }),
-    );
+    updateActiveMainTarget(MAIN_SEARCH_TARGET_ID);
     searchInputRef.current?.focus();
-  }, [updateActiveMainKeyboardTarget]);
+  }, [updateActiveMainTarget]);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
 
     // Tauri 事件监听是异步注册的，所以先保存取消监听函数，卸载组件时再调用。
     void listenToMainWindowShown(() => {
-      updateActiveMainKeyboardTarget(
-        serializeMainKeyboardNavigationTarget({ kind: "search" }),
-      );
+      updateActiveMainTarget(MAIN_SEARCH_TARGET_ID);
       searchInputRef.current?.focus();
       searchInputRef.current?.select();
     }).then((unsubscribe) => {
@@ -339,7 +369,29 @@ function MainWindow() {
     return () => {
       unlisten?.();
     };
-  }, [updateActiveMainKeyboardTarget]);
+  }, [updateActiveMainTarget]);
+
+  useEffect(() => {
+    const reconciledTargetId = reconcileMainKeyboardNavigationTargetId(
+      activeMainTargetIdRef.current,
+      mainNavigationContext,
+    );
+
+    if (reconciledTargetId === activeMainTargetIdRef.current) {
+      return;
+    }
+
+    updateActiveMainTarget(reconciledTargetId);
+    clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
+    closeHistoryGroupPreview();
+    searchInputRef.current?.focus();
+  }, [
+    clearKeyboardPreviewGroup,
+    closeHistoryGroupPreview,
+    keyboardPreviewGroupIndex,
+    mainNavigationContext,
+    updateActiveMainTarget,
+  ]);
 
   useEffect(() => {
     if (previewHistoryGroupIndex === null) {
@@ -370,13 +422,8 @@ function MainWindow() {
       const hasAnyModifier =
         event.metaKey || event.ctrlKey || event.altKey || event.shiftKey;
       const normalizedKey = event.key.toLowerCase();
-      const activeElement =
-        document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const activeTargetId =
-        activeMainKeyboardTargetIdRef.current ??
-        activeElement?.dataset.mainKeyboardTarget;
       const activeTarget = parseMainKeyboardNavigationTarget(
-        activeTargetId,
+        activeMainTargetIdRef.current,
       );
 
       if (event.key === "Escape") {
@@ -400,6 +447,7 @@ function MainWindow() {
 
       if (hasMetaModifier && normalizedKey === "f") {
         event.preventDefault();
+        handleSearchTargetActivate(MAIN_SEARCH_TARGET_ID, "focus");
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
         return;
@@ -411,7 +459,7 @@ function MainWindow() {
         return;
       }
 
-      const deleteTargetIndex = getMainHistoryDeleteTargetIndex({
+      const deleteTargetId = getMainHistoryDeleteTargetId({
         activeTarget,
         hasModifier: hasAnyModifier,
         isClearConfirmOpen,
@@ -420,13 +468,10 @@ function MainWindow() {
         key: event.key,
       });
 
-      if (deleteTargetIndex !== null) {
+      if (deleteTargetId !== null) {
         event.preventDefault();
 
-        const targetItem = visibleHistory[deleteTargetIndex];
-        if (targetItem) {
-          void deleteHistoryItem(targetItem.id);
-        }
+        void deleteHistoryItem(deleteTargetId);
 
         return;
       }
@@ -512,6 +557,7 @@ function MainWindow() {
     enterKeyboardPreviewGroup,
     focusKeyboardNavigationTarget,
     hideWindow,
+    handleSearchTargetActivate,
     isClearConfirmOpen,
     keyboardPreviewGroupIndex,
     moveKeyboardPreviewGroupItem,
@@ -538,25 +584,30 @@ function MainWindow() {
     void clearHistory();
   };
 
-  const activeMainKeyboardTarget = parseMainKeyboardNavigationTarget(
-    activeMainKeyboardTargetId,
+  const activeMainTarget = parseMainKeyboardNavigationTarget(
+    activeMainTargetId,
   );
   const activeHistoryItemId =
-    activeMainKeyboardTarget?.kind === "history-item"
-      ? visibleHistory[activeMainKeyboardTarget.index]?.id ?? null
+    activeMainTarget?.kind === "history-item"
+      ? activeMainTarget.itemId
+      : null;
+  const activeHistoryGroupIndex =
+    activeMainTarget?.kind === "history-group"
+      ? activeMainTarget.groupIndex
       : null;
   const activeFooterAction =
-    activeMainKeyboardTarget?.kind === "footer-action"
-      ? activeMainKeyboardTarget.action
+    activeMainTarget?.kind === "footer-action"
+      ? activeMainTarget.action
       : undefined;
 
   const openHistoryItemPreviewFromTarget = (
     item: (typeof visibleHistory)[number],
     anchorTop: number,
     targetId: string,
+    source: "focus" | "pointer",
   ) => {
     clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
-    updateActiveMainKeyboardTarget(targetId);
+    activateMainTarget(targetId, source);
     openHistoryItemPreview(item, anchorTop);
   };
 
@@ -564,15 +615,20 @@ function MainWindow() {
     groupIndex: number,
     anchorTop: number,
     targetId: string,
+    source: "focus" | "pointer",
   ) => {
     clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
-    updateActiveMainKeyboardTarget(targetId);
+    activateMainTarget(targetId, source);
     openHistoryGroupPreview(groupIndex, anchorTop);
   };
 
-  const handleFooterKeyboardTargetChange = (targetId: string) => {
+  const handleFooterTargetActivate = (
+    targetId: string,
+    source: "focus" | "pointer",
+  ) => {
     clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
-    updateActiveMainKeyboardTarget(targetId);
+    activateMainTarget(targetId, source);
+    closeHistoryGroupPreview();
   };
 
   return (
@@ -584,10 +640,11 @@ function MainWindow() {
         <div className={ui.mainHeaderMeasure} ref={headerMeasureRef}>
           <AppHeader
             inputRef={searchInputRef}
+            isActive={activeMainTarget?.kind === "search"}
             searchQuery={searchQuery}
             showBrand={settings.showMainWindowBrand}
             translations={t.header}
-            onSearchFocus={handleSearchFocus}
+            onSearchTargetActivate={handleSearchTargetActivate}
             onSearchQueryChange={setSearchQuery}
           />
         </div>
@@ -609,6 +666,7 @@ function MainWindow() {
             </div>
 
             <HistoryGroupNav
+              activeGroupIndex={activeHistoryGroupIndex}
               groups={historyGroups}
               previewGroupIndex={previewHistoryGroupIndex}
               translations={t.history}
@@ -624,7 +682,7 @@ function MainWindow() {
             selectedAction={activeFooterAction}
             translations={t.footer}
             onClearHistory={openClearHistoryConfirm}
-            onKeyboardTargetChange={handleFooterKeyboardTargetChange}
+            onTargetActivate={handleFooterTargetActivate}
             onOpenAbout={openAboutDialog}
             onOpenPreferences={openPreferencesDialog}
             onPreviewDismissRequest={closeHistoryGroupPreview}

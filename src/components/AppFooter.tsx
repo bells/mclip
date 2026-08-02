@@ -14,7 +14,10 @@ type AppFooterProps = {
   selectedAction?: FooterKeyboardAction;
   translations: AppTranslations["footer"];
   onClearHistory: () => void;
-  onKeyboardTargetChange?: (targetId: string) => void;
+  onTargetActivate?: (
+    targetId: string,
+    source: "focus" | "pointer",
+  ) => void;
   onOpenAbout: () => void;
   onOpenPreferences: () => void;
   onPreviewDismissRequest?: () => void;
@@ -26,14 +29,21 @@ export function AppFooter({
   selectedAction,
   translations,
   onClearHistory,
-  onKeyboardTargetChange,
+  onTargetActivate,
   onOpenAbout,
   onOpenPreferences,
   onPreviewDismissRequest,
   onQuit,
 }: AppFooterProps) {
-  const updateKeyboardTarget = (element: HTMLButtonElement) => {
-    onKeyboardTargetChange?.(element.dataset.mainKeyboardTarget ?? "");
+  const activateTarget = (
+    element: HTMLButtonElement,
+    source: "focus" | "pointer",
+  ) => {
+    if (element.disabled) {
+      return;
+    }
+
+    onTargetActivate?.(element.dataset.mainKeyboardTarget ?? "", source);
   };
 
   return (
@@ -51,8 +61,8 @@ export function AppFooter({
         // disabled 会同时禁用点击行为和键盘触发，适合空历史时避免误操作。
         disabled={!canClearHistory}
         onClick={onClearHistory}
-        onFocus={(event) => updateKeyboardTarget(event.currentTarget)}
-        onMouseEnter={(event) => updateKeyboardTarget(event.currentTarget)}
+        onFocus={(event) => activateTarget(event.currentTarget, "focus")}
+        onPointerMove={(event) => activateTarget(event.currentTarget, "pointer")}
         type="button"
       >
         <span className={ui.menuAction}>
@@ -69,8 +79,8 @@ export function AppFooter({
           kind: "footer-action",
         })}
         onClick={onOpenPreferences}
-        onFocus={(event) => updateKeyboardTarget(event.currentTarget)}
-        onMouseEnter={(event) => updateKeyboardTarget(event.currentTarget)}
+        onFocus={(event) => activateTarget(event.currentTarget, "focus")}
+        onPointerMove={(event) => activateTarget(event.currentTarget, "pointer")}
         type="button"
       >
         <span className={ui.menuAction}>
@@ -87,8 +97,8 @@ export function AppFooter({
           kind: "footer-action",
         })}
         onClick={onOpenAbout}
-        onFocus={(event) => updateKeyboardTarget(event.currentTarget)}
-        onMouseEnter={(event) => updateKeyboardTarget(event.currentTarget)}
+        onFocus={(event) => activateTarget(event.currentTarget, "focus")}
+        onPointerMove={(event) => activateTarget(event.currentTarget, "pointer")}
         type="button"
       >
         <span className={ui.menuAction}>
@@ -105,8 +115,8 @@ export function AppFooter({
           kind: "footer-action",
         })}
         onClick={onQuit}
-        onFocus={(event) => updateKeyboardTarget(event.currentTarget)}
-        onMouseEnter={(event) => updateKeyboardTarget(event.currentTarget)}
+        onFocus={(event) => activateTarget(event.currentTarget, "focus")}
+        onPointerMove={(event) => activateTarget(event.currentTarget, "pointer")}
         type="button"
       >
         <span className={ui.menuAction}>

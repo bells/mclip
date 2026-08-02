@@ -28,17 +28,24 @@ async function importTypeScriptModule(sourcePath) {
 const {
   getGroupPreviewEntryKey,
   getGroupPreviewReturnKey,
+  getMainHistoryDeleteTargetId,
+  getMainPointerActivatedTargetId,
   getNextGroupPreviewItemIndex,
   getNextMainKeyboardNavigationTarget,
-  getMainHistoryDeleteTargetIndex,
+  MAIN_SEARCH_TARGET_ID,
+  reconcileMainKeyboardNavigationTargetId,
   shouldClearPreviewForMainKeyboardTarget,
   shouldActivateGroupPreviewPointerItem,
   serializeMainKeyboardNavigationTarget,
 } = await importTypeScriptModule("src/utils/keyboardNavigation.ts");
 
+function visibleHistoryItemIds(count = 10) {
+  return Array.from({ length: count }, (_, index) => `item-${index}`);
+}
+
 test("arrow up from the first visible item moves back to the search input", () => {
   const currentTarget = serializeMainKeyboardNavigationTarget({
-    index: 0,
+    itemId: "item-0",
     kind: "history-item",
   });
 
@@ -46,7 +53,7 @@ test("arrow up from the first visible item moves back to the search input", () =
     getNextMainKeyboardNavigationTarget(currentTarget, -1, {
       canClearHistory: true,
       historyGroupCount: 2,
-      visibleHistoryCount: 10,
+      visibleHistoryItemIds: visibleHistoryItemIds(),
     }),
     {
       kind: "search",
@@ -59,7 +66,7 @@ test("focusing the search input clears any open preview", () => {
     kind: "search",
   });
   const historyTarget = serializeMainKeyboardNavigationTarget({
-    index: 0,
+    itemId: "item-0",
     kind: "history-item",
   });
 
@@ -69,7 +76,7 @@ test("focusing the search input clears any open preview", () => {
 
 test("arrow down after the tenth visible item moves into the first archive group", () => {
   const currentTarget = serializeMainKeyboardNavigationTarget({
-    index: 9,
+    itemId: "item-9",
     kind: "history-item",
   });
 
@@ -77,7 +84,7 @@ test("arrow down after the tenth visible item moves into the first archive group
     getNextMainKeyboardNavigationTarget(currentTarget, 1, {
       canClearHistory: true,
       historyGroupCount: 2,
-      visibleHistoryCount: 10,
+      visibleHistoryItemIds: visibleHistoryItemIds(),
     }),
     {
       groupIndex: 1,
@@ -88,7 +95,7 @@ test("arrow down after the tenth visible item moves into the first archive group
 
 test("arrow down after the last visible item moves to clear history when no archive group exists", () => {
   const currentTarget = serializeMainKeyboardNavigationTarget({
-    index: 9,
+    itemId: "item-9",
     kind: "history-item",
   });
 
@@ -96,7 +103,7 @@ test("arrow down after the last visible item moves to clear history when no arch
     getNextMainKeyboardNavigationTarget(currentTarget, 1, {
       canClearHistory: true,
       historyGroupCount: 1,
-      visibleHistoryCount: 10,
+      visibleHistoryItemIds: visibleHistoryItemIds(),
     }),
     {
       action: "clearHistory",
@@ -115,7 +122,7 @@ test("footer navigation continues downward through the menu actions", () => {
     getNextMainKeyboardNavigationTarget(currentTarget, 1, {
       canClearHistory: true,
       historyGroupCount: 1,
-      visibleHistoryCount: 10,
+      visibleHistoryItemIds: visibleHistoryItemIds(),
     }),
     {
       action: "preferences",
@@ -134,7 +141,7 @@ test("arrow down from the last archive group moves to clear history", () => {
     getNextMainKeyboardNavigationTarget(currentTarget, 1, {
       canClearHistory: true,
       historyGroupCount: 5,
-      visibleHistoryCount: 10,
+      visibleHistoryItemIds: visibleHistoryItemIds(),
     }),
     {
       action: "clearHistory",
@@ -153,7 +160,7 @@ test("keyboard navigation wraps from quit to the search input", () => {
     getNextMainKeyboardNavigationTarget(currentTarget, 1, {
       canClearHistory: true,
       historyGroupCount: 2,
-      visibleHistoryCount: 10,
+      visibleHistoryItemIds: visibleHistoryItemIds(),
     }),
     {
       kind: "search",
@@ -170,13 +177,107 @@ test("keyboard navigation wraps from the search input to quit", () => {
     getNextMainKeyboardNavigationTarget(currentTarget, -1, {
       canClearHistory: true,
       historyGroupCount: 2,
-      visibleHistoryCount: 10,
+      visibleHistoryItemIds: visibleHistoryItemIds(),
     }),
     {
       action: "quit",
       kind: "footer-action",
     },
   );
+});
+
+test("search is the canonical default when the active target is missing", () => {
+  assert.equal(
+    reconcileMainKeyboardNavigationTargetId(null, {
+      canClearHistory: true,
+      historyGroupCount: 2,
+      visibleHistoryItemIds: visibleHistoryItemIds(),
+    }),
+    MAIN_SEARCH_TARGET_ID,
+  );
+});
+
+test("removed history targets reconcile to search without changing valid targets", () => {
+  const validTarget = serializeMainKeyboardNavigationTarget({
+    itemId: "item-2",
+    kind: "history-item",
+  });
+  const removedTarget = serializeMainKeyboardNavigationTarget({
+    itemId: "removed-item",
+    kind: "history-item",
+  });
+  const context = {
+    canClearHistory: true,
+    historyGroupCount: 1,
+    visibleHistoryItemIds: visibleHistoryItemIds(3),
+  };
+
+  assert.equal(reconcileMainKeyboardNavigationTargetId(validTarget, context), validTarget);
+  assert.equal(
+    reconcileMainKeyboardNavigationTargetId(removedTarget, context),
+    MAIN_SEARCH_TARGET_ID,
+  );
+});
+
+test("pointer movement takes over the active target but disabled targets do not", () => {
+  const historyTarget = serializeMainKeyboardNavigationTarget({
+    itemId: "item-2",
+    kind: "history-item",
+  });
+  const preferencesTarget = serializeMainKeyboardNavigationTarget({
+    action: "preferences",
+    kind: "footer-action",
+  });
+  const context = {
+    canClearHistory: true,
+    historyGroupCount: 1,
+    visibleHistoryItemIds: visibleHistoryItemIds(3),
+  };
+
+  assert.equal(
+    getMainPointerActivatedTargetId({
+      ...context,
+      currentTargetId: MAIN_SEARCH_TARGET_ID,
+      hasPointerMoved: true,
+      isDisabled: false,
+      pointerTargetId: historyTarget,
+    }),
+    historyTarget,
+  );
+  assert.equal(
+    getMainPointerActivatedTargetId({
+      ...context,
+      currentTargetId: historyTarget,
+      hasPointerMoved: true,
+      isDisabled: true,
+      pointerTargetId: preferencesTarget,
+    }),
+    historyTarget,
+  );
+});
+
+test("arrow navigation continues from the latest pointer-activated target", () => {
+  const pointerTarget = serializeMainKeyboardNavigationTarget({
+    itemId: "item-1",
+    kind: "history-item",
+  });
+  const context = {
+    canClearHistory: true,
+    historyGroupCount: 1,
+    visibleHistoryItemIds: visibleHistoryItemIds(3),
+  };
+  const activeTargetId = getMainPointerActivatedTargetId({
+    ...context,
+    currentTargetId: MAIN_SEARCH_TARGET_ID,
+    hasPointerMoved: true,
+    isDisabled: false,
+    pointerTargetId: pointerTarget,
+  });
+
+  assert.deepEqual(getNextMainKeyboardNavigationTarget(activeTargetId, 1, context), {
+    itemId: "item-2",
+    kind: "history-item",
+  });
 });
 
 test("group preview entry key points toward the preview window side", () => {
@@ -233,9 +334,9 @@ test("group preview pointer polling resumes hover after keyboard navigation only
 
 test("delete key targets only the active main history item", () => {
   assert.equal(
-    getMainHistoryDeleteTargetIndex({
+    getMainHistoryDeleteTargetId({
       activeTarget: {
-        index: 2,
+        itemId: "item-2",
         kind: "history-item",
       },
       hasModifier: false,
@@ -244,12 +345,12 @@ test("delete key targets only the active main history item", () => {
       isKeyboardPreviewGroupActive: false,
       key: "Delete",
     }),
-    2,
+    "item-2",
   );
   assert.equal(
-    getMainHistoryDeleteTargetIndex({
+    getMainHistoryDeleteTargetId({
       activeTarget: {
-        index: 2,
+        itemId: "item-2",
         kind: "history-item",
       },
       hasModifier: false,
@@ -258,10 +359,10 @@ test("delete key targets only the active main history item", () => {
       isKeyboardPreviewGroupActive: false,
       key: "Backspace",
     }),
-    2,
+    "item-2",
   );
   assert.equal(
-    getMainHistoryDeleteTargetIndex({
+    getMainHistoryDeleteTargetId({
       activeTarget: {
         kind: "search",
       },
@@ -274,9 +375,9 @@ test("delete key targets only the active main history item", () => {
     null,
   );
   assert.equal(
-    getMainHistoryDeleteTargetIndex({
+    getMainHistoryDeleteTargetId({
       activeTarget: {
-        index: 2,
+        itemId: "item-2",
         kind: "history-item",
       },
       hasModifier: true,
@@ -288,9 +389,9 @@ test("delete key targets only the active main history item", () => {
     null,
   );
   assert.equal(
-    getMainHistoryDeleteTargetIndex({
+    getMainHistoryDeleteTargetId({
       activeTarget: {
-        index: 2,
+        itemId: "item-2",
         kind: "history-item",
       },
       hasModifier: false,

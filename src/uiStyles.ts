@@ -59,8 +59,13 @@ export const ui = {
   searchShell: "relative min-w-0 flex-1",
   searchIcon:
     "pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[var(--mclip-ink-dim)]",
-  search:
-    `h-[30px] w-full rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] px-3 pl-8 text-[12px] font-medium text-[var(--mclip-ink)] outline-none transition-colors duration-150 placeholder:text-[var(--mclip-placeholder)] focus:border-[var(--mclip-accent-cool)] focus:bg-[var(--mclip-surface)] focus:shadow-[0_0_0_3px_rgba(115,208,200,0.16)] ${focusRing}`,
+  search: (isActive: boolean) =>
+    [
+      "h-[30px] w-full rounded-[var(--mclip-radius-sm)] border px-3 pl-8 text-[12px] font-medium text-[var(--mclip-ink)] outline-none transition-colors duration-150 placeholder:text-[var(--mclip-placeholder)]",
+      isActive
+        ? "border-[var(--mclip-accent-cool)] bg-[var(--mclip-surface)]"
+        : "border-[var(--mclip-line)] bg-[var(--mclip-control-bg)]",
+    ].join(" "),
 
   historyGroup: "overflow-visible",
   empty:
@@ -336,9 +341,7 @@ export function historyItemRow(
     isKeyboardNavigating ? "" : "group",
     isSelected
       ? "[background:var(--mclip-selected-bg)] shadow-[inset_0_0_0_1px_var(--mclip-selection-strong)]"
-      : isKeyboardNavigating
-        ? "hover:bg-transparent hover:shadow-none"
-        : "hover:bg-[var(--mclip-row-hover-bg)]",
+      : "",
   ].join(" ");
 }
 
@@ -348,7 +351,7 @@ export function historyItem(kind: HistoryKind, showItemNumbers: boolean) {
     showItemNumbers
       ? "grid-cols-[minmax(14px,max-content)_minmax(0,1fr)]"
       : "grid-cols-[minmax(0,1fr)]",
-    focusRing,
+    "focus-visible:outline-none",
   ].join(" ");
 }
 
@@ -357,8 +360,8 @@ export function archiveRow(isActive: boolean) {
     "grid h-[28px] w-full grid-cols-[14px_minmax(0,1fr)_18px] items-center gap-1.5 rounded-[var(--mclip-radius-sm)] py-0 pl-1.5 pr-[10px] text-left transition-colors duration-150",
     isActive
       ? "[background:var(--mclip-selected-bg)] shadow-[inset_0_0_0_1px_var(--mclip-selection-strong)]"
-      : "hover:bg-[var(--mclip-row-hover-bg)]",
-    focusRing,
+      : "",
+    "focus-visible:outline-none",
   ].join(" ");
 }
 
@@ -367,10 +370,10 @@ export function menuItem(isSelected: boolean, isDanger: boolean, isDisabled = fa
     "grid min-h-[26px] w-full grid-cols-[minmax(112px,1fr)_minmax(0,1fr)] items-center gap-2 rounded-[var(--mclip-radius-sm)] pl-1.5 pr-2 text-left transition-colors duration-150",
     isSelected
       ? "[background:var(--mclip-selected-bg)]"
-      : "hover:bg-[var(--mclip-row-hover-bg)]",
-    isDanger && !isDisabled ? "hover:text-[var(--mclip-danger)]" : "",
+      : "",
+    isDanger && !isDisabled && isSelected ? "text-[var(--mclip-danger)]" : "",
     isDisabled ? "cursor-not-allowed opacity-45" : "",
-    focusRing,
+    "focus-visible:outline-none",
   ].join(" ");
 }
 

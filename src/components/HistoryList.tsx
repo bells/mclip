@@ -18,6 +18,7 @@ type HistoryListProps = {
     item: HistoryListItem,
     anchorTop: number,
     targetId: string,
+    source: "focus" | "pointer",
   ) => void;
   onScheduleClosePreview: () => void;
   onSelectItem: (id: string) => void;
@@ -49,10 +50,10 @@ export function HistoryList({
 
   return (
     <div className={ui.historyGroup}>
-      {items.map((item, index) => {
+      {items.map((item) => {
         const displayText = getHistoryListDisplayText(item);
         const targetId = serializeMainKeyboardNavigationTarget({
-          index,
+          itemId: item.id,
           kind: "history-item",
         });
 
@@ -65,14 +66,6 @@ export function HistoryList({
             )}
             // key 不会作为 prop 传给子组件；它只给 React 的列表 diff 算法使用。
             key={item.renderId}
-            onMouseEnter={(event) => {
-              // currentTarget 是绑定事件的这行元素，用它测量位置比 target 更稳定。
-              onOpenItemPreview(
-                item,
-                event.currentTarget.getBoundingClientRect().top,
-                targetId,
-              );
-            }}
             onMouseLeave={onScheduleClosePreview}
           >
             <button
@@ -84,6 +77,15 @@ export function HistoryList({
                   item,
                   event.currentTarget.getBoundingClientRect().top,
                   targetId,
+                  "focus",
+                );
+              }}
+              onPointerMove={(event) => {
+                onOpenItemPreview(
+                  item,
+                  event.currentTarget.getBoundingClientRect().top,
+                  targetId,
+                  "pointer",
                 );
               }}
               type="button"

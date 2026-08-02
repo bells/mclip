@@ -9,7 +9,7 @@ export type MainKeyboardNavigationTarget =
       kind: "search";
     }
   | {
-      index: number;
+      itemId: string;
       kind: "history-item";
     }
   | {
@@ -24,7 +24,14 @@ export type MainKeyboardNavigationTarget =
 type MainKeyboardNavigationContext = {
   canClearHistory: boolean;
   historyGroupCount: number;
-  visibleHistoryCount: number;
+  visibleHistoryItemIds: string[];
+};
+
+type MainPointerActivationContext = MainKeyboardNavigationContext & {
+  currentTargetId: string | null;
+  hasPointerMoved: boolean;
+  isDisabled: boolean;
+  pointerTargetId: string | null;
 };
 
 type MainHistoryDeleteKeyContext = {
@@ -43,14 +50,16 @@ const FOOTER_ACTIONS: FooterKeyboardAction[] = [
   "quit",
 ];
 
+export const MAIN_SEARCH_TARGET_ID = "search";
+
 export function serializeMainKeyboardNavigationTarget(
   target: MainKeyboardNavigationTarget,
 ): string {
   switch (target.kind) {
     case "search":
-      return "search";
+      return MAIN_SEARCH_TARGET_ID;
     case "history-item":
-      return `history-item:${target.index}`;
+      return `history-item:${encodeURIComponent(target.itemId)}`;
     case "history-group":
       return `history-group:${target.groupIndex}`;
     case "footer-action":
@@ -65,20 +74,25 @@ export function parseMainKeyboardNavigationTarget(
     return null;
   }
 
-  if (targetId === "search") {
+  if (targetId === MAIN_SEARCH_TARGET_ID) {
     return { kind: "search" };
   }
 
   const [kind, rawValue] = targetId.split(":");
 
   if (kind === "history-item") {
-    const index = Number(rawValue);
-    return Number.isInteger(index) && index >= 0
-      ? {
-          index,
-          kind: "history-item",
-        }
-      : null;
+    if (!rawValue) {
+      return null;
+    }
+
+    try {
+      return {
+        itemId: decodeURIComponent(rawValue),
+        kind: "history-item",
+      };
+    } catch {
+      return null;
+    }
   }
 
   if (kind === "history-group") {
@@ -104,15 +118,14 @@ export function parseMainKeyboardNavigationTarget(
 export function getMainKeyboardNavigationTargets({
   canClearHistory,
   historyGroupCount,
-  visibleHistoryCount,
+  visibleHistoryItemIds,
 }: MainKeyboardNavigationContext): MainKeyboardNavigationTarget[] {
   const searchTarget: MainKeyboardNavigationTarget = {
     kind: "search",
   };
-  const historyTargets = Array.from(
-    { length: visibleHistoryCount },
-    (_, index): MainKeyboardNavigationTarget => ({
-      index,
+  const historyTargets = visibleHistoryItemIds.map(
+    (itemId): MainKeyboardNavigationTarget => ({
+      itemId,
       kind: "history-item",
     }),
   );
@@ -137,6 +150,41 @@ export function getMainKeyboardNavigationTargets({
   return [searchTarget, ...historyTargets, ...archiveGroupTargets, ...footerTargets];
 }
 
+export function reconcileMainKeyboardNavigationTargetId(
+  currentTargetId: string | null,
+  context: MainKeyboardNavigationContext,
+): string {
+  const targetIds = getMainKeyboardNavigationTargets(context).map(
+    serializeMainKeyboardNavigationTarget,
+  );
+
+  return currentTargetId !== null && targetIds.includes(currentTargetId)
+    ? currentTargetId
+    : MAIN_SEARCH_TARGET_ID;
+}
+
+export function getMainPointerActivatedTargetId({
+  currentTargetId,
+  hasPointerMoved,
+  isDisabled,
+  pointerTargetId,
+  ...context
+}: MainPointerActivationContext): string {
+  const reconciledCurrentTargetId = reconcileMainKeyboardNavigationTargetId(
+    currentTargetId,
+    context,
+  );
+
+  if (!hasPointerMoved || isDisabled || pointerTargetId === null) {
+    return reconciledCurrentTargetId;
+  }
+
+  return reconcileMainKeyboardNavigationTargetId(pointerTargetId, context) ===
+    pointerTargetId
+    ? pointerTargetId
+    : reconciledCurrentTargetId;
+}
+
 export function getNextMainKeyboardNavigationTarget(
   currentTargetId: string | null,
   direction: -1 | 1,
@@ -148,17 +196,15 @@ export function getNextMainKeyboardNavigationTarget(
     return null;
   }
 
-  if (currentTargetId === null) {
-    return direction > 0 ? targets[0] : targets[targets.length - 1];
-  }
-
-  const currentIndex = targets.findIndex(
-    (target) => serializeMainKeyboardNavigationTarget(target) === currentTargetId,
+  const reconciledCurrentTargetId = reconcileMainKeyboardNavigationTargetId(
+    currentTargetId,
+    context,
   );
 
-  if (currentIndex < 0) {
-    return direction > 0 ? targets[0] : targets[targets.length - 1];
-  }
+  const currentIndex = targets.findIndex(
+    (target) =>
+      serializeMainKeyboardNavigationTarget(target) === reconciledCurrentTargetId,
+  );
 
   const nextIndex = (currentIndex + direction + targets.length) % targets.length;
 
@@ -195,14 +241,14 @@ export function getNextGroupPreviewItemIndex(
   return Math.max(0, Math.min(itemCount - 1, currentIndex + direction));
 }
 
-export function getMainHistoryDeleteTargetIndex({
+export function getMainHistoryDeleteTargetId({
   activeTarget,
   hasModifier,
   isClearConfirmOpen,
   isEditingText,
   isKeyboardPreviewGroupActive,
   key,
-}: MainHistoryDeleteKeyContext): number | null {
+}: MainHistoryDeleteKeyContext): string | null {
   if (key !== "Delete" && key !== "Backspace") {
     return null;
   }
@@ -217,7 +263,7 @@ export function getMainHistoryDeleteTargetIndex({
     return null;
   }
 
-  return activeTarget.index;
+  return activeTarget.itemId;
 }
 
 type GroupPreviewPointerActivationContext = {

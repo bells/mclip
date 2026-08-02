@@ -8,6 +8,7 @@ import { ChevronRightIcon, FolderIcon } from "./UiIcons";
 
 // 主列表显示最新一组，后续分组通过这些入口打开右侧 preview 窗口。
 type HistoryGroupNavProps = {
+  activeGroupIndex: number | null;
   groups: HistoryGroupInfo[];
   previewGroupIndex: number | null;
   translations: AppTranslations["history"];
@@ -15,11 +16,13 @@ type HistoryGroupNavProps = {
     groupIndex: number,
     anchorTop: number,
     targetId: string,
+    source: "focus" | "pointer",
   ) => void;
   onScheduleClosePreview: () => void;
 };
 
 export function HistoryGroupNav({
+  activeGroupIndex,
   groups,
   previewGroupIndex,
   translations,
@@ -38,9 +41,10 @@ export function HistoryGroupNav({
     groupIndex: number,
     element: HTMLButtonElement,
     targetId: string,
+    source: "focus" | "pointer",
   ) => {
     // anchorTop 是当前分组按钮在主窗口内的顶部位置，Rust 用它对齐 preview 窗口。
-    onOpenPreview(groupIndex, element.getBoundingClientRect().top, targetId);
+    onOpenPreview(groupIndex, element.getBoundingClientRect().top, targetId, source);
   };
 
   return (
@@ -52,7 +56,8 @@ export function HistoryGroupNav({
         aria-label={translations.groupAriaLabel}
       >
         {archiveGroups.map((group) => {
-          const isActive = group.index === previewGroupIndex;
+          const isActive = group.index === activeGroupIndex;
+          const isExpanded = group.index === previewGroupIndex;
           const targetId = serializeMainKeyboardNavigationTarget({
             groupIndex: group.index,
             kind: "history-group",
@@ -62,13 +67,19 @@ export function HistoryGroupNav({
           return (
             <div className={ui.archiveEntry} key={group.index}>
               <button
-                aria-expanded={isActive}
+                aria-expanded={isExpanded}
                 aria-haspopup="menu"
                 className={archiveRow(isActive)}
                 data-main-keyboard-target={targetId}
-                onClick={(event) => openPreview(group.index, event.currentTarget, targetId)}
-                onFocus={(event) => openPreview(group.index, event.currentTarget, targetId)}
-                onMouseEnter={(event) => openPreview(group.index, event.currentTarget, targetId)}
+                onClick={(event) =>
+                  openPreview(group.index, event.currentTarget, targetId, "focus")
+                }
+                onFocus={(event) =>
+                  openPreview(group.index, event.currentTarget, targetId, "focus")
+                }
+                onPointerMove={(event) =>
+                  openPreview(group.index, event.currentTarget, targetId, "pointer")
+                }
                 type="button"
               >
                 <FolderIcon className={ui.archiveFolderIcon} />
