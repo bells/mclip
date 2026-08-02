@@ -10,6 +10,7 @@ import {
   listenToHistoryPreviewDetailUpdated,
   listenToHistoryPreviewPlacementUpdated,
   notifyHistoryPreviewPointerEntered,
+  openImageViewer,
   requestHistoryPreviewClose,
   type PreviewWindowSide,
 } from "../lib/tauri";
@@ -17,6 +18,7 @@ import type { HistoryItemPreviewPayload } from "../types";
 import { ui } from "../uiStyles";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
 import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
+import { HistoryDetailFullscreenButton } from "./HistoryDetailFullscreenButton";
 
 export function HistoryPreviewDetailWindow() {
   const [preview, setPreview] = useState<HistoryItemPreviewPayload | null>(null);
@@ -70,6 +72,7 @@ export function HistoryPreviewDetailWindow() {
   }
 
   const translations = getTranslations(preview.language).history;
+  const imageItem = preview.item.kind === "image" ? preview.item : null;
   const deletePreviewItem = async () => {
     if (isDeleting) {
       return;
@@ -100,13 +103,31 @@ export function HistoryPreviewDetailWindow() {
       <HistoryDetailPanel
         ariaLabel={translations.itemPreviewAriaLabel}
         headerAction={
-          <HistoryDetailDeleteButton
-            disabled={isDeleting}
-            label={translations.deleteItemAriaLabel}
-            onDelete={() => {
-              void deletePreviewItem();
-            }}
-          />
+          <>
+            {imageItem ? (
+              <HistoryDetailFullscreenButton
+                disabled={isDeleting}
+                label={translations.viewImageFullscreenAriaLabel}
+                onOpen={() =>
+                  openImageViewer({
+                    alt: imageItem.displayText,
+                    appearanceTheme: preview.appearanceTheme,
+                    height: imageItem.height,
+                    imagePath: imageItem.imagePath,
+                    language: preview.language,
+                    width: imageItem.width,
+                  })
+                }
+              />
+            ) : null}
+            <HistoryDetailDeleteButton
+              disabled={isDeleting}
+              label={translations.deleteItemAriaLabel}
+              onDelete={() => {
+                void deletePreviewItem();
+              }}
+            />
+          </>
         }
         item={preview.item}
         language={preview.language}

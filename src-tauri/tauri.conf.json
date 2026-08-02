@@ -52,6 +52,21 @@
         "skipTaskbar": true
       },
       {
+        "title": "mclip image viewer",
+        "label": "image-viewer",
+        "width": 800,
+        "height": 600,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": false,
+        "decorations": false,
+        "transparent": false,
+        "alwaysOnTop": false,
+        "fullscreen": false,
+        "visible": false,
+        "skipTaskbar": true
+      },
+      {
         "title": "About mclip",
         "label": "about",
         "width": 360,

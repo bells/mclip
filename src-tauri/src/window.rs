@@ -1,6 +1,11 @@
 //! 主窗口与 preview 窗口的尺寸、定位和显示隐藏规则。
 //! 主窗口只承载左侧列表；分组预览拆到独立透明窗口，避免撑大主窗口。
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
+#[cfg(target_os = "macos")]
+use std::{thread, time::Duration};
+
 use serde::Serialize;
 use tauri::{
     AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Monitor, PhysicalPosition,
@@ -18,6 +23,8 @@ pub const MAIN_WINDOW_SHOWN_EVENT: &str = "main-window-shown";
 const HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT: &str = "history-preview-placement-updated";
 const PREVIEW_WINDOW_LABEL: &str = "preview";
 const PREVIEW_DETAIL_WINDOW_LABEL: &str = "preview-detail";
+pub const IMAGE_VIEWER_WINDOW_LABEL: &str = "image-viewer";
+static IMAGE_VIEWER_CLOSE_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
 const ABOUT_WINDOW_LABEL: &str = "about";
 const PREFERENCES_WINDOW_LABEL: &str = "preferences";
 
@@ -662,6 +669,144 @@ pub fn hide_main_window(app_handle: &AppHandle) -> Result<(), String> {
     hide_history_preview_window(app_handle.clone())?;
 
     Ok(())
+}
+
+fn show_main_window_in_place(app_handle: &AppHandle) -> Result<(), String> {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.unminimize();
+        window.show().map_err(|error| error.to_string())?;
+        window.set_focus().map_err(|error| error.to_string())?;
+        app_handle
+            .emit(MAIN_WINDOW_SHOWN_EVENT, ())
+            .map_err(|error| error.to_string())?;
+    }
+
+    Ok(())
+}
+
+fn set_window_to_monitor_frame<R: Runtime>(
+    window: &WebviewWindow<R>,
+    monitor: &Monitor,
+) -> Result<(), String> {
+    window
+        .set_position(Position::Physical(*monitor.position()))
+        .map_err(|error| error.to_string())?;
+    window
+        .set_size(Size::Physical(*monitor.size()))
+        .map_err(|error| error.to_string())
+}
+
+fn focus_image_viewer<R: Runtime>(viewer: &WebviewWindow<R>) -> Result<(), String> {
+    viewer.set_focus().map_err(|error| error.to_string())?;
+
+    #[cfg(target_os = "macos")]
+    viewer
+        .as_ref()
+        .set_focus()
+        .map_err(|error| error.to_string())?;
+
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn reinforce_image_viewer_focus<R: Runtime>(viewer: WebviewWindow<R>) {
+    thread::spawn(move || {
+        for delay_ms in [50, 100, 200] {
+            thread::sleep(Duration::from_millis(delay_ms));
+
+            if !viewer.is_visible().unwrap_or(false) {
+                return;
+            }
+
+            let _ = focus_image_viewer(&viewer);
+        }
+    });
+}
+
+#[tauri::command]
+pub fn show_image_viewer(app_handle: AppHandle) -> Result<(), String> {
+    let viewer = app_handle
+        .get_webview_window(IMAGE_VIEWER_WINDOW_LABEL)
+        .ok_or_else(|| "missing image-viewer window".to_string())?;
+
+    let main_monitor = match app_handle.get_webview_window("main") {
+        Some(main_window) => main_window
+            .current_monitor()
+            .map_err(|error| error.to_string())?,
+        None => None,
+    };
+    let target_monitor = match main_monitor {
+        Some(monitor) => Some(monitor),
+        None => match viewer
+            .current_monitor()
+            .map_err(|error| error.to_string())?
+        {
+            Some(monitor) => Some(monitor),
+            None => viewer
+                .primary_monitor()
+                .map_err(|error| error.to_string())?,
+        },
+    }
+    .ok_or_else(|| "missing monitor for image-viewer".to_string())?;
+
+    hide_main_window(&app_handle)?;
+
+    let show_result = (|| -> Result<(), String> {
+        viewer
+            .set_focusable(true)
+            .map_err(|error| error.to_string())?;
+        viewer
+            .set_decorations(false)
+            .map_err(|error| error.to_string())?;
+        viewer
+            .set_shadow(false)
+            .map_err(|error| error.to_string())?;
+        set_window_to_monitor_frame(&viewer, &target_monitor)?;
+        viewer.show().map_err(|error| error.to_string())?;
+        viewer
+            .set_simple_fullscreen(true)
+            .map_err(|error| error.to_string())?;
+        set_window_to_monitor_frame(&viewer, &target_monitor)?;
+        focus_image_viewer(&viewer)
+    })();
+
+    if let Err(error) = show_result {
+        let _ = viewer.set_simple_fullscreen(false);
+        let _ = viewer.hide();
+        let _ = show_main_window_in_place(&app_handle);
+        return Err(error);
+    }
+
+    #[cfg(target_os = "macos")]
+    reinforce_image_viewer_focus(viewer);
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn close_image_viewer(app_handle: AppHandle) -> Result<(), String> {
+    if IMAGE_VIEWER_CLOSE_IN_PROGRESS.swap(true, Ordering::AcqRel) {
+        return Ok(());
+    }
+
+    let close_result = (|| -> Result<(), String> {
+        let viewer = app_handle
+            .get_webview_window(IMAGE_VIEWER_WINDOW_LABEL)
+            .ok_or_else(|| "missing image-viewer window".to_string())?;
+
+        if !viewer.is_visible().map_err(|error| error.to_string())? {
+            return Ok(());
+        }
+
+        viewer
+            .set_simple_fullscreen(false)
+            .map_err(|error| error.to_string())?;
+        viewer.hide().map_err(|error| error.to_string())?;
+        show_main_window_in_place(&app_handle)
+    })();
+
+    IMAGE_VIEWER_CLOSE_IN_PROGRESS.store(false, Ordering::Release);
+    close_result
 }
 
 pub fn show_main_window(app_handle: &AppHandle, placement: WindowPlacement) -> Result<(), String> {

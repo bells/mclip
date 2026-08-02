@@ -111,6 +111,15 @@ export type HistoryItemPreviewPayload = {
   language: AppLanguage;
 };
 
+export type ImageViewerPayload = {
+  alt: string;
+  appearanceTheme: AppearanceTheme;
+  height: number;
+  imagePath: string;
+  language: AppLanguage;
+  width: number;
+};
+
 export type HistoryPreviewPayload =
   | HistoryGroupPreviewPayload
   | HistoryItemPreviewPayload;

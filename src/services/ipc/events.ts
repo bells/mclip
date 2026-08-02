@@ -8,6 +8,7 @@ import type {
   HistoryPreviewKeyboardNavigationPayload,
   HistoryPreviewMeasuredPayload,
   HistoryPreviewPayload,
+  ImageViewerPayload,
 } from "../../types";
 import type { PreviewWindowPosition } from "./commands";
 
@@ -29,10 +30,12 @@ const HISTORY_PREVIEW_SELECTION_STARTED_EVENT =
   "history-preview-selection-started";
 const HISTORY_PREVIEW_SELECTION_CANCELLED_EVENT =
   "history-preview-selection-cancelled";
+const IMAGE_VIEWER_UPDATED_EVENT = "image-viewer-updated";
 const MAIN_WINDOW_SHOWN_EVENT = "main-window-shown";
 const MAIN_WINDOW_LABEL = "main";
 const PREVIEW_WINDOW_LABEL = "preview";
 const PREVIEW_DETAIL_WINDOW_LABEL = "preview-detail";
+const IMAGE_VIEWER_WINDOW_LABEL = "image-viewer";
 
 export function updateHistoryPreviewWindow(payload: HistoryPreviewPayload) {
   return emitTo(PREVIEW_WINDOW_LABEL, HISTORY_PREVIEW_UPDATED_EVENT, payload);
@@ -46,6 +49,10 @@ export function updateHistoryPreviewDetailWindow(
     HISTORY_PREVIEW_DETAIL_UPDATED_EVENT,
     payload,
   );
+}
+
+export function updateImageViewerWindow(payload: ImageViewerPayload) {
+  return emitTo(IMAGE_VIEWER_WINDOW_LABEL, IMAGE_VIEWER_UPDATED_EVENT, payload);
 }
 
 export function sendHistoryPreviewKeyboardNavigation(
@@ -139,6 +146,14 @@ export function listenToHistoryPreviewDetailUpdated(
       handler(event.payload);
     },
   );
+}
+
+export function listenToImageViewerUpdated(
+  handler: (payload: ImageViewerPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<ImageViewerPayload>(IMAGE_VIEWER_UPDATED_EVENT, (event) => {
+    handler(event.payload);
+  });
 }
 
 export function listenToHistoryPreviewPlacementUpdated(

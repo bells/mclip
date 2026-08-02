@@ -41,12 +41,13 @@ use crate::settings::{
     ResolvedAppLanguage,
 };
 use crate::window::{
-    adjust_window_height, adjust_window_height_to_content, configure_main_window,
-    get_history_preview_pointer_position, hide_history_preview_detail_window,
-    hide_history_preview_window, hide_main_window, is_pointer_over_history_preview_window,
-    is_pointer_over_preview_window, resize_history_preview_window, show_about_window,
-    show_history_preview_detail_window, show_history_preview_window, show_main_window,
-    show_preferences_window, toggle_main_window, TrayWindowAnchor, WindowPlacement,
+    adjust_window_height, adjust_window_height_to_content, close_image_viewer,
+    configure_main_window, get_history_preview_pointer_position,
+    hide_history_preview_detail_window, hide_history_preview_window, hide_main_window,
+    is_pointer_over_history_preview_window, is_pointer_over_preview_window,
+    resize_history_preview_window, show_about_window, show_history_preview_detail_window,
+    show_history_preview_window, show_image_viewer, show_main_window, show_preferences_window,
+    toggle_main_window, TrayWindowAnchor, WindowPlacement, IMAGE_VIEWER_WINDOW_LABEL,
 };
 
 const SHOW_GUARD_MS: u64 = 450;
@@ -371,6 +372,14 @@ pub fn run() {
             let show_guard_until = Arc::clone(&show_guard_until);
 
             move |window, event| {
+                if window.label() == IMAGE_VIEWER_WINDOW_LABEL {
+                    if let WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = close_image_viewer(window.app_handle().clone());
+                    }
+                    return;
+                }
+
                 if window.label() != "main" {
                     return;
                 }
@@ -425,6 +434,8 @@ pub fn run() {
             show_history_preview_detail_window,
             hide_history_preview_window,
             hide_history_preview_detail_window,
+            show_image_viewer,
+            close_image_viewer,
             show_about_window,
             show_preferences_window,
             is_pointer_over_history_preview_window,

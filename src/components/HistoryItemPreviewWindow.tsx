@@ -5,6 +5,7 @@ import type { HistoryItemPreviewPayload } from "../types";
 import { ui } from "../uiStyles";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
 import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
+import { HistoryDetailFullscreenButton } from "./HistoryDetailFullscreenButton";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
 
@@ -12,6 +13,7 @@ type HistoryItemPreviewWindowProps = {
   preview: HistoryItemPreviewPayload;
   translations: HistoryTranslations;
   onDeleteItem: (id: string) => void;
+  onViewFullscreen: () => Promise<void>;
   onPointerInside: () => void;
   onRequestClose: () => void;
 };
@@ -20,6 +22,7 @@ export function HistoryItemPreviewWindow({
   preview,
   translations,
   onDeleteItem,
+  onViewFullscreen,
   onPointerInside,
   onRequestClose,
 }: HistoryItemPreviewWindowProps) {
@@ -33,10 +36,18 @@ export function HistoryItemPreviewWindow({
       <HistoryDetailPanel
         ariaLabel={translations.itemPreviewAriaLabel}
         headerAction={
-          <HistoryDetailDeleteButton
-            label={translations.deleteItemAriaLabel}
-            onDelete={() => onDeleteItem(preview.item.id)}
-          />
+          <>
+            {preview.item.kind === "image" ? (
+              <HistoryDetailFullscreenButton
+                label={translations.viewImageFullscreenAriaLabel}
+                onOpen={onViewFullscreen}
+              />
+            ) : null}
+            <HistoryDetailDeleteButton
+              label={translations.deleteItemAriaLabel}
+              onDelete={() => onDeleteItem(preview.item.id)}
+            />
+          </>
         }
         item={preview.item}
         language={preview.language}

@@ -16,6 +16,8 @@ const settingsSelect =
   `${focusRing} h-8 w-[104px] rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-2 text-[12px] font-medium text-[var(--mclip-ink)] outline-none`;
 const previewSurface =
   "relative min-h-0 overflow-hidden rounded-[var(--mclip-radius-lg)] border border-[var(--mclip-line)] [background:var(--mclip-surface-bg)] text-[var(--mclip-ink)] shadow-[var(--mclip-soft-shadow)]";
+const historyDetailActionButton =
+  `inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--mclip-ink-dim)] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
 const listText =
   "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium leading-5 text-[var(--mclip-ink-soft)]";
 const historyTextRowHeight = "h-8";
@@ -125,7 +127,10 @@ export const ui = {
     "flex shrink-0 items-center justify-between gap-3 border-b border-[var(--mclip-line)] px-3 py-2",
   historyPreviewHeaderActions: "flex shrink-0 items-center gap-2",
   historyDetailActionButton:
-    `inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--mclip-ink-dim)] transition-colors duration-150 hover:bg-[var(--mclip-row-hover-bg)] hover:text-[var(--mclip-danger)] disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`,
+    `${historyDetailActionButton} hover:bg-[var(--mclip-row-hover-bg)] hover:text-[var(--mclip-danger)]`,
+  historyDetailFullscreenButton:
+    `${historyDetailActionButton} hover:bg-[var(--mclip-row-hover-bg)] hover:text-[var(--mclip-ink)]`,
+  fullscreenIcon: "size-4",
   historyPreviewKicker:
     "text-[10px] font-bold uppercase tracking-normal text-[var(--mclip-kicker)]",
   historyPreviewRange:
@@ -169,6 +174,22 @@ export const ui = {
   historyPreviewText: listText,
   historyPreviewDetailWindow:
     "flex h-screen w-screen items-start overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))]",
+
+  imageViewerFrame:
+    "relative flex h-screen w-screen overflow-hidden bg-[var(--mclip-viewer-bg)] text-[var(--mclip-viewer-ink)]",
+  imageViewerCloseButton:
+    `absolute right-5 top-5 z-10 inline-flex size-10 items-center justify-center rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-viewer-line)] bg-[var(--mclip-viewer-control-bg)] text-[var(--mclip-viewer-ink)] shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-[background-color,transform] duration-150 hover:bg-[var(--mclip-viewer-control-hover)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`,
+  imageViewerCloseIcon: "size-5",
+  imageViewerMedia:
+    "flex h-full min-h-0 w-full min-w-0 items-center justify-center p-6 sm:p-10",
+  imageViewerImage:
+    "max-h-full max-w-full object-contain opacity-100 transition-opacity duration-150",
+  imageViewerLoading:
+    "flex min-h-[220px] min-w-[280px] flex-col items-center justify-center gap-4 text-[13px] font-semibold text-[var(--mclip-viewer-ink-soft)]",
+  imageViewerSkeleton:
+    "block h-[min(52vh,420px)] w-[min(64vw,720px)] animate-pulse rounded-[var(--mclip-radius-md)] border border-[var(--mclip-viewer-line)] bg-[var(--mclip-viewer-skeleton)]",
+  imageViewerError:
+    "max-w-[360px] rounded-[var(--mclip-radius-md)] border border-[var(--mclip-viewer-line)] bg-[var(--mclip-viewer-control-bg)] px-5 py-4 text-center text-[13px] font-semibold leading-5 text-[var(--mclip-viewer-ink)]",
 
   dialogFrame:
     "h-screen w-screen overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))] text-[var(--mclip-ink)]",

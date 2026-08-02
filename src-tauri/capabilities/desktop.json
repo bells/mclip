@@ -11,6 +11,7 @@
     "main",
     "preview",
     "preview-detail",
+    "image-viewer",
     "about",
     "preferences"
   ],

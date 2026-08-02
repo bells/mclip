@@ -57,6 +57,7 @@ export const translations = {
       itemPreviewKicker: "历史详情",
       contentLabel: "内容",
       deleteItemAriaLabel: "删除这条历史",
+      viewImageFullscreenAriaLabel: "全屏查看图片",
       firstCopiedTimeLabel: "首次复制时间",
       lastCopiedTimeLabel: "上次复制时间",
       copyCountLabel: "复制次数",
@@ -71,6 +72,12 @@ export const translations = {
       sourceAppLabel: "应用",
       noMatches: "没有匹配的结果",
       previewAriaLabel: (start: number, end: number) => `历史分组 ${start}-${end}`,
+    },
+    imageViewer: {
+      ariaLabel: "全屏图片查看器",
+      closeAriaLabel: "关闭全屏图片",
+      loading: "正在加载图片...",
+      loadError: "无法加载这张图片。",
     },
     preferences: {
       autoPasteDescription: "选择历史项后，先写入剪贴板，再自动粘贴到当前应用。",
@@ -238,6 +245,7 @@ export const translations = {
       itemPreviewKicker: "History Details",
       contentLabel: "Content",
       deleteItemAriaLabel: "Delete this history item",
+      viewImageFullscreenAriaLabel: "View image fullscreen",
       firstCopiedTimeLabel: "First copied",
       lastCopiedTimeLabel: "Last copied",
       copyCountLabel: "Copies",
@@ -252,6 +260,12 @@ export const translations = {
       sourceAppLabel: "App",
       noMatches: "No matching results",
       previewAriaLabel: (start: number, end: number) => `History group ${start}-${end}`,
+    },
+    imageViewer: {
+      ariaLabel: "Fullscreen image viewer",
+      closeAriaLabel: "Close fullscreen image",
+      loading: "Loading image...",
+      loadError: "Unable to load this image.",
     },
     preferences: {
       autoPasteDescription: "After choosing an item, copy it first and then paste it into the active app.",

@@ -20,6 +20,7 @@ import {
   notifyHistoryPreviewSelectionCancelled,
   notifyHistoryPreviewSelectionStarted,
   pasteClipboard,
+  openImageViewer,
   requestHistoryPreviewClose,
   showHistoryPreviewDetailWindow,
   updateHistoryPreviewDetailWindow,
@@ -405,6 +406,20 @@ export function HistoryPreviewWindow() {
           void deletePreviewItem(id);
         }}
         onPointerInside={notifyPointerInside}
+        onViewFullscreen={() => {
+          if (preview.item.kind !== "image") {
+            return Promise.resolve();
+          }
+
+          return openImageViewer({
+            alt: preview.item.displayText,
+            appearanceTheme: preview.appearanceTheme,
+            height: preview.item.height,
+            imagePath: preview.item.imagePath,
+            language: preview.language,
+            width: preview.item.width,
+          });
+        }}
         onRequestClose={() => {
           void requestHistoryPreviewClose();
         }}

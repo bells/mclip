@@ -43,6 +43,13 @@
   --mclip-titlebar-line: rgba(226, 232, 240, 0.14);
   --mclip-titlebar-ink: #dbe5f0;
   --mclip-scroll-thumb: rgba(229, 168, 75, 0.55);
+  --mclip-viewer-bg: #101315;
+  --mclip-viewer-ink: #f1f5f4;
+  --mclip-viewer-ink-soft: #b8c2c0;
+  --mclip-viewer-line: rgba(241, 245, 244, 0.2);
+  --mclip-viewer-control-bg: rgba(28, 33, 35, 0.9);
+  --mclip-viewer-control-hover: rgba(49, 57, 59, 0.96);
+  --mclip-viewer-skeleton: rgba(241, 245, 244, 0.08);
   --mclip-radius-lg: 20px;
   --mclip-radius-md: 14px;
   --mclip-radius-sm: 8px;

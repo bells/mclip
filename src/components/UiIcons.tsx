@@ -41,6 +41,26 @@ export function TrashIcon(props: IconProps) {
   );
 }
 
+export function ExpandIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M14.5 4H20v5.5" />
+      <path d="m20 4-6.5 6.5" />
+      <path d="M9.5 20H4v-5.5" />
+      <path d="m4 20 6.5-6.5" />
+    </IconBase>
+  );
+}
+
+export function CloseIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m6 6 12 12" />
+      <path d="m18 6-12 12" />
+    </IconBase>
+  );
+}
+
 export function FolderIcon(props: IconProps) {
   return (
     <IconBase {...props}>

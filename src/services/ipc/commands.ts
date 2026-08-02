@@ -122,6 +122,14 @@ export function hideHistoryPreviewDetailWindow() {
   return invoke<void>("hide_history_preview_detail_window");
 }
 
+export function showImageViewerWindow() {
+  return invoke<void>("show_image_viewer");
+}
+
+export function closeImageViewerWindow() {
+  return invoke<void>("close_image_viewer");
+}
+
 export function showHistoryPreviewDetailWindow(
   detailAnchorTop: number,
   detailHeight: number,
