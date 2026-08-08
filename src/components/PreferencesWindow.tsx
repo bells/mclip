@@ -66,21 +66,40 @@ type VisibleItemCountSetting = "mainWindowItemCount" | "historyGroupItemCount";
 type SettingsSelectFieldProps = {
   children: ReactNode;
   controlId: string;
+  description: string;
   label: string;
 };
 
 function SettingsSelectField({
   children,
   controlId,
+  description,
   label,
 }: SettingsSelectFieldProps) {
   return (
     <div className={ui.settingsSelectField}>
-      <label className={ui.settingsLabel} htmlFor={controlId}>
-        {label}
-      </label>
+      <div className={ui.settingsCopy}>
+        <label className={ui.settingsLabel} htmlFor={controlId}>
+          {label}
+        </label>
+        <div className={ui.settingsDescription}>{description}</div>
+      </div>
       {children}
     </div>
+  );
+}
+
+type SettingsGroupProps = {
+  children: ReactNode;
+  label: string;
+};
+
+function SettingsGroup({ children, label }: SettingsGroupProps) {
+  return (
+    <section className={ui.settingsGroup}>
+      <h2 className={ui.settingsGroupLabel}>{label}</h2>
+      <div className={ui.settingsGroupBody}>{children}</div>
+    </section>
   );
 }
 
@@ -908,7 +927,7 @@ export function PreferencesWindow() {
             <div aria-label={t.tabsLabel} className={ui.settingsTabs} role="tablist">
               {([
                 ["general", t.generalTab],
-                ["storage", t.storageTab],
+                ["storage", t.historyTab],
                 ["cli", t.cliTab],
               ] as const).map(([tab, label]) => (
                 <button
@@ -926,8 +945,12 @@ export function PreferencesWindow() {
 
             {activeTab === "general" ? (
               <div className={ui.settingsTabPanel} role="tabpanel">
-                <div className={ui.settingsPrimaryGrid}>
-                  <SettingsSelectField controlId={languageSelectId} label={t.languageLabel}>
+                <SettingsGroup label={t.interfaceGroupLabel}>
+                  <SettingsSelectField
+                    controlId={languageSelectId}
+                    description={t.languageDescription}
+                    label={t.languageLabel}
+                  >
                     <select
                       aria-label={t.languageLabel}
                       className={ui.settingsSelect}
@@ -943,6 +966,7 @@ export function PreferencesWindow() {
 
                   <SettingsSelectField
                     controlId={appearanceThemeSelectId}
+                    description={t.appearanceThemeDescription}
                     label={t.appearanceThemeLabel}
                   >
                     <select
@@ -962,6 +986,7 @@ export function PreferencesWindow() {
 
                   <SettingsSelectField
                     controlId={menuBarIconStyleSelectId}
+                    description={t.menuBarIconStyleDescription}
                     label={t.menuBarIconStyleLabel}
                   >
                     <MenuBarIconSelect
@@ -972,30 +997,16 @@ export function PreferencesWindow() {
                       value={settingsDraft.menuBarIconStyle}
                     />
                   </SettingsSelectField>
-                </div>
+                </SettingsGroup>
 
-                <SettingsSwitchItem
-                  checked={settingsDraft.launchAtLogin}
-                  description={t.launchAtLoginDescription}
-                  label={t.launchAtLoginLabel}
-                  onClick={toggleLaunchAtLogin}
-                />
+                <SettingsGroup label={t.behaviorGroupLabel}>
+                  <SettingsSwitchItem
+                    checked={settingsDraft.launchAtLogin}
+                    description={t.launchAtLoginDescription}
+                    label={t.launchAtLoginLabel}
+                    onClick={toggleLaunchAtLogin}
+                  />
 
-                <SettingsSwitchItem
-                  checked={settingsDraft.showMainWindowBrand}
-                  description={t.showMainWindowBrandDescription}
-                  label={t.showMainWindowBrandLabel}
-                  onClick={toggleMainWindowBrand}
-                />
-
-                <SettingsSwitchItem
-                  checked={settingsDraft.showHistoryItemNumbers}
-                  description={t.showHistoryItemNumbersDescription}
-                  label={t.showHistoryItemNumbersLabel}
-                  onClick={toggleHistoryItemNumbers}
-                />
-
-                <div className={ui.settingsSwitchGroup}>
                   <SettingsSwitchItem
                     checked={settingsDraft.autoPaste}
                     description={t.autoPasteDescription}
@@ -1043,12 +1054,59 @@ export function PreferencesWindow() {
                       </button>
                     </div>
                   ) : null}
-                </div>
+                </SettingsGroup>
+
+                <SettingsGroup label={t.mainWindowGroupLabel}>
+                  <SettingsSwitchItem
+                    checked={settingsDraft.showMainWindowBrand}
+                    description={t.showMainWindowBrandDescription}
+                    label={t.showMainWindowBrandLabel}
+                    onClick={toggleMainWindowBrand}
+                  />
+
+                  <SettingsSwitchItem
+                    checked={settingsDraft.showHistoryItemNumbers}
+                    description={t.showHistoryItemNumbersDescription}
+                    label={t.showHistoryItemNumbersLabel}
+                    onClick={toggleHistoryItemNumbers}
+                  />
+                </SettingsGroup>
               </div>
             ) : null}
 
             {activeTab === "storage" ? (
               <div className={ui.settingsTabPanel} role="tabpanel">
+                <div className={`${ui.settingsSection} ${ui.historyTypesSection}`}>
+                  <div className={ui.settingsSectionHeading}>
+                    <div className={ui.settingsLabel}>{t.typesLabel}</div>
+                    <div className={ui.settingsDescription}>{t.typesDescription}</div>
+                  </div>
+
+                  <div className={ui.historyTypeList}>
+                    {/* `as const` 让 TypeScript 把 kind 推断成字面量类型，而不是普通 string。 */}
+                    {([
+                      ["text", t.typeText],
+                      ["image", t.typeImage],
+                      ["files", t.typeFiles],
+                    ] as const).map(([kind, label]) => (
+                      <button
+                        aria-pressed={settingsDraft.enabledHistoryTypes[kind]}
+                        className={historyTypeRow(settingsDraft.enabledHistoryTypes[kind])}
+                        key={kind}
+                        onClick={() => toggleHistoryType(kind)}
+                        type="button"
+                      >
+                        <span className={ui.historyTypeLabel}>{label}</span>
+                        <span className={ui.historyTypeCheck}>
+                          {settingsDraft.enabledHistoryTypes[kind] ? (
+                            <CheckIcon className="size-3.5" />
+                          ) : null}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className={ui.settingsRow}>
                   <div className={ui.settingsCopy}>
                     <div className={ui.settingsLabel}>{t.maxHistoryCountLabel}</div>
@@ -1160,36 +1218,6 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
-                <div className={`${ui.settingsSection} ${ui.historyTypesSection}`}>
-                  <div className={ui.settingsSectionHeading}>
-                    <div className={ui.settingsLabel}>{t.typesLabel}</div>
-                    <div className={ui.settingsDescription}>{t.typesDescription}</div>
-                  </div>
-
-                  <div className={ui.historyTypeList}>
-                    {/* `as const` 让 TypeScript 把 kind 推断成字面量类型，而不是普通 string。 */}
-                    {([
-                      ["text", t.typeText],
-                      ["image", t.typeImage],
-                      ["files", t.typeFiles],
-                    ] as const).map(([kind, label]) => (
-                      <button
-                        aria-pressed={settingsDraft.enabledHistoryTypes[kind]}
-                        className={historyTypeRow(settingsDraft.enabledHistoryTypes[kind])}
-                        key={kind}
-                        onClick={() => toggleHistoryType(kind)}
-                        type="button"
-                      >
-                        <span className={ui.historyTypeLabel}>{label}</span>
-                        <span className={ui.historyTypeCheck}>
-                          {settingsDraft.enabledHistoryTypes[kind] ? (
-                            <CheckIcon className="size-3.5" />
-                          ) : null}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             ) : null}
 

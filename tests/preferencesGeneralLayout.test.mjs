@@ -6,33 +6,43 @@ async function readSource(path) {
   return readFile(path, "utf8");
 }
 
-test("general preferences use one three-column row with inline selectors", async () => {
+test("general preferences stack interface fields into task groups", async () => {
   const source = await readSource("src/components/PreferencesWindow.tsx");
-  const primaryGridIndex = source.indexOf("ui.settingsPrimaryGrid");
+  const interfaceGroupIndex = source.indexOf("t.interfaceGroupLabel");
+  const behaviorGroupIndex = source.indexOf("t.behaviorGroupLabel");
+  const mainWindowGroupIndex = source.indexOf("t.mainWindowGroupLabel");
   const languageIndex = source.indexOf("t.languageLabel");
   const appearanceIndex = source.indexOf("t.appearanceThemeLabel");
   const menuBarIconIndex = source.indexOf("t.menuBarIconStyleLabel");
   const launchAtLoginIndex = source.indexOf("t.launchAtLoginLabel");
   const autoPasteIndex = source.indexOf("t.autoPasteLabel");
+  const brandIndex = source.indexOf("t.showMainWindowBrandLabel");
+  const itemNumbersIndex = source.indexOf("t.showHistoryItemNumbersLabel");
 
-  assert.notEqual(primaryGridIndex, -1, "general tab should include primary settings fields");
+  assert.notEqual(interfaceGroupIndex, -1, "general tab should include an interface group");
   assert.ok(
     languageIndex < appearanceIndex && appearanceIndex < menuBarIconIndex,
-    "top settings should be ordered language, appearance, menu bar icon",
+    "interface settings should be ordered language, appearance, menu bar icon",
   );
   assert.ok(
-    primaryGridIndex < launchAtLoginIndex,
-    "top settings should appear before launch-at-login",
+    interfaceGroupIndex < behaviorGroupIndex && behaviorGroupIndex < mainWindowGroupIndex,
+    "general groups should be ordered interface, behavior, main window",
   );
   assert.ok(
-    primaryGridIndex < autoPasteIndex,
-    "top settings should appear before auto paste",
+    launchAtLoginIndex < autoPasteIndex,
+    "launch at login should precede auto paste",
   );
+  assert.ok(
+    brandIndex < itemNumbersIndex,
+    "main window logo should precede item number visibility",
+  );
+  assert.match(source, /function SettingsGroup/);
   assert.match(source, /function SettingsSelectField/);
+  assert.match(source, /description: string/);
   assert.match(source, /<label className=\{ui\.settingsLabel\} htmlFor=\{controlId\}>/);
   assert.match(
     source,
-    /<SettingsSelectField controlId=\{languageSelectId\} label=\{t\.languageLabel\}>/,
+    /<SettingsSelectField[\s\S]*controlId=\{languageSelectId\}[\s\S]*description=\{t\.languageDescription\}/,
   );
   assert.match(source, /<option value="system">\{t\.languageSystem\}<\/option>/);
   assert.match(source, /controlId=\{appearanceThemeSelectId\}[^]*t\.appearanceThemeLabel/);
@@ -88,15 +98,18 @@ test("general switches use a compact checkbox control without row-click behavior
   assert.doesNotMatch(source, /switchControl/);
   assert.doesNotMatch(switchItemSource, /<button[\s\S]*className=\{settingsSwitchRow/);
   assert.ok(
-    launchIndex < brandIndex &&
-      brandIndex < itemNumbersIndex &&
-      itemNumbersIndex < autoPasteIndex,
-    "general switches should be ordered launch, logo, item numbers, auto paste",
+    launchIndex < autoPasteIndex &&
+      autoPasteIndex < brandIndex &&
+      brandIndex < itemNumbersIndex,
+    "general switches should be grouped as behavior followed by main window",
   );
   assert.match(stylesSource, /settingsSwitchRow:/);
   assert.match(stylesSource, /grid-cols-\[auto_minmax\(0,1fr\)\]/);
   assert.match(stylesSource, /settingsSwitchBox:/);
-  assert.match(stylesSource, /settingsSwitchBoxOn:[\s\S]*#0a84ff/);
+  assert.match(
+    stylesSource,
+    /settingsSwitchBoxOn:[\s\S]*var\(--mclip-control-active\)[\s\S]*var\(--mclip-on-control-active\)/,
+  );
 });
 
 test("menu bar icon style uses an accessible image-only dropdown", async () => {
@@ -122,7 +135,7 @@ test("menu bar icon style uses an accessible image-only dropdown", async () => {
   assert.doesNotMatch(source, /onBlur=\{\(event\) =>/);
 });
 
-test("preference layout defines three usable columns for both languages", async () => {
+test("preference layout uses compact fixed bounds and stacked rows", async () => {
   const [stylesSource, tauriConfigSource] = await Promise.all([
     readSource("src/uiStyles.ts"),
     readSource("src-tauri/tauri.conf.json"),
@@ -131,20 +144,51 @@ test("preference layout defines three usable columns for both languages", async 
     (window) => window.label === "preferences",
   );
 
-  assert.match(stylesSource, /settingsPrimaryGrid: "grid grid-cols-3 gap-2"/);
+  assert.doesNotMatch(stylesSource, /settingsPrimaryGrid:/);
   assert.match(
     stylesSource,
-    /settingsSelectField:[\s\S]*grid-cols-\[max-content_auto\]/,
+    /settingsSelectField:[\s\S]*grid-cols-\[minmax\(0,1fr\)_auto\]/,
   );
-  assert.match(stylesSource, /const settingsSelect =[\s\S]*w-\[104px\]/);
+  assert.match(stylesSource, /const settingsSelect =[\s\S]*w-\[152px\]/);
   assert.match(stylesSource, /menuBarIconSelectTrigger:[\s\S]*w-\[52px\]/);
-  assert.doesNotMatch(stylesSource, /settingsCompactField:/);
   assert.deepEqual(
     {
+      height: preferencesWindow.height,
+      maxHeight: preferencesWindow.maxHeight,
       maxWidth: preferencesWindow.maxWidth,
+      minHeight: preferencesWindow.minHeight,
       minWidth: preferencesWindow.minWidth,
       width: preferencesWindow.width,
     },
-    { maxWidth: 760, minWidth: 760, width: 760 },
+    {
+      height: 480,
+      maxHeight: 480,
+      maxWidth: 600,
+      minHeight: 480,
+      minWidth: 600,
+      width: 600,
+    },
   );
+});
+
+test("history preferences use history terminology and task order", async () => {
+  const [source, i18nSource] = await Promise.all([
+    readSource("src/components/PreferencesWindow.tsx"),
+    readSource("src/i18n.ts"),
+  ]);
+  const storagePanelIndex = source.indexOf('activeTab === "storage"');
+  const typesIndex = source.indexOf("t.typesLabel", storagePanelIndex);
+  const maxHistoryIndex = source.indexOf("t.maxHistoryCountLabel", storagePanelIndex);
+  const mainCountIndex = source.indexOf("t.mainWindowItemCountLabel", storagePanelIndex);
+  const groupCountIndex = source.indexOf("t.historyGroupItemCountLabel", storagePanelIndex);
+
+  assert.match(source, /\["storage", t\.historyTab\]/);
+  assert.ok(
+    typesIndex < maxHistoryIndex &&
+      maxHistoryIndex < mainCountIndex &&
+      mainCountIndex < groupCountIndex,
+    "history settings should be ordered types, maximum, main count, group count",
+  );
+  assert.match(i18nSource, /historyTab: "历史"/);
+  assert.match(i18nSource, /historyTab: "History"/);
 });

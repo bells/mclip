@@ -110,12 +110,9 @@ export function HistoryPreviewDetailWindow() {
                 label={translations.viewImageFullscreenAriaLabel}
                 onOpen={() =>
                   openImageViewer({
-                    alt: imageItem.displayText,
                     appearanceTheme: preview.appearanceTheme,
-                    height: imageItem.height,
-                    imagePath: imageItem.imagePath,
+                    item: imageItem,
                     language: preview.language,
-                    width: imageItem.width,
                   })
                 }
               />

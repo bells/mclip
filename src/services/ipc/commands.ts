@@ -130,6 +130,10 @@ export function closeImageViewerWindow() {
   return invoke<void>("close_image_viewer");
 }
 
+export function toggleImageViewerMaximizeWindow() {
+  return invoke<boolean>("toggle_image_viewer_maximize");
+}
+
 export function showHistoryPreviewDetailWindow(
   detailAnchorTop: number,
   detailHeight: number,

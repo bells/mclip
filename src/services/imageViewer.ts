@@ -2,6 +2,7 @@ import type { ImageViewerPayload } from "../types";
 import {
   closeImageViewerWindow,
   showImageViewerWindow,
+  toggleImageViewerMaximizeWindow,
 } from "./ipc/commands";
 import {
   notifyHistoryPreviewSelectionCancelled,
@@ -23,4 +24,8 @@ export async function openImageViewer(payload: ImageViewerPayload) {
 
 export function closeImageViewer() {
   return closeImageViewerWindow();
+}
+
+export function toggleImageViewerMaximize() {
+  return toggleImageViewerMaximizeWindow();
 }

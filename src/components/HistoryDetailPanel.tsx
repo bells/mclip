@@ -16,7 +16,9 @@ type HistoryDetailPanelProps = {
   language: AppLanguage;
   translations: HistoryTranslations;
   className?: string;
+  draggableHeader?: boolean;
   headerAction?: ReactNode;
+  presentation?: "compact" | "viewer";
   role?: "dialog" | "region";
 };
 
@@ -38,7 +40,9 @@ export function HistoryDetailPanel({
   language,
   translations,
   className = "",
+  draggableHeader = false,
   headerAction,
+  presentation = "compact",
   role = "dialog",
 }: HistoryDetailPanelProps) {
   const panelClassName = [ui.historyPreview, ui.historyDetailPreview, className]
@@ -47,7 +51,10 @@ export function HistoryDetailPanel({
 
   return (
     <div aria-label={ariaLabel} className={panelClassName} role={role}>
-      <div className={ui.historyPreviewHeader}>
+      <div
+        className={ui.historyPreviewHeader}
+        data-dialog-drag-region={draggableHeader ? true : undefined}
+      >
         <span className={ui.historyPreviewKicker}>
           {translations.itemPreviewKicker}
         </span>
@@ -61,7 +68,11 @@ export function HistoryDetailPanel({
 
       <div className={ui.historyDetailBody}>
         <div className={ui.historyDetailContentRegion}>
-          <HistoryPreviewDetailContent item={item} translations={translations} />
+          <HistoryPreviewDetailContent
+            item={item}
+            presentation={presentation}
+            translations={translations}
+          />
         </div>
 
         <dl className={ui.historyDetailMeta}>

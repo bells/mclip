@@ -52,6 +52,15 @@ export function ExpandIcon(props: IconProps) {
   );
 }
 
+export function RestoreIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M8 7V5h11v11h-2" />
+      <rect x="5" y="8" width="11" height="11" rx="1.5" />
+    </IconBase>
+  );
+}
+
 export function CloseIcon(props: IconProps) {
   return (
     <IconBase {...props}>

@@ -412,12 +412,9 @@ export function HistoryPreviewWindow() {
           }
 
           return openImageViewer({
-            alt: preview.item.displayText,
             appearanceTheme: preview.appearanceTheme,
-            height: preview.item.height,
-            imagePath: preview.item.imagePath,
+            item: preview.item,
             language: preview.language,
-            width: preview.item.width,
           });
         }}
         onRequestClose={() => {

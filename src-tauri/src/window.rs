@@ -24,6 +24,8 @@ const HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT: &str = "history-preview-placement
 const PREVIEW_WINDOW_LABEL: &str = "preview";
 const PREVIEW_DETAIL_WINDOW_LABEL: &str = "preview-detail";
 pub const IMAGE_VIEWER_WINDOW_LABEL: &str = "image-viewer";
+const IMAGE_VIEWER_DEFAULT_WIDTH: f64 = 720.0;
+const IMAGE_VIEWER_DEFAULT_HEIGHT: f64 = 520.0;
 static IMAGE_VIEWER_CLOSE_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
 const ABOUT_WINDOW_LABEL: &str = "about";
 const PREFERENCES_WINDOW_LABEL: &str = "preferences";
@@ -684,15 +686,43 @@ fn show_main_window_in_place(app_handle: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn set_window_to_monitor_frame<R: Runtime>(
+fn set_main_window_always_on_top(
+    app_handle: &AppHandle,
+    always_on_top: bool,
+) -> Result<(), String> {
+    let Some(main_window) = app_handle.get_webview_window("main") else {
+        return Ok(());
+    };
+
+    main_window
+        .set_always_on_top(always_on_top)
+        .map_err(|error| error.to_string())
+}
+
+fn set_image_viewer_windowed_frame<R: Runtime>(
     window: &WebviewWindow<R>,
     monitor: &Monitor,
 ) -> Result<(), String> {
+    let scale_factor = monitor.scale_factor();
+    let work_area = monitor.work_area();
+    let width = (IMAGE_VIEWER_DEFAULT_WIDTH * scale_factor)
+        .round()
+        .min(f64::from(work_area.size.width))
+        .max(1.0) as u32;
+    let height = (IMAGE_VIEWER_DEFAULT_HEIGHT * scale_factor)
+        .round()
+        .min(f64::from(work_area.size.height))
+        .max(1.0) as u32;
+    let x = work_area.position.x
+        + ((f64::from(work_area.size.width) - f64::from(width)) / 2.0).round() as i32;
+    let y = work_area.position.y
+        + ((f64::from(work_area.size.height) - f64::from(height)) / 2.0).round() as i32;
+
     window
-        .set_position(Position::Physical(*monitor.position()))
+        .set_size(Size::Physical(PhysicalSize::new(width, height)))
         .map_err(|error| error.to_string())?;
     window
-        .set_size(Size::Physical(*monitor.size()))
+        .set_position(Position::Physical(PhysicalPosition::new(x, y)))
         .map_err(|error| error.to_string())
 }
 
@@ -706,6 +736,22 @@ fn focus_image_viewer<R: Runtime>(viewer: &WebviewWindow<R>) -> Result<(), Strin
         .map_err(|error| error.to_string())?;
 
     Ok(())
+}
+
+fn restore_image_viewer_if_maximized<R: Runtime>(viewer: &WebviewWindow<R>) -> Result<(), String> {
+    if viewer.is_maximized().map_err(|error| error.to_string())? {
+        viewer.unmaximize().map_err(|error| error.to_string())?;
+    }
+
+    Ok(())
+}
+
+pub fn is_image_viewer_visible(app_handle: &AppHandle) -> Result<bool, String> {
+    let Some(viewer) = app_handle.get_webview_window(IMAGE_VIEWER_WINDOW_LABEL) else {
+        return Ok(false);
+    };
+
+    viewer.is_visible().map_err(|error| error.to_string())
 }
 
 #[cfg(target_os = "macos")]
@@ -749,30 +795,28 @@ pub fn show_image_viewer(app_handle: AppHandle) -> Result<(), String> {
     }
     .ok_or_else(|| "missing monitor for image-viewer".to_string())?;
 
-    hide_main_window(&app_handle)?;
+    hide_history_preview_window(app_handle.clone())?;
 
     let show_result = (|| -> Result<(), String> {
+        set_main_window_always_on_top(&app_handle, false)?;
+        restore_image_viewer_if_maximized(&viewer)?;
         viewer
             .set_focusable(true)
             .map_err(|error| error.to_string())?;
         viewer
             .set_decorations(false)
             .map_err(|error| error.to_string())?;
-        viewer
-            .set_shadow(false)
-            .map_err(|error| error.to_string())?;
-        set_window_to_monitor_frame(&viewer, &target_monitor)?;
+        viewer.set_shadow(true).map_err(|error| error.to_string())?;
+        set_image_viewer_windowed_frame(&viewer, &target_monitor)?;
         viewer.show().map_err(|error| error.to_string())?;
-        viewer
-            .set_simple_fullscreen(true)
-            .map_err(|error| error.to_string())?;
-        set_window_to_monitor_frame(&viewer, &target_monitor)?;
+        viewer.maximize().map_err(|error| error.to_string())?;
         focus_image_viewer(&viewer)
     })();
 
     if let Err(error) = show_result {
-        let _ = viewer.set_simple_fullscreen(false);
+        let _ = viewer.unmaximize();
         let _ = viewer.hide();
+        let _ = set_main_window_always_on_top(&app_handle, true);
         let _ = show_main_window_in_place(&app_handle);
         return Err(error);
     }
@@ -781,6 +825,22 @@ pub fn show_image_viewer(app_handle: AppHandle) -> Result<(), String> {
     reinforce_image_viewer_focus(viewer);
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn toggle_image_viewer_maximize(app_handle: AppHandle) -> Result<bool, String> {
+    let viewer = app_handle
+        .get_webview_window(IMAGE_VIEWER_WINDOW_LABEL)
+        .ok_or_else(|| "missing image-viewer window".to_string())?;
+    let is_maximized = viewer.is_maximized().map_err(|error| error.to_string())?;
+
+    if is_maximized {
+        restore_image_viewer_if_maximized(&viewer)?;
+    } else {
+        viewer.maximize().map_err(|error| error.to_string())?;
+    }
+
+    Ok(!is_maximized)
 }
 
 #[tauri::command]
@@ -795,13 +855,13 @@ pub fn close_image_viewer(app_handle: AppHandle) -> Result<(), String> {
             .ok_or_else(|| "missing image-viewer window".to_string())?;
 
         if !viewer.is_visible().map_err(|error| error.to_string())? {
+            set_main_window_always_on_top(&app_handle, true)?;
             return Ok(());
         }
 
-        viewer
-            .set_simple_fullscreen(false)
-            .map_err(|error| error.to_string())?;
         viewer.hide().map_err(|error| error.to_string())?;
+        viewer.unmaximize().map_err(|error| error.to_string())?;
+        set_main_window_always_on_top(&app_handle, true)?;
         show_main_window_in_place(&app_handle)
     })();
 

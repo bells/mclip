@@ -31,7 +31,7 @@ export function HistoryDetailFullscreenButton({
         setIsOpening(true);
         void onOpen()
           .catch((error) => {
-            console.error("打开全屏图片查看器失败:", error);
+            console.error("打开图片查看器失败:", error);
           })
           .finally(() => {
             setIsOpening(false);

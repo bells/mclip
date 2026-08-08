@@ -143,3 +143,53 @@ test("light theme readability classes use semantic color tokens", async () => {
     assert.match(stylesSource, new RegExp(`var\\(${token}\\)`));
   }
 });
+
+test("theme action tokens meet contrast targets in light and dark modes", async () => {
+  const css = await readStylesCss();
+  const darkVariables = themeVariables(css, ":root");
+  const lightVariables = {
+    ...darkVariables,
+    ...themeVariables(css, ':root[data-app-theme="light"]'),
+  };
+  const requiredPairs = [
+    ["--mclip-on-control-active", "--mclip-control-active", 4.5],
+    ["--mclip-on-accent-action", "--mclip-accent-cool", 4.5],
+    ["--mclip-on-danger-action", "--mclip-danger", 4.5],
+  ];
+
+  for (const [themeName, variables] of [
+    ["dark", darkVariables],
+    ["light", lightVariables],
+  ]) {
+    for (const [foregroundToken, backgroundToken, minimum] of requiredPairs) {
+      const foreground = compositeOverWhite(
+        parseColor(variables[foregroundToken], variables),
+      );
+      const background = compositeOverWhite(
+        parseColor(variables[backgroundToken], variables),
+      );
+      const contrast = contrastRatio(foreground, background);
+
+      assert.ok(
+        contrast >= minimum,
+        `${themeName} ${foregroundToken} on ${backgroundToken} should be >= ${minimum}:1, got ${contrast.toFixed(2)}:1`,
+      );
+    }
+  }
+});
+
+test("light selected treatment and action classes use semantic tokens", async () => {
+  const [css, stylesSource] = await Promise.all([
+    readStylesCss(),
+    readFile("src/uiStyles.ts", "utf8"),
+  ]);
+  const lightVariables = themeVariables(css, ':root[data-app-theme="light"]');
+
+  assert.match(lightVariables["--mclip-selected-bg"], /var\(--mclip-selection\)/);
+  assert.doesNotMatch(lightVariables["--mclip-selected-bg"], /122,\s*75,\s*6/);
+  assert.match(stylesSource, /var\(--mclip-control-active\)/);
+  assert.match(stylesSource, /var\(--mclip-on-control-active\)/);
+  assert.match(stylesSource, /var\(--mclip-on-accent-action\)/);
+  assert.match(stylesSource, /var\(--mclip-on-danger-action\)/);
+  assert.doesNotMatch(stylesSource, /#0a84ff/);
+});

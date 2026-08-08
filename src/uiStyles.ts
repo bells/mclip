@@ -13,7 +13,7 @@ const fieldSurface =
 const settingsRow =
   "grid grid-cols-[minmax(0,1fr)_112px] items-center gap-4 rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] px-3 py-2";
 const settingsSelect =
-  `${focusRing} h-8 w-[104px] rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-2 text-[12px] font-medium text-[var(--mclip-ink)] outline-none`;
+  `${focusRing} h-8 w-[152px] rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-2 text-[12px] font-medium text-[var(--mclip-ink)] outline-none`;
 const previewSurface =
   "relative min-h-0 overflow-hidden rounded-[var(--mclip-radius-lg)] border border-[var(--mclip-line)] [background:var(--mclip-surface-bg)] text-[var(--mclip-ink)] shadow-[var(--mclip-soft-shadow)]";
 const historyDetailActionButton =
@@ -117,11 +117,11 @@ export const ui = {
     "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-[var(--mclip-danger)] text-[var(--mclip-danger)]",
   clearConfirmMessage: "m-0 text-[12px] leading-5 text-[var(--mclip-ink-dim)]",
   modalButton:
-    `min-h-8 rounded-[var(--mclip-radius-sm)] px-3 text-[12px] font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`,
+    `min-h-8 rounded-[var(--mclip-radius-sm)] px-3 text-[12px] font-semibold transition-[background-color,color,filter,transform] duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`,
   modalPrimaryButton:
-    "bg-[var(--mclip-accent-cool)] text-black hover:brightness-110",
+    "bg-[var(--mclip-accent-cool)] text-[var(--mclip-on-accent-action)] hover:brightness-110",
   modalDangerButton:
-    "bg-[var(--mclip-danger)] text-white hover:brightness-110",
+    "bg-[var(--mclip-danger)] text-[var(--mclip-on-danger-action)] hover:brightness-110",
   modalSecondaryButton:
     "bg-[var(--mclip-control-bg)] text-[var(--mclip-ink-soft)] hover:bg-[var(--mclip-control-bg-hover)]",
 
@@ -158,6 +158,17 @@ export const ui = {
     "flex min-h-0 flex-col items-center justify-center gap-2 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-surface-translucent)] p-2",
   historyDetailImage:
     "max-h-[180px] max-w-full rounded-md object-contain",
+  historyDetailImageLoading:
+    "flex h-[96px] w-full max-w-[220px] animate-pulse items-center justify-center rounded-md border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] px-3 text-center text-[11px] font-semibold text-[var(--mclip-ink-dim)]",
+  historyDetailImageError:
+    "flex min-h-[72px] w-full max-w-[220px] items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--mclip-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--mclip-danger)_8%,transparent)] px-3 text-center text-[11px] font-semibold leading-4 text-[var(--mclip-danger)]",
+  historyDetailImageViewerWrap: "h-full",
+  historyDetailImageViewer:
+    "min-h-0 max-h-[calc(100%-24px)] max-w-full flex-1 rounded-md object-contain",
+  historyDetailImageViewerLoading:
+    "flex h-full min-h-[180px] w-full animate-pulse items-center justify-center rounded-md border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] px-4 text-center text-[12px] font-semibold text-[var(--mclip-ink-dim)]",
+  historyDetailImageViewerError:
+    "flex h-full min-h-[180px] w-full items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--mclip-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--mclip-danger)_8%,transparent)] px-4 text-center text-[12px] font-semibold text-[var(--mclip-danger)]",
   historyDetailImageCaption:
     "max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-[var(--mclip-ink-soft)]",
   historyDetailFiles:
@@ -185,21 +196,9 @@ export const ui = {
   historyPreviewDetailWindow:
     "flex h-screen w-screen items-start overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))]",
 
-  imageViewerFrame:
-    "relative flex h-screen w-screen overflow-hidden bg-[var(--mclip-viewer-bg)] text-[var(--mclip-viewer-ink)]",
-  imageViewerCloseButton:
-    `absolute right-5 top-5 z-10 inline-flex size-10 items-center justify-center rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-viewer-line)] bg-[var(--mclip-viewer-control-bg)] text-[var(--mclip-viewer-ink)] shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-[background-color,transform] duration-150 hover:bg-[var(--mclip-viewer-control-hover)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`,
-  imageViewerCloseIcon: "size-5",
-  imageViewerMedia:
-    "flex h-full min-h-0 w-full min-w-0 items-center justify-center p-6 sm:p-10",
-  imageViewerImage:
-    "max-h-full max-w-full object-contain opacity-100 transition-opacity duration-150",
-  imageViewerLoading:
-    "flex min-h-[220px] min-w-[280px] flex-col items-center justify-center gap-4 text-[13px] font-semibold text-[var(--mclip-viewer-ink-soft)]",
-  imageViewerSkeleton:
-    "block h-[min(52vh,420px)] w-[min(64vw,720px)] animate-pulse rounded-[var(--mclip-radius-md)] border border-[var(--mclip-viewer-line)] bg-[var(--mclip-viewer-skeleton)]",
-  imageViewerError:
-    "max-w-[360px] rounded-[var(--mclip-radius-md)] border border-[var(--mclip-viewer-line)] bg-[var(--mclip-viewer-control-bg)] px-5 py-4 text-center text-[13px] font-semibold leading-5 text-[var(--mclip-viewer-ink)]",
+  imageViewerWindowFrame: "rounded-none [clip-path:none]",
+  imageViewerDetail:
+    "!rounded-none !border-0 !shadow-none [clip-path:none]",
 
   dialogFrame:
     "h-screen w-screen overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))] text-[var(--mclip-ink)]",
@@ -254,9 +253,10 @@ export const ui = {
     "grid grid-cols-3 gap-1 rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] p-1",
   settingsTabPanel:
     "mclip-scrollbar grid min-h-0 content-start gap-3 overflow-y-auto pr-0.5",
-  settingsPrimaryGrid: "grid grid-cols-3 gap-2",
+  settingsGroup: "grid gap-1.5",
+  settingsGroupBody: "grid gap-1",
   settingsSelectField:
-    `${fieldSurface} grid min-w-0 grid-cols-[max-content_auto] items-center justify-start gap-2 px-2 py-2`,
+    `${fieldSurface} grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-3 py-2`,
   settingsRow,
   settingsSwitchGroup: "grid gap-2",
   settingsSwitchActions: "flex flex-wrap items-center gap-2 pl-8",
@@ -264,11 +264,11 @@ export const ui = {
     "grid w-full grid-cols-[auto_minmax(0,1fr)] items-start gap-3 px-3 py-1.5 text-left",
   settingsSwitchRowDisabled: "opacity-65",
   settingsSwitchBox:
-    `${focusRing} mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-[7px] border-2 text-transparent shadow-sm transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60`,
+    `${focusRing} mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-[7px] border-2 text-transparent shadow-sm transition-[background-color,border-color,color,filter,transform] duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60`,
   settingsSwitchBoxOff:
     "border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] hover:bg-[var(--mclip-control-bg-hover)]",
   settingsSwitchBoxOn:
-    "border-[#0a84ff] bg-[#0a84ff] text-white shadow-[0_0_0_1px_rgba(10,132,255,0.18)] hover:bg-[#0a84ff]",
+    "border-[var(--mclip-control-active)] bg-[var(--mclip-control-active)] text-[var(--mclip-on-control-active)] hover:brightness-105",
   settingsSection: `${fieldSurface} grid gap-2 p-3`,
   historyTypesSection:
     "grid-cols-[minmax(0,1fr)_auto] items-center gap-4",
@@ -278,7 +278,7 @@ export const ui = {
   settingsRowActions: "flex shrink-0 flex-wrap items-center justify-end gap-2",
   settingsLabel: "text-[12px] font-semibold text-[var(--mclip-ink)]",
   settingsDescription: "text-[11px] leading-4 text-[var(--mclip-ink-dim)]",
-  settingsNote: "text-[10px] leading-4 text-[var(--mclip-meta)]",
+  settingsNote: "text-[11px] leading-4 text-[var(--mclip-meta)]",
   settingsNoteOk: "text-[var(--mclip-accent-cool)]",
   settingsNoteWarning: "text-[var(--mclip-meta)]",
   settingsError:

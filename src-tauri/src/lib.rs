@@ -44,10 +44,11 @@ use crate::window::{
     adjust_window_height, adjust_window_height_to_content, close_image_viewer,
     configure_main_window, get_history_preview_pointer_position,
     hide_history_preview_detail_window, hide_history_preview_window, hide_main_window,
-    is_pointer_over_history_preview_window, is_pointer_over_preview_window,
-    resize_history_preview_window, show_about_window, show_history_preview_detail_window,
-    show_history_preview_window, show_image_viewer, show_main_window, show_preferences_window,
-    toggle_main_window, TrayWindowAnchor, WindowPlacement, IMAGE_VIEWER_WINDOW_LABEL,
+    is_image_viewer_visible, is_pointer_over_history_preview_window,
+    is_pointer_over_preview_window, resize_history_preview_window, show_about_window,
+    show_history_preview_detail_window, show_history_preview_window, show_image_viewer,
+    show_main_window, show_preferences_window, toggle_image_viewer_maximize, toggle_main_window,
+    TrayWindowAnchor, WindowPlacement, IMAGE_VIEWER_WINDOW_LABEL,
 };
 
 const SHOW_GUARD_MS: u64 = 450;
@@ -86,6 +87,14 @@ fn protect_next_focus_loss(show_guard_until: &Arc<Mutex<Option<Instant>>>) {
     if let Ok(mut deadline) = show_guard_until.lock() {
         *deadline = Some(Instant::now() + Duration::from_millis(SHOW_GUARD_MS));
     }
+}
+
+fn should_hide_main_window_on_focus_loss(
+    focus_loss_guard_active: bool,
+    is_pointer_over_preview: bool,
+    image_viewer_visible: bool,
+) -> bool {
+    !focus_loss_guard_active && !is_pointer_over_preview && !image_viewer_visible
 }
 
 fn build_tray(
@@ -394,11 +403,18 @@ pub fn run() {
 
                     let is_pointer_over_preview =
                         is_pointer_over_preview_window(window.app_handle()).unwrap_or(false);
+                    let image_viewer_visible =
+                        is_image_viewer_visible(window.app_handle()).unwrap_or(false);
 
                     // Moving from the main popover into the preview transfers
-                    // focus away from the main window. Keep both windows alive
-                    // while the pointer is over the preview.
-                    if remaining_guard.is_zero() && !is_pointer_over_preview {
+                    // focus away from the main window. Keep the main window
+                    // alive while the pointer is over preview or the focused
+                    // image viewer is presenting the same history detail.
+                    if should_hide_main_window_on_focus_loss(
+                        !remaining_guard.is_zero(),
+                        is_pointer_over_preview,
+                        image_viewer_visible,
+                    ) {
                         let _ = hide_main_window(window.app_handle());
                     }
                 }
@@ -435,6 +451,7 @@ pub fn run() {
             hide_history_preview_window,
             hide_history_preview_detail_window,
             show_image_viewer,
+            toggle_image_viewer_maximize,
             close_image_viewer,
             show_about_window,
             show_preferences_window,
@@ -486,8 +503,9 @@ mod tests {
     use tauri_plugin_global_shortcut::Shortcut;
 
     use super::{
-        menu_bar_icon, menu_bar_icon_is_template, single_instance_launch_action, tray_tooltip,
-        SingleInstanceLaunchAction, TOGGLE_WINDOW_SHORTCUT, TRAY_POSITION_AUTOSAVE_NAME,
+        menu_bar_icon, menu_bar_icon_is_template, should_hide_main_window_on_focus_loss,
+        single_instance_launch_action, tray_tooltip, SingleInstanceLaunchAction,
+        TOGGLE_WINDOW_SHORTCUT, TRAY_POSITION_AUTOSAVE_NAME,
     };
 
     #[test]
@@ -503,6 +521,18 @@ mod tests {
             single_instance_launch_action(&args, "C:\\Users\\Watson"),
             SingleInstanceLaunchAction::ShowMainWindow
         );
+    }
+
+    #[test]
+    fn visible_image_viewer_preserves_main_window_on_focus_loss() {
+        assert!(!should_hide_main_window_on_focus_loss(false, false, true));
+    }
+
+    #[test]
+    fn ordinary_focus_loss_still_hides_main_window() {
+        assert!(should_hide_main_window_on_focus_loss(false, false, false));
+        assert!(!should_hide_main_window_on_focus_loss(true, false, false));
+        assert!(!should_hide_main_window_on_focus_loss(false, true, false));
     }
 
     #[test]
@@ -526,7 +556,7 @@ mod tests {
     }
 
     #[test]
-    fn preferences_window_uses_tight_fixed_height() {
+    fn preferences_window_uses_compact_fixed_bounds() {
         let config: Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
         let windows = config["app"]["windows"].as_array().unwrap();
         let preferences = windows
@@ -534,9 +564,12 @@ mod tests {
             .find(|window| window["label"].as_str() == Some("preferences"))
             .expect("preferences window should be configured");
 
-        assert_eq!(preferences["height"].as_u64(), Some(420));
-        assert_eq!(preferences["minHeight"].as_u64(), Some(420));
-        assert_eq!(preferences["maxHeight"].as_u64(), Some(420));
+        assert_eq!(preferences["width"].as_u64(), Some(600));
+        assert_eq!(preferences["minWidth"].as_u64(), Some(600));
+        assert_eq!(preferences["maxWidth"].as_u64(), Some(600));
+        assert_eq!(preferences["height"].as_u64(), Some(480));
+        assert_eq!(preferences["minHeight"].as_u64(), Some(480));
+        assert_eq!(preferences["maxHeight"].as_u64(), Some(480));
     }
 
     #[test]

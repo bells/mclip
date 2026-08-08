@@ -50,9 +50,16 @@ test("storage controls stay interactive while settings persist", async () => {
 
 test("history type choices render as one compact row", async () => {
   const stylesSource = await readFile("src/uiStyles.ts", "utf8");
+  const historyTypeStyles = stylesSource.slice(
+    stylesSource.indexOf("historyTypesSection:"),
+    stylesSource.indexOf("cliInstallSection:"),
+  );
+  const historyTypeRowSource = stylesSource.slice(
+    stylesSource.indexOf("export function historyTypeRow"),
+  );
 
-  assert.match(stylesSource, /historyTypesSection:[\s\S]*grid-cols-\[minmax\(0,1fr\)_auto\]/);
-  assert.match(stylesSource, /historyTypeList:[\s\S]*grid-cols-3/);
-  assert.match(stylesSource, /border-r border-\[var\(--mclip-line\)\]/);
-  assert.doesNotMatch(stylesSource, /max-w-\[220px\]/);
+  assert.match(historyTypeStyles, /historyTypesSection:[\s\S]*grid-cols-\[minmax\(0,1fr\)_auto\]/);
+  assert.match(historyTypeStyles, /historyTypeList:[\s\S]*grid-cols-3/);
+  assert.match(historyTypeRowSource, /border-r border-\[var\(--mclip-line\)\]/);
+  assert.doesNotMatch(historyTypeStyles, /max-w-\[220px\]/);
 });

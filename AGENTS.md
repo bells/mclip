@@ -94,7 +94,7 @@ src/
                                       单条历史详情 preview
   components/HistoryPreviewDetailWindow.tsx
                                       分组 hover 的独立详情窗口
-  components/FullscreenImageViewer.tsx 图片历史的独立全屏查看窗口
+  components/FullscreenImageViewer.tsx 图片历史的独立查看器，复用完整详情并支持最大化与恢复
   components/HistoryDetailPanel.tsx   详情页的三段式外壳
   components/HistoryDetailDeleteButton.tsx
                                       主列表详情/分组详情复用的删除动作
@@ -170,7 +170,7 @@ Tauri 配置里当前有六个窗口：
 - `main`：主界面，宽度固定 `320`，不可由用户手动 resize。
 - `preview`：独立透明预览窗口，用于单条详情和历史分组列表，默认隐藏。
 - `preview-detail`：分组 hover 时的独立详情窗口，默认隐藏。
-- `image-viewer`：图片历史的独立全屏查看窗口，默认隐藏，打开时可聚焦以接收 Escape。
+- `image-viewer`：图片历史的独立查看窗口，复用完整历史详情并直接最大化打开；恢复 frame 为 720×520，可聚焦并支持最大化、恢复与 Escape 关闭。打开期间主窗口保持 visible 但临时退出置顶层级，因此会被 viewer 覆盖；关闭后恢复主窗口原有层级与失焦隐藏行为。
 - `about`：关于窗口，固定尺寸，默认隐藏。
 - `preferences`：偏好设置窗口，固定尺寸，默认隐藏。
 

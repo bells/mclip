@@ -29,11 +29,15 @@
   --mclip-line-strong: rgba(226, 232, 240, 0.24);
   --mclip-accent: #e5a84b;
   --mclip-accent-cool: #73d0c8;
+  --mclip-control-active: #73d0c8;
   --mclip-danger: #ff756d;
   --mclip-index: #efc06f;
   --mclip-meta: #efc06f;
   --mclip-kicker: #efc06f;
   --mclip-focus: #73d0c8;
+  --mclip-on-accent-action: #071310;
+  --mclip-on-control-active: #071310;
+  --mclip-on-danger-action: #2b0503;
   --mclip-control-bg: rgba(255, 255, 255, 0.055);
   --mclip-control-bg-hover: rgba(255, 255, 255, 0.09);
   --mclip-row-hover-bg: rgba(255, 255, 255, 0.055);
@@ -43,13 +47,6 @@
   --mclip-titlebar-line: rgba(226, 232, 240, 0.14);
   --mclip-titlebar-ink: #dbe5f0;
   --mclip-scroll-thumb: rgba(229, 168, 75, 0.55);
-  --mclip-viewer-bg: #101315;
-  --mclip-viewer-ink: #f1f5f4;
-  --mclip-viewer-ink-soft: #b8c2c0;
-  --mclip-viewer-line: rgba(241, 245, 244, 0.2);
-  --mclip-viewer-control-bg: rgba(28, 33, 35, 0.9);
-  --mclip-viewer-control-hover: rgba(49, 57, 59, 0.96);
-  --mclip-viewer-skeleton: rgba(241, 245, 244, 0.08);
   --mclip-radius-lg: 20px;
   --mclip-radius-md: 14px;
   --mclip-radius-sm: 8px;
@@ -90,11 +87,15 @@
   --mclip-line-strong: #5d7068;
   --mclip-accent: #7a4b06;
   --mclip-accent-cool: #0b6f67;
+  --mclip-control-active: #0b6f67;
   --mclip-danger: #b42318;
   --mclip-index: #7a4b06;
   --mclip-meta: #654100;
   --mclip-kicker: #654100;
   --mclip-focus: #0b6f67;
+  --mclip-on-accent-action: #f7fffd;
+  --mclip-on-control-active: #f7fffd;
+  --mclip-on-danger-action: #fff8f7;
   --mclip-control-bg: rgba(15, 31, 26, 0.065);
   --mclip-control-bg-hover: rgba(15, 31, 26, 0.11);
   --mclip-row-hover-bg: rgba(15, 31, 26, 0.075);
@@ -113,7 +114,7 @@
   --mclip-selected-bg: linear-gradient(
       90deg,
       var(--mclip-selection),
-      rgba(122, 75, 6, 0.07)
+      rgba(11, 111, 103, 0.05)
     ),
     var(--mclip-surface-translucent);
   --mclip-shadow:

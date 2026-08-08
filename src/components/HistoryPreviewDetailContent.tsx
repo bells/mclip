@@ -10,21 +10,59 @@ type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
 
 type HistoryPreviewDetailContentProps = {
   item: HistoryListItem;
+  presentation?: "compact" | "viewer";
   translations: HistoryTranslations;
 };
 
 export function HistoryPreviewDetailContent({
   item,
+  presentation = "compact",
   translations,
 }: HistoryPreviewDetailContentProps) {
   // HistoryListItem 是联合类型，判断 kind 后 TypeScript 会自动收窄字段类型。
   if (item.kind === "image") {
+    const isViewer = presentation === "viewer";
+
     return (
-      <div className={ui.historyDetailImageWrap}>
+      <div
+        className={[
+          ui.historyDetailImageWrap,
+          isViewer ? ui.historyDetailImageViewerWrap : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
         <ImageThumb
           alt={item.displayText}
-          className={ui.historyDetailImage}
+          className={
+            isViewer ? ui.historyDetailImageViewer : ui.historyDetailImage
+          }
+          errorFallback={(
+            <div
+              className={
+                isViewer
+                  ? ui.historyDetailImageViewerError
+                  : ui.historyDetailImageError
+              }
+              role="status"
+            >
+              {translations.imageLoadError}
+            </div>
+          )}
           imagePath={item.imagePath}
+          loadingFallback={(
+            <div
+              aria-live="polite"
+              className={
+                isViewer
+                  ? ui.historyDetailImageViewerLoading
+                  : ui.historyDetailImageLoading
+              }
+              role="status"
+            >
+              {translations.imageLoading}
+            </div>
+          )}
         />
         <div className={ui.historyDetailImageCaption}>
           {translations.imageSizeLabel(item.width, item.height)} · {item.byteSize > 1024 * 1024

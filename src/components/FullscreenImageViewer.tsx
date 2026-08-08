@@ -1,19 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useApplyAppTheme } from "../hooks/useApplyAppTheme";
-import { useImageDataUrl } from "../hooks/useImageDataUrl";
 import { getTranslations } from "../i18n";
-import { closeImageViewer, listenToImageViewerUpdated } from "../lib/tauri";
+import {
+  closeImageViewer,
+  deleteHistoryItem,
+  listenToImageViewerUpdated,
+  toggleImageViewerMaximize,
+} from "../lib/tauri";
 import type { ImageViewerPayload } from "../types";
 import { ui } from "../uiStyles";
-import { CloseIcon } from "./UiIcons";
+import { DialogWindowFrame } from "./DialogWindowFrame";
+import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
+import { HistoryDetailPanel } from "./HistoryDetailPanel";
+import { CloseIcon, ExpandIcon, RestoreIcon } from "./UiIcons";
 
 export function FullscreenImageViewer() {
   const [payload, setPayload] = useState<ImageViewerPayload | null>(null);
   const [isClosing, setIsClosing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isChangingSize, setIsChangingSize] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const isClosingRef = useRef(false);
-  const image = useImageDataUrl(payload?.imagePath ?? null);
-  const translations = getTranslations(payload?.language ?? "system").imageViewer;
+  const translations = getTranslations(payload?.language ?? "system");
   useApplyAppTheme(payload?.appearanceTheme ?? "system");
 
   useEffect(() => {
@@ -23,6 +32,9 @@ export function FullscreenImageViewer() {
     void listenToImageViewerUpdated((nextPayload) => {
       isClosingRef.current = false;
       setIsClosing(false);
+      setIsDeleting(false);
+      setIsChangingSize(false);
+      setIsMaximized(true);
       setPayload(nextPayload);
     }).then((unsubscribe) => {
       if (isActive) {
@@ -39,6 +51,22 @@ export function FullscreenImageViewer() {
     };
   }, []);
 
+  const requestToggleMaximize = useCallback(async () => {
+    if (isChangingSize || isClosingRef.current) {
+      return;
+    }
+
+    setIsChangingSize(true);
+
+    try {
+      setIsMaximized(await toggleImageViewerMaximize());
+    } catch (error) {
+      console.error("切换图片查看器窗口尺寸失败:", error);
+    } finally {
+      setIsChangingSize(false);
+    }
+  }, [isChangingSize]);
+
   const requestClose = useCallback(async () => {
     if (isClosingRef.current) {
       return;
@@ -53,9 +81,28 @@ export function FullscreenImageViewer() {
     } catch (error) {
       isClosingRef.current = false;
       setIsClosing(false);
-      console.error("关闭全屏图片查看器失败:", error);
+      console.error("关闭图片查看器失败:", error);
     }
   }, []);
+
+  const requestDelete = useCallback(async () => {
+    if (!payload || isDeleting || isClosingRef.current) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await deleteHistoryItem(payload.item.id);
+    } catch (error) {
+      setIsDeleting(false);
+      console.error("从图片查看器删除历史记录失败:", error);
+      return;
+    }
+
+    await requestClose();
+    setIsDeleting(false);
+  }, [isDeleting, payload, requestClose]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -75,51 +122,72 @@ export function FullscreenImageViewer() {
     };
   }, [requestClose]);
 
-  return (
-    <div
-      aria-label={translations.ariaLabel}
-      aria-modal="true"
-      className={ui.imageViewerFrame}
-      role="dialog"
-    >
-      <button
-        aria-label={translations.closeAriaLabel}
-        className={ui.imageViewerCloseButton}
-        disabled={isClosing}
-        onClick={() => {
-          void requestClose();
-        }}
-        title={translations.closeAriaLabel}
-        type="button"
-      >
-        <CloseIcon className={ui.imageViewerCloseIcon} />
-      </button>
+  if (!payload) {
+    return null;
+  }
 
-      <div className={ui.imageViewerMedia}>
-        {image.status === "ready" && payload ? (
-          <img
-            alt={payload.alt}
-            className={ui.imageViewerImage}
-            draggable={false}
-            height={payload.height}
-            src={image.src}
-            width={payload.width}
-          />
-        ) : image.status === "error" ? (
-          <div aria-live="polite" className={ui.imageViewerError} role="status">
-            {translations.loadError}
-          </div>
-        ) : (
-          <div
-            aria-live="polite"
-            className={ui.imageViewerLoading}
-            role="status"
-          >
-            <span className={ui.imageViewerSkeleton} aria-hidden="true" />
-            <span>{translations.loading}</span>
-          </div>
-        )}
-      </div>
-    </div>
+  return (
+    <DialogWindowFrame className={ui.imageViewerWindowFrame}>
+      <HistoryDetailPanel
+        ariaLabel={translations.imageViewer.ariaLabel}
+        className={ui.imageViewerDetail}
+        draggableHeader
+        headerAction={
+          <>
+            <button
+              aria-label={
+                isMaximized
+                  ? translations.imageViewer.restoreAriaLabel
+                  : translations.imageViewer.maximizeAriaLabel
+              }
+              aria-pressed={isMaximized}
+              className={ui.historyDetailFullscreenButton}
+              disabled={isChangingSize || isClosing || isDeleting}
+              onClick={() => {
+                void requestToggleMaximize();
+              }}
+              title={
+                isMaximized
+                  ? translations.imageViewer.restoreAriaLabel
+                  : translations.imageViewer.maximizeAriaLabel
+              }
+              type="button"
+            >
+              {isMaximized ? (
+                <RestoreIcon className={ui.fullscreenIcon} />
+              ) : (
+                <ExpandIcon className={ui.fullscreenIcon} />
+              )}
+            </button>
+
+            <HistoryDetailDeleteButton
+              disabled={isDeleting || isClosing}
+              label={translations.history.deleteItemAriaLabel}
+              onDelete={() => {
+                void requestDelete();
+              }}
+            />
+
+            <button
+              aria-label={translations.imageViewer.closeAriaLabel}
+              className={ui.historyDetailFullscreenButton}
+              disabled={isClosing || isDeleting}
+              onClick={() => {
+                void requestClose();
+              }}
+              title={translations.imageViewer.closeAriaLabel}
+              type="button"
+            >
+              <CloseIcon className={ui.fullscreenIcon} />
+            </button>
+          </>
+        }
+        item={payload.item}
+        language={payload.language}
+        presentation="viewer"
+        role="dialog"
+        translations={translations.history}
+      />
+    </DialogWindowFrame>
   );
 }

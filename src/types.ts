@@ -112,12 +112,9 @@ export type HistoryItemPreviewPayload = {
 };
 
 export type ImageViewerPayload = {
-  alt: string;
   appearanceTheme: AppearanceTheme;
-  height: number;
-  imagePath: string;
+  item: Extract<HistoryListItem, { kind: "image" }>;
   language: AppLanguage;
-  width: number;
 };
 
 export type HistoryPreviewPayload =
