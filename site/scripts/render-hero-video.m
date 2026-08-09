@@ -113,7 +113,7 @@ static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) 
   CGFloat typing = smoothstep(0.16, 0.31, progress);
   NSString *query = @"";
   if (typing > 0.02) {
-    NSArray<NSString *> *steps = @[ @"p", @"pe", @"per", @"perf", @"perfo", @"perform", @"performance" ];
+    NSArray<NSString *> *steps = @[ @"o", @"op", @"ope", @"open", @"opens", @"opensp", @"openspe", @"openspec" ];
     NSUInteger index = MIN(steps.count - 1, (NSUInteger)floor(typing * steps.count));
     query = steps[index];
   }
@@ -121,15 +121,19 @@ static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) 
   NSColor *searchInk = query.length > 0 ? color(0.93, 0.94, 0.91, opacity) : color(0.59, 0.62, 0.59, opacity);
   text(searchText, NSMakeRect(searchRect.origin.x + 50.0, searchRect.origin.y + 14.0, 225.0, 28.0), 17.0,
        NSFontWeightMedium, searchInk, NSTextAlignmentLeft);
+  if (query.length > 0) {
+    text(@"×", NSMakeRect(NSMaxX(searchRect) - 34.0, searchRect.origin.y + 11.0, 24.0, 30.0), 20.0,
+         NSFontWeightRegular, color(0.40, 0.44, 0.42, opacity), NSTextAlignmentCenter);
+  }
   if (progress > 0.14 && progress < 0.76) {
-    CGFloat cursorX = searchRect.origin.x + 51.0 + MIN(104.0, query.length * 13.8);
+    CGFloat cursorX = searchRect.origin.x + 51.0 + MIN(130.0, query.length * 13.8);
     line(NSMakePoint(cursorX, searchRect.origin.y + 13.0), NSMakePoint(cursorX, searchRect.origin.y + 39.0), 1.5,
          color(0.90, 0.92, 0.88, opacity));
   }
 
   line(NSMakePoint(x, y + 74.0), NSMakePoint(x + width, y + 74.0), 1.0, color(0.14, 0.16, 0.15, opacity));
 
-  NSArray<NSString *> *rows = @[
+  NSArray<NSString *> *defaultRows = @[
     @"Image 441×1200",
     @"Image 501×1200",
     @"Performance optimization is complete…",
@@ -141,22 +145,19 @@ static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) 
     @"Image 463×1200",
   ];
   NSSet<NSNumber *> *imageRows = [NSSet setWithArray:@[ @0, @1, @5, @8 ]];
-  NSArray<NSNumber *> *rowHeights = @[ @70.0, @70.0, @44.0, @44.0, @44.0, @70.0, @44.0, @44.0, @70.0 ];
+  NSArray<NSNumber *> *defaultRowHeights = @[ @70.0, @70.0, @44.0, @44.0, @44.0, @70.0, @44.0, @44.0, @70.0 ];
   CGFloat filtered = smoothstep(0.29, 0.38, progress);
-  CGFloat selected = smoothstep(0.34, 0.43, progress);
-  CGFloat rowY = y + 84.0;
-  for (NSUInteger index = 0; index < rows.count; index += 1) {
-    CGFloat rowHeight = rowHeights[index].doubleValue;
-    CGFloat rowOpacity = index == 2 ? opacity : opacity * (1.0 - filtered * 0.58);
-    if (index == 2 && selected > 0.01) {
-      roundedRect(NSMakeRect(x + 1.0, rowY - 1.0, width - 2.0, 40.0), 10.0,
-                  color(0.08, 0.16, 0.15, opacity * selected), color(0.26, 0.64, 0.61, opacity * selected));
-    }
-    CGFloat textY = rowY + 7.0;
-    CGFloat numberY = rowY + 8.0;
+  CGFloat selected = smoothstep(0.38, 0.47, progress);
+
+  CGFloat defaultRowY = y + 84.0;
+  for (NSUInteger index = 0; index < defaultRows.count; index += 1) {
+    CGFloat rowHeight = defaultRowHeights[index].doubleValue;
+    CGFloat rowOpacity = opacity * (1.0 - filtered);
+    CGFloat textY = defaultRowY + 7.0;
+    CGFloat numberY = defaultRowY + 8.0;
     CGFloat labelX = x + 50.0;
     if ([imageRows containsObject:@(index)]) {
-      NSRect thumbnail = NSMakeRect(x + 50.0, rowY + 3.0, 58.0, 62.0);
+      NSRect thumbnail = NSMakeRect(x + 50.0, defaultRowY + 3.0, 58.0, 62.0);
       roundedRect(thumbnail, 7.0, color(0.028, 0.031, 0.030, rowOpacity), color(0.16, 0.18, 0.17, rowOpacity));
       roundedRect(NSInsetRect(thumbnail, 7.0, 7.0), 5.0,
                   color(0.09, 0.13, 0.08, rowOpacity), color(0.35, 0.48, 0.24, rowOpacity));
@@ -167,29 +168,70 @@ static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) 
            NSMakePoint(NSMaxX(thumbnail) - 10.0, NSMaxY(thumbnail) - 23.0), 2.0,
            color(0.63, 0.74, 0.43, rowOpacity));
       labelX = x + 120.0;
-      textY = rowY + 22.0;
-      numberY = rowY + 23.0;
+      textY = defaultRowY + 22.0;
+      numberY = defaultRowY + 23.0;
     }
     text([NSString stringWithFormat:@"%lu.", (unsigned long)(index + 1)],
          NSMakeRect(x + 10.0, numberY, 34.0, 26.0), 16.0, NSFontWeightSemibold,
          color(0.88, 0.65, 0.28, rowOpacity), NSTextAlignmentLeft);
-    text(rows[index], NSMakeRect(labelX, textY, x + width - labelX - 16.0, 28.0), 16.0, NSFontWeightMedium,
+    text(defaultRows[index], NSMakeRect(labelX, textY, x + width - labelX - 16.0, 28.0), 16.0, NSFontWeightMedium,
          color(0.87, 0.88, 0.85, rowOpacity), NSTextAlignmentLeft);
-    rowY += rowHeight;
+    defaultRowY += rowHeight;
   }
 
-  line(NSMakePoint(x + 6.0, rowY + 2.0), NSMakePoint(x + width - 6.0, rowY + 2.0), 1.0,
-       color(0.14, 0.16, 0.15, opacity));
-  NSArray<NSString *> *groups = @[ @"11 – 30", @"31 – 50", @"51 – 70" ];
-  for (NSUInteger index = 0; index < groups.count; index += 1) {
-    CGFloat groupY = rowY + 14.0 + index * 36.0;
-    roundedRect(NSMakeRect(x + 11.0, groupY + 5.0, 13.0, 10.0), 2.0, nil,
-                color(0.91, 0.66, 0.24, opacity));
-    text(groups[index], NSMakeRect(x + 34.0, groupY, 240.0, 26.0), 15.0, NSFontWeightMedium,
-         color(0.80, 0.83, 0.79, opacity), NSTextAlignmentLeft);
-    text(@"›", NSMakeRect(x + width - 38.0, groupY - 1.0, 20.0, 28.0), 22.0, NSFontWeightRegular,
-         color(0.58, 0.64, 0.61, opacity), NSTextAlignmentCenter);
+  NSArray<NSString *> *searchRows = @[
+    @"v0.1.1 core features are nearly complete…",
+    @"openspec",
+    @"# OpenSpec Proposal: Atoms / Hashiwokakero…",
+    @"# OpenSpec Proposal: Atoms / Hashiwokakero…",
+    @"# OpenSpec Proposal: Atoms / Hashiwokakero…",
+    @"# OpenSpec Proposal: Atoms / Hashiwokakero…",
+    @"Codex, after reviewing Almanac carefully…",
+    @"# OpenSpec Proposal: Snap / Zip…",
+    @"# OpenSpec Proposal: Atoms / Hashiwokakero…",
+    @"Codex, after reviewing Almanac carefully…",
+  ];
+  NSArray<NSNumber *> *searchNumbers = @[ @68, @70, @77, @78, @80, @82, @85, @86, @88, @89 ];
+  CGFloat searchRowY = y + 84.0;
+  for (NSUInteger index = 0; index < searchRows.count; index += 1) {
+    CGFloat rowOpacity = opacity * filtered;
+    if (index == 2 && selected > 0.01) {
+      roundedRect(NSMakeRect(x + 1.0, searchRowY - 1.0, width - 2.0, 42.0), 10.0,
+                  color(0.08, 0.16, 0.15, opacity * filtered * selected),
+                  color(0.26, 0.64, 0.61, opacity * filtered * selected));
+    }
+    text([NSString stringWithFormat:@"%@.", searchNumbers[index]],
+         NSMakeRect(x + 10.0, searchRowY + 8.0, 42.0, 26.0), 16.0, NSFontWeightSemibold,
+         color(0.88, 0.65, 0.28, rowOpacity), NSTextAlignmentLeft);
+    text(searchRows[index], NSMakeRect(x + 52.0, searchRowY + 7.0, width - 66.0, 28.0), 16.0,
+         NSFontWeightMedium, color(0.87, 0.88, 0.85, rowOpacity), NSTextAlignmentLeft);
+    searchRowY += 44.0;
   }
+
+  CGFloat defaultDividerY = defaultRowY + 2.0;
+  line(NSMakePoint(x + 6.0, defaultDividerY), NSMakePoint(x + width - 6.0, defaultDividerY), 1.0,
+       color(0.14, 0.16, 0.15, opacity * (1.0 - filtered)));
+  NSArray<NSString *> *defaultGroups = @[ @"11 – 30", @"31 – 50", @"51 – 70" ];
+  for (NSUInteger index = 0; index < defaultGroups.count; index += 1) {
+    CGFloat groupY = defaultRowY + 14.0 + index * 36.0;
+    roundedRect(NSMakeRect(x + 11.0, groupY + 5.0, 13.0, 10.0), 2.0, nil,
+                color(0.91, 0.66, 0.24, opacity * (1.0 - filtered)));
+    text(defaultGroups[index], NSMakeRect(x + 34.0, groupY, 240.0, 26.0), 15.0, NSFontWeightMedium,
+         color(0.80, 0.83, 0.79, opacity * (1.0 - filtered)), NSTextAlignmentLeft);
+    text(@"›", NSMakeRect(x + width - 38.0, groupY - 1.0, 20.0, 28.0), 22.0, NSFontWeightRegular,
+         color(0.58, 0.64, 0.61, opacity * (1.0 - filtered)), NSTextAlignmentCenter);
+  }
+
+  CGFloat searchDividerY = searchRowY + 2.0;
+  line(NSMakePoint(x + 6.0, searchDividerY), NSMakePoint(x + width - 6.0, searchDividerY), 1.0,
+       color(0.14, 0.16, 0.15, opacity * filtered));
+  CGFloat searchGroupY = searchRowY + 14.0;
+  roundedRect(NSMakeRect(x + 11.0, searchGroupY + 5.0, 13.0, 10.0), 2.0, nil,
+              color(0.91, 0.66, 0.24, opacity * filtered));
+  text(@"11 – 30", NSMakeRect(x + 34.0, searchGroupY, 240.0, 26.0), 15.0, NSFontWeightMedium,
+       color(0.80, 0.83, 0.79, opacity * filtered), NSTextAlignmentLeft);
+  text(@"›", NSMakeRect(x + width - 38.0, searchGroupY - 1.0, 20.0, 28.0), 22.0, NSFontWeightRegular,
+       color(0.58, 0.64, 0.61, opacity * filtered), NSTextAlignmentCenter);
 
   CGFloat footerY = y + height - 152.0;
   line(NSMakePoint(x, footerY), NSMakePoint(x + width, footerY), 1.0, color(0.14, 0.16, 0.15, opacity));
@@ -225,18 +267,18 @@ static void drawDetailWindow(CGFloat progress, CGFloat opacity) {
 
   text(@"History detail", NSMakeRect(x + 24.0, y + 20.0, 200.0, 30.0), 18.0, NSFontWeightBold,
        color(0.94, 0.68, 0.29, alpha), NSTextAlignmentLeft);
-  text(@"⌫   Text #3", NSMakeRect(x + width - 190.0, y + 20.0, 162.0, 30.0), 18.0, NSFontWeightSemibold,
+  text(@"⌫   Text #77", NSMakeRect(x + width - 190.0, y + 20.0, 162.0, 30.0), 18.0, NSFontWeightSemibold,
        color(0.90, 0.91, 0.88, alpha), NSTextAlignmentRight);
   line(NSMakePoint(x, y + 62.0), NSMakePoint(x + width, y + 62.0), 1.0, color(0.16, 0.18, 0.17, alpha));
 
   roundedRect(NSMakeRect(x + 22.0, y + 82.0, width - 44.0, 202.0), 14.0,
               color(0.035, 0.039, 0.038, alpha), color(0.16, 0.19, 0.18, alpha));
-  text(@"Performance optimization and the interface refresh are complete.\n\nMain-window text, history groups, and file rows now use tighter\nspacing while images keep room for clear thumbnails.",
+  text(@"# OpenSpec Proposal: Atoms / Hashiwokakero\n\n## 1. Overview\nThis proposal implements the fourth core puzzle in puzl: Atoms.\nPlayers connect numbered atoms in a grid using single or double bonds.",
        NSMakeRect(x + 42.0, y + 103.0, width - 84.0, 152.0), 19.0, NSFontWeightRegular,
        color(0.88, 0.89, 0.86, alpha), NSTextAlignmentLeft);
 
   NSArray<NSString *> *labels = @[ @"Application", @"First copied", @"Last copied", @"Copy count" ];
-  NSArray<NSString *> *values = @[ @"Obsidian", @"Aug 9, 14:15", @"Aug 9, 14:15", @"1" ];
+  NSArray<NSString *> *values = @[ @"Sublime Text", @"Jul 25, 19:18", @"Jul 25, 19:18", @"1" ];
   for (NSUInteger index = 0; index < labels.count; index += 1) {
     CGFloat rowY = y + 302.0 + index * 30.0;
     text(labels[index], NSMakeRect(x + 24.0, rowY, 180.0, 24.0), 15.0, NSFontWeightSemibold,

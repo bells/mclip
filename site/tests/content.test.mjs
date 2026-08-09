@@ -216,6 +216,7 @@ test("layout bundles the site stylesheet through Astro", async () => {
 test("hero uses a tall autoplaying product video with a poster fallback", async () => {
   const hero = await read("src/components/Hero.astro");
   const css = await read("src/styles/global.css");
+  const renderer = await read("scripts/render-hero-video.m");
   const video = await readFile(
     new URL("../public/videos/mclip-v0.1.1-demo.mp4", import.meta.url),
   );
@@ -243,6 +244,10 @@ test("hero uses a tall autoplaying product video with a poster fallback", async 
   assert.match(css, /\.hero-figure\s*{[^}]*margin-top:\s*60px;/s);
   assert.match(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*16px 0 0 auto;/s);
   assert.doesNotMatch(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*-/s);
+  assert.match(renderer, /@"openspec"/);
+  assert.match(renderer, /searchNumbers = @\[ @68, @70, @77/);
+  assert.match(renderer, /Text #77/);
+  assert.match(renderer, /Sublime Text/);
 });
 
 test("mobile layout wraps long copy and isolates the hero image", async () => {
