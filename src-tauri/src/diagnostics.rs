@@ -133,6 +133,10 @@ pub fn log_error(app_handle: &AppHandle, target: &str, message: &str) {
     let _ = write_app_log(Some(app_handle), "ERROR", target, message);
 }
 
+pub fn log_error_initialized(target: &str, message: &str) {
+    let _ = write_initialized_app_log("ERROR", target, message);
+}
+
 pub fn build_diagnostic_report(input: DiagnosticReportInput) -> String {
     let mut lines = vec![
         "mclip diagnostics".to_string(),
@@ -224,6 +228,22 @@ fn write_app_log(
         }
     };
 
+    write_app_log_to_path(&path, level, target, message)
+}
+
+fn write_initialized_app_log(level: &str, target: &str, message: &str) -> Result<(), String> {
+    let path = LOG_FILE_PATH
+        .get()
+        .ok_or_else(|| "diagnostic log file is not initialized".to_string())?;
+    write_app_log_to_path(path, level, target, message)
+}
+
+fn write_app_log_to_path(
+    path: &Path,
+    level: &str,
+    target: &str,
+    message: &str,
+) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     }
@@ -232,7 +252,7 @@ fn write_app_log(
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)
-        .open(&path)
+        .open(path)
         .map_err(|error| error.to_string())?;
 
     for line in message.lines() {

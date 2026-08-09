@@ -3,6 +3,7 @@
 
 pub mod agent_cli;
 mod auto_paste;
+mod auxiliary_window_contract;
 pub mod auxiliary_windows;
 pub mod cli_install;
 mod clipboard;
@@ -30,9 +31,8 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_positioner::on_tray_event;
 
 use crate::auto_paste::{remember_current_paste_target, AutoPasteTargetState};
-use crate::auxiliary_windows::{
-    ensure_auxiliary_window, mark_auxiliary_window_ready, AuxiliaryWindowRegistry,
-};
+use crate::auxiliary_window_contract::AuxiliaryWindowRegistry;
+use crate::auxiliary_windows::{ensure_auxiliary_window, mark_auxiliary_window_ready};
 use crate::cli_install::{get_cli_install_status, install_cli};
 use crate::clipboard::{
     copy_history_item, get_auto_paste_permission_status, open_auto_paste_permission_settings,
@@ -598,7 +598,6 @@ pub fn run() {
                 let repository = DesktopStateRepository::for_app(
                     desktop_history_path,
                     startup_settings.clone(),
-                    app.handle().clone(),
                     image_cache,
                 );
                 app.manage(repository);
@@ -656,7 +655,7 @@ mod tests {
         single_instance_launch_action, tray_tooltip, SingleInstanceLaunchAction,
         TOGGLE_WINDOW_SHORTCUT, TRAY_POSITION_AUTOSAVE_NAME,
     };
-    use crate::auxiliary_windows::{auxiliary_window_descriptor, LogicalWindowSize};
+    use crate::auxiliary_window_contract::{auxiliary_window_descriptor, LogicalWindowSize};
     use crate::performance::{
         PerformanceAutomationAction, PERFORMANCE_CLOSE_VIEWER_ARGUMENT,
         PERFORMANCE_OPEN_VIEWER_ARGUMENT, PERFORMANCE_QUIT_ARGUMENT,

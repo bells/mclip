@@ -86,10 +86,11 @@ static void drawWindowShadow(NSRect rect, CGFloat radius, CGFloat opacity) {
 
 static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) {
   CGFloat entrance = smoothstep(0.02, 0.12, progress);
+  CGFloat filtered = smoothstep(0.29, 0.38, progress);
   CGFloat x = 28.0;
   CGFloat y = 28.0 + (1.0 - entrance) * 34.0;
   CGFloat width = 444.0;
-  CGFloat height = 904.0;
+  CGFloat height = 842.0 - filtered * 128.0;
   NSRect frame = NSMakeRect(x, y, width, height);
 
   drawWindowShadow(frame, 25.0, opacity);
@@ -146,7 +147,6 @@ static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) 
   ];
   NSSet<NSNumber *> *imageRows = [NSSet setWithArray:@[ @0, @1, @5, @8 ]];
   NSArray<NSNumber *> *defaultRowHeights = @[ @70.0, @70.0, @44.0, @44.0, @44.0, @70.0, @44.0, @44.0, @70.0 ];
-  CGFloat filtered = smoothstep(0.29, 0.38, progress);
   CGFloat selected = smoothstep(0.38, 0.47, progress);
 
   CGFloat defaultRowY = y + 84.0;
@@ -233,7 +233,7 @@ static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) 
   text(@"›", NSMakeRect(x + width - 38.0, searchGroupY - 1.0, 20.0, 28.0), 22.0, NSFontWeightRegular,
        color(0.58, 0.64, 0.61, opacity * filtered), NSTextAlignmentCenter);
 
-  CGFloat footerY = y + height - 152.0;
+  CGFloat footerY = y + height - 142.0;
   line(NSMakePoint(x, footerY), NSMakePoint(x + width, footerY), 1.0, color(0.14, 0.16, 0.15, opacity));
   NSArray<NSString *> *actions = @[ @"Clear history", @"Preferences", @"About mclip", @"Quit" ];
   NSArray<NSString *> *hints = @[ @"Delete saved items", @"Language and history", @"Version information", @"Close tray app" ];

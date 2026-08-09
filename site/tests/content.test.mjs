@@ -248,6 +248,8 @@ test("hero uses a tall autoplaying product video with a poster fallback", async 
   assert.match(renderer, /searchNumbers = @\[ @68, @70, @77/);
   assert.match(renderer, /Text #77/);
   assert.match(renderer, /Sublime Text/);
+  assert.match(renderer, /height = 842\.0 - filtered \* 128\.0/);
+  assert.match(renderer, /footerY = y \+ height - 142\.0/);
 });
 
 test("mobile layout wraps long copy and isolates the hero image", async () => {

@@ -6,9 +6,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use tauri::AppHandle;
-
-use crate::diagnostics::log_error;
+use crate::diagnostics::log_error_initialized;
 use crate::history::{
     cleanup_unused_image_assets_for_history_path, clear_history_from_path,
     history_file_fingerprint, load_history_file, merge_history_result, persist_history_to_path,
@@ -46,7 +44,6 @@ struct DesktopStateInner {
 
 #[derive(Debug, Clone)]
 pub struct DesktopStateRepository {
-    diagnostics_handle: Option<AppHandle>,
     history_path: Arc<PathBuf>,
     image_cache: Option<ImageDataCache>,
     inner: Arc<DesktopStateInner>,
@@ -63,7 +60,6 @@ impl DesktopStateRepository {
         image_cache: Option<ImageDataCache>,
     ) -> Self {
         Self {
-            diagnostics_handle: None,
             history_path: Arc::new(history_path),
             image_cache,
             inner: Arc::new(DesktopStateInner {
@@ -76,11 +72,9 @@ impl DesktopStateRepository {
     pub fn for_app(
         history_path: PathBuf,
         settings: AppSettings,
-        app_handle: AppHandle,
         image_cache: ImageDataCache,
     ) -> Self {
         let mut repository = Self::new(history_path, settings);
-        repository.diagnostics_handle = Some(app_handle);
         repository.image_cache = Some(image_cache);
         repository
     }
@@ -220,13 +214,10 @@ impl DesktopStateRepository {
         match load_history_file(&self.history_path) {
             Ok(loaded) => loaded,
             Err(error) => {
-                if let Some(app_handle) = &self.diagnostics_handle {
-                    log_error(
-                        app_handle,
-                        "history",
-                        &format!("failed to parse clipboard history, using empty history: {error}"),
-                    );
-                }
+                log_error_initialized(
+                    "history",
+                    &format!("failed to parse clipboard history, using empty history: {error}"),
+                );
                 LoadedHistoryFile {
                     history: Vec::new(),
                     fingerprint: history_file_fingerprint(&self.history_path)

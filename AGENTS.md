@@ -133,7 +133,8 @@ src-tauri/
   src/lib.rs                          Tauri 应用入口、托盘、快捷键、命令注册
   src/agent_cli.rs                    CLI 参数解析、Agent 模式、历史筛选、操作命令和 text/json/raw/markdown 输出
   src/cli_install.rs                  mclip-cli 版本状态、Release 下载、SHA-256 校验和可回滚安装
-  src/auxiliary_windows.rs            五个辅助窗口描述符、并发去重创建与 ready 注册表
+  src/auxiliary_window_contract.rs    五个辅助窗口纯描述符与 ready generation 状态机
+  src/auxiliary_windows.rs            辅助窗口按需创建与前端 listener ready 协议
   src/window.rs                       主窗口与辅助窗口的尺寸、定位、显示隐藏
   src/clipboard.rs                    剪贴板读写、文件列表回填、图片处理、Windows 事件监听、macOS changeCount 轮询
   src/desktop_state.rs                revisioned 历史/设置内存仓库与定向变更广播

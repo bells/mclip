@@ -795,13 +795,12 @@ mod tests {
     use crate::desktop_state::{DesktopHistoryMutation, DesktopHistorySnapshot};
 
     use super::{
-        cleanup_unused_image_assets_for_history_path, create_text_entry, files_display_text,
-        hash_hex, history_change_for_remove, history_change_for_upsert, history_file_fingerprint,
-        load_history_file, merge_history, merge_history_result, merge_text_history_item,
-        migrate_legacy_text_history, migrate_structured_text_history, remove_history_item,
-        remove_history_item_result, trim_history_result, HistoryChange, HistoryEntry,
-        HistoryEntryCommon, HistoryKind, HistoryPreviewInvalidation, HistorySnapshot,
-        LegacyTextHistoryEntry, NewHistoryItem,
+        create_text_entry, files_display_text, hash_hex, history_change_for_remove,
+        history_change_for_upsert, history_file_fingerprint, load_history_file, merge_history,
+        merge_history_result, merge_text_history_item, migrate_legacy_text_history,
+        migrate_structured_text_history, remove_history_item, remove_history_item_result,
+        trim_history_result, HistoryChange, HistoryEntry, HistoryKind, HistoryPreviewInvalidation,
+        HistorySnapshot, LegacyTextHistoryEntry, NewHistoryItem,
     };
 
     fn text_entry(text: &str, copied_at: u64, source_app: Option<&str>) -> HistoryEntry {
@@ -829,6 +828,8 @@ mod tests {
     #[test]
     fn image_cleanup_preserves_assets_referenced_through_an_aliased_root() {
         use std::os::unix::fs::symlink;
+
+        use super::{cleanup_unused_image_assets_for_history_path, HistoryEntryCommon};
 
         let history_path = unique_history_path("aliased-image-cleanup");
         let root = history_path.with_extension("root");

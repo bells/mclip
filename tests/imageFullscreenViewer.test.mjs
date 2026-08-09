@@ -133,22 +133,28 @@ test("cancelled image consumer does not cancel another shared consumer", async (
 });
 
 test("image viewer window is routed, permitted, focusable, and windowed", async () => {
-  const [routeSource, auxiliarySource, windowSource, libSource, defaultCapability, desktopCapability] =
-    await Promise.all([
-      readSource("src/windowRoutes.ts"),
-      readSource("src-tauri/src/auxiliary_windows.rs"),
-      readSource("src-tauri/src/window.rs"),
-      readSource("src-tauri/src/lib.rs"),
-      readSource("src-tauri/capabilities/default.json"),
-      readSource("src-tauri/capabilities/desktop.json"),
-    ]);
+  const [
+    routeSource,
+    auxiliaryContractSource,
+    windowSource,
+    libSource,
+    defaultCapability,
+    desktopCapability,
+  ] = await Promise.all([
+    readSource("src/windowRoutes.ts"),
+    readSource("src-tauri/src/auxiliary_window_contract.rs"),
+    readSource("src-tauri/src/window.rs"),
+    readSource("src-tauri/src/lib.rs"),
+    readSource("src-tauri/capabilities/default.json"),
+    readSource("src-tauri/capabilities/desktop.json"),
+  ]);
   const config = JSON.parse(await readSource("src-tauri/tauri.conf.json"));
   assert.deepEqual(config.app.windows.map((windowConfig) => windowConfig.label ?? "main"), ["main"]);
-  assert.match(auxiliarySource, /label: "image-viewer"/);
-  assert.match(auxiliarySource, /width: 720\.0,[\s\S]*height: 520\.0/);
-  assert.match(auxiliarySource, /transparent: false,[\s\S]*focusable: true/);
-  assert.match(auxiliarySource, /resizable: true,[\s\S]*maximizable: true/);
-  assert.match(auxiliarySource, /minimizable: false/);
+  assert.match(auxiliaryContractSource, /label: "image-viewer"/);
+  assert.match(auxiliaryContractSource, /width: 720\.0,[\s\S]*height: 520\.0/);
+  assert.match(auxiliaryContractSource, /transparent: false,[\s\S]*focusable: true/);
+  assert.match(auxiliaryContractSource, /resizable: true,[\s\S]*maximizable: true/);
+  assert.match(auxiliaryContractSource, /minimizable: false/);
   assert.match(routeSource, /"image-viewer": \(\) => import\("\.\/components\/FullscreenImageViewer"\)/);
   assert.match(defaultCapability, /"image-viewer"/);
   assert.match(desktopCapability, /"image-viewer"/);
