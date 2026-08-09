@@ -56,18 +56,36 @@ const switchLabel = lang === "zh" ? "English" : "中文";
     </div>
 
     <figure class="hero-figure">
-      <img
+      <video
         class="hero-product"
-        src="/screenshots/mclip-product-preview.png"
-        alt={lang === "zh" ? "mclip 主窗口与历史预览界面" : "mclip main window and history preview"}
-        width="640"
-        height="672"
-      />
+        autoplay
+        loop
+        muted
+        playsinline
+        preload="auto"
+        poster="/videos/mclip-v0.1.1-demo-poster.png"
+        width="1280"
+        height="720"
+        aria-label={
+          lang === "zh"
+            ? "mclip 搜索、选择和独立详情预览演示"
+            : "mclip search, selection, and independent detail preview demo"
+        }
+        data-hero-demo
+      >
+        <source src="/videos/mclip-v0.1.1-demo.mp4" type="video/mp4" />
+        <img
+          src="/videos/mclip-v0.1.1-demo-poster.png"
+          alt={lang === "zh" ? "mclip 主窗口与独立详情预览" : "mclip main window and independent detail preview"}
+          width="1280"
+          height="720"
+        />
+      </video>
       <figcaption>
         {
           lang === "zh"
-            ? "主窗口、分组预览、单条详情分别保持独立。"
-            : "Main window, grouped preview, and item detail stay separate."
+            ? "搜索、选择、独立详情与复制，一次完成。"
+            : "Search, select, preview independently, and copy."
         }
       </figcaption>
     </figure>
@@ -77,3 +95,21 @@ const switchLabel = lang === "zh" ? "English" : "中文";
     {proofItems.map((item) => <li>{item}</li>)}
   </ul>
 </header>
+
+<script>
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const heroVideos = document.querySelectorAll<HTMLVideoElement>("[data-hero-demo]");
+
+  const syncHeroMotion = () => {
+    heroVideos.forEach((video) => {
+      if (reducedMotion.matches) {
+        video.pause();
+        return;
+      }
+      void video.play().catch(() => undefined);
+    });
+  };
+
+  syncHeroMotion();
+  reducedMotion.addEventListener("change", syncHeroMotion);
+</script>

@@ -1,6 +1,6 @@
 # mclip Project Memory
 
-Last refreshed: 2026-07-26
+Last refreshed: 2026-08-09
 
 This file records working memory for future maintainers and agents. It is not a replacement for `AGENTS.md` or `README.md`: use those for the live project map, commands, and release-facing docs. Use this file to remember prior decisions, accepted behavior, repeated failure modes, and the user's preferences.
 
@@ -15,13 +15,20 @@ The current stack is React 19, TypeScript, Vite, Tailwind CSS 4, Tauri 2, and Ru
 ## v0.1.1 Decisions
 
 - Tailwind CSS owns component styling through utility strings collected in `src/uiStyles.ts`; `src/styles.css` remains the thin global/theme entrypoint. `src/App.css` was deleted.
-- All five Tauri windows resolve the same `system | light | dark` appearance setting.
+- All six Tauri windows resolve the same `system | light | dark` appearance setting, including `image-viewer`.
 - `mainWindowItemCount` can grow up to sanitized `maxHistoryCount`; `historyGroupItemCount` stays in the compact `5..=20` range.
+- New settings keep 200 history entries by default; Rust and TypeScript both clamp `maxHistoryCount` to `10..=500`.
 - Large main-window counts scroll only the middle history/archive region. Search and footer actions remain fixed, and Rust caps native height to the monitor work area.
+- Text and file rows use the compact 28px list rhythm. Image rows keep the taller 64px rhythm and thumbnail padding; changing shared list classes must not collapse images back to text height.
 - `showHistoryItemNumbers` and `showMainWindowBrand` affect presentation only. They do not change stored history or keyboard item positions.
 - Archive `preview` renders only the group title/list and reports its rendered natural height. The active row detail lives in the independent `preview-detail` native window.
 - Main-item and archive-item details share the same detail panel and detail-owned delete action. Archive rows no longer carry inline delete buttons.
 - Color-code and emoji affordances are frontend-only; copy-back always uses the original text.
+- Search, keyboard, and pointer navigation share one canonical active target in the main window; pointer activation must update logical selection without stealing focus or drawing a second row highlight.
+- Image history can open `image-viewer`, which reuses complete detail rendering, opens maximized, restores to 720×520, and supports maximize/restore, deletion, and Escape. Preview-family windows remain non-focusable; the viewer is intentionally focusable.
+- Only `main` is declared eagerly in `tauri.conf.json`. The preview family warms after tray readiness; About, Preferences, and the image viewer are created on demand through `src-tauri/src/auxiliary_windows.rs` and retained after hide.
+- Main history state starts from a revisioned snapshot and normally applies targeted `upsert/remove/clear` deltas. Full `replace` is reserved for reconciliation; hidden low-frequency windows must not receive global full-history arrays.
+- Image data uses a Rust single-flight cache bounded to 32 MiB total and 8 MiB per entry. History deletion, clear, trim, replacement, and unused-asset cleanup invalidate affected entries.
 - `mclip-cli` help/version commands do not read history. The public shell installer prefers matching GitHub Release binaries and falls back to local/source builds.
 
 The GitHub project URL is:
@@ -44,7 +51,7 @@ https://github.com/bells/mclip
 
 - Keep the main window fixed width and tray-popover sized. Do not make it resizable.
 - Keep preview surfaces in independent transparent Tauri windows. Do not put the right-side preview back into the main window DOM.
-- Current window labels are `main`, `preview`, `preview-detail`, `about`, and `preferences`. If this changes, update `src/App.tsx`, `src-tauri/tauri.conf.json`, both capability files, and maintainer docs together.
+- Current window labels are `main`, `preview`, `preview-detail`, `image-viewer`, `about`, and `preferences`. `tauri.conf.json` owns only eager `main`; auxiliary labels are owned by `AUXILIARY_WINDOW_DESCRIPTORS`. If this changes, update routes/types, descriptor/ready plumbing, both capability files, and maintainer docs together.
 - `preview` and `preview-detail` must stay non-focusable. If they take focus, the main window can hide itself during hover or selection flows.
 - `PREVIEW_WINDOW_GAP` is intentionally `0.0` so the pointer can cross between the main popover and preview without a dead hover gap.
 - Language changes must update both Chinese and English strings.
@@ -104,6 +111,21 @@ High-value checks:
 - Frontend contract: verify serialized Rust payloads use camelCase and still deserialize older snake_case persisted data through aliases where needed.
 - If the history detail page is blank, inspect backend JSON shape before assuming React rendering is wrong.
 
+## Runtime Performance Memory
+
+The accepted v0.1.1 performance evidence lives in `performance/final-v0.1.1-runtime-performance.md` and uses an anonymous fixed fixture, 5 warm-ups, and 20 measured runs on an Apple M2 macOS release build.
+
+- `processEntry -> trayReady` median improved from 449.12 ms to 218.51 ms (51.3%); p95 improved from 470.22 ms to 234.94 ms.
+- Repeated viewer shell median improved from 384.62 ms to 49.37 ms (87.2%). The old cost was the repeated macOS maximize transition, not native show latency.
+- Bootstrap JavaScript is 71,583 gzip bytes, below the 75 KiB budget.
+- A representative 50-entry upsert falls from six full-array deliveries / 82,704 bytes to two targeted deliveries / 346 bytes when preview exists.
+- The formal image trace recorded 27 hits and 3 misses. Production limits, not the tiny fixture bytes, define cache safety.
+- The main interactive median regressed slightly from an already small baseline; preserve the report’s honest boundary instead of describing every metric as faster.
+- Performance mode is opt-in and privacy constrained. Never add clipboard text, search queries, file paths, source-app names, or image bytes to milestones.
+- These measurements do not prove Windows behavior. The current post-optimization macOS cross-target attempt stops in `ring` because the MSVC C header `assert.h` is unavailable; Windows CI/artifact and device smoke remain authoritative.
+
+High-value implementation anchors are `src/services/performance.ts`, `src-tauri/src/performance.rs`, `src-tauri/src/desktop_state.rs`, `src-tauri/src/auxiliary_windows.rs`, `src-tauri/src/image_cache.rs`, `src/utils/historyChanges.ts`, and the performance scripts/tests.
+
 ## Diagnostics Memory
 
 The accepted first diagnostics version is offline-first:
@@ -151,6 +173,7 @@ Windows coverage should include:
 - Text, image, and file history.
 - Search, selection, copy, delete, clear.
 - Group preview, item detail preview, and hover detail.
+- Maximized/restored image viewer, deletion, Escape close, and main-window layering recovery.
 - About and Preferences windows.
 - Launch at login.
 - Chinese/English UI and system-language default.
@@ -192,7 +215,7 @@ Fast checks:
 
 ```bash
 npm run build
-node --test tests/previewDismissal.test.mjs
+node --test tests/*.test.mjs
 cargo check --manifest-path src-tauri/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
 npm run site:test
@@ -210,7 +233,7 @@ If a full check fails, separate baseline or environment failures from the files 
 - Clipboard/history bugs: `src-tauri/src/clipboard.rs`, `src-tauri/src/history.rs`, `src/types.ts`, `src/components/HistoryPreviewDetailContent.tsx`.
 - Diagnostics bugs: `src-tauri/src/diagnostics.rs`, `src/utils/diagnostics.ts`, `src/main.tsx`, `src/components/AboutWindow.tsx`.
 - Settings bugs: `src-tauri/src/settings.rs`, `src/utils/settings.ts`, `src/components/PreferencesWindow.tsx`, `src/constants.ts`.
-- Window/config/capability drift: `src/App.tsx`, `src-tauri/tauri.conf.json`, `src-tauri/capabilities/default.json`, `src-tauri/capabilities/desktop.json`, `src-tauri/src/lib.rs`, `src-tauri/src/window.rs`.
+- Window/config/capability drift: `src/App.tsx`, `src/windowRoutes.ts`, `src/services/auxiliaryWindows.ts`, `src-tauri/tauri.conf.json`, `src-tauri/src/auxiliary_windows.rs`, both capability files, `src-tauri/src/lib.rs`, and `src-tauri/src/window.rs`.
 - Release docs: `README.md`, `AGENTS.md`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`.
 
 ## Do Not Forget
@@ -219,5 +242,5 @@ If a full check fails, separate baseline or environment failures from the files 
 - Prefer `rg` for searching.
 - Use `apply_patch` for manual edits.
 - Update command names/events in `src/services/ipc/*`, the `src/lib/tauri.ts` compatibility facade, and Rust `generate_handler!` together.
-- When adding Tauri API calls or windows, update capabilities and window label routing.
+- When adding Tauri API calls or windows, update capabilities and window label routing. Add eager windows to `tauri.conf.json`; add lazy auxiliary windows to `AUXILIARY_WINDOW_DESCRIPTORS` and the ready-token contract.
 - Keep docs aligned with the live tree; stale docs have caused confusion before.

@@ -10,19 +10,19 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
 const features = [
   {
     title: "Tray-first",
-    body: "Click the menu bar or system tray icon, or press CommandOrControl+Shift+V. The window appears when needed and gets out of the way after.",
+    body: "Click the menu bar or system tray icon, or press CommandOrControl+Shift+V. v0.1.1 keeps only the main window on the startup path, warms previews, and creates low-frequency windows on demand; measured tray-ready median improved 51.3% on an Apple M2.",
   },
   {
     title: "Text, images, and files",
-    body: "mclip keeps the everyday things you copy: text snippets, screenshots, and files from Finder or File Explorer. Selecting file history restores a system file list, not just path text.",
+    body: "mclip keeps text snippets, screenshots, and files from Finder or File Explorer. Selecting file history restores a system file list rather than path-only text, while details still show the full absolute path and name.",
   },
   {
     title: "Compact, independent previews",
-    body: "The latest 10 items stay compact by default and older history is grouped by 10. Archive windows size to rendered content, hover details stay independent, and long file names preserve extensions while details show the full absolute path.",
+    body: "The latest 10 items stay compact by default, with tighter text/file rows that do not shrink image rows. Older history stays grouped and hover details remain independent. Image details can open in a dedicated maximized viewer, restore, and close with Escape.",
   },
   {
     title: "Search and keyboard flow",
-    body: "Type to filter, use arrow keys to move, press Enter to copy, and hit Escape to hide the window.",
+    body: "Type to filter, use arrow keys to move, press Enter to copy, and hit Escape to hide. Search, keyboard, and pointer input share one active target across history, groups, and footer actions.",
   },
   {
     title: "Local-first privacy",
@@ -30,7 +30,7 @@ const features = [
   },
   {
     title: "Themes, languages, and platforms",
-    body: "mclip supports macOS and Windows, follows system appearance and language, and lets you tune main/archive counts, row numbers, and main-window branding.",
+    body: "mclip supports macOS and Windows and follows system appearance and language. New installs keep 200 items by default, configurable up to 500, with controls for list counts, row numbers, and branding. The Agent CLI tab safely installs, upgrades, or reinstalls the matching version.",
   },
 ];
 
@@ -79,7 +79,7 @@ const faqItems = [
   },
   {
     question: "How many items can mclip keep?",
-    answer: "You can adjust the maximum history count, main window item count, archive group item count, and whether mclip saves text, images, files, or only some of them.",
+    answer: "New installs keep up to 200 items by default, configurable from 10 to 500. Main-window and archive-group counts are separate, and mclip can save text, images, files, or only selected types.",
   },
 ];
 ---
@@ -98,11 +98,11 @@ const faqItems = [
     primaryCta="Download mclip"
     secondaryCta="View on GitHub"
     note="Current version 0.1.1. Downloads are served from GitHub Releases."
-    utilityLabel="Menu bar utility for macOS and Windows"
+    utilityLabel="Menu bar on macOS · System tray on Windows"
     proofItems={[
-      "Main window shows the latest 10 items by default",
-      "Keeps text, images, and files",
-      "History and settings stay local",
+      "Measured tray-ready median improved 51.3% on Apple M2",
+      "Text, images, files, and a dedicated image viewer",
+      "Revisioned updates and image caching stay local",
     ]}
   />
 

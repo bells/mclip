@@ -318,9 +318,15 @@ h3 {
 }
 
 .hero-product {
+  display: block;
   width: min(100%, 680px);
   height: auto;
   margin-left: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--black);
+  border: 1px solid oklch(0.42 0.052 138 / 0.7);
+  border-radius: var(--radius);
   filter: drop-shadow(0 34px 70px oklch(0.05 0.01 138 / 0.55));
 }
 

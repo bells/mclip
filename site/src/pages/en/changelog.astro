@@ -13,23 +13,19 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
     <a class="back-link" href="/en/">Back home</a>
     <h1>Changelog</h1>
     <article class="release-note">
-      <p class="eyebrow">In development</p>
-      <h2>mclip-cli versioning and verified upgrades</h2>
-      <p>
-        Agent CLI preferences will distinguish missing, outdated, unknown legacy, current, and newer installations, with the matching install, upgrade, or reinstall action and no automatic downgrade.
-      </p>
-      <p>
-        The desktop app will download the Release CLI matching its own version plus the SHA-256 companion, verify it, and recoverably replace the user-level binary. The public installer follows the same integrity contract.
-      </p>
-    </article>
-    <article class="release-note">
       <p class="eyebrow">0.1.1</p>
-      <h2>Polished core experience</h2>
+      <h2>A faster, clearer complete core experience</h2>
       <p>
-        Completes the Tailwind CSS 4 UI migration and adds System/Light/Dark appearance, configurable main and archive counts, row numbers, and main-window branding. Large histories scroll only the middle region, archive windows size to rendered content, and hover details use an independent window with consistent detail-owned deletion.
+        Completes the Tailwind CSS 4 migration and density polish, adds System/Light/Dark appearance, up to 500 history items, configurable main/archive counts, row numbers, and branding. Text and file rows are tighter without shrinking image rows; main, archive, and detail windows remain independent.
       </p>
       <p>
-        Also improves color-code, emoji, long-file-name, and full-path presentation. mclip-cli help/version no longer reads history, and the public installer prefers prebuilt Release binaries.
+        Adds a dedicated maximized/restorable image viewer with Escape support and one canonical active target for search, keyboard, and pointer input. Color-code, emoji, long-file-name, and full-path presentation are also refined.
+      </p>
+      <p>
+        Runtime loading now keeps only the main window on the startup path, warms previews, and creates About, Preferences, and the image viewer on demand. Revisioned snapshot/delta history updates and a bounded single-flight image cache cut hidden-window work. On an Apple M2, measured tray-ready median improved 51.3%, while repeated viewer-open median fell from 384.62 ms to 49.37 ms.
+      </p>
+      <p>
+        The Agent CLI tab distinguishes missing, outdated, unknown, current, and newer versions with install, upgrade, or reinstall actions and no automatic downgrade. Desktop and public installers verify the same-Release SHA-256 asset before replacement.
       </p>
     </article>
     <article class="release-note">

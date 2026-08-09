@@ -18,8 +18,13 @@
 - 新增跟随系统/浅色/深色主题，以及主界面条数、历史分组条数、复制项序号、主窗口 Logo 等显示偏好。
 - 主窗口在大历史条数下固定搜索栏和底部操作区，仅滚动中间历史区域，并按显示器工作区限制窗口高度。
 - 历史分组窗口按真实内容自适应高度；hover 详情使用独立 `preview-detail` 窗口，删除入口统一放在详情标题区。
+- 文本和文件条目收紧为 28px 行高，图片条目继续保留 64px 行高与完整缩略图；搜索、键盘和鼠标共用同一个激活目标，避免重复高亮。
+- 新增独立图片查看器：复用完整详情，打开时直接最大化，可恢复为 720×520，并支持最大化、恢复、删除和 `Escape` 关闭。
 - 增强颜色代码、Emoji、长文件名和完整文件路径展示，同时保持原始复制内容不变。
-- `mclip-cli` 增加无需读取历史文件的 help/version 能力；公开安装脚本优先下载 GitHub Release 预构建二进制。
+- 运行时只让主窗口进入启动关键路径，preview 家族预热，About、Preferences 和图片查看器按需创建；历史改用 revision snapshot/delta，图片读取使用 32 MiB 有界单飞缓存。Apple M2 实测托盘就绪中位数提升 51.3%，重复图片查看器打开中位数从 384.62 ms 降到 49.37 ms。
+- 新安装默认最多保存 200 条历史，可配置上限提升到 500；`mclip-cli` 增加无需读取历史文件的 help/version，并通过版本感知、SHA-256 校验和可回滚替换安全安装/升级。
+
+上述性能数据来自 Apple M2、macOS release 构建、固定匿名 fixture 的 5 次预热与 20 次正式采样，不代表 Windows 真机结果；完整数据见 [`performance/final-v0.1.1-runtime-performance.md`](performance/final-v0.1.1-runtime-performance.md)。
 
 ### 主要功能
 
@@ -29,9 +34,9 @@
 - 历史记录本地保存，重复内容会合并并移动到最前。
 - 主窗口默认展示最新 10 条，更多记录默认按每 10 条分组；两个展示条数都可在偏好设置中调整。
 - 历史分组使用独立透明 preview 窗口，不会撑宽主窗口。
-- 支持单条历史详情、分组 hover 详情、图片缩略图、颜色代码 swatch、常用表情放大展示和文件详情。
+- 支持单条历史详情、分组 hover 详情、独立大图查看器、图片缩略图、颜色代码 swatch、常用表情放大展示和文件详情。
 - 文件列表会对过长文件名做中间省略并保留扩展名；文件详情会显示完整绝对路径和完整文件名。
-- 支持搜索、方向键选择、回车复制、`Esc` 收起窗口。
+- 支持搜索、方向键选择、回车复制、`Esc` 收起窗口；搜索、键盘和鼠标导航使用统一激活目标。
 - 支持偏好设置：登录时启动、界面语言、外观主题、菜单栏图标样式、自动粘贴、最大历史条数、主界面/历史分组展示条数、复制项序号显示、主界面 Logo 显示和保存类型。
 - 关于窗口支持手动检查 GitHub Releases 上的新版本。
 - 支持中英文界面，语言可选择跟随系统；中文系统显示中文，英语和其它未支持语言显示英文。
@@ -195,8 +200,13 @@ Current version: `0.1.1`
 - Adds System/Light/Dark appearance plus configurable main/archive counts, row numbers, and main-window branding.
 - Keeps search and footer actions fixed for large history counts, scrolls only the history region, and caps the native window to the monitor work area.
 - Sizes archive previews from rendered content, moves hover details into the independent `preview-detail` window, and keeps deletion in the detail header.
+- Tightens text and file rows to 28px while preserving 64px image rows and full thumbnails. Search, keyboard, and pointer input share one active target instead of drawing competing highlights.
+- Adds a dedicated image viewer that reuses the full detail surface, opens maximized, restores to 720×520, and supports maximize, restore, delete, and Escape-to-close.
 - Improves color-code, emoji, long-file-name, and full-path presentation without changing copied content.
-- Adds history-independent CLI help/version behavior and makes the public installer prefer prebuilt GitHub Release binaries.
+- Keeps only the main window on the startup path, warms the preview family, and creates About, Preferences, and the image viewer on demand. Revisioned snapshot/delta updates and a bounded 32 MiB single-flight image cache reduce hidden-window work. On an Apple M2, measured tray-ready median improved 51.3%, while repeated viewer-open median fell from 384.62 ms to 49.37 ms.
+- New installs keep 200 history items by default with a configurable maximum of 500. CLI help/version stay history-independent, while version-aware SHA-256 verification and recoverable replacement protect installs and upgrades.
+
+These performance results come from an Apple M2 macOS release build with an anonymized fixed fixture, 5 warm-ups, and 20 measured runs. They are not Windows device evidence; see [`performance/final-v0.1.1-runtime-performance.md`](performance/final-v0.1.1-runtime-performance.md) for the complete report.
 
 ### Features
 
@@ -206,9 +216,9 @@ Current version: `0.1.1`
 - Keeps history locally, deduplicates repeated content, and moves reused items to the top.
 - Shows the latest 10 items in the main window by default, with older items grouped by 10 by default; both display counts are configurable in Preferences.
 - Uses a separate transparent preview window for grouped history, so the main window stays compact.
-- Supports item details, grouped hover details, image thumbnails, color-code swatches, common emoji display, and file details.
+- Supports item details, grouped hover details, a dedicated image viewer, image thumbnails, color-code swatches, common emoji display, and file details.
 - Long file names are middle-ellipsized in lists to preserve extensions, while file details show the full absolute path and full file name.
-- Supports search, arrow-key selection, Enter-to-copy, and Escape-to-hide.
+- Supports search, arrow-key selection, Enter-to-copy, and Escape-to-hide, with one active target shared by search, keyboard, and pointer navigation.
 - Preferences include launch at login, display language, appearance theme, menu bar icon style, auto paste, maximum history count, main/group display counts, row number visibility, main-window logo visibility, and enabled content types.
 - The About window can manually check GitHub Releases for a newer version.
 - Supports Chinese and English UI. Language can follow the system: Chinese systems use Chinese, while English and other unsupported languages use English.

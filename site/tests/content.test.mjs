@@ -28,11 +28,13 @@ test("site publishes the v0.1.1 release and current product capabilities", async
   assert.match(en, /Current version 0\.1\.1/);
   assert.match(zhChangelog, /0\.1\.1/);
   assert.match(zhChangelog, /Tailwind CSS 4/);
-  assert.match(zhChangelog, /mclip-cli 版本与安全升级/);
+  assert.match(zhChangelog, /更快、更清晰的完整核心体验/);
+  assert.match(zhChangelog, /托盘就绪中位数提升 51\.3%/);
   assert.match(zhChangelog, /SHA-256/);
   assert.match(enChangelog, /0\.1\.1/);
   assert.match(enChangelog, /System\/Light\/Dark/);
-  assert.match(enChangelog, /mclip-cli versioning and verified upgrades/);
+  assert.match(enChangelog, /A faster, clearer complete core experience/);
+  assert.match(enChangelog, /tray-ready median improved 51\.3%/);
   assert.match(layout, /softwareVersion: "0\.1\.1"/);
   assert.match(llms, /Current public version: 0\.1\.1/);
   assert.match(llms, /independent detail window/);
@@ -140,6 +142,8 @@ test("layout exposes structured data for search and AI summaries", async () => {
   assert.match(layout, /WebPage/);
   assert.match(layout, /Organization/);
   assert.match(layout, /SoftwareApplication/);
+  assert.match(layout, /VideoObject/);
+  assert.match(layout, /mclip-v0\.1\.1-demo\.mp4/);
   assert.match(layout, /FAQPage/);
   assert.match(layout, /installUrl/);
   assert.match(layout, /AI Agent clipboard context/);
@@ -209,18 +213,33 @@ test("layout bundles the site stylesheet through Astro", async () => {
   assert.doesNotMatch(layout, /href="\/styles\/global\.css"/);
 });
 
-test("hero preview image uses the real PNG aspect ratio", async () => {
+test("hero uses a compact autoplaying product video with a poster fallback", async () => {
   const hero = await read("src/components/Hero.astro");
   const css = await read("src/styles/global.css");
-  const png = await readFile(
-    new URL("../public/screenshots/mclip-product-preview.png", import.meta.url),
+  const video = await readFile(
+    new URL("../public/videos/mclip-v0.1.1-demo.mp4", import.meta.url),
   );
-  const width = png.readUInt32BE(16);
-  const height = png.readUInt32BE(20);
+  const poster = await readFile(
+    new URL("../public/videos/mclip-v0.1.1-demo-poster.png", import.meta.url),
+  );
+  const width = poster.readUInt32BE(16);
+  const height = poster.readUInt32BE(20);
 
+  assert.match(hero, /<video/);
+  assert.match(hero, /autoplay/);
+  assert.match(hero, /loop/);
+  assert.match(hero, /muted/);
+  assert.match(hero, /playsinline/);
+  assert.match(hero, /preload="auto"/);
+  assert.match(hero, /poster="\/videos\/mclip-v0\.1\.1-demo-poster\.png"/);
+  assert.match(hero, /src="\/videos\/mclip-v0\.1\.1-demo\.mp4" type="video\/mp4"/);
   assert.match(hero, new RegExp(`width="${width}"`));
   assert.match(hero, new RegExp(`height="${height}"`));
+  assert.equal(video.subarray(4, 8).toString("ascii"), "ftyp");
+  assert.ok(video.byteLength < 1_500_000, "hero video should stay below 1.5 MB");
+  assert.match(hero, /prefers-reduced-motion: reduce/);
   assert.match(css, /\.hero-product\s*{[^}]*height:\s*auto;/s);
+  assert.match(css, /\.hero-product\s*{[^}]*aspect-ratio:\s*16 \/ 9;/s);
   assert.match(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*16px 0 0 auto;/s);
   assert.doesNotMatch(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*-/s);
 });
