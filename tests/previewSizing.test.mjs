@@ -41,7 +41,7 @@ test("history group preview uses the same text and image row heights as the main
       { kind: "files" },
       { kind: "image" },
     ]),
-    176,
+    168,
   );
 });
 

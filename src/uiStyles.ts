@@ -20,7 +20,7 @@ const historyDetailActionButton =
   `inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--mclip-ink-dim)] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 ${focusRing}`;
 const listText =
   "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium leading-5 text-[var(--mclip-ink-soft)]";
-const historyTextRowHeight = "h-[32px]";
+const historyTextRowHeight = "h-[28px]";
 const historyImageRowHeight = "h-[64px]";
 const historyImageRowPadding = "py-[2px]";
 

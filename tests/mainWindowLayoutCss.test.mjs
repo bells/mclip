@@ -60,14 +60,14 @@ test("main footer and archive groups keep the compact one-row-per-action contrac
   assert.match(stylesSource, /archiveRow[\s\S]*h-\[28px\]/);
 });
 
-test("history row density keeps images at 2x text and archive navigation compact", async () => {
+test("history row density compacts text and files without shrinking images", async () => {
   const [stylesSource, listSource, groupPreviewSource] = await Promise.all([
     readSource("src/uiStyles.ts"),
     readSource("src/components/HistoryList.tsx"),
     readSource("src/components/HistoryGroupPreviewWindow.tsx"),
   ]);
 
-  assert.match(stylesSource, /const historyTextRowHeight = "h-\[32px\]"/);
+  assert.match(stylesSource, /const historyTextRowHeight = "h-\[28px\]"/);
   assert.match(stylesSource, /const historyImageRowHeight = "h-\[64px\]"/);
   assert.match(stylesSource, /const historyImageRowPadding = "py-\[2px\]"/);
   assert.match(stylesSource, /kind === "image"/);
