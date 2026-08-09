@@ -185,8 +185,9 @@ jobs:
     name: Verify CLI release assets
     needs: publish
     runs-on: ubuntu-latest
+    # Draft releases are only visible to tokens with push-level repository access.
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Download and verify the complete CLI asset set

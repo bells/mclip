@@ -176,6 +176,10 @@ test("public install scripts stay identical and publish checksum assets", async 
   assert.match(releaseWorkflow, /mclip-cli \$TAG_VERSION/);
   assert.match(releaseWorkflow, /fail_on_unmatched_files: true/);
   assert.match(releaseWorkflow, /verify-cli-release-assets:/);
+  assert.match(
+    releaseWorkflow,
+    /verify-cli-release-assets:[\s\S]*?permissions:\n\s+contents: write/,
+  );
   for (const expectedAsset of [
     "mclip-cli-darwin-arm64",
     "mclip-cli-darwin-arm64.sha256",
