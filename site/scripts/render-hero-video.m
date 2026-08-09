@@ -7,7 +7,7 @@
 #import <unistd.h>
 
 static const CGFloat CanvasWidth = 1280.0;
-static const CGFloat CanvasHeight = 720.0;
+static const CGFloat CanvasHeight = 960.0;
 
 static CGFloat clamp01(CGFloat value) {
   return MAX(0.0, MIN(1.0, value));
@@ -66,11 +66,11 @@ static void text(NSString *value,
 
 static void searchIcon(NSPoint center, CGFloat opacity) {
   NSColor *accent = color(0.45, 0.82, 0.79, opacity);
-  NSBezierPath *circle = [NSBezierPath bezierPathWithOvalInRect:NSMakeRect(center.x - 13.0, center.y - 13.0, 26.0, 26.0)];
-  circle.lineWidth = 4.0;
+  NSBezierPath *circle = [NSBezierPath bezierPathWithOvalInRect:NSMakeRect(center.x - 8.0, center.y - 8.0, 16.0, 16.0)];
+  circle.lineWidth = 2.5;
   [accent setStroke];
   [circle stroke];
-  line(NSMakePoint(center.x + 9.0, center.y + 9.0), NSMakePoint(center.x + 20.0, center.y + 20.0), 4.0, accent);
+  line(NSMakePoint(center.x + 6.0, center.y + 6.0), NSMakePoint(center.x + 12.0, center.y + 12.0), 2.5, accent);
 }
 
 static void drawWindowShadow(NSRect rect, CGFloat radius, CGFloat opacity) {
@@ -86,103 +86,124 @@ static void drawWindowShadow(NSRect rect, CGFloat radius, CGFloat opacity) {
 
 static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) {
   CGFloat entrance = smoothstep(0.02, 0.12, progress);
-  CGFloat x = 66.0;
-  CGFloat y = 58.0 + (1.0 - entrance) * 28.0;
-  CGFloat width = 510.0;
-  CGFloat height = 544.0;
+  CGFloat x = 28.0;
+  CGFloat y = 28.0 + (1.0 - entrance) * 34.0;
+  CGFloat width = 444.0;
+  CGFloat height = 904.0;
   NSRect frame = NSMakeRect(x, y, width, height);
 
-  drawWindowShadow(frame, 30.0, opacity);
-  roundedRect(frame, 30.0, color(0.052, 0.061, 0.057, opacity), color(0.25, 0.31, 0.28, opacity));
+  drawWindowShadow(frame, 25.0, opacity);
+  roundedRect(frame, 25.0, color(0.018, 0.021, 0.020, opacity), color(0.17, 0.19, 0.18, opacity));
 
-  NSRect iconRect = NSMakeRect(x + 22.0, y + 20.0, 58.0, 58.0);
-  roundedRect(iconRect, 15.0, color(0.07, 0.09, 0.075, opacity), color(0.23, 0.28, 0.25, opacity));
+  NSRect iconRect = NSMakeRect(x + 14.0, y + 14.0, 44.0, 44.0);
+  roundedRect(iconRect, 11.0, color(0.07, 0.09, 0.075, opacity), color(0.23, 0.28, 0.25, opacity));
   [appIcon drawInRect:NSInsetRect(iconRect, 5.0, 5.0)
              fromRect:NSZeroRect
             operation:NSCompositingOperationSourceOver
              fraction:opacity
        respectFlipped:YES
                 hints:nil];
-  text(@"mclip", NSMakeRect(x + 92.0, y + 31.0, 104.0, 30.0), 24.0, NSFontWeightBold,
+  text(@"mclip", NSMakeRect(x + 68.0, y + 23.0, 76.0, 28.0), 20.0, NSFontWeightBold,
        color(0.94, 0.95, 0.92, opacity), NSTextAlignmentLeft);
 
-  NSRect searchRect = NSMakeRect(x + 202.0, y + 18.0, 284.0, 64.0);
-  roundedRect(searchRect, 18.0, color(0.035, 0.045, 0.042, opacity), color(0.32, 0.72, 0.69, opacity));
-  searchIcon(NSMakePoint(searchRect.origin.x + 29.0, searchRect.origin.y + 28.0), opacity);
+  NSRect searchRect = NSMakeRect(x + 142.0, y + 10.0, width - 154.0, 52.0);
+  roundedRect(searchRect, 15.0, color(0.035, 0.039, 0.038, opacity), color(0.24, 0.28, 0.27, opacity));
+  searchIcon(NSMakePoint(searchRect.origin.x + 26.0, searchRect.origin.y + 25.0), opacity * 0.72);
 
   CGFloat typing = smoothstep(0.16, 0.31, progress);
   NSString *query = @"";
   if (typing > 0.02) {
-    NSArray<NSString *> *steps = @[ @"r", @"re", @"rel", @"rele", @"relea", @"release" ];
+    NSArray<NSString *> *steps = @[ @"p", @"pe", @"per", @"perf", @"perfo", @"perform", @"performance" ];
     NSUInteger index = MIN(steps.count - 1, (NSUInteger)floor(typing * steps.count));
     query = steps[index];
   }
   NSString *searchText = query.length > 0 ? query : @"Search clipboard history…";
   NSColor *searchInk = query.length > 0 ? color(0.93, 0.94, 0.91, opacity) : color(0.59, 0.62, 0.59, opacity);
-  text(searchText, NSMakeRect(searchRect.origin.x + 58.0, searchRect.origin.y + 18.0, 210.0, 32.0), 20.0,
+  text(searchText, NSMakeRect(searchRect.origin.x + 50.0, searchRect.origin.y + 14.0, 225.0, 28.0), 17.0,
        NSFontWeightMedium, searchInk, NSTextAlignmentLeft);
   if (progress > 0.14 && progress < 0.76) {
-    CGFloat cursorX = searchRect.origin.x + 60.0 + MIN(128.0, query.length * 16.8);
-    line(NSMakePoint(cursorX, searchRect.origin.y + 16.0), NSMakePoint(cursorX, searchRect.origin.y + 47.0), 2.0,
+    CGFloat cursorX = searchRect.origin.x + 51.0 + MIN(104.0, query.length * 13.8);
+    line(NSMakePoint(cursorX, searchRect.origin.y + 13.0), NSMakePoint(cursorX, searchRect.origin.y + 39.0), 1.5,
          color(0.90, 0.92, 0.88, opacity));
   }
 
-  line(NSMakePoint(x, y + 102.0), NSMakePoint(x + width, y + 102.0), 1.0, color(0.20, 0.24, 0.22, opacity));
+  line(NSMakePoint(x, y + 74.0), NSMakePoint(x + width, y + 74.0), 1.0, color(0.14, 0.16, 0.15, opacity));
 
   NSArray<NSString *> *rows = @[
-    @"Release checklist for v0.1.1",
-    @"mclip-cli agent --last 5 --json",
-    @"Image 1200×754",
-    @"Design notes.md +2",
-    @"System / Light / Dark",
+    @"Image 441×1200",
+    @"Image 501×1200",
+    @"Performance optimization is complete…",
+    @"export http_proxy=http://127.0.0.1:1087;…",
+    @"2. Generate a product demo video",
+    @"Image 1200×753",
+    @"Review layout, spacing, and colors…",
+    @"IMG_1363.HEIC +83",
+    @"Image 463×1200",
   ];
-  NSArray<NSString *> *kinds = @[ @"TEXT", @"TEXT", @"IMAGE", @"FILES", @"TEXT" ];
-  NSArray<NSNumber *> *rowHeights = @[ @44.0, @44.0, @96.0, @44.0, @44.0 ];
+  NSSet<NSNumber *> *imageRows = [NSSet setWithArray:@[ @0, @1, @5, @8 ]];
+  NSArray<NSNumber *> *rowHeights = @[ @70.0, @70.0, @44.0, @44.0, @44.0, @70.0, @44.0, @44.0, @70.0 ];
   CGFloat filtered = smoothstep(0.29, 0.38, progress);
   CGFloat selected = smoothstep(0.34, 0.43, progress);
-  CGFloat rowY = y + 116.0;
+  CGFloat rowY = y + 84.0;
   for (NSUInteger index = 0; index < rows.count; index += 1) {
     CGFloat rowHeight = rowHeights[index].doubleValue;
-    CGFloat rowOpacity = index == 0 ? opacity : opacity * (1.0 - filtered * 0.78);
-    if (index == 0 && selected > 0.01) {
-      roundedRect(NSMakeRect(x + 12.0, rowY, width - 24.0, 38.0), 9.0,
-                  color(0.22, 0.30, 0.16, opacity * selected), color(0.46, 0.67, 0.28, opacity * selected));
+    CGFloat rowOpacity = index == 2 ? opacity : opacity * (1.0 - filtered * 0.58);
+    if (index == 2 && selected > 0.01) {
+      roundedRect(NSMakeRect(x + 1.0, rowY - 1.0, width - 2.0, 40.0), 10.0,
+                  color(0.08, 0.16, 0.15, opacity * selected), color(0.26, 0.64, 0.61, opacity * selected));
     }
-    CGFloat textY = rowY + 5.0;
-    CGFloat numberY = rowY + 7.0;
-    CGFloat labelX = x + 68.0;
-    if (index == 2) {
-      NSRect thumbnail = NSMakeRect(x + 68.0, rowY + 7.0, 74.0, 82.0);
-      roundedRect(thumbnail, 10.0, color(0.035, 0.043, 0.039, rowOpacity), color(0.28, 0.35, 0.31, rowOpacity));
-      roundedRect(NSInsetRect(thumbnail, 10.0, 12.0), 7.0,
-                  color(0.22, 0.34, 0.13, rowOpacity), color(0.48, 0.68, 0.29, rowOpacity));
-      line(NSMakePoint(NSMinX(thumbnail) + 15.0, NSMaxY(thumbnail) - 23.0),
-           NSMakePoint(NSMidX(thumbnail) - 2.0, NSMidY(thumbnail) + 3.0), 3.0,
-           color(0.72, 0.86, 0.47, rowOpacity));
-      line(NSMakePoint(NSMidX(thumbnail) - 2.0, NSMidY(thumbnail) + 3.0),
-           NSMakePoint(NSMaxX(thumbnail) - 14.0, NSMaxY(thumbnail) - 31.0), 3.0,
-           color(0.72, 0.86, 0.47, rowOpacity));
-      labelX = x + 158.0;
-      textY = rowY + 30.0;
-      numberY = rowY + 32.0;
+    CGFloat textY = rowY + 7.0;
+    CGFloat numberY = rowY + 8.0;
+    CGFloat labelX = x + 50.0;
+    if ([imageRows containsObject:@(index)]) {
+      NSRect thumbnail = NSMakeRect(x + 50.0, rowY + 3.0, 58.0, 62.0);
+      roundedRect(thumbnail, 7.0, color(0.028, 0.031, 0.030, rowOpacity), color(0.16, 0.18, 0.17, rowOpacity));
+      roundedRect(NSInsetRect(thumbnail, 7.0, 7.0), 5.0,
+                  color(0.09, 0.13, 0.08, rowOpacity), color(0.35, 0.48, 0.24, rowOpacity));
+      line(NSMakePoint(NSMinX(thumbnail) + 12.0, NSMaxY(thumbnail) - 17.0),
+           NSMakePoint(NSMidX(thumbnail) - 1.0, NSMidY(thumbnail) + 2.0), 2.0,
+           color(0.63, 0.74, 0.43, rowOpacity));
+      line(NSMakePoint(NSMidX(thumbnail) - 1.0, NSMidY(thumbnail) + 2.0),
+           NSMakePoint(NSMaxX(thumbnail) - 10.0, NSMaxY(thumbnail) - 23.0), 2.0,
+           color(0.63, 0.74, 0.43, rowOpacity));
+      labelX = x + 120.0;
+      textY = rowY + 22.0;
+      numberY = rowY + 23.0;
     }
     text([NSString stringWithFormat:@"%lu.", (unsigned long)(index + 1)],
-         NSMakeRect(x + 24.0, numberY, 38.0, 28.0), 19.0, NSFontWeightSemibold,
-         color(0.77, 0.57, 0.27, rowOpacity), NSTextAlignmentLeft);
-    text(rows[index], NSMakeRect(labelX, textY, index == 2 ? 240.0 : 330.0, 30.0), 20.0, NSFontWeightMedium,
+         NSMakeRect(x + 10.0, numberY, 34.0, 26.0), 16.0, NSFontWeightSemibold,
+         color(0.88, 0.65, 0.28, rowOpacity), NSTextAlignmentLeft);
+    text(rows[index], NSMakeRect(labelX, textY, x + width - labelX - 16.0, 28.0), 16.0, NSFontWeightMedium,
          color(0.87, 0.88, 0.85, rowOpacity), NSTextAlignmentLeft);
-    text(kinds[index], NSMakeRect(x + 402.0, textY + 3.0, 78.0, 24.0), 10.0, NSFontWeightBold,
-         color(0.48, 0.54, 0.49, rowOpacity), NSTextAlignmentRight);
     rowY += rowHeight;
   }
 
-  line(NSMakePoint(x, y + 400.0), NSMakePoint(x + width, y + 400.0), 1.0, color(0.20, 0.24, 0.22, opacity));
-  NSArray<NSString *> *actions = @[ @"11 – 30", @"Preferences", @"About mclip" ];
+  line(NSMakePoint(x + 6.0, rowY + 2.0), NSMakePoint(x + width - 6.0, rowY + 2.0), 1.0,
+       color(0.14, 0.16, 0.15, opacity));
+  NSArray<NSString *> *groups = @[ @"11 – 30", @"31 – 50", @"51 – 70" ];
+  for (NSUInteger index = 0; index < groups.count; index += 1) {
+    CGFloat groupY = rowY + 14.0 + index * 36.0;
+    roundedRect(NSMakeRect(x + 11.0, groupY + 5.0, 13.0, 10.0), 2.0, nil,
+                color(0.91, 0.66, 0.24, opacity));
+    text(groups[index], NSMakeRect(x + 34.0, groupY, 240.0, 26.0), 15.0, NSFontWeightMedium,
+         color(0.80, 0.83, 0.79, opacity), NSTextAlignmentLeft);
+    text(@"›", NSMakeRect(x + width - 38.0, groupY - 1.0, 20.0, 28.0), 22.0, NSFontWeightRegular,
+         color(0.58, 0.64, 0.61, opacity), NSTextAlignmentCenter);
+  }
+
+  CGFloat footerY = y + height - 152.0;
+  line(NSMakePoint(x, footerY), NSMakePoint(x + width, footerY), 1.0, color(0.14, 0.16, 0.15, opacity));
+  NSArray<NSString *> *actions = @[ @"Clear history", @"Preferences", @"About mclip", @"Quit" ];
+  NSArray<NSString *> *hints = @[ @"Delete saved items", @"Language and history", @"Version information", @"Close tray app" ];
   for (NSUInteger index = 0; index < actions.count; index += 1) {
-    CGFloat actionY = y + 416.0 + index * 38.0;
-    roundedRect(NSMakeRect(x + 22.0, actionY + 4.0, 18.0, 14.0), 3.0, nil, color(0.73, 0.55, 0.28, opacity));
-    text(actions[index], NSMakeRect(x + 54.0, actionY, 230.0, 28.0), 16.0, NSFontWeightSemibold,
+    CGFloat actionY = footerY + 13.0 + index * 32.0;
+    text(index == 0 ? @"⌫" : index == 1 ? @"⌘" : index == 2 ? @"ⓘ" : @"⏻",
+         NSMakeRect(x + 10.0, actionY, 22.0, 25.0), 14.0, NSFontWeightRegular,
+         color(0.58, 0.64, 0.61, opacity), NSTextAlignmentCenter);
+    text(actions[index], NSMakeRect(x + 40.0, actionY, 160.0, 26.0), 15.0, NSFontWeightSemibold,
          color(0.80, 0.82, 0.78, opacity), NSTextAlignmentLeft);
+    text(hints[index], NSMakeRect(x + 206.0, actionY + 1.0, width - 220.0, 24.0), 13.0, NSFontWeightRegular,
+         color(0.55, 0.59, 0.57, opacity), NSTextAlignmentRight);
   }
 }
 
@@ -192,45 +213,37 @@ static void drawDetailWindow(CGFloat progress, CGFloat opacity) {
     return;
   }
 
-  CGFloat x = 574.0 + (1.0 - reveal) * 44.0;
-  CGFloat y = 148.0;
-  CGFloat width = 640.0;
-  CGFloat height = 430.0;
+  CGFloat x = 472.0 + (1.0 - reveal) * 48.0;
+  CGFloat y = 200.0;
+  CGFloat width = 780.0;
+  CGFloat height = 438.0;
   CGFloat alpha = opacity * reveal;
   NSRect frame = NSMakeRect(x, y, width, height);
 
-  drawWindowShadow(frame, 28.0, alpha);
-  roundedRect(frame, 28.0, color(0.058, 0.067, 0.063, alpha), color(0.27, 0.33, 0.30, alpha));
+  drawWindowShadow(frame, 24.0, alpha);
+  roundedRect(frame, 24.0, color(0.058, 0.064, 0.062, alpha), color(0.20, 0.23, 0.22, alpha));
 
-  text(@"Text detail", NSMakeRect(x + 28.0, y + 24.0, 200.0, 30.0), 18.0, NSFontWeightBold,
-       color(0.91, 0.92, 0.89, alpha), NSTextAlignmentLeft);
-  text(@"LOCAL HISTORY", NSMakeRect(x + width - 190.0, y + 29.0, 156.0, 22.0), 10.0, NSFontWeightBold,
-       color(0.46, 0.69, 0.31, alpha), NSTextAlignmentRight);
-  line(NSMakePoint(x, y + 70.0), NSMakePoint(x + width, y + 70.0), 1.0, color(0.20, 0.25, 0.22, alpha));
+  text(@"History detail", NSMakeRect(x + 24.0, y + 20.0, 200.0, 30.0), 18.0, NSFontWeightBold,
+       color(0.94, 0.68, 0.29, alpha), NSTextAlignmentLeft);
+  text(@"⌫   Text #3", NSMakeRect(x + width - 190.0, y + 20.0, 162.0, 30.0), 18.0, NSFontWeightSemibold,
+       color(0.90, 0.91, 0.88, alpha), NSTextAlignmentRight);
+  line(NSMakePoint(x, y + 62.0), NSMakePoint(x + width, y + 62.0), 1.0, color(0.16, 0.18, 0.17, alpha));
 
-  roundedRect(NSMakeRect(x + 28.0, y + 94.0, width - 56.0, 178.0), 16.0,
-              color(0.035, 0.043, 0.039, alpha), color(0.18, 0.23, 0.20, alpha));
-  text(@"Release checklist for v0.1.1", NSMakeRect(x + 52.0, y + 118.0, width - 104.0, 38.0), 25.0,
-       NSFontWeightBold, color(0.94, 0.95, 0.92, alpha), NSTextAlignmentLeft);
-  text(@"Verify macOS and Windows builds\nConfirm checksums and release assets\nPublish only after the final smoke test",
-       NSMakeRect(x + 52.0, y + 164.0, width - 104.0, 86.0), 17.0, NSFontWeightRegular,
-       color(0.69, 0.73, 0.69, alpha), NSTextAlignmentLeft);
+  roundedRect(NSMakeRect(x + 22.0, y + 82.0, width - 44.0, 202.0), 14.0,
+              color(0.035, 0.039, 0.038, alpha), color(0.16, 0.19, 0.18, alpha));
+  text(@"Performance optimization and the interface refresh are complete.\n\nMain-window text, history groups, and file rows now use tighter\nspacing while images keep room for clear thumbnails.",
+       NSMakeRect(x + 42.0, y + 103.0, width - 84.0, 152.0), 19.0, NSFontWeightRegular,
+       color(0.88, 0.89, 0.86, alpha), NSTextAlignmentLeft);
 
-  NSArray<NSString *> *labels = @[ @"TYPE", @"COPIED", @"COUNT" ];
-  NSArray<NSString *> *values = @[ @"Text", @"2 min ago", @"3" ];
+  NSArray<NSString *> *labels = @[ @"Application", @"First copied", @"Last copied", @"Copy count" ];
+  NSArray<NSString *> *values = @[ @"Obsidian", @"Aug 9, 14:15", @"Aug 9, 14:15", @"1" ];
   for (NSUInteger index = 0; index < labels.count; index += 1) {
-    CGFloat cellX = x + 28.0 + index * 190.0;
-    text(labels[index], NSMakeRect(cellX, y + 298.0, 150.0, 20.0), 10.0, NSFontWeightBold,
-         color(0.47, 0.54, 0.49, alpha), NSTextAlignmentLeft);
-    text(values[index], NSMakeRect(cellX, y + 320.0, 160.0, 26.0), 16.0, NSFontWeightSemibold,
-         color(0.82, 0.84, 0.80, alpha), NSTextAlignmentLeft);
+    CGFloat rowY = y + 302.0 + index * 30.0;
+    text(labels[index], NSMakeRect(x + 24.0, rowY, 180.0, 24.0), 15.0, NSFontWeightSemibold,
+         color(0.91, 0.67, 0.29, alpha), NSTextAlignmentLeft);
+    text(values[index], NSMakeRect(x + 205.0, rowY, width - 230.0, 24.0), 15.0, NSFontWeightSemibold,
+         color(0.78, 0.81, 0.79, alpha), NSTextAlignmentLeft);
   }
-
-  CGFloat copied = smoothstep(0.67, 0.72, progress);
-  NSColor *buttonFill = copied > 0.1 ? color(0.42, 0.68, 0.18, alpha) : color(0.20, 0.35, 0.10, alpha);
-  roundedRect(NSMakeRect(x + width - 182.0, y + height - 62.0, 154.0, 38.0), 11.0, buttonFill, nil);
-  text(copied > 0.1 ? @"Copied ✓" : @"Copy", NSMakeRect(x + width - 170.0, y + height - 55.0, 130.0, 25.0),
-       14.0, NSFontWeightBold, color(0.96, 0.98, 0.94, alpha), NSTextAlignmentCenter);
 }
 
 static void renderFrame(CGContextRef context, NSImage *appIcon, CGFloat progress) {
@@ -246,9 +259,9 @@ static void renderFrame(CGContextRef context, NSImage *appIcon, CGFloat progress
   [background drawInRect:NSMakeRect(0.0, 0.0, CanvasWidth, CanvasHeight) angle:0.0];
 
   CGFloat pulse = 0.5 + 0.5 * sin(progress * M_PI * 2.0);
-  NSGradient *glow = [[NSGradient alloc] initWithStartingColor:color(0.34, 0.67, 0.12, 0.20 + pulse * 0.05)
+  NSGradient *glow = [[NSGradient alloc] initWithStartingColor:color(0.27, 0.57, 0.10, 0.14 + pulse * 0.04)
                                                  endingColor:color(0.34, 0.67, 0.12, 0.0)];
-  [glow drawInRect:NSMakeRect(770.0, -80.0, 620.0, 620.0) relativeCenterPosition:NSMakePoint(0.0, 0.0)];
+  [glow drawInRect:NSMakeRect(690.0, 30.0, 690.0, 690.0) relativeCenterPosition:NSMakePoint(0.0, 0.0)];
 
   CGFloat fadeIn = smoothstep(0.0, 0.07, progress);
   CGFloat fadeOut = 1.0 - smoothstep(0.92, 1.0, progress);
@@ -256,9 +269,9 @@ static void renderFrame(CGContextRef context, NSImage *appIcon, CGFloat progress
   drawMainWindow(appIcon, progress, opacity);
   drawDetailWindow(progress, opacity);
 
-  text(@"SEARCH  →  SELECT  →  PREVIEW", NSMakeRect(794.0, 630.0, 410.0, 24.0), 12.0, NSFontWeightBold,
+  text(@"SEARCH  →  SELECT  →  PREVIEW", NSMakeRect(766.0, 860.0, 444.0, 24.0), 12.0, NSFontWeightBold,
        color(0.55, 0.70, 0.44, opacity * 0.82), NSTextAlignmentRight);
-  text(@"Your clipboard stays local.", NSMakeRect(746.0, 656.0, 458.0, 28.0), 16.0, NSFontWeightSemibold,
+  text(@"Independent windows. Local history.", NSMakeRect(720.0, 886.0, 490.0, 28.0), 16.0, NSFontWeightSemibold,
        color(0.70, 0.74, 0.69, opacity * 0.84), NSTextAlignmentRight);
 
   [NSGraphicsContext restoreGraphicsState];

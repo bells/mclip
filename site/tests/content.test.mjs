@@ -213,7 +213,7 @@ test("layout bundles the site stylesheet through Astro", async () => {
   assert.doesNotMatch(layout, /href="\/styles\/global\.css"/);
 });
 
-test("hero uses a compact autoplaying product video with a poster fallback", async () => {
+test("hero uses a tall autoplaying product video with a poster fallback", async () => {
   const hero = await read("src/components/Hero.astro");
   const css = await read("src/styles/global.css");
   const video = await readFile(
@@ -239,7 +239,8 @@ test("hero uses a compact autoplaying product video with a poster fallback", asy
   assert.ok(video.byteLength < 1_500_000, "hero video should stay below 1.5 MB");
   assert.match(hero, /prefers-reduced-motion: reduce/);
   assert.match(css, /\.hero-product\s*{[^}]*height:\s*auto;/s);
-  assert.match(css, /\.hero-product\s*{[^}]*aspect-ratio:\s*16 \/ 9;/s);
+  assert.match(css, /\.hero-product\s*{[^}]*aspect-ratio:\s*4 \/ 3;/s);
+  assert.match(css, /\.hero-figure\s*{[^}]*margin-top:\s*60px;/s);
   assert.match(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*16px 0 0 auto;/s);
   assert.doesNotMatch(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*-/s);
 });
