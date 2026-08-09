@@ -244,10 +244,12 @@ test("hero uses a tall autoplaying product video with a poster fallback", async 
   assert.match(css, /\.hero-figure\s*{[^}]*margin-top:\s*60px;/s);
   assert.match(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*16px 0 0 auto;/s);
   assert.doesNotMatch(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*-/s);
-  assert.match(renderer, /@"openspec"/);
-  assert.match(renderer, /searchNumbers = @\[ @68, @70, @77/);
-  assert.match(renderer, /Text #77/);
-  assert.match(renderer, /Sublime Text/);
+  assert.match(renderer, /@"history"/);
+  assert.match(renderer, /searchNumbers = @\[ @2, @7, @12, @18/);
+  assert.match(renderer, /File history pastes back as real files/);
+  assert.match(renderer, /Text #18/);
+  assert.match(renderer, /Finder or Explorer/);
+  assert.doesNotMatch(renderer, /OpenSpec|http_proxy|IMG_1363|Almanac|Sublime Text/);
   assert.match(renderer, /height = 842\.0 - filtered \* 128\.0/);
   assert.match(renderer, /footerY = y \+ height - 142\.0/);
 });

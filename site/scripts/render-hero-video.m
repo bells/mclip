@@ -114,7 +114,7 @@ static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) 
   CGFloat typing = smoothstep(0.16, 0.31, progress);
   NSString *query = @"";
   if (typing > 0.02) {
-    NSArray<NSString *> *steps = @[ @"o", @"op", @"ope", @"open", @"opens", @"opensp", @"openspe", @"openspec" ];
+    NSArray<NSString *> *steps = @[ @"h", @"hi", @"his", @"hist", @"histo", @"histor", @"history" ];
     NSUInteger index = MIN(steps.count - 1, (NSUInteger)floor(typing * steps.count));
     query = steps[index];
   }
@@ -135,18 +135,18 @@ static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) 
   line(NSMakePoint(x, y + 74.0), NSMakePoint(x + width, y + 74.0), 1.0, color(0.14, 0.16, 0.15, opacity));
 
   NSArray<NSString *> *defaultRows = @[
-    @"Image 441×1200",
-    @"Image 501×1200",
-    @"Performance optimization is complete…",
-    @"export http_proxy=http://127.0.0.1:1087;…",
-    @"2. Generate a product demo video",
-    @"Image 1200×753",
-    @"Review layout, spacing, and colors…",
-    @"IMG_1363.HEIC +83",
-    @"Image 463×1200",
+    @"Screenshot 1200×753",
+    @"Search clipboard history instantly",
+    @"Text snippets stay ready to reuse",
+    @"Image 1440×900",
+    @"Files paste back as real files",
+    @"CommandOrControl+Shift+V",
+    @"Image 2560×1600",
+    @"mclip-cli agent --last 5 --json",
+    @"Screenshot 1280×960",
   ];
-  NSSet<NSNumber *> *imageRows = [NSSet setWithArray:@[ @0, @1, @5, @8 ]];
-  NSArray<NSNumber *> *defaultRowHeights = @[ @70.0, @70.0, @44.0, @44.0, @44.0, @70.0, @44.0, @44.0, @70.0 ];
+  NSSet<NSNumber *> *imageRows = [NSSet setWithArray:@[ @0, @3, @6, @8 ]];
+  NSArray<NSNumber *> *defaultRowHeights = @[ @70.0, @44.0, @44.0, @70.0, @44.0, @44.0, @70.0, @44.0, @70.0 ];
   CGFloat selected = smoothstep(0.38, 0.47, progress);
 
   CGFloat defaultRowY = y + 84.0;
@@ -180,22 +180,22 @@ static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) 
   }
 
   NSArray<NSString *> *searchRows = @[
-    @"v0.1.1 core features are nearly complete…",
-    @"openspec",
-    @"# OpenSpec Proposal: Atoms / Hashiwokakero…",
-    @"# OpenSpec Proposal: Atoms / Hashiwokakero…",
-    @"# OpenSpec Proposal: Atoms / Hashiwokakero…",
-    @"# OpenSpec Proposal: Atoms / Hashiwokakero…",
-    @"Codex, after reviewing Almanac carefully…",
-    @"# OpenSpec Proposal: Snap / Zip…",
-    @"# OpenSpec Proposal: Atoms / Hashiwokakero…",
-    @"Codex, after reviewing Almanac carefully…",
+    @"Search clipboard history instantly",
+    @"Text history stays ready to reuse",
+    @"Image history keeps clear thumbnails",
+    @"File history pastes back as real files",
+    @"History groups organize older items",
+    @"Choose how many history items to show",
+    @"Limit the maximum history size",
+    @"History updates without reopening mclip",
+    @"Agent Mode reads history with safe commands",
+    @"Clipboard history stays on this device",
   ];
-  NSArray<NSNumber *> *searchNumbers = @[ @68, @70, @77, @78, @80, @82, @85, @86, @88, @89 ];
+  NSArray<NSNumber *> *searchNumbers = @[ @2, @7, @12, @18, @23, @31, @36, @42, @48, @57 ];
   CGFloat searchRowY = y + 84.0;
   for (NSUInteger index = 0; index < searchRows.count; index += 1) {
     CGFloat rowOpacity = opacity * filtered;
-    if (index == 2 && selected > 0.01) {
+    if (index == 3 && selected > 0.01) {
       roundedRect(NSMakeRect(x + 1.0, searchRowY - 1.0, width - 2.0, 42.0), 10.0,
                   color(0.08, 0.16, 0.15, opacity * filtered * selected),
                   color(0.26, 0.64, 0.61, opacity * filtered * selected));
@@ -267,18 +267,18 @@ static void drawDetailWindow(CGFloat progress, CGFloat opacity) {
 
   text(@"History detail", NSMakeRect(x + 24.0, y + 20.0, 200.0, 30.0), 18.0, NSFontWeightBold,
        color(0.94, 0.68, 0.29, alpha), NSTextAlignmentLeft);
-  text(@"⌫   Text #77", NSMakeRect(x + width - 190.0, y + 20.0, 162.0, 30.0), 18.0, NSFontWeightSemibold,
+  text(@"⌫   Text #18", NSMakeRect(x + width - 190.0, y + 20.0, 162.0, 30.0), 18.0, NSFontWeightSemibold,
        color(0.90, 0.91, 0.88, alpha), NSTextAlignmentRight);
   line(NSMakePoint(x, y + 62.0), NSMakePoint(x + width, y + 62.0), 1.0, color(0.16, 0.18, 0.17, alpha));
 
   roundedRect(NSMakeRect(x + 22.0, y + 82.0, width - 44.0, 202.0), 14.0,
               color(0.035, 0.039, 0.038, alpha), color(0.16, 0.19, 0.18, alpha));
-  text(@"# OpenSpec Proposal: Atoms / Hashiwokakero\n\n## 1. Overview\nThis proposal implements the fourth core puzzle in puzl: Atoms.\nPlayers connect numbered atoms in a grid using single or double bonds.",
+  text(@"File history restores real files\n\nChoose a file entry to put the original file list back on the system clipboard.\nPaste it into Finder or Explorer without turning paths into plain text.",
        NSMakeRect(x + 42.0, y + 103.0, width - 84.0, 152.0), 19.0, NSFontWeightRegular,
        color(0.88, 0.89, 0.86, alpha), NSTextAlignmentLeft);
 
   NSArray<NSString *> *labels = @[ @"Application", @"First copied", @"Last copied", @"Copy count" ];
-  NSArray<NSString *> *values = @[ @"Sublime Text", @"Jul 25, 19:18", @"Jul 25, 19:18", @"1" ];
+  NSArray<NSString *> *values = @[ @"Finder", @"Today, 10:24", @"Today, 10:26", @"2" ];
   for (NSUInteger index = 0; index < labels.count; index += 1) {
     CGFloat rowY = y + 302.0 + index * 30.0;
     text(labels[index], NSMakeRect(x + 24.0, rowY, 180.0, 24.0), 15.0, NSFontWeightSemibold,
