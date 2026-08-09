@@ -51,6 +51,7 @@ export function HistoryItemPreviewWindow({
         }
         item={preview.item}
         language={preview.language}
+        performanceInteractionId={preview.performanceInteractionId}
         role="dialog"
         translations={translations}
       />

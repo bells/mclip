@@ -28,7 +28,7 @@ async function importTypeScriptModule(sourcePath) {
   return import(compiledPath);
 }
 
-const { resolveImageDataUrl } = await importTypeScriptModule(
+const { createImageReadPromiseRegistry, resolveImageDataUrl } = await importTypeScriptModule(
   "src/utils/imageDataUrl.ts",
 );
 
@@ -74,31 +74,82 @@ test("image data URL loader reports failures without a broken source", async () 
   assert.deepEqual(state, { status: "error" });
 });
 
+test("same-WebView image consumers share one in-flight IPC read", async () => {
+  const registry = createImageReadPromiseRegistry();
+  let resolveRead;
+  let readCount = 0;
+  const readImageBase64 = () => {
+    readCount += 1;
+    return new Promise((resolve) => {
+      resolveRead = resolve;
+    });
+  };
+
+  const first = registry.read("/tmp/shared.png", readImageBase64);
+  const second = registry.read("/tmp/shared.png", readImageBase64);
+  assert.strictEqual(first, second);
+  assert.equal(readCount, 1);
+  assert.equal(registry.pendingCount(), 1);
+
+  resolveRead("encoded");
+  assert.deepEqual(await Promise.all([first, second]), ["encoded", "encoded"]);
+  await Promise.resolve();
+  assert.equal(registry.pendingCount(), 0);
+});
+
+test("cancelled image consumer does not cancel another shared consumer", async () => {
+  const registry = createImageReadPromiseRegistry();
+  let resolveRead;
+  let firstCancelled = false;
+  const readImageBase64 = (imagePath) =>
+    registry.read(
+      imagePath,
+      () =>
+        new Promise((resolve) => {
+          resolveRead = resolve;
+        }),
+    );
+  const first = resolveImageDataUrl(
+    "/tmp/shared.png",
+    readImageBase64,
+    () => firstCancelled,
+  );
+  const second = resolveImageDataUrl(
+    "/tmp/shared.png",
+    readImageBase64,
+    () => false,
+  );
+
+  firstCancelled = true;
+  resolveRead("encoded");
+
+  assert.equal(await first, null);
+  assert.deepEqual(await second, {
+    src: "data:image/png;base64,encoded",
+    status: "ready",
+  });
+  await Promise.resolve();
+  assert.equal(registry.pendingCount(), 0);
+});
+
 test("image viewer window is routed, permitted, focusable, and windowed", async () => {
-  const [appSource, windowSource, libSource, defaultCapability, desktopCapability] =
+  const [routeSource, auxiliarySource, windowSource, libSource, defaultCapability, desktopCapability] =
     await Promise.all([
-      readSource("src/App.tsx"),
+      readSource("src/windowRoutes.ts"),
+      readSource("src-tauri/src/auxiliary_windows.rs"),
       readSource("src-tauri/src/window.rs"),
       readSource("src-tauri/src/lib.rs"),
       readSource("src-tauri/capabilities/default.json"),
       readSource("src-tauri/capabilities/desktop.json"),
     ]);
   const config = JSON.parse(await readSource("src-tauri/tauri.conf.json"));
-  const imageViewer = config.app.windows.find(
-    (windowConfig) => windowConfig.label === "image-viewer",
-  );
-
-  assert.ok(imageViewer);
-  assert.equal(imageViewer.visible, false);
-  assert.equal(imageViewer.fullscreen, false);
-  assert.equal(imageViewer.transparent, false);
-  assert.equal(imageViewer.decorations, false);
-  assert.equal(imageViewer.width, 720);
-  assert.equal(imageViewer.height, 520);
-  assert.equal(imageViewer.resizable, true);
-  assert.equal(imageViewer.maximizable, true);
-  assert.equal(imageViewer.minimizable, false);
-  assert.match(appSource, /windowLabel === "image-viewer"/);
+  assert.deepEqual(config.app.windows.map((windowConfig) => windowConfig.label ?? "main"), ["main"]);
+  assert.match(auxiliarySource, /label: "image-viewer"/);
+  assert.match(auxiliarySource, /width: 720\.0,[\s\S]*height: 520\.0/);
+  assert.match(auxiliarySource, /transparent: false,[\s\S]*focusable: true/);
+  assert.match(auxiliarySource, /resizable: true,[\s\S]*maximizable: true/);
+  assert.match(auxiliarySource, /minimizable: false/);
+  assert.match(routeSource, /"image-viewer": \(\) => import\("\.\/components\/FullscreenImageViewer"\)/);
   assert.match(defaultCapability, /"image-viewer"/);
   assert.match(desktopCapability, /"image-viewer"/);
   assert.match(
@@ -128,17 +179,21 @@ test("typed image viewer IPC carries the complete image history detail", async (
   );
   assert.match(eventsSource, /IMAGE_VIEWER_UPDATED_EVENT = "image-viewer-updated"/);
   assert.match(eventsSource, /listenToImageViewerUpdated/);
-  assert.match(commandsSource, /invoke<void>\("show_image_viewer"\)/);
+  assert.match(commandsSource, /invoke<void>\("show_image_viewer", \{ interactionId \}\)/);
   assert.match(commandsSource, /invoke<void>\("close_image_viewer"\)/);
   assert.match(commandsSource, /invoke<boolean>\("toggle_image_viewer_maximize"\)/);
   assert.match(serviceSource, /toggleImageViewerMaximizeWindow/);
   assert.ok(
-    serviceSource.indexOf("notifyHistoryPreviewSelectionStarted") <
-      serviceSource.indexOf("updateImageViewerWindow(payload)"),
+    serviceSource.indexOf('ensureAuxiliaryWindowReady("image-viewer")') <
+      serviceSource.indexOf("updateImageViewerWindow(measuredPayload)"),
   );
   assert.ok(
-    serviceSource.indexOf("updateImageViewerWindow(payload)") <
-      serviceSource.indexOf("showImageViewerWindow()"),
+    serviceSource.indexOf("notifyHistoryPreviewSelectionStarted") <
+      serviceSource.indexOf("updateImageViewerWindow(measuredPayload)"),
+  );
+  assert.ok(
+    serviceSource.indexOf("updateImageViewerWindow(measuredPayload)") <
+      serviceSource.indexOf("showImageViewerWindow(performanceInteractionId)"),
   );
 });
 
@@ -243,11 +298,15 @@ test("Rust viewer lifecycle opens maximized while preserving the main window", a
     readSource("src-tauri/src/lib.rs"),
   ]);
   const showViewerSource = source.slice(
-    source.indexOf("pub fn show_image_viewer"),
+    source.indexOf("pub async fn show_image_viewer"),
     source.indexOf("pub fn close_image_viewer"),
   );
+  const closeViewerSource = source.slice(
+    source.indexOf("pub fn close_image_viewer"),
+    source.indexOf("pub fn show_main_window"),
+  );
 
-  assert.match(source, /pub fn show_image_viewer/);
+  assert.match(source, /pub async fn show_image_viewer/);
   assert.match(source, /main_window[\s\S]*current_monitor\(\)/);
   assert.match(source, /fn set_image_viewer_windowed_frame/);
   assert.match(source, /IMAGE_VIEWER_DEFAULT_WIDTH: f64 = 720\.0/);
@@ -260,9 +319,6 @@ test("Rust viewer lifecycle opens maximized while preserving the main window", a
     /pub fn hide_history_preview_window[\s\S]*hide_history_preview_detail_window\(app_handle\)/,
   );
   assert.doesNotMatch(showViewerSource, /hide_main_window/);
-  assert.match(showViewerSource, /set_focusable\(true\)/);
-  assert.match(source, /set_decorations\(false\)/);
-  assert.match(source, /set_shadow\(true\)/);
   assert.doesNotMatch(source, /set_simple_fullscreen\(true\)/);
   assert.ok(
     showViewerSource.indexOf("set_image_viewer_windowed_frame") <
@@ -292,9 +348,12 @@ test("Rust viewer lifecycle opens maximized while preserving the main window", a
   );
   assert.match(source, /let _ = focus_image_viewer\(&viewer\)/);
   assert.match(showViewerSource, /reinforce_image_viewer_focus\(viewer\)/);
+  assert.match(showViewerSource, /let was_maximized = viewer\.is_maximized\(\)/);
+  assert.match(showViewerSource, /if !was_maximized[\s\S]*set_image_viewer_windowed_frame/);
+  assert.doesNotMatch(showViewerSource, /set_focusable|set_decorations|set_shadow/);
   assert.match(source, /pub fn close_image_viewer/);
   assert.match(source, /IMAGE_VIEWER_CLOSE_IN_PROGRESS\.swap\(true, Ordering::AcqRel\)/);
-  assert.match(source, /viewer\.unmaximize\(\)/);
+  assert.doesNotMatch(closeViewerSource, /viewer\.unmaximize\(\)/);
   assert.match(
     source,
     /pub fn close_image_viewer[\s\S]*set_main_window_always_on_top\(&app_handle, true\)[\s\S]*show_main_window_in_place\(&app_handle\)/,

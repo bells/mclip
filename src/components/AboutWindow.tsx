@@ -28,6 +28,7 @@ import {
 import type { AppSettings } from "../types";
 import { ui } from "../uiStyles";
 import { normalizeSettings } from "../utils/settings";
+import { reportAuxiliaryListenerReady } from "../services/auxiliaryWindows";
 import {
   isReleaseNewer,
   parseGitHubLatestReleaseResponse,
@@ -84,6 +85,7 @@ export function AboutWindow() {
       setSettings(normalizeSettings(updatedSettings));
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
+      reportAuxiliaryListenerReady("settingsUpdated");
     });
 
     return () => {

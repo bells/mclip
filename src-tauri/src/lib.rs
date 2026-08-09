@@ -3,10 +3,14 @@
 
 pub mod agent_cli;
 mod auto_paste;
+pub mod auxiliary_windows;
 pub mod cli_install;
 mod clipboard;
+mod desktop_state;
 mod diagnostics;
 mod history;
+mod image_cache;
+pub mod performance;
 mod settings;
 mod source_app;
 mod storage;
@@ -20,22 +24,36 @@ use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    App, AppHandle, Manager, WindowEvent,
+    App, AppHandle, Emitter, Manager, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_positioner::on_tray_event;
 
 use crate::auto_paste::{remember_current_paste_target, AutoPasteTargetState};
+use crate::auxiliary_windows::{
+    ensure_auxiliary_window, mark_auxiliary_window_ready, AuxiliaryWindowRegistry,
+};
 use crate::cli_install::{get_cli_install_status, install_cli};
 use crate::clipboard::{
-    copy_history_item, get_auto_paste_permission_status, get_image_base64,
-    open_auto_paste_permission_settings, paste_current_clipboard, spawn_clipboard_watcher,
+    copy_history_item, get_auto_paste_permission_status, open_auto_paste_permission_settings,
+    paste_current_clipboard, spawn_clipboard_watcher,
 };
+use crate::desktop_state::DesktopStateRepository;
 use crate::diagnostics::{
     copy_diagnostic_report, initialize_diagnostics, log_error, log_info, open_issue_report,
     open_logs_dir, open_project_link, write_client_log,
 };
-use crate::history::{clear_history, delete_history_item, get_history};
+use crate::history::{
+    clear_history, delete_history_item, get_history_snapshot, history_assets_dir_for_history_path,
+    history_path,
+};
+use crate::image_cache::{get_image_base64, get_image_cache_stats, ImageDataCache};
+use crate::performance::{
+    is_performance_mode_enabled, record_frontend_performance, record_rust_milestone,
+    PerformanceAutomationAction, PerformanceMilestoneName, PerformanceOutcome, PerformanceRecorder,
+    PERFORMANCE_AUTOMATION_EVENT, PERFORMANCE_CLOSE_VIEWER_ARGUMENT,
+    PERFORMANCE_OPEN_VIEWER_ARGUMENT, PERFORMANCE_QUIT_ARGUMENT,
+};
 use crate::settings::{
     get_settings, load_settings, resolve_app_language, AppLanguage, AppSettings, MenuBarIconStyle,
     ResolvedAppLanguage,
@@ -74,8 +92,16 @@ fn quit_app(app_handle: AppHandle) {
 }
 
 #[tauri::command]
-fn save_settings(app_handle: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
-    let saved_settings = settings::save_settings(app_handle.clone(), settings)?;
+async fn save_settings(
+    app_handle: AppHandle,
+    settings: AppSettings,
+) -> Result<AppSettings, String> {
+    let blocking_handle = app_handle.clone();
+    let saved_settings = tauri::async_runtime::spawn_blocking(move || {
+        settings::save_settings(blocking_handle, settings)
+    })
+    .await
+    .map_err(|error| error.to_string())??;
     configure_tray_tooltip(&app_handle, &saved_settings.language);
     configure_tray_icon(&app_handle, &saved_settings.menu_bar_icon_style);
     Ok(saved_settings)
@@ -100,6 +126,7 @@ fn should_hide_main_window_on_focus_loss(
 fn build_tray(
     app: &App,
     show_guard_until: Arc<Mutex<Option<Instant>>>,
+    startup_settings: &AppSettings,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let quit_item = MenuItem::with_id(app, "quit", "退出 mclip", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&quit_item])?;
@@ -108,14 +135,6 @@ fn build_tray(
         .default_window_icon()
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "missing default window icon"))?
         .clone();
-    let startup_settings = load_settings(app.handle()).unwrap_or_else(|error| {
-        log_error(
-            app.handle(),
-            "settings",
-            &format!("failed to load settings for tray icon: {error}"),
-        );
-        AppSettings::default()
-    });
     let icon = menu_bar_icon(&startup_settings.menu_bar_icon_style).unwrap_or_else(|error| {
         log_error(
             app.handle(),
@@ -333,9 +352,34 @@ fn register_global_shortcuts(app: &App, show_guard_until: Arc<Mutex<Option<Insta
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SingleInstanceLaunchAction {
     ShowMainWindow,
+    Performance(PerformanceAutomationAction),
+    QuitPerformanceRun,
 }
 
-fn single_instance_launch_action(_args: &[String], _cwd: &str) -> SingleInstanceLaunchAction {
+fn single_instance_launch_action(
+    args: &[String],
+    _cwd: &str,
+    performance_mode_enabled: bool,
+) -> SingleInstanceLaunchAction {
+    if performance_mode_enabled {
+        match args {
+            [_, action] if action == PERFORMANCE_OPEN_VIEWER_ARGUMENT => {
+                return SingleInstanceLaunchAction::Performance(
+                    PerformanceAutomationAction::OpenViewer,
+                );
+            }
+            [_, action] if action == PERFORMANCE_CLOSE_VIEWER_ARGUMENT => {
+                return SingleInstanceLaunchAction::Performance(
+                    PerformanceAutomationAction::CloseViewer,
+                );
+            }
+            [_, action] if action == PERFORMANCE_QUIT_ARGUMENT => {
+                return SingleInstanceLaunchAction::QuitPerformanceRun;
+            }
+            _ => {}
+        }
+    }
+
     SingleInstanceLaunchAction::ShowMainWindow
 }
 
@@ -345,7 +389,9 @@ fn handle_single_instance_launch(
     cwd: &str,
     show_guard_until: &Arc<Mutex<Option<Instant>>>,
 ) {
-    match single_instance_launch_action(args, cwd) {
+    let performance_mode_enabled = app_handle.state::<PerformanceRecorder>().is_enabled();
+
+    match single_instance_launch_action(args, cwd, performance_mode_enabled) {
         SingleInstanceLaunchAction::ShowMainWindow => {
             remember_current_paste_target(app_handle);
             log_info(
@@ -368,19 +414,59 @@ fn handle_single_instance_launch(
                 );
             }
         }
+        SingleInstanceLaunchAction::Performance(PerformanceAutomationAction::OpenViewer) => {
+            if let Err(error) = app_handle.emit_to(
+                "preview",
+                PERFORMANCE_AUTOMATION_EVENT,
+                PerformanceAutomationAction::OpenViewer,
+            ) {
+                log_error(
+                    app_handle,
+                    "performance",
+                    &format!("failed to request performance viewer open: {error}"),
+                );
+            }
+        }
+        SingleInstanceLaunchAction::Performance(PerformanceAutomationAction::CloseViewer) => {
+            if let Err(error) = close_image_viewer(app_handle.clone()) {
+                log_error(
+                    app_handle,
+                    "performance",
+                    &format!("failed to close performance viewer: {error}"),
+                );
+            }
+        }
+        SingleInstanceLaunchAction::QuitPerformanceRun => app_handle.exit(0),
     }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let show_guard_until = Arc::new(Mutex::new(None::<Instant>));
+    let performance_recorder =
+        PerformanceRecorder::from_env().expect("failed to initialize performance recorder");
+    record_rust_milestone(
+        &performance_recorder,
+        PerformanceMilestoneName::ProcessEntry,
+        None,
+        None,
+        PerformanceOutcome::Success,
+    );
 
     tauri::Builder::default()
         .manage(AutoPasteTargetState::default())
+        .manage(AuxiliaryWindowRegistry::default())
+        .manage(performance_recorder)
         .on_window_event({
             let show_guard_until = Arc::clone(&show_guard_until);
 
             move |window, event| {
+                if matches!(event, WindowEvent::Destroyed) {
+                    window
+                        .state::<AuxiliaryWindowRegistry>()
+                        .remove_label(window.label());
+                }
+
                 if window.label() == IMAGE_VIEWER_WINDOW_LABEL {
                     if let WindowEvent::CloseRequested { api, .. } = event {
                         api.prevent_close();
@@ -435,12 +521,13 @@ pub fn run() {
             open_auto_paste_permission_settings,
             get_auto_paste_permission_status,
             get_image_base64,
+            get_image_cache_stats,
             quit_app,
             get_settings,
             save_settings,
             get_cli_install_status,
             install_cli,
-            get_history,
+            get_history_snapshot,
             clear_history,
             delete_history_item,
             adjust_window_height,
@@ -461,29 +548,91 @@ pub fn run() {
             copy_diagnostic_report,
             open_issue_report,
             open_project_link,
-            write_client_log
+            write_client_log,
+            is_performance_mode_enabled,
+            record_frontend_performance,
+            ensure_auxiliary_window,
+            mark_auxiliary_window_ready
         ])
         .setup({
             let show_guard_until = Arc::clone(&show_guard_until);
 
             move |app| {
+                record_rust_milestone(
+                    &app.state::<PerformanceRecorder>(),
+                    PerformanceMilestoneName::SetupStart,
+                    None,
+                    None,
+                    PerformanceOutcome::Success,
+                );
                 #[cfg(target_os = "macos")]
                 {
                     app.set_activation_policy(tauri::ActivationPolicy::Accessory);
                     app.set_dock_visibility(false);
                 }
 
+                let settings_handle = app.handle().clone();
+                let settings_loader = std::thread::spawn(move || load_settings(&settings_handle));
+
                 initialize_diagnostics(app.handle())?;
                 configure_main_window(app.handle());
-                spawn_clipboard_watcher(app.handle().clone());
                 register_global_shortcuts(app, Arc::clone(&show_guard_until));
-                build_tray(app, show_guard_until)?;
+
+                let startup_settings = settings_loader
+                    .join()
+                    .map_err(|_| std::io::Error::other("settings loader thread panicked"))?
+                    .unwrap_or_else(|error| {
+                        log_error(
+                            app.handle(),
+                            "settings",
+                            &format!("failed to initialize desktop settings state: {error}"),
+                        );
+                        AppSettings::default()
+                    });
+                let desktop_history_path =
+                    history_path(app.handle()).map_err(std::io::Error::other)?;
+                let image_cache = ImageDataCache::new(
+                    history_assets_dir_for_history_path(&desktop_history_path).join("images"),
+                );
+                app.manage(image_cache.clone());
+                let repository = DesktopStateRepository::for_app(
+                    desktop_history_path,
+                    startup_settings.clone(),
+                    app.handle().clone(),
+                    image_cache,
+                );
+                app.manage(repository);
+
+                spawn_clipboard_watcher(app.handle().clone());
+                build_tray(app, show_guard_until, &startup_settings)?;
                 configure_tray_position_persistence(app.handle());
+                record_rust_milestone(
+                    &app.state::<PerformanceRecorder>(),
+                    PerformanceMilestoneName::TrayReady,
+                    None,
+                    None,
+                    PerformanceOutcome::Success,
+                );
+                for label in ["preview", "preview-detail"] {
+                    let app_handle = app.handle().clone();
+                    tauri::async_runtime::spawn(async move {
+                        if let Err(error) =
+                            auxiliary_windows::ensure_auxiliary_window_ready(&app_handle, label)
+                                .await
+                        {
+                            log_error(
+                                &app_handle,
+                                "window",
+                                &format!("failed to warm auxiliary window {label}: {error}"),
+                            );
+                        }
+                    });
+                }
                 log_info(app.handle(), "app", "mclip started");
 
                 #[cfg(debug_assertions)]
                 if std::env::var("MCLIP_SMOKE_WINDOW").as_deref() == Ok("preferences") {
-                    let _ = show_preferences_window(app.handle().clone());
+                    tauri::async_runtime::spawn(show_preferences_window(app.handle().clone()));
                 }
 
                 Ok(())
@@ -507,6 +656,11 @@ mod tests {
         single_instance_launch_action, tray_tooltip, SingleInstanceLaunchAction,
         TOGGLE_WINDOW_SHORTCUT, TRAY_POSITION_AUTOSAVE_NAME,
     };
+    use crate::auxiliary_windows::{auxiliary_window_descriptor, LogicalWindowSize};
+    use crate::performance::{
+        PerformanceAutomationAction, PERFORMANCE_CLOSE_VIEWER_ARGUMENT,
+        PERFORMANCE_OPEN_VIEWER_ARGUMENT, PERFORMANCE_QUIT_ARGUMENT,
+    };
 
     #[test]
     fn toggle_window_shortcut_can_be_parsed() {
@@ -518,7 +672,55 @@ mod tests {
         let args = vec!["mclip".to_string()];
 
         assert_eq!(
-            single_instance_launch_action(&args, "C:\\Users\\Watson"),
+            single_instance_launch_action(&args, "C:\\Users\\Watson", false),
+            SingleInstanceLaunchAction::ShowMainWindow
+        );
+    }
+
+    #[test]
+    fn performance_actions_require_the_enabled_recorder_and_exact_allowlisted_argument() {
+        let open_args = vec![
+            "mclip".to_string(),
+            PERFORMANCE_OPEN_VIEWER_ARGUMENT.to_string(),
+        ];
+        let close_args = vec![
+            "mclip".to_string(),
+            PERFORMANCE_CLOSE_VIEWER_ARGUMENT.to_string(),
+        ];
+        let quit_args = vec!["mclip".to_string(), PERFORMANCE_QUIT_ARGUMENT.to_string()];
+
+        assert_eq!(
+            single_instance_launch_action(&open_args, "/tmp", true),
+            SingleInstanceLaunchAction::Performance(PerformanceAutomationAction::OpenViewer)
+        );
+        assert_eq!(
+            single_instance_launch_action(&close_args, "/tmp", true),
+            SingleInstanceLaunchAction::Performance(PerformanceAutomationAction::CloseViewer)
+        );
+        assert_eq!(
+            single_instance_launch_action(&quit_args, "/tmp", true),
+            SingleInstanceLaunchAction::QuitPerformanceRun
+        );
+        assert_eq!(
+            single_instance_launch_action(&open_args, "/tmp", false),
+            SingleInstanceLaunchAction::ShowMainWindow
+        );
+
+        let content_args = vec![
+            "mclip".to_string(),
+            PERFORMANCE_OPEN_VIEWER_ARGUMENT.to_string(),
+            "clipboard-content".to_string(),
+        ];
+        let path_args = vec![
+            "mclip".to_string(),
+            "--mclip-performance-action=open-viewer=/tmp/image.png".to_string(),
+        ];
+        assert_eq!(
+            single_instance_launch_action(&content_args, "/tmp", true),
+            SingleInstanceLaunchAction::ShowMainWindow
+        );
+        assert_eq!(
+            single_instance_launch_action(&path_args, "/tmp", true),
             SingleInstanceLaunchAction::ShowMainWindow
         );
     }
@@ -557,19 +759,17 @@ mod tests {
 
     #[test]
     fn preferences_window_uses_compact_fixed_bounds() {
-        let config: Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
-        let windows = config["app"]["windows"].as_array().unwrap();
-        let preferences = windows
-            .iter()
-            .find(|window| window["label"].as_str() == Some("preferences"))
-            .expect("preferences window should be configured");
+        let preferences = auxiliary_window_descriptor("preferences")
+            .expect("preferences window should have a dynamic descriptor");
+        let expected_size = LogicalWindowSize {
+            width: 600.0,
+            height: 480.0,
+        };
 
-        assert_eq!(preferences["width"].as_u64(), Some(600));
-        assert_eq!(preferences["minWidth"].as_u64(), Some(600));
-        assert_eq!(preferences["maxWidth"].as_u64(), Some(600));
-        assert_eq!(preferences["height"].as_u64(), Some(480));
-        assert_eq!(preferences["minHeight"].as_u64(), Some(480));
-        assert_eq!(preferences["maxHeight"].as_u64(), Some(480));
+        assert_eq!(preferences.size, expected_size);
+        assert_eq!(preferences.min_size, Some(expected_size));
+        assert_eq!(preferences.max_size, Some(expected_size));
+        assert!(!preferences.resizable);
     }
 
     #[test]

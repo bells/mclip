@@ -3,13 +3,14 @@ import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { DEFAULT_SETTINGS } from "../constants";
-import { getHistory, getSettings } from "../services/ipc/commands";
-import { listenToHistoryUpdated, listenToSettingsUpdated } from "../services/ipc/events";
+import { getHistorySnapshot, getSettings } from "../services/ipc/commands";
+import { listenToHistoryChanged, listenToSettingsUpdated } from "../services/ipc/events";
 import type {
   AppSettings,
-  HistoryEntry,
+  HistoryChange,
   HistoryGroupInfo,
   HistoryListItem,
+  HistorySnapshot,
 } from "../types";
 import {
   filterHistoryItems,
@@ -18,18 +19,20 @@ import {
 } from "../utils/history";
 import { getSearchQueryAfterHistorySelection } from "../utils/searchInteraction";
 import { normalizeSettings } from "../utils/settings";
+import { recordFrontendPerformanceAfterPaint } from "../services/performance";
+import { applyHistoryChange as reduceHistoryChange } from "../utils/historyChanges";
 
 type UseClipboardDataControllerArgs = {
   onLikelyClipboardInsert: () => void;
 };
 
 type UseClipboardDataControllerResult = {
-  clearLocalHistory: () => void;
+  applyHistoryChange: (change: HistoryChange | null) => void;
   clearSearchQueryAfterHistorySelection: () => void;
   filteredHistory: HistoryListItem[];
   hasHistory: boolean;
   historyGroups: HistoryGroupInfo[];
-  replaceHistory: (updatedHistory: HistoryEntry[]) => void;
+  historyRevision: number;
   searchQuery: string;
   setSearchQuery: Dispatch<SetStateAction<string>>;
   settings: AppSettings;
@@ -39,11 +42,20 @@ type UseClipboardDataControllerResult = {
 export function useClipboardDataController({
   onLikelyClipboardInsert,
 }: UseClipboardDataControllerArgs): UseClipboardDataControllerResult {
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historySnapshot, setHistorySnapshot] = useState<HistorySnapshot>({
+    entries: [],
+    revision: 0,
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const historySnapshotRef = useRef(historySnapshot);
+  const historyInitializedRef = useRef(false);
+  const historyRefreshPromiseRef = useRef<Promise<void> | null>(null);
+  const isMountedRef = useRef(true);
   const onLikelyClipboardInsertRef = useRef(onLikelyClipboardInsert);
+  const pendingHistoryChangesRef = useRef<HistoryChange[]>([]);
   const searchQueryRef = useRef(searchQuery);
+  const history = historySnapshot.entries;
 
   const filteredHistory = useMemo(
     () => filterHistoryItems(history, searchQuery),
@@ -76,12 +88,60 @@ export function useClipboardDataController({
     setSearchQuery(nextSearchQuery);
   }
 
-  function replaceHistory(updatedHistory: HistoryEntry[]) {
-    setHistory(updatedHistory);
+  function commitHistorySnapshot(nextSnapshot: HistorySnapshot) {
+    historySnapshotRef.current = nextSnapshot;
+    setHistorySnapshot(nextSnapshot);
   }
 
-  function clearLocalHistory() {
-    setHistory([]);
+  function refreshHistorySnapshot() {
+    if (historyRefreshPromiseRef.current) {
+      return historyRefreshPromiseRef.current;
+    }
+
+    const refreshPromise = getHistorySnapshot()
+      .then((nextSnapshot) => {
+        if (
+          isMountedRef.current &&
+          nextSnapshot.revision >= historySnapshotRef.current.revision
+        ) {
+          commitHistorySnapshot(nextSnapshot);
+        }
+      })
+      .catch((error) => {
+        console.error("恢复剪贴板历史快照失败:", error);
+      })
+      .finally(() => {
+        if (historyRefreshPromiseRef.current === refreshPromise) {
+          historyRefreshPromiseRef.current = null;
+        }
+      });
+
+    historyRefreshPromiseRef.current = refreshPromise;
+    return refreshPromise;
+  }
+
+  function applyHistoryChange(change: HistoryChange | null) {
+    if (!change) {
+      return;
+    }
+
+    if (!historyInitializedRef.current) {
+      pendingHistoryChangesRef.current.push(change);
+      return;
+    }
+
+    const result = reduceHistoryChange(historySnapshotRef.current, change);
+    if (result.status === "needsReplace") {
+      void refreshHistorySnapshot();
+      return;
+    }
+
+    if (result.status === "applied") {
+      commitHistorySnapshot(result.snapshot);
+      if (change.kind === "upsert") {
+        onLikelyClipboardInsertRef.current();
+      }
+    }
   }
 
   useEffect(() => {
@@ -93,14 +153,21 @@ export function useClipboardDataController({
   }, [searchQuery]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     let isActive = true;
     let unlisten: UnlistenFn | undefined;
 
     const initializeApp = async () => {
       try {
-        const [loadedSettings, initialHistory] = await Promise.all([
-          getSettings(),
-          getHistory(),
+        const loadedSettingsPromise = getSettings();
+        unlisten = await listenToHistoryChanged((change) => {
+          if (isActive) {
+            applyHistoryChange(change);
+          }
+        });
+        const [loadedSettings, initialSnapshot] = await Promise.all([
+          loadedSettingsPromise,
+          getHistorySnapshot(),
         ]);
 
         if (!isActive) {
@@ -109,42 +176,30 @@ export function useClipboardDataController({
 
         const normalizedSettings = normalizeSettings(loadedSettings);
         setSettings(normalizedSettings);
-        setHistory(initialHistory);
+        commitHistorySnapshot(initialSnapshot);
+        historyInitializedRef.current = true;
+
+        const pendingChanges = pendingHistoryChangesRef.current
+          .splice(0)
+          .sort((left, right) => left.revision - right.revision);
+        for (const change of pendingChanges) {
+          applyHistoryChange(change);
+        }
+
+        recordFrontendPerformanceAfterPaint("historyReady", {
+          fixtureSize: historySnapshotRef.current.entries.length,
+          windowLabel: "main",
+        });
       } catch (error) {
         console.error("初始化应用失败:", error);
       }
     };
 
-    const subscribeHistoryUpdates = async () => {
-      try {
-        unlisten = await listenToHistoryUpdated((updatedHistory) => {
-          if (isActive) {
-            setHistory((currentHistory) => {
-              const isLikelyClipboardInsert =
-                updatedHistory.length >= currentHistory.length &&
-                updatedHistory[0]?.id !== currentHistory[0]?.id;
-
-              if (
-                isLikelyClipboardInsert &&
-                searchQueryRef.current.trim() === ""
-              ) {
-                onLikelyClipboardInsertRef.current();
-              }
-
-              return updatedHistory;
-            });
-          }
-        });
-      } catch (error) {
-        console.error("监听剪贴板历史更新失败:", error);
-      }
-    };
-
     void initializeApp();
-    void subscribeHistoryUpdates();
 
     return () => {
       isActive = false;
+      isMountedRef.current = false;
       unlisten?.();
     };
   }, []);
@@ -164,12 +219,12 @@ export function useClipboardDataController({
   }, []);
 
   return {
-    clearLocalHistory,
+    applyHistoryChange,
     clearSearchQueryAfterHistorySelection,
     filteredHistory,
     hasHistory: history.length > 0,
     historyGroups,
-    replaceHistory,
+    historyRevision: historySnapshot.revision,
     searchQuery,
     setSearchQuery,
     settings,

@@ -15,7 +15,7 @@ export const GROUP_PREVIEW_WITH_DETAIL_WIDTH =
   GROUP_PREVIEW_WIDTH + GROUP_PREVIEW_DETAIL_WINDOW_WIDTH;
 
 export const MIN_MAX_HISTORY_COUNT = 10;
-export const MAX_MAX_HISTORY_COUNT = 200;
+export const MAX_MAX_HISTORY_COUNT = 500;
 export const DEFAULT_VISIBLE_ITEM_COUNT = 10;
 export const MIN_VISIBLE_ITEM_COUNT = 5;
 export const MAX_VISIBLE_ITEM_COUNT = 20;
@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
   language: "system",
   launchAtLogin: false,
-  maxHistoryCount: 50,
+  maxHistoryCount: 200,
   menuBarIconStyle: "light",
   mainWindowItemCount: DEFAULT_VISIBLE_ITEM_COUNT,
   historyGroupItemCount: DEFAULT_VISIBLE_ITEM_COUNT,

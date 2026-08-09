@@ -9,13 +9,20 @@ import {
   notifyHistoryPreviewSelectionStarted,
   updateImageViewerWindow,
 } from "./ipc/events";
+import { createPerformanceInteractionId } from "./performance";
+import { ensureAuxiliaryWindowReady } from "./auxiliaryWindows";
 
-export async function openImageViewer(payload: ImageViewerPayload) {
+export async function openImageViewer(
+  payload: Omit<ImageViewerPayload, "performanceInteractionId">,
+) {
   await notifyHistoryPreviewSelectionStarted();
+  const performanceInteractionId = createPerformanceInteractionId("viewer");
+  const measuredPayload = { ...payload, performanceInteractionId };
 
   try {
-    await updateImageViewerWindow(payload);
-    await showImageViewerWindow();
+    await ensureAuxiliaryWindowReady("image-viewer");
+    await updateImageViewerWindow(measuredPayload);
+    await showImageViewerWindow(performanceInteractionId);
   } catch (error) {
     await notifyHistoryPreviewSelectionCancelled().catch(() => undefined);
     throw error;

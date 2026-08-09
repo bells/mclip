@@ -16,6 +16,8 @@ import {
 } from "../lib/tauri";
 import type { HistoryItemPreviewPayload } from "../types";
 import { ui } from "../uiStyles";
+import { recordFrontendPerformanceAfterPaint } from "../services/performance";
+import { reportAuxiliaryListenerReady } from "../services/auxiliaryWindows";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
 import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
 import { HistoryDetailFullscreenButton } from "./HistoryDetailFullscreenButton";
@@ -35,6 +37,7 @@ export function HistoryPreviewDetailWindow() {
       setIsDeleting(false);
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
+      reportAuxiliaryListenerReady("previewDetailUpdated");
     });
 
     return () => {
@@ -43,12 +46,22 @@ export function HistoryPreviewDetailWindow() {
   }, []);
 
   useEffect(() => {
+    if (preview) {
+      recordFrontendPerformanceAfterPaint("previewPainted", {
+        interactionId: preview.performanceInteractionId,
+        windowLabel: "preview-detail",
+      });
+    }
+  }, [preview]);
+
+  useEffect(() => {
     let unlisten: (() => void) | undefined;
 
     void listenToHistoryPreviewPlacementUpdated((placement) => {
       setPreviewSide(placement.side);
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
+      reportAuxiliaryListenerReady("placementUpdated");
     });
 
     return () => {
@@ -128,6 +141,7 @@ export function HistoryPreviewDetailWindow() {
         }
         item={preview.item}
         language={preview.language}
+        performanceInteractionId={preview.performanceInteractionId}
         role="region"
         translations={translations}
       />

@@ -18,6 +18,7 @@ type HistoryDetailPanelProps = {
   className?: string;
   draggableHeader?: boolean;
   headerAction?: ReactNode;
+  performanceInteractionId?: string | null;
   presentation?: "compact" | "viewer";
   role?: "dialog" | "region";
 };
@@ -42,6 +43,7 @@ export function HistoryDetailPanel({
   className = "",
   draggableHeader = false,
   headerAction,
+  performanceInteractionId = null,
   presentation = "compact",
   role = "dialog",
 }: HistoryDetailPanelProps) {
@@ -70,6 +72,7 @@ export function HistoryDetailPanel({
         <div className={ui.historyDetailContentRegion}>
           <HistoryPreviewDetailContent
             item={item}
+            performanceInteractionId={performanceInteractionId}
             presentation={presentation}
             translations={translations}
           />

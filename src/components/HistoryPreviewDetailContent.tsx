@@ -10,12 +10,14 @@ type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
 
 type HistoryPreviewDetailContentProps = {
   item: HistoryListItem;
+  performanceInteractionId?: string | null;
   presentation?: "compact" | "viewer";
   translations: HistoryTranslations;
 };
 
 export function HistoryPreviewDetailContent({
   item,
+  performanceInteractionId = null,
   presentation = "compact",
   translations,
 }: HistoryPreviewDetailContentProps) {
@@ -50,6 +52,7 @@ export function HistoryPreviewDetailContent({
             </div>
           )}
           imagePath={item.imagePath}
+          performanceInteractionId={performanceInteractionId}
           loadingFallback={(
             <div
               aria-live="polite"

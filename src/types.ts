@@ -5,6 +5,53 @@ export type AppLanguage = "system" | ResolvedAppLanguage;
 export type HistoryKind = "text" | "image" | "files";
 export type MenuBarIconStyle = "appIcon" | "light" | "m";
 export type AppearanceTheme = "system" | "light" | "dark";
+export type PerformanceClock = "rust" | "frontend";
+export type PerformanceMilestoneName =
+  | "processEntry"
+  | "setupStart"
+  | "trayReady"
+  | "bootstrapReady"
+  | "routeReady"
+  | "listenersReady"
+  | "historyReady"
+  | "mainShowRequest"
+  | "mainNativeVisible"
+  | "mainPainted"
+  | "previewRequest"
+  | "previewNativeVisible"
+  | "previewPainted"
+  | "viewerRequest"
+  | "viewerNativeVisible"
+  | "viewerPainted"
+  | "imageCacheHit"
+  | "imageCacheMiss"
+  | "imageReady"
+  | "imageError";
+export type PerformanceWindowLabel =
+  | "main"
+  | "preview"
+  | "preview-detail"
+  | "image-viewer"
+  | "about"
+  | "preferences";
+export type PerformanceOutcome = "success" | "failure";
+export type PerformanceAutomationAction = "openViewer" | "closeViewer";
+export type AuxiliaryWindowLabel =
+  | "preview"
+  | "preview-detail"
+  | "image-viewer"
+  | "about"
+  | "preferences";
+
+export type PerformanceMilestone = {
+  clock: PerformanceClock;
+  elapsedMs: number;
+  fixtureSize: number | null;
+  interactionId: string | null;
+  milestone: PerformanceMilestoneName;
+  outcome: PerformanceOutcome;
+  windowLabel: PerformanceWindowLabel | null;
+};
 
 export type EnabledHistoryTypes = Record<HistoryKind, boolean>;
 export type CliInstallState =
@@ -48,6 +95,13 @@ export type AutoPastePermissionStatus = {
   settingsUrl: string | null;
 };
 
+export type ImageCacheStats = {
+  hits: number;
+  misses: number;
+  peakEncodedBytes: number;
+  retainedEncodedBytes: number;
+};
+
 export type HistoryEntryBase = {
   copyCount: number;
   displayText: string;
@@ -81,6 +135,45 @@ export type HistoryEntry =
   | ImageHistoryEntry
   | FilesHistoryEntry;
 
+export type HistorySnapshot = {
+  entries: HistoryEntry[];
+  revision: number;
+};
+
+type RevisionedHistoryChange = {
+  baseRevision: number;
+  revision: number;
+};
+
+export type HistoryChange =
+  | (RevisionedHistoryChange & {
+      entries: HistoryEntry[];
+      kind: "replace";
+    })
+  | (RevisionedHistoryChange & {
+      entry: HistoryEntry;
+      kind: "upsert";
+      removedIds: string[];
+    })
+  | (RevisionedHistoryChange & {
+      kind: "remove";
+      removedIds: string[];
+    })
+  | (RevisionedHistoryChange & {
+      kind: "clear";
+    });
+
+export type HistoryPreviewInvalidation =
+  | (RevisionedHistoryChange & {
+      closeCurrentPreview: true;
+      kind: "replace" | "clear";
+    })
+  | (RevisionedHistoryChange & {
+      closeCurrentPreview: boolean;
+      kind: "upsert" | "remove";
+      removedIds: string[];
+    });
+
 export type HistoryListItem = HistoryEntry & {
   renderId: string;
   position: number;
@@ -98,23 +191,32 @@ export type HistoryGroupPreviewPayload = {
   appearanceTheme: AppearanceTheme;
   kind: "group";
   group: HistoryGroupInfo;
+  historyRevision: number;
   items: HistoryListItem[];
   language: AppLanguage;
+  performanceInteractionId: string | null;
   showHistoryItemNumbers: boolean;
 };
 
 export type HistoryItemPreviewPayload = {
   autoPaste: boolean;
   appearanceTheme: AppearanceTheme;
+  historyRevision: number;
   kind: "item";
   item: HistoryListItem;
   language: AppLanguage;
+  performanceInteractionId: string | null;
 };
 
 export type ImageViewerPayload = {
   appearanceTheme: AppearanceTheme;
   item: Extract<HistoryListItem, { kind: "image" }>;
   language: AppLanguage;
+  performanceInteractionId: string | null;
+};
+
+export type PerformanceInteraction = {
+  interactionId: string;
 };
 
 export type HistoryPreviewPayload =

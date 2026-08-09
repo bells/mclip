@@ -136,13 +136,10 @@ test("menu bar icon style uses an accessible image-only dropdown", async () => {
 });
 
 test("preference layout uses compact fixed bounds and stacked rows", async () => {
-  const [stylesSource, tauriConfigSource] = await Promise.all([
+  const [stylesSource, auxiliarySource] = await Promise.all([
     readSource("src/uiStyles.ts"),
-    readSource("src-tauri/tauri.conf.json"),
+    readSource("src-tauri/src/auxiliary_windows.rs"),
   ]);
-  const preferencesWindow = JSON.parse(tauriConfigSource).app.windows.find(
-    (window) => window.label === "preferences",
-  );
 
   assert.doesNotMatch(stylesSource, /settingsPrimaryGrid:/);
   assert.match(
@@ -151,24 +148,10 @@ test("preference layout uses compact fixed bounds and stacked rows", async () =>
   );
   assert.match(stylesSource, /const settingsSelect =[\s\S]*w-\[152px\]/);
   assert.match(stylesSource, /menuBarIconSelectTrigger:[\s\S]*w-\[52px\]/);
-  assert.deepEqual(
-    {
-      height: preferencesWindow.height,
-      maxHeight: preferencesWindow.maxHeight,
-      maxWidth: preferencesWindow.maxWidth,
-      minHeight: preferencesWindow.minHeight,
-      minWidth: preferencesWindow.minWidth,
-      width: preferencesWindow.width,
-    },
-    {
-      height: 480,
-      maxHeight: 480,
-      maxWidth: 600,
-      minHeight: 480,
-      minWidth: 600,
-      width: 600,
-    },
-  );
+  assert.match(auxiliarySource, /label: "preferences"/);
+  assert.match(auxiliarySource, /width: 600\.0,[\s\S]*height: 480\.0/);
+  assert.match(auxiliarySource, /min_size: Some\(LogicalWindowSize \{[\s\S]*width: 600\.0,[\s\S]*height: 480\.0/);
+  assert.match(auxiliarySource, /max_size: Some\(LogicalWindowSize \{[\s\S]*width: 600\.0,[\s\S]*height: 480\.0/);
 });
 
 test("history preferences use history terminology and task order", async () => {

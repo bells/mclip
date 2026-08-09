@@ -25,6 +25,8 @@ import {
 } from "../services/ipc/events";
 import type { AppSettings, HistoryGroupInfo, HistoryListItem } from "../types";
 import { getHistoryGroupItems } from "../utils/history";
+import { createPerformanceInteractionId } from "../services/performance";
+import { ensureAuxiliaryWindowReady } from "../services/auxiliaryWindows";
 import {
   getGroupPreviewHeight,
   getItemPreviewAnchorTop,
@@ -46,6 +48,7 @@ const PREVIEW_CLOSE_DELAY_MS = 500;
 type UseHistoryPreviewControllerArgs = {
   filteredHistory: HistoryListItem[];
   historyGroups: HistoryGroupInfo[];
+  historyRevision: number;
   onMainWindowShown: () => void;
   settings: AppSettings;
 };
@@ -67,6 +70,7 @@ type UseHistoryPreviewControllerResult = {
 export function useHistoryPreviewController({
   filteredHistory,
   historyGroups,
+  historyRevision,
   onMainWindowShown,
   settings,
 }: UseHistoryPreviewControllerArgs): UseHistoryPreviewControllerResult {
@@ -337,14 +341,23 @@ export function useHistoryPreviewController({
       }
 
       const request = beginPreviewOpenRequest(previewDismissalStateRef.current);
+      const performanceInteractionId = createPerformanceInteractionId("preview");
 
-      void updateHistoryPreviewWindow({
-        autoPaste: settings.autoPaste,
-        appearanceTheme: settings.appearanceTheme,
-        item: previewHistoryItem,
-        kind: "item",
-        language: settings.language,
-      })
+      void ensureAuxiliaryWindowReady("preview")
+        .then(async () => {
+          if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
+            return;
+          }
+          await updateHistoryPreviewWindow({
+            autoPaste: settings.autoPaste,
+            appearanceTheme: settings.appearanceTheme,
+            historyRevision,
+            item: previewHistoryItem,
+            kind: "item",
+            language: settings.language,
+            performanceInteractionId,
+          });
+        })
         .then(async () => {
           if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
             return;
@@ -355,6 +368,7 @@ export function useHistoryPreviewController({
             getItemPreviewHeight(previewHistoryItem),
             ITEM_PREVIEW_WIDTH,
             ITEM_PREVIEW_WIDTH,
+            performanceInteractionId,
           );
 
           if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
@@ -388,16 +402,25 @@ export function useHistoryPreviewController({
 
     const request = beginPreviewOpenRequest(previewDismissalStateRef.current);
     const previewHeight = getGroupPreviewHeight(previewHistory);
+    const performanceInteractionId = createPerformanceInteractionId("preview");
 
-    void updateHistoryPreviewWindow({
-      autoPaste: settings.autoPaste,
-      appearanceTheme: settings.appearanceTheme,
-      group: previewGroup,
-      items: previewHistory,
-      kind: "group",
-      language: settings.language,
-      showHistoryItemNumbers: settings.showHistoryItemNumbers,
-    })
+    void ensureAuxiliaryWindowReady("preview")
+      .then(async () => {
+        if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
+          return;
+        }
+        await updateHistoryPreviewWindow({
+          autoPaste: settings.autoPaste,
+          appearanceTheme: settings.appearanceTheme,
+          group: previewGroup,
+          historyRevision,
+          items: previewHistory,
+          kind: "group",
+          language: settings.language,
+          performanceInteractionId,
+          showHistoryItemNumbers: settings.showHistoryItemNumbers,
+        });
+      })
       .then(async () => {
         if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
           return;
@@ -408,6 +431,7 @@ export function useHistoryPreviewController({
           previewHeight,
           GROUP_PREVIEW_WIDTH,
           GROUP_PREVIEW_WITH_DETAIL_WIDTH,
+          performanceInteractionId,
         );
 
         if (!canCompletePreviewOpenRequest(previewDismissalStateRef.current, request)) {
@@ -422,6 +446,7 @@ export function useHistoryPreviewController({
       });
   }, [
     historyGroups,
+    historyRevision,
     previewAnchorTop,
     previewHistory,
     previewHistoryItem,

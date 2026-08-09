@@ -56,6 +56,7 @@ import {
   getCliPrimaryAction,
 } from "../utils/cliInstall";
 import { normalizeSettings } from "../utils/settings";
+import { reportAuxiliaryListenerReady } from "../services/auxiliaryWindows";
 import { DialogStatusBar } from "./DialogStatusBar";
 import { DialogWindowFrame } from "./DialogWindowFrame";
 import { CheckIcon, ChevronRightIcon } from "./UiIcons";
@@ -461,6 +462,7 @@ export function PreferencesWindow() {
       setSettingsError("");
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
+      reportAuxiliaryListenerReady("settingsUpdated");
     });
 
     return () => {

@@ -6,6 +6,45 @@ export type ImageDataUrlState =
 
 export type ReadImageBase64 = (imagePath: string) => Promise<string>;
 
+export type ImageReadPromiseRegistry = {
+  pendingCount: () => number;
+  read: (imagePath: string, readImageBase64: ReadImageBase64) => Promise<string>;
+};
+
+export function createImageReadPromiseRegistry(): ImageReadPromiseRegistry {
+  const pendingReads = new Map<string, Promise<string>>();
+
+  return {
+    pendingCount: () => pendingReads.size,
+    read(imagePath, readImageBase64) {
+      const existing = pendingReads.get(imagePath);
+      if (existing) {
+        return existing;
+      }
+
+      const pending = readImageBase64(imagePath);
+      pendingReads.set(imagePath, pending);
+      void pending
+        .finally(() => {
+          if (pendingReads.get(imagePath) === pending) {
+            pendingReads.delete(imagePath);
+          }
+        })
+        .catch(() => undefined);
+      return pending;
+    },
+  };
+}
+
+const imageReadPromiseRegistry = createImageReadPromiseRegistry();
+
+export function readImageBase64Shared(
+  imagePath: string,
+  readImageBase64: ReadImageBase64,
+) {
+  return imageReadPromiseRegistry.read(imagePath, readImageBase64);
+}
+
 export async function resolveImageDataUrl(
   imagePath: string,
   readImageBase64: ReadImageBase64,

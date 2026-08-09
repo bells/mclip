@@ -1,26 +1,46 @@
-import type { HistoryPreviewPayload } from "../types";
+import type {
+  HistoryPreviewInvalidation,
+  HistoryPreviewPayload,
+} from "../types";
 
 export type PreviewHistoryReconciliation = {
   preview: HistoryPreviewPayload | null;
   shouldClearActiveItem: boolean;
 };
 
-export function reconcilePreviewWithHistoryIds(
+export function reconcilePreviewWithInvalidation(
   preview: HistoryPreviewPayload,
   activeItemId: string | null,
-  existingIds: ReadonlySet<string>,
+  invalidation: HistoryPreviewInvalidation,
 ): PreviewHistoryReconciliation {
+  if (invalidation.revision <= preview.historyRevision) {
+    return { preview, shouldClearActiveItem: false };
+  }
+
+  if (
+    invalidation.closeCurrentPreview ||
+    invalidation.baseRevision !== preview.historyRevision
+  ) {
+    return {
+      preview: null,
+      shouldClearActiveItem: activeItemId !== null,
+    };
+  }
+
+  const removedIds = new Set(invalidation.removedIds);
   const shouldClearActiveItem =
-    activeItemId !== null && !existingIds.has(activeItemId);
+    activeItemId !== null && removedIds.has(activeItemId);
 
   if (preview.kind === "item") {
     return {
-      preview: existingIds.has(preview.item.id) ? preview : null,
+      preview: removedIds.has(preview.item.id)
+        ? null
+        : { ...preview, historyRevision: invalidation.revision },
       shouldClearActiveItem,
     };
   }
 
-  const nextItems = preview.items.filter((item) => existingIds.has(item.id));
+  const nextItems = preview.items.filter((item) => !removedIds.has(item.id));
 
   return {
     preview:
@@ -28,6 +48,7 @@ export function reconcilePreviewWithHistoryIds(
         ? null
         : {
             ...preview,
+            historyRevision: invalidation.revision,
             items: nextItems,
           },
     shouldClearActiveItem,

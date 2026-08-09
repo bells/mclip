@@ -9,27 +9,22 @@ import {
   useState,
 } from "react";
 
-import { AboutWindow } from "./components/AboutWindow";
 import { AppFooter } from "./components/AppFooter";
 import { AppHeader } from "./components/AppHeader";
-import { HistoryPreviewWindow } from "./components/HistoryPreviewWindow";
-import { HistoryPreviewDetailWindow } from "./components/HistoryPreviewDetailWindow";
-import { FullscreenImageViewer } from "./components/FullscreenImageViewer";
 import { HistoryGroupNav } from "./components/HistoryGroupNav";
 import { HistoryList } from "./components/HistoryList";
 import { Modal } from "./components/Modal";
-import { PreferencesWindow } from "./components/PreferencesWindow";
 import { AlertIcon } from "./components/UiIcons";
 import { useApplyAppTheme } from "./hooks/useApplyAppTheme";
 import { useClipboardApp } from "./hooks/useClipboardApp";
 import { getTranslations } from "./i18n";
 import {
-  getCurrentWindowLabel,
   listenToHistoryPreviewGroupItemActivated,
   listenToMainWindowShown,
   sendHistoryPreviewKeyboardNavigation,
 } from "./lib/tauri";
 import { adjustWindowHeightToContent } from "./services/ipc/commands";
+import { recordFrontendPerformanceAfterPaint } from "./services/performance";
 import {
   getGroupPreviewEntryKey,
   getGroupPreviewReturnKey,
@@ -46,33 +41,6 @@ import { ui } from "./uiStyles";
 
 const MAIN_SCROLL_CONSTRAINT_EPSILON = 1;
 
-function App() {
-  const windowLabel = getCurrentWindowLabel();
-
-  // Tauri 的每个窗口都会加载同一份前端入口，这里按窗口 label 决定实际渲染哪个组件。
-  if (windowLabel === "preview") {
-    return <HistoryPreviewWindow />;
-  }
-
-  if (windowLabel === "preview-detail") {
-    return <HistoryPreviewDetailWindow />;
-  }
-
-  if (windowLabel === "image-viewer") {
-    return <FullscreenImageViewer />;
-  }
-
-  if (windowLabel === "about") {
-    return <AboutWindow />;
-  }
-
-  if (windowLabel === "preferences") {
-    return <PreferencesWindow />;
-  }
-
-  return <MainWindow />;
-}
-
 function isTextEditingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
     return false;
@@ -86,7 +54,7 @@ function isTextEditingTarget(target: EventTarget | null) {
   );
 }
 
-function MainWindow() {
+function App() {
   // 主窗口负责管理完整应用状态；preview 窗口只接收主窗口发过去的展示数据。
   // useRef 保存 DOM 节点引用；改变 ref.current 不会触发组件重新渲染。
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -358,10 +326,14 @@ function MainWindow() {
     let unlisten: (() => void) | undefined;
 
     // Tauri 事件监听是异步注册的，所以先保存取消监听函数，卸载组件时再调用。
-    void listenToMainWindowShown(() => {
+    void listenToMainWindowShown((interactionId) => {
       updateActiveMainTarget(MAIN_SEARCH_TARGET_ID);
       searchInputRef.current?.focus();
       searchInputRef.current?.select();
+      recordFrontendPerformanceAfterPaint("mainPainted", {
+        interactionId,
+        windowLabel: "main",
+      });
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
     });

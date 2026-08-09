@@ -2,10 +2,21 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 
 import type {
   AppSettings,
+  AuxiliaryWindowLabel,
   AutoPastePermissionStatus,
   CliInstallStatus,
-  HistoryEntry,
+  HistoryChange,
+  HistorySnapshot,
+  ImageCacheStats,
 } from "../../types";
+
+export function ensureAuxiliaryWindow(label: AuxiliaryWindowLabel) {
+  return invoke<number>("ensure_auxiliary_window", { label });
+}
+
+export function markAuxiliaryWindowReady(generation: number) {
+  return invoke<boolean>("mark_auxiliary_window_ready", { generation });
+}
 
 export type PreviewWindowSide = "left" | "right";
 
@@ -43,16 +54,16 @@ export function installCli() {
   return invoke<CliInstallStatus>("install_cli");
 }
 
-export function getHistory() {
-  return invoke<HistoryEntry[]>("get_history");
+export function getHistorySnapshot() {
+  return invoke<HistorySnapshot>("get_history_snapshot");
 }
 
 export function clearHistory() {
-  return invoke<void>("clear_history");
+  return invoke<HistoryChange | null>("clear_history");
 }
 
 export function deleteHistoryItem(id: string) {
-  return invoke<HistoryEntry[]>("delete_history_item", { id });
+  return invoke<HistoryChange | null>("delete_history_item", { id });
 }
 
 export function adjustWindowHeight(itemCount: number, groupCount: number) {
@@ -94,17 +105,23 @@ export function getImageBase64(path: string) {
   return invoke<string>("get_image_base64", { path });
 }
 
+export function getImageCacheStats() {
+  return invoke<ImageCacheStats>("get_image_cache_stats");
+}
+
 export function showHistoryPreviewWindow(
   anchorTop: number,
   previewHeight: number,
   previewWidth: number,
   requiredPreviewWidth = previewWidth,
+  interactionId: string | null = null,
 ) {
   return invoke<PreviewWindowPosition>("show_history_preview_window", {
     anchorTop,
     previewHeight,
     previewWidth,
     requiredPreviewWidth,
+    interactionId,
   });
 }
 
@@ -122,8 +139,8 @@ export function hideHistoryPreviewDetailWindow() {
   return invoke<void>("hide_history_preview_detail_window");
 }
 
-export function showImageViewerWindow() {
-  return invoke<void>("show_image_viewer");
+export function showImageViewerWindow(interactionId: string | null = null) {
+  return invoke<void>("show_image_viewer", { interactionId });
 }
 
 export function closeImageViewerWindow() {
@@ -138,11 +155,13 @@ export function showHistoryPreviewDetailWindow(
   detailAnchorTop: number,
   detailHeight: number,
   detailWidth: number,
+  interactionId: string | null = null,
 ) {
   return invoke<PreviewFamilyPosition>("show_history_preview_detail_window", {
     detailAnchorTop,
     detailHeight,
     detailWidth,
+    interactionId,
   });
 }
 

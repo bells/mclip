@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
+    m_clip_lib::performance::mark_process_entry();
     // 实际应用入口在 lib.rs，方便单元测试复用核心逻辑。
     m_clip_lib::run()
 }

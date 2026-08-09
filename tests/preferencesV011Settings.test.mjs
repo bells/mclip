@@ -55,6 +55,20 @@ test("main window count uses max history count as its dynamic maximum", async ()
   assert.match(preferencesSource, /t\.rangeNote\(MIN_VISIBLE_ITEM_COUNT,\s*mainWindowItemCountMax\)/);
 });
 
+test("history retention defaults to 200 entries and allows up to 500", async () => {
+  const [constantsSource, rustSettingsSource, preferencesSource] = await Promise.all([
+    readSource("src/constants.ts"),
+    readSource("src-tauri/src/settings.rs"),
+    readSource("src/components/PreferencesWindow.tsx"),
+  ]);
+
+  assert.match(constantsSource, /MAX_MAX_HISTORY_COUNT\s*=\s*500/);
+  assert.match(constantsSource, /maxHistoryCount:\s*200/);
+  assert.match(rustSettingsSource, /DEFAULT_MAX_HISTORY_COUNT:\s*u32\s*=\s*200/);
+  assert.match(rustSettingsSource, /MAX_MAX_HISTORY_COUNT:\s*u32\s*=\s*500/);
+  assert.match(preferencesSource, /max=\{MAX_MAX_HISTORY_COUNT\}/);
+});
+
 test("lowering max history count reconciles the main window item count", async () => {
   const source = await readSource("src/components/PreferencesWindow.tsx");
 

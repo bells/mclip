@@ -24,7 +24,7 @@ async function importTypeScriptModule(sourcePath) {
   return import(compiledPath);
 }
 
-const { reconcilePreviewWithHistoryIds } = await importTypeScriptModule(
+const { reconcilePreviewWithInvalidation } = await importTypeScriptModule(
   "src/utils/previewHistory.ts",
 );
 
@@ -48,6 +48,7 @@ function createGroupPreview(items) {
     appearanceTheme: "system",
     autoPaste: false,
     group: { endPosition: 20, index: 0, label: "11 - 20", startPosition: 11 },
+    historyRevision: 4,
     items,
     kind: "group",
     language: "system",
@@ -55,13 +56,23 @@ function createGroupPreview(items) {
   };
 }
 
+function removeInvalidation(...removedIds) {
+  return {
+    baseRevision: 4,
+    closeCurrentPreview: false,
+    kind: "remove",
+    removedIds,
+    revision: 5,
+  };
+}
+
 test("deleting an active archive item refreshes the remaining group", () => {
   const first = createItem("first", 11);
   const second = createItem("second", 12);
-  const result = reconcilePreviewWithHistoryIds(
+  const result = reconcilePreviewWithInvalidation(
     createGroupPreview([first, second]),
     first.id,
-    new Set([second.id]),
+    removeInvalidation(first.id),
   );
 
   assert.equal(result.shouldClearActiveItem, true);
@@ -70,10 +81,10 @@ test("deleting an active archive item refreshes the remaining group", () => {
 
 test("deleting the final archive item closes the preview family", () => {
   const item = createItem("only", 11);
-  const result = reconcilePreviewWithHistoryIds(
+  const result = reconcilePreviewWithInvalidation(
     createGroupPreview([item]),
     item.id,
-    new Set(),
+    removeInvalidation(item.id),
   );
 
   assert.equal(result.shouldClearActiveItem, true);
@@ -82,17 +93,71 @@ test("deleting the final archive item closes the preview family", () => {
 
 test("deleting a main item detail closes that detail", () => {
   const item = createItem("main", 1);
-  const result = reconcilePreviewWithHistoryIds(
+  const result = reconcilePreviewWithInvalidation(
     {
       appearanceTheme: "system",
       autoPaste: false,
+      historyRevision: 4,
       item,
       kind: "item",
       language: "system",
     },
     null,
-    new Set(),
+    removeInvalidation(item.id),
   );
 
   assert.equal(result.preview, null);
+});
+
+test("clipboard upsert closes an old preview without a history array", () => {
+  const item = createItem("current", 1);
+  const result = reconcilePreviewWithInvalidation(
+    {
+      appearanceTheme: "system",
+      autoPaste: false,
+      historyRevision: 4,
+      item,
+      kind: "item",
+      language: "system",
+    },
+    null,
+    {
+      baseRevision: 4,
+      closeCurrentPreview: true,
+      kind: "upsert",
+      removedIds: [],
+      revision: 5,
+    },
+  );
+
+  assert.equal(result.preview, null);
+});
+
+test("duplicate invalidation cannot close a newer preview payload", () => {
+  const preview = { ...createGroupPreview([createItem("current", 1)]), historyRevision: 6 };
+  const result = reconcilePreviewWithInvalidation(preview, null, {
+    baseRevision: 4,
+    closeCurrentPreview: true,
+    kind: "clear",
+    revision: 5,
+  });
+
+  assert.strictEqual(result.preview, preview);
+});
+
+test("a missing preview revision closes conservatively", () => {
+  const result = reconcilePreviewWithInvalidation(
+    createGroupPreview([createItem("current", 1)]),
+    "current",
+    {
+      baseRevision: 5,
+      closeCurrentPreview: false,
+      kind: "remove",
+      removedIds: ["other"],
+      revision: 6,
+    },
+  );
+
+  assert.equal(result.preview, null);
+  assert.equal(result.shouldClearActiveItem, true);
 });

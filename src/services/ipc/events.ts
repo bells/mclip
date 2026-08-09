@@ -2,17 +2,21 @@ import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type {
   AppSettings,
-  HistoryEntry,
+  HistoryChange,
   HistoryItemPreviewPayload,
   HistoryPreviewGroupItemActivatedPayload,
   HistoryPreviewKeyboardNavigationPayload,
   HistoryPreviewMeasuredPayload,
+  HistoryPreviewInvalidation,
   HistoryPreviewPayload,
   ImageViewerPayload,
+  PerformanceAutomationAction,
+  PerformanceInteraction,
 } from "../../types";
 import type { PreviewWindowPosition } from "./commands";
 
-const HISTORY_UPDATED_EVENT = "history-updated";
+const HISTORY_CHANGED_EVENT = "history-changed";
+const HISTORY_PREVIEW_INVALIDATED_EVENT = "history-preview-invalidated";
 const SETTINGS_UPDATED_EVENT = "settings-updated";
 const HISTORY_PREVIEW_UPDATED_EVENT = "history-preview-updated";
 const HISTORY_PREVIEW_DETAIL_UPDATED_EVENT =
@@ -32,6 +36,7 @@ const HISTORY_PREVIEW_SELECTION_CANCELLED_EVENT =
   "history-preview-selection-cancelled";
 const IMAGE_VIEWER_UPDATED_EVENT = "image-viewer-updated";
 const MAIN_WINDOW_SHOWN_EVENT = "main-window-shown";
+const PERFORMANCE_AUTOMATION_EVENT = "performance-automation";
 const MAIN_WINDOW_LABEL = "main";
 const PREVIEW_WINDOW_LABEL = "preview";
 const PREVIEW_DETAIL_WINDOW_LABEL = "preview-detail";
@@ -107,12 +112,23 @@ export function notifyHistoryPreviewSelectionCancelled() {
   return emitTo(MAIN_WINDOW_LABEL, HISTORY_PREVIEW_SELECTION_CANCELLED_EVENT);
 }
 
-export function listenToHistoryUpdated(
-  handler: (history: HistoryEntry[]) => void,
+export function listenToHistoryChanged(
+  handler: (change: HistoryChange) => void,
 ): Promise<UnlistenFn> {
-  return listen<HistoryEntry[]>(HISTORY_UPDATED_EVENT, (event) => {
+  return listen<HistoryChange>(HISTORY_CHANGED_EVENT, (event) => {
     handler(event.payload);
   });
+}
+
+export function listenToHistoryPreviewInvalidated(
+  handler: (invalidation: HistoryPreviewInvalidation) => void,
+): Promise<UnlistenFn> {
+  return listen<HistoryPreviewInvalidation>(
+    HISTORY_PREVIEW_INVALIDATED_EVENT,
+    (event) => {
+      handler(event.payload);
+    },
+  );
 }
 
 export function listenToSettingsUpdated(
@@ -123,10 +139,23 @@ export function listenToSettingsUpdated(
   });
 }
 
-export function listenToMainWindowShown(handler: () => void): Promise<UnlistenFn> {
-  return listen(MAIN_WINDOW_SHOWN_EVENT, () => {
-    handler();
+export function listenToMainWindowShown(
+  handler: (interactionId: string | null) => void,
+): Promise<UnlistenFn> {
+  return listen<PerformanceInteraction>(MAIN_WINDOW_SHOWN_EVENT, (event) => {
+    handler(event.payload?.interactionId ?? null);
   });
+}
+
+export function listenToPerformanceAutomation(
+  handler: (action: PerformanceAutomationAction) => void,
+): Promise<UnlistenFn> {
+  return listen<PerformanceAutomationAction>(
+    PERFORMANCE_AUTOMATION_EVENT,
+    (event) => {
+      handler(event.payload);
+    },
+  );
 }
 
 export function listenToHistoryPreviewUpdated(

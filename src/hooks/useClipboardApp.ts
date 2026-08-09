@@ -11,12 +11,12 @@ export function useClipboardApp() {
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(-1);
   const clearPreviewStateRef = useRef<() => void>(() => undefined);
   const {
-    clearLocalHistory,
+    applyHistoryChange,
     clearSearchQueryAfterHistorySelection,
     filteredHistory,
     hasHistory,
     historyGroups,
-    replaceHistory,
+    historyRevision,
     searchQuery,
     setSearchQuery,
     settings,
@@ -42,6 +42,7 @@ export function useClipboardApp() {
   } = useHistoryPreviewController({
     filteredHistory,
     historyGroups,
+    historyRevision,
     onMainWindowShown: () => setSelectedHistoryIndex(-1),
     settings,
   });
@@ -56,12 +57,11 @@ export function useClipboardApp() {
     selectHighlightedHistoryItem,
     selectHistoryItem,
   } = useClipboardActions({
+    applyHistoryChange,
     beginSelectionPreviewDismissal,
-    clearLocalHistory,
     clearPreviewState,
     clearSearchQueryAfterHistorySelection,
     hidePreviewWindow,
-    replaceHistory,
     resetSelectionPreviewDismissal,
     selectedHistoryIndex,
     setSelectedHistoryIndex,

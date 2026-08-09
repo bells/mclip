@@ -10,16 +10,15 @@ import {
   showPreferencesWindow,
 } from "../services/ipc/commands";
 import { hideCurrentWindow } from "../services/ipc/windows";
-import type { AppSettings, HistoryEntry, HistoryListItem } from "../types";
+import type { AppSettings, HistoryChange, HistoryListItem } from "../types";
 import { shouldAutoPasteAfterHistorySelection } from "../utils/selectionBehavior";
 
 type UseClipboardActionsArgs = {
+  applyHistoryChange: (change: HistoryChange | null) => void;
   beginSelectionPreviewDismissal: () => void;
-  clearLocalHistory: () => void;
   clearPreviewState: () => void;
   clearSearchQueryAfterHistorySelection: () => void;
   hidePreviewWindow: () => Promise<void>;
-  replaceHistory: (updatedHistory: HistoryEntry[]) => void;
   resetSelectionPreviewDismissal: () => void;
   selectedHistoryIndex: number;
   setSelectedHistoryIndex: Dispatch<SetStateAction<number>>;
@@ -39,12 +38,11 @@ type UseClipboardActionsResult = {
 };
 
 export function useClipboardActions({
+  applyHistoryChange,
   beginSelectionPreviewDismissal,
-  clearLocalHistory,
   clearPreviewState,
   clearSearchQueryAfterHistorySelection,
   hidePreviewWindow,
-  replaceHistory,
   resetSelectionPreviewDismissal,
   selectedHistoryIndex,
   setSelectedHistoryIndex,
@@ -90,8 +88,7 @@ export function useClipboardActions({
 
   const clearHistory = async () => {
     try {
-      await clearHistoryCommand();
-      clearLocalHistory();
+      applyHistoryChange(await clearHistoryCommand());
       clearPreviewState();
       setSelectedHistoryIndex(-1);
     } catch (error) {
@@ -104,8 +101,7 @@ export function useClipboardActions({
       clearPreviewState();
       await hidePreviewWindow();
 
-      const updatedHistory = await deleteHistoryItemCommand(id);
-      replaceHistory(updatedHistory);
+      applyHistoryChange(await deleteHistoryItemCommand(id));
     } catch (error) {
       console.error("删除历史记录失败:", error);
     }

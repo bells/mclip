@@ -6,12 +6,14 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager};
 
+use crate::desktop_state::DesktopStateRepository;
 use crate::history::{trim_history_to_max, HistoryKind};
+use crate::performance::performance_config_dir_override;
 use crate::storage::{write_text_atomically, write_text_atomically_if_changed};
 
-pub const DEFAULT_MAX_HISTORY_COUNT: u32 = 50;
+pub const DEFAULT_MAX_HISTORY_COUNT: u32 = 200;
 pub const MIN_MAX_HISTORY_COUNT: u32 = 10;
-pub const MAX_MAX_HISTORY_COUNT: u32 = 200;
+pub const MAX_MAX_HISTORY_COUNT: u32 = 500;
 pub const DEFAULT_VISIBLE_ITEM_COUNT: u32 = 10;
 pub const MIN_VISIBLE_ITEM_COUNT: u32 = 5;
 pub const MAX_VISIBLE_ITEM_COUNT: u32 = 20;
@@ -201,8 +203,11 @@ fn system_locale() -> String {
 }
 
 #[tauri::command]
-pub fn get_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
-    load_settings(&app_handle)
+pub async fn get_settings(app_handle: AppHandle) -> Result<AppSettings, String> {
+    let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    tauri::async_runtime::spawn_blocking(move || repository.settings())
+        .await
+        .map_err(|error| error.to_string())?
 }
 
 pub fn save_settings(app_handle: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
@@ -239,7 +244,9 @@ fn persist_settings(app_handle: &AppHandle, settings: AppSettings) -> Result<App
     let content = serde_json::to_string_pretty(&settings).map_err(|error| error.to_string())?;
     write_text_atomically(&path, &content)?;
 
-    let saved_settings = load_settings(app_handle)?;
+    let saved_settings = app_handle
+        .state::<DesktopStateRepository>()
+        .commit_settings(settings)?;
     app_handle
         .emit(SETTINGS_UPDATED_EVENT, saved_settings.clone())
         .map_err(|error| error.to_string())?;
@@ -247,7 +254,11 @@ fn persist_settings(app_handle: &AppHandle, settings: AppSettings) -> Result<App
     Ok(saved_settings)
 }
 
-fn settings_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn settings_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
+    if let Some(config_dir) = performance_config_dir_override()? {
+        return Ok(config_dir.join("settings.json"));
+    }
+
     #[cfg(debug_assertions)]
     if let Some(path) = std::env::var_os("MCLIP_APP_CONFIG_DIR") {
         return Ok(PathBuf::from(path).join("settings.json"));
@@ -381,11 +392,18 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
 mod tests {
     use super::{
         resolve_app_language, resolve_supported_language, AppLanguage, AppSettings,
-        AppearanceTheme, HistoryTypes, ResolvedAppLanguage, DEFAULT_VISIBLE_ITEM_COUNT,
-        MAX_MAX_HISTORY_COUNT, MAX_VISIBLE_ITEM_COUNT, MIN_MAX_HISTORY_COUNT,
-        MIN_VISIBLE_ITEM_COUNT,
+        AppearanceTheme, HistoryTypes, ResolvedAppLanguage, DEFAULT_MAX_HISTORY_COUNT,
+        DEFAULT_VISIBLE_ITEM_COUNT, MAX_MAX_HISTORY_COUNT, MAX_VISIBLE_ITEM_COUNT,
+        MIN_MAX_HISTORY_COUNT, MIN_VISIBLE_ITEM_COUNT,
     };
     use crate::history::HistoryKind;
+
+    #[test]
+    fn history_count_defaults_to_200_with_a_500_entry_upper_bound() {
+        assert_eq!(DEFAULT_MAX_HISTORY_COUNT, 200);
+        assert_eq!(MAX_MAX_HISTORY_COUNT, 500);
+        assert_eq!(AppSettings::default().max_history_count, 200);
+    }
 
     #[test]
     fn sanitize_clamps_history_count_to_lower_bound() {

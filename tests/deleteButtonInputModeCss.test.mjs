@@ -50,6 +50,6 @@ test("history deletion is owned by shared detail actions", async () => {
   assert.match(detailWindowSource, /<HistoryDetailDeleteButton/);
   assert.match(detailWindowSource, /await deleteHistoryItem\(preview\.item\.id\)/);
   assert.match(detailWindowSource, /await hideHistoryPreviewDetailWindow\(\)/);
-  assert.match(previewWindowSource, /listenToHistoryUpdated/);
-  assert.match(previewWindowSource, /reconcilePreviewWithHistoryIds/);
+  assert.match(previewWindowSource, /listenToHistoryPreviewInvalidated/);
+  assert.match(previewWindowSource, /reconcilePreviewWithInvalidation/);
 });

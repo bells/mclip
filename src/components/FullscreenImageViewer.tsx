@@ -10,6 +10,8 @@ import {
 } from "../lib/tauri";
 import type { ImageViewerPayload } from "../types";
 import { ui } from "../uiStyles";
+import { recordFrontendPerformanceAfterPaint } from "../services/performance";
+import { reportAuxiliaryListenerReady } from "../services/auxiliaryWindows";
 import { DialogWindowFrame } from "./DialogWindowFrame";
 import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
@@ -39,6 +41,7 @@ export function FullscreenImageViewer() {
     }).then((unsubscribe) => {
       if (isActive) {
         unlisten = unsubscribe;
+        reportAuxiliaryListenerReady("imageViewerUpdated");
         return;
       }
 
@@ -122,6 +125,15 @@ export function FullscreenImageViewer() {
     };
   }, [requestClose]);
 
+  useEffect(() => {
+    if (payload) {
+      recordFrontendPerformanceAfterPaint("viewerPainted", {
+        interactionId: payload.performanceInteractionId,
+        windowLabel: "image-viewer",
+      });
+    }
+  }, [payload]);
+
   if (!payload) {
     return null;
   }
@@ -184,6 +196,7 @@ export function FullscreenImageViewer() {
         }
         item={payload.item}
         language={payload.language}
+        performanceInteractionId={payload.performanceInteractionId}
         presentation="viewer"
         role="dialog"
         translations={translations.history}

@@ -9,12 +9,17 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::diagnostics::log_error;
-use crate::settings::load_settings;
+use crate::desktop_state::{
+    DesktopHistoryMutation, DesktopHistorySnapshot, DesktopStateRepository,
+};
+use crate::performance::performance_config_dir_override;
 use crate::source_app::current_source_app_name;
 use crate::storage::write_text_atomically;
 
-pub const HISTORY_UPDATED_EVENT: &str = "history-updated";
+pub const HISTORY_CHANGED_EVENT: &str = "history-changed";
+pub const HISTORY_PREVIEW_INVALIDATED_EVENT: &str = "history-preview-invalidated";
+const MAIN_WINDOW_LABEL: &str = "main";
+const PREVIEW_WINDOW_LABEL: &str = "preview";
 
 #[derive(Debug, Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -63,6 +68,73 @@ pub struct HistoryEntryCommon {
     pub copy_count: u32,
 }
 
+#[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistorySnapshot {
+    pub entries: Vec<HistoryEntry>,
+    pub revision: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum HistoryChange {
+    Replace {
+        base_revision: u64,
+        revision: u64,
+        entries: Vec<HistoryEntry>,
+    },
+    Upsert {
+        base_revision: u64,
+        revision: u64,
+        entry: HistoryEntry,
+        removed_ids: Vec<String>,
+    },
+    Remove {
+        base_revision: u64,
+        revision: u64,
+        removed_ids: Vec<String>,
+    },
+    Clear {
+        base_revision: u64,
+        revision: u64,
+    },
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum HistoryPreviewInvalidation {
+    Replace {
+        base_revision: u64,
+        revision: u64,
+        close_current_preview: bool,
+    },
+    Upsert {
+        base_revision: u64,
+        revision: u64,
+        removed_ids: Vec<String>,
+        close_current_preview: bool,
+    },
+    Remove {
+        base_revision: u64,
+        revision: u64,
+        removed_ids: Vec<String>,
+        close_current_preview: bool,
+    },
+    Clear {
+        base_revision: u64,
+        revision: u64,
+        close_current_preview: bool,
+    },
+}
+
 pub enum NewHistoryItem {
     Text(String),
     Image {
@@ -72,6 +144,35 @@ pub enum NewHistoryItem {
         content_hash: String,
     },
     Files(Vec<String>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct HistoryMutationResult {
+    pub history: Vec<HistoryEntry>,
+    pub changed: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HistoryFileFingerprint {
+    pub exists: bool,
+    pub byte_len: u64,
+    pub content_hash: Option<String>,
+}
+
+impl HistoryFileFingerprint {
+    fn missing() -> Self {
+        Self {
+            exists: false,
+            byte_len: 0,
+            content_hash: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LoadedHistoryFile {
+    pub history: Vec<HistoryEntry>,
+    pub fingerprint: HistoryFileFingerprint,
 }
 
 #[derive(Debug, Deserialize)]
@@ -105,7 +206,7 @@ impl HistoryEntry {
         }
     }
 
-    fn image_path(&self) -> Option<&str> {
+    pub(crate) fn image_path(&self) -> Option<&str> {
         match self {
             HistoryEntry::Image { image_path, .. } => Some(image_path),
             _ => None,
@@ -132,55 +233,50 @@ impl NewHistoryItem {
 }
 
 #[tauri::command]
-pub fn get_history(app_handle: AppHandle) -> Result<Vec<HistoryEntry>, String> {
-    load_history(&app_handle)
+pub async fn get_history_snapshot(app_handle: AppHandle) -> Result<HistorySnapshot, String> {
+    let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    tauri::async_runtime::spawn_blocking(move || repository.history_snapshot())
+        .await
+        .map_err(|error| error.to_string())?
+        .map(HistorySnapshot::from)
 }
 
 #[tauri::command]
-pub fn clear_history(app_handle: AppHandle) -> Result<(), String> {
-    let path = history_path(&app_handle)?;
-    if path.exists() {
-        fs::remove_file(path).map_err(|error| error.to_string())?;
+pub async fn clear_history(app_handle: AppHandle) -> Result<Option<HistoryChange>, String> {
+    let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    let mutation = tauri::async_runtime::spawn_blocking(move || repository.clear_history())
+        .await
+        .map_err(|error| error.to_string())??;
+    let change = history_change_for_clear(&mutation);
+    if let Some(change) = &change {
+        emit_history_change(&app_handle, change)?;
     }
-
-    remove_history_assets(&app_handle)?;
-    emit_history_updated(&app_handle, &[])
+    Ok(change)
 }
 
 #[tauri::command]
-pub fn delete_history_item(app_handle: AppHandle, id: String) -> Result<Vec<HistoryEntry>, String> {
-    let current_history = load_history(&app_handle)?;
-    let (next_history, did_delete) = remove_history_item(current_history, &id);
-
-    if !did_delete {
-        return Ok(next_history);
+pub async fn delete_history_item(
+    app_handle: AppHandle,
+    id: String,
+) -> Result<Option<HistoryChange>, String> {
+    let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    let mutation =
+        tauri::async_runtime::spawn_blocking(move || repository.delete_history_item(&id))
+            .await
+            .map_err(|error| error.to_string())??;
+    let change = history_change_for_remove(&mutation);
+    if let Some(change) = &change {
+        emit_history_change(&app_handle, change)?;
     }
-
-    if next_history.is_empty() {
-        let path = history_path(&app_handle)?;
-        if path.exists() {
-            fs::remove_file(path).map_err(|error| error.to_string())?;
-        }
-    } else {
-        persist_history(&app_handle, &next_history)?;
-    }
-
-    cleanup_unused_image_assets(&app_handle, &next_history)?;
-    emit_history_updated(&app_handle, &next_history)?;
-    Ok(next_history)
-}
-
-pub fn find_history_item(app_handle: &AppHandle, id: &str) -> Result<Option<HistoryEntry>, String> {
-    Ok(load_history(app_handle)?
-        .into_iter()
-        .find(|item| item.id() == id))
+    Ok(change)
 }
 
 pub fn process_new_history_item(
     app_handle: &AppHandle,
     new_item: NewHistoryItem,
-) -> Result<Option<Vec<HistoryEntry>>, String> {
-    let settings = load_settings(app_handle)?;
+) -> Result<Option<HistoryChange>, String> {
+    let repository = app_handle.state::<DesktopStateRepository>();
+    let settings = repository.settings()?;
 
     if !settings.enabled_history_types.is_enabled(new_item.kind()) {
         return Ok(None);
@@ -189,64 +285,182 @@ pub fn process_new_history_item(
     let copied_at = current_timestamp_millis();
     let source_app = current_source_app_name();
     let new_entry = create_history_entry(app_handle, new_item, copied_at, source_app)?;
-    let next_history = merge_history(
-        load_history(app_handle)?,
-        new_entry,
-        settings.max_history_count as usize,
-    );
+    let mutation =
+        repository.merge_history_entry(new_entry, settings.max_history_count as usize)?;
 
-    persist_history(app_handle, &next_history)?;
-    cleanup_unused_image_assets(app_handle, &next_history)?;
-
-    Ok(Some(next_history))
+    Ok(history_change_for_upsert(&mutation))
 }
 
 pub fn trim_history_to_max(app_handle: &AppHandle, max_history_count: usize) -> Result<(), String> {
-    let mut history = load_history(app_handle)?;
+    let mutation = app_handle
+        .state::<DesktopStateRepository>()
+        .trim_history(max_history_count)?;
+    if let Some(change) = history_change_for_remove(&mutation) {
+        emit_history_change(app_handle, &change)?;
+    }
+    Ok(())
+}
 
-    if history.len() <= max_history_count {
-        return Ok(());
+pub fn emit_history_change(app_handle: &AppHandle, change: &HistoryChange) -> Result<(), String> {
+    app_handle
+        .emit_to(MAIN_WINDOW_LABEL, HISTORY_CHANGED_EVENT, change)
+        .map_err(|error| error.to_string())?;
+
+    if app_handle
+        .get_webview_window(PREVIEW_WINDOW_LABEL)
+        .is_some()
+    {
+        app_handle
+            .emit_to(
+                PREVIEW_WINDOW_LABEL,
+                HISTORY_PREVIEW_INVALIDATED_EVENT,
+                HistoryPreviewInvalidation::from(change),
+            )
+            .map_err(|error| error.to_string())?;
     }
 
-    history.truncate(max_history_count);
-    persist_history(app_handle, &history)?;
-    cleanup_unused_image_assets(app_handle, &history)?;
-    emit_history_updated(app_handle, &history)
+    Ok(())
 }
 
-pub fn emit_history_updated(
-    app_handle: &AppHandle,
-    history: &[HistoryEntry],
-) -> Result<(), String> {
-    app_handle
-        .emit(HISTORY_UPDATED_EVENT, history.to_vec())
-        .map_err(|error| error.to_string())
-}
-
-pub fn load_history(app_handle: &AppHandle) -> Result<Vec<HistoryEntry>, String> {
-    let path = history_path(app_handle)?;
-
-    match load_history_from_path(&path) {
-        Ok(history) => Ok(history),
-        Err(error) => {
-            // 历史文件损坏不能影响应用启动；回退为空历史即可。
-            log_error(
-                app_handle,
-                "history",
-                &format!("failed to parse clipboard history, using empty history: {error}"),
-            );
-            Ok(Vec::new())
+impl From<DesktopHistorySnapshot> for HistorySnapshot {
+    fn from(snapshot: DesktopHistorySnapshot) -> Self {
+        Self {
+            entries: snapshot.history,
+            revision: snapshot.revision,
         }
     }
 }
 
+impl From<&HistoryChange> for HistoryPreviewInvalidation {
+    fn from(change: &HistoryChange) -> Self {
+        match change {
+            HistoryChange::Replace {
+                base_revision,
+                revision,
+                ..
+            } => Self::Replace {
+                base_revision: *base_revision,
+                revision: *revision,
+                close_current_preview: true,
+            },
+            HistoryChange::Upsert {
+                base_revision,
+                revision,
+                removed_ids,
+                ..
+            } => Self::Upsert {
+                base_revision: *base_revision,
+                revision: *revision,
+                removed_ids: removed_ids.clone(),
+                close_current_preview: true,
+            },
+            HistoryChange::Remove {
+                base_revision,
+                revision,
+                removed_ids,
+            } => Self::Remove {
+                base_revision: *base_revision,
+                revision: *revision,
+                removed_ids: removed_ids.clone(),
+                close_current_preview: false,
+            },
+            HistoryChange::Clear {
+                base_revision,
+                revision,
+            } => Self::Clear {
+                base_revision: *base_revision,
+                revision: *revision,
+                close_current_preview: true,
+            },
+        }
+    }
+}
+
+fn history_change_for_upsert(mutation: &DesktopHistoryMutation) -> Option<HistoryChange> {
+    history_replace_for_external_reload(mutation).or_else(|| {
+        let entry = mutation.snapshot.history.first()?.clone();
+        Some(HistoryChange::Upsert {
+            base_revision: mutation.previous_snapshot.revision,
+            revision: mutation.snapshot.revision,
+            entry,
+            removed_ids: removed_history_ids(mutation),
+        })
+    })
+}
+
+fn history_change_for_remove(mutation: &DesktopHistoryMutation) -> Option<HistoryChange> {
+    history_replace_for_external_reload(mutation).or_else(|| {
+        mutation.changed.then(|| HistoryChange::Remove {
+            base_revision: mutation.previous_snapshot.revision,
+            revision: mutation.snapshot.revision,
+            removed_ids: removed_history_ids(mutation),
+        })
+    })
+}
+
+fn history_change_for_clear(mutation: &DesktopHistoryMutation) -> Option<HistoryChange> {
+    history_replace_for_external_reload(mutation).or_else(|| {
+        mutation.changed.then_some(HistoryChange::Clear {
+            base_revision: mutation.previous_snapshot.revision,
+            revision: mutation.snapshot.revision,
+        })
+    })
+}
+
+fn history_replace_for_external_reload(mutation: &DesktopHistoryMutation) -> Option<HistoryChange> {
+    mutation.external_reloaded.then(|| HistoryChange::Replace {
+        base_revision: mutation.previous_snapshot.revision,
+        revision: mutation.snapshot.revision,
+        entries: mutation.snapshot.history.clone(),
+    })
+}
+
+fn removed_history_ids(mutation: &DesktopHistoryMutation) -> Vec<String> {
+    let remaining_ids = mutation
+        .snapshot
+        .history
+        .iter()
+        .map(HistoryEntry::id)
+        .collect::<HashSet<_>>();
+
+    mutation
+        .previous_snapshot
+        .history
+        .iter()
+        .filter(|entry| !remaining_ids.contains(entry.id()))
+        .map(|entry| entry.id().to_string())
+        .collect()
+}
+
 pub fn load_history_from_path(path: &Path) -> Result<Vec<HistoryEntry>, String> {
+    load_history_file(path).map(|loaded| loaded.history)
+}
+
+pub fn load_history_file(path: &Path) -> Result<LoadedHistoryFile, String> {
     if !path.exists() {
-        return Ok(Vec::new());
+        return Ok(LoadedHistoryFile {
+            history: Vec::new(),
+            fingerprint: HistoryFileFingerprint::missing(),
+        });
     }
 
-    let content = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    parse_history_content(&content)
+    let bytes = fs::read(path).map_err(|error| error.to_string())?;
+    let content = std::str::from_utf8(&bytes).map_err(|error| error.to_string())?;
+
+    Ok(LoadedHistoryFile {
+        history: parse_history_content(content)?,
+        fingerprint: fingerprint_for_bytes(&bytes),
+    })
+}
+
+pub fn history_file_fingerprint(path: &Path) -> Result<HistoryFileFingerprint, String> {
+    if !path.exists() {
+        return Ok(HistoryFileFingerprint::missing());
+    }
+
+    fs::read(path)
+        .map(|bytes| fingerprint_for_bytes(&bytes))
+        .map_err(|error| error.to_string())
 }
 
 pub fn persist_history_to_path(path: &Path, history: &[HistoryEntry]) -> Result<(), String> {
@@ -296,14 +510,16 @@ pub fn cleanup_unused_image_assets_for_history_path(
     let used_paths: HashSet<PathBuf> = history
         .iter()
         .filter_map(|item| item.image_path().map(PathBuf::from))
+        .map(|path| path.canonicalize().unwrap_or(path))
         .collect();
 
     for entry in fs::read_dir(&image_dir).map_err(|error| error.to_string())? {
         let entry = entry.map_err(|error| error.to_string())?;
         let path = entry.path();
+        let comparable_path = path.canonicalize().unwrap_or_else(|_| path.clone());
 
         if path.extension().and_then(|extension| extension.to_str()) == Some("png")
-            && !used_paths.contains(&path)
+            && !used_paths.contains(&comparable_path)
         {
             fs::remove_file(path).map_err(|error| error.to_string())?;
         }
@@ -322,7 +538,7 @@ fn remove_history_assets_for_history_path(history_path: &Path) -> Result<(), Str
     Ok(())
 }
 
-fn history_assets_dir_for_history_path(history_path: &Path) -> PathBuf {
+pub(crate) fn history_assets_dir_for_history_path(history_path: &Path) -> PathBuf {
     history_path
         .parent()
         .unwrap_or_else(|| Path::new("."))
@@ -345,22 +561,19 @@ fn parse_history_content(content: &str) -> Result<Vec<HistoryEntry>, String> {
         .map_err(|error| error.to_string())
 }
 
-fn persist_history(app_handle: &AppHandle, history: &[HistoryEntry]) -> Result<(), String> {
-    let path = history_path(app_handle)?;
-    persist_history_to_path(&path, history)
-}
-
-fn history_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn history_path(app_handle: &AppHandle) -> Result<PathBuf, String> {
     Ok(app_config_dir(app_handle)?.join("history.json"))
 }
 
 fn image_assets_dir(app_handle: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app_config_dir(app_handle)?
-        .join("history-assets")
-        .join("images"))
+    Ok(history_assets_dir_for_history_path(&history_path(app_handle)?).join("images"))
 }
 
 fn app_config_dir(app_handle: &AppHandle) -> Result<PathBuf, String> {
+    if let Some(config_dir) = performance_config_dir_override()? {
+        return Ok(config_dir);
+    }
+
     #[cfg(debug_assertions)]
     if let Some(path) = std::env::var_os("MCLIP_APP_CONFIG_DIR") {
         return Ok(PathBuf::from(path));
@@ -453,12 +666,48 @@ fn merge_history(
     history
 }
 
+pub fn merge_history_result(
+    history: Vec<HistoryEntry>,
+    new_item: HistoryEntry,
+    max_history_count: usize,
+) -> HistoryMutationResult {
+    HistoryMutationResult {
+        history: merge_history(history, new_item, max_history_count),
+        changed: true,
+    }
+}
+
 fn remove_history_item(mut history: Vec<HistoryEntry>, id: &str) -> (Vec<HistoryEntry>, bool) {
     let original_len = history.len();
     history.retain(|item| item.id() != id);
 
     let did_delete = history.len() != original_len;
     (history, did_delete)
+}
+
+pub fn remove_history_item_result(history: Vec<HistoryEntry>, id: &str) -> HistoryMutationResult {
+    let (history, changed) = remove_history_item(history, id);
+    HistoryMutationResult { history, changed }
+}
+
+pub fn trim_history_result(
+    mut history: Vec<HistoryEntry>,
+    max_history_count: usize,
+) -> HistoryMutationResult {
+    let changed = history.len() > max_history_count;
+    if changed {
+        history.truncate(max_history_count);
+    }
+
+    HistoryMutationResult { history, changed }
+}
+
+fn fingerprint_for_bytes(bytes: &[u8]) -> HistoryFileFingerprint {
+    HistoryFileFingerprint {
+        exists: true,
+        byte_len: bytes.len() as u64,
+        content_hash: Some(hash_hex(bytes)),
+    }
 }
 
 fn create_text_entry(
@@ -505,49 +754,6 @@ fn migrate_legacy_text_history(history: Vec<String>, copied_at: u64) -> Vec<Hist
         .collect()
 }
 
-fn cleanup_unused_image_assets(
-    app_handle: &AppHandle,
-    history: &[HistoryEntry],
-) -> Result<(), String> {
-    let image_dir = image_assets_dir(app_handle)?;
-
-    if !image_dir.exists() {
-        return Ok(());
-    }
-
-    let used_paths: HashSet<PathBuf> = history
-        .iter()
-        .filter_map(|item| item.image_path().map(PathBuf::from))
-        .collect();
-
-    for entry in fs::read_dir(&image_dir).map_err(|error| error.to_string())? {
-        let entry = entry.map_err(|error| error.to_string())?;
-        let path = entry.path();
-
-        if path.extension().and_then(|extension| extension.to_str()) == Some("png")
-            && !used_paths.contains(&path)
-        {
-            fs::remove_file(path).map_err(|error| error.to_string())?;
-        }
-    }
-
-    Ok(())
-}
-
-fn remove_history_assets(app_handle: &AppHandle) -> Result<(), String> {
-    let config_dir = app_handle
-        .path()
-        .app_config_dir()
-        .map_err(|error| error.to_string())?;
-    let assets_dir = config_dir.join("history-assets");
-
-    if assets_dir.exists() {
-        fs::remove_dir_all(assets_dir).map_err(|error| error.to_string())?;
-    }
-
-    Ok(())
-}
-
 fn files_display_text(file_paths: &[String]) -> String {
     let Some(first_path) = file_paths.first() else {
         return "Files".to_string();
@@ -583,10 +789,19 @@ fn current_timestamp_millis() -> u64 {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use crate::desktop_state::{DesktopHistoryMutation, DesktopHistorySnapshot};
+
     use super::{
-        create_text_entry, files_display_text, hash_hex, merge_history, merge_text_history_item,
+        cleanup_unused_image_assets_for_history_path, create_text_entry, files_display_text,
+        hash_hex, history_change_for_remove, history_change_for_upsert, history_file_fingerprint,
+        load_history_file, merge_history, merge_history_result, merge_text_history_item,
         migrate_legacy_text_history, migrate_structured_text_history, remove_history_item,
-        HistoryEntry, HistoryKind, LegacyTextHistoryEntry, NewHistoryItem,
+        remove_history_item_result, trim_history_result, HistoryChange, HistoryEntry,
+        HistoryEntryCommon, HistoryKind, HistoryPreviewInvalidation, HistorySnapshot,
+        LegacyTextHistoryEntry, NewHistoryItem,
     };
 
     fn text_entry(text: &str, copied_at: u64, source_app: Option<&str>) -> HistoryEntry {
@@ -597,6 +812,198 @@ mod tests {
             source_app.map(str::to_string),
             1,
         )
+    }
+
+    fn unique_history_path(label: &str) -> std::path::PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "mclip-history-{label}-{}-{nonce}.json",
+            std::process::id()
+        ))
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn image_cleanup_preserves_assets_referenced_through_an_aliased_root() {
+        use std::os::unix::fs::symlink;
+
+        let history_path = unique_history_path("aliased-image-cleanup");
+        let root = history_path.with_extension("root");
+        let alias = history_path.with_extension("alias");
+        let image_dir = root.join("history-assets/images");
+        fs::create_dir_all(&image_dir).unwrap();
+        let used_path = image_dir.join("used.png");
+        let unused_path = image_dir.join("unused.png");
+        fs::write(&used_path, b"used").unwrap();
+        fs::write(&unused_path, b"unused").unwrap();
+        symlink(&root, &alias).unwrap();
+
+        let history = vec![HistoryEntry::Image {
+            common: HistoryEntryCommon {
+                id: "used-image".to_string(),
+                display_text: "used".to_string(),
+                first_copied_at: 1,
+                last_copied_at: 1,
+                source_app: None,
+                copy_count: 1,
+            },
+            image_path: alias
+                .join("history-assets/images/used.png")
+                .to_string_lossy()
+                .into_owned(),
+            width: 1,
+            height: 1,
+            byte_size: 4,
+            content_hash: "used".to_string(),
+        }];
+
+        cleanup_unused_image_assets_for_history_path(&root.join("history.json"), &history).unwrap();
+
+        assert!(used_path.exists());
+        assert!(!unused_path.exists());
+        fs::remove_file(alias).unwrap();
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn mutation_results_report_merge_remove_and_trim_changes() {
+        let first = text_entry("first", 1000, None);
+        let second = text_entry("second", 2000, None);
+        let merged = merge_history_result(vec![first.clone()], second.clone(), 10);
+        assert!(merged.changed);
+        assert_eq!(merged.history, vec![second.clone(), first.clone()]);
+
+        let missing = remove_history_item_result(merged.history.clone(), "missing");
+        assert!(!missing.changed);
+        assert_eq!(missing.history, merged.history);
+
+        let trimmed = trim_history_result(missing.history, 1);
+        assert!(trimmed.changed);
+        assert_eq!(trimmed.history, vec![second]);
+    }
+
+    #[test]
+    fn revisioned_history_contract_serializes_with_camel_case_fields() {
+        let entry = text_entry("latest", 2000, None);
+        let snapshot = HistorySnapshot {
+            entries: vec![entry.clone()],
+            revision: 8,
+        };
+        let upsert = HistoryChange::Upsert {
+            base_revision: 7,
+            revision: 8,
+            entry,
+            removed_ids: vec!["trimmed".to_string()],
+        };
+        let invalidation = HistoryPreviewInvalidation::from(&upsert);
+
+        let snapshot_json = serde_json::to_value(snapshot).unwrap();
+        let change_json = serde_json::to_value(upsert).unwrap();
+        let invalidation_json = serde_json::to_value(invalidation).unwrap();
+
+        assert_eq!(snapshot_json["revision"], 8);
+        assert_eq!(snapshot_json["entries"].as_array().unwrap().len(), 1);
+        assert_eq!(change_json["kind"], "upsert");
+        assert_eq!(change_json["baseRevision"], 7);
+        assert_eq!(change_json["removedIds"][0], "trimmed");
+        assert_eq!(invalidation_json["kind"], "upsert");
+        assert_eq!(invalidation_json["closeCurrentPreview"], true);
+        assert!(invalidation_json.get("entry").is_none());
+    }
+
+    #[test]
+    fn desktop_mutation_builds_minimal_upsert_and_remove_deltas() {
+        let first = text_entry("first", 1000, None);
+        let trimmed = text_entry("trimmed", 1500, None);
+        let latest = text_entry("latest", 2000, None);
+        let upsert_mutation = DesktopHistoryMutation {
+            previous_snapshot: DesktopHistorySnapshot {
+                revision: 3,
+                history: vec![first.clone(), trimmed.clone()],
+            },
+            snapshot: DesktopHistorySnapshot {
+                revision: 4,
+                history: vec![latest.clone(), first.clone()],
+            },
+            changed: true,
+            external_reloaded: false,
+        };
+
+        assert_eq!(
+            history_change_for_upsert(&upsert_mutation),
+            Some(HistoryChange::Upsert {
+                base_revision: 3,
+                revision: 4,
+                entry: latest.clone(),
+                removed_ids: vec![trimmed.id().to_string()],
+            })
+        );
+
+        let remove_mutation = DesktopHistoryMutation {
+            previous_snapshot: upsert_mutation.snapshot.clone(),
+            snapshot: DesktopHistorySnapshot {
+                revision: 5,
+                history: vec![first],
+            },
+            changed: true,
+            external_reloaded: false,
+        };
+
+        assert_eq!(
+            history_change_for_remove(&remove_mutation),
+            Some(HistoryChange::Remove {
+                base_revision: 4,
+                revision: 5,
+                removed_ids: vec![latest.id().to_string()],
+            })
+        );
+    }
+
+    #[test]
+    fn external_reload_uses_replace_instead_of_an_incomplete_delta() {
+        let external = text_entry("external", 2000, None);
+        let mutation = DesktopHistoryMutation {
+            previous_snapshot: DesktopHistorySnapshot {
+                revision: 6,
+                history: vec![external.clone()],
+            },
+            snapshot: DesktopHistorySnapshot {
+                revision: 6,
+                history: vec![external.clone()],
+            },
+            changed: true,
+            external_reloaded: true,
+        };
+
+        assert_eq!(
+            history_change_for_remove(&mutation),
+            Some(HistoryChange::Replace {
+                base_revision: 6,
+                revision: 6,
+                entries: vec![external],
+            })
+        );
+    }
+
+    #[test]
+    fn history_file_fingerprint_tracks_content_and_missing_files() {
+        let path = unique_history_path("fingerprint");
+        let missing = history_file_fingerprint(&path).unwrap();
+        assert!(!missing.exists);
+
+        fs::write(&path, "[\"first\"]").unwrap();
+        let first = load_history_file(&path).unwrap();
+        assert!(first.fingerprint.exists);
+        assert_eq!(first.history.len(), 1);
+
+        fs::write(&path, "[\"other\"]").unwrap();
+        let other = history_file_fingerprint(&path).unwrap();
+        assert_ne!(first.fingerprint.content_hash, other.content_hash);
+
+        fs::remove_file(path).unwrap();
     }
 
     #[test]

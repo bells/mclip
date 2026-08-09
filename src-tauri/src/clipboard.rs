@@ -10,21 +10,18 @@ use std::thread;
 use std::time::Duration;
 
 use arboard::{Clipboard, ImageData};
-use base64::prelude::*;
 use image::imageops::{self, FilterType};
 use image::RgbaImage;
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::auto_paste::{activate_paste_target_on_main_thread, AutoPasteTargetState};
+use crate::desktop_state::DesktopStateRepository;
 use crate::diagnostics::{log_error, log_info};
 use crate::history::{
-    emit_history_updated, find_history_item, hash_hex, process_new_history_item, HistoryEntry,
-    NewHistoryItem,
+    emit_history_change, hash_hex, process_new_history_item, HistoryEntry, NewHistoryItem,
 };
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
-use crate::settings::load_settings;
 use crate::settings::HistoryTypes;
 
 #[cfg(not(target_os = "windows"))]
@@ -45,12 +42,17 @@ pub struct AutoPastePermissionStatus {
 }
 
 #[tauri::command]
-pub fn copy_history_item(app_handle: AppHandle, id: String) -> Result<(), String> {
-    let Some(history_item) = find_history_item(&app_handle, &id)? else {
-        return Err("history item not found".to_string());
-    };
+pub async fn copy_history_item(app_handle: AppHandle, id: String) -> Result<(), String> {
+    let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(history_item) = repository.find_history_item(&id)? else {
+            return Err("history item not found".to_string());
+        };
 
-    write_history_item_to_clipboard(history_item)
+        write_history_item_to_clipboard(history_item)
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
@@ -111,14 +113,15 @@ pub fn get_auto_paste_permission_status() -> AutoPastePermissionStatus {
     platform_auto_paste_permission_status()
 }
 
-#[tauri::command]
-pub fn get_image_base64(path: String) -> Result<String, String> {
-    let bytes = std::fs::read(&path).map_err(|error| error.to_string())?;
-    Ok(BASE64_STANDARD.encode(&bytes))
-}
-
 pub fn spawn_clipboard_watcher(app_handle: AppHandle) {
     spawn_platform_clipboard_watcher(app_handle);
+}
+
+fn configured_history_types(app_handle: &AppHandle) -> Result<HistoryTypes, String> {
+    app_handle
+        .state::<DesktopStateRepository>()
+        .settings()
+        .map(|settings| settings.enabled_history_types)
 }
 
 // 统一处理平台监听得到的新内容：去重、写入历史、通知前端刷新。
@@ -134,8 +137,8 @@ fn process_clipboard_snapshot(
     *last_signature = snapshot.signature;
 
     match process_new_history_item(app_handle, snapshot.item) {
-        Ok(Some(updated_history)) => {
-            if let Err(error) = emit_history_updated(app_handle, &updated_history) {
+        Ok(Some(change)) => {
+            if let Err(error) = emit_history_change(app_handle, &change) {
                 log_error(
                     app_handle,
                     "clipboard",
@@ -718,14 +721,14 @@ fn normalize_file_url_path(path: String) -> String {
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
     thread::spawn(move || {
-        let mut last_signature = load_settings(&app_handle)
-            .map(|settings| read_clipboard_signature(&settings.enabled_history_types))
+        let mut last_signature = configured_history_types(&app_handle)
+            .map(|history_types| read_clipboard_signature(&history_types))
             .unwrap_or_default();
 
         loop {
             // 其它平台保留完整轮询。每轮独立读取，避免长时间持有 Clipboard 导致后续读取不稳定。
-            if let Ok(settings) = load_settings(&app_handle) {
-                if let Some(snapshot) = read_clipboard_snapshot(&settings.enabled_history_types) {
+            if let Ok(history_types) = configured_history_types(&app_handle) {
+                if let Some(snapshot) = read_clipboard_snapshot(&history_types) {
                     process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
                 }
             }
@@ -746,23 +749,21 @@ mod macos_clipboard_watcher {
 
     use tauri::AppHandle;
 
-    use crate::settings::load_settings;
-
     use super::{
-        process_clipboard_snapshot, read_clipboard_signature, read_clipboard_snapshot,
-        read_snapshot_after_change_token_update, CLIPBOARD_CHANGE_SETTLE_DELAY_MS,
-        CLIPBOARD_POLL_INTERVAL_MS,
+        configured_history_types, process_clipboard_snapshot, read_clipboard_signature,
+        read_clipboard_snapshot, read_snapshot_after_change_token_update,
+        CLIPBOARD_CHANGE_SETTLE_DELAY_MS, CLIPBOARD_POLL_INTERVAL_MS,
     };
 
     pub fn spawn(app_handle: AppHandle) {
         thread::spawn(move || {
-            let mut last_signature = load_settings(&app_handle)
-                .map(|settings| read_clipboard_signature(&settings.enabled_history_types))
+            let mut last_signature = configured_history_types(&app_handle)
+                .map(|history_types| read_clipboard_signature(&history_types))
                 .unwrap_or_default();
             let mut last_change_token = general_pasteboard_change_count().unwrap_or_default();
 
             loop {
-                if let Ok(settings) = load_settings(&app_handle) {
+                if let Ok(history_types) = configured_history_types(&app_handle) {
                     let current_change_token = general_pasteboard_change_count();
                     if current_change_token
                         .map(|change_token| change_token != last_change_token)
@@ -774,7 +775,7 @@ mod macos_clipboard_watcher {
                     if let Some(snapshot) = read_snapshot_after_change_token_update(
                         &mut last_change_token,
                         current_change_token,
-                        || read_clipboard_snapshot(&settings.enabled_history_types),
+                        || read_clipboard_snapshot(&history_types),
                     ) {
                         process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
                     }
@@ -841,10 +842,8 @@ mod windows_clipboard_watcher {
 
     use tauri::AppHandle;
 
-    use crate::diagnostics::log_error;
-    use crate::settings::load_settings;
-
     use super::{process_clipboard_snapshot, read_clipboard_signature, read_clipboard_snapshot};
+    use crate::diagnostics::log_error;
 
     type Bool = i32;
     type Hinstance = isize;
@@ -960,8 +959,8 @@ mod windows_clipboard_watcher {
             return Err("AddClipboardFormatListener failed".to_string());
         }
 
-        let mut last_signature = load_settings(&app_handle)
-            .map(|settings| read_clipboard_signature(&settings.enabled_history_types))
+        let mut last_signature = super::configured_history_types(&app_handle)
+            .map(|history_types| read_clipboard_signature(&history_types))
             .unwrap_or_default();
         let mut message = Msg::default();
 
@@ -979,9 +978,8 @@ mod windows_clipboard_watcher {
 
             // window_proc 只负责把系统事件转成 channel 信号；实际读取剪贴板放在消息循环里做。
             while event_receiver.try_recv().is_ok() {
-                if let Ok(settings) = load_settings(&app_handle) {
-                    if let Some(snapshot) = read_clipboard_snapshot(&settings.enabled_history_types)
-                    {
+                if let Ok(history_types) = super::configured_history_types(&app_handle) {
+                    if let Some(snapshot) = read_clipboard_snapshot(&history_types) {
                         process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
                     }
                 }

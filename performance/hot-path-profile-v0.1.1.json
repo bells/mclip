@@ -1,0 +1,71 @@
+{
+  "capturedAt": "2026-08-09T12:10:39+08:00",
+  "device": {
+    "cpu": "Apple M2",
+    "memoryBytes": 17179869184,
+    "osRelease": "25.5.0",
+    "platform": "darwin-arm64"
+  },
+  "fixtureSize": 50,
+  "evidence": {
+    "bundle": {
+      "sharedCssGzipBytes": 6890,
+      "mainEntryGzipBytes": 71579
+    },
+    "hotSampleBeforeViewerTransitionFix": {
+      "measuredRuns": 3,
+      "warmupRuns": 2,
+      "mainShellMedianMs": 21.564958999999362,
+      "previewShellMedianMs": 50.653291999999055,
+      "viewerShellMedianMs": 399.8940420000008,
+      "viewerShellP95Ms": 401.0297079999991
+    },
+    "hotSampleAfterViewerTransitionFix": {
+      "measuredRuns": 3,
+      "warmupRuns": 2,
+      "mainShellMedianMs": 17.518208000000413,
+      "previewShellMedianMs": 50.26433299999917,
+      "viewerShellMedianMs": 66.49354100000073,
+      "viewerShellP95Ms": 99.831916000001
+    },
+    "manualImageFlow": {
+      "cache": "main misses; item preview, group detail, first viewer, and repeated viewer hit",
+      "deletion": "viewer closed and main recovered while shared referenced assets remained",
+      "missingAsset": "imageCacheMiss failure and imageError were recorded without stale imageReady"
+    }
+  },
+  "rankedFindings": [
+    {
+      "rank": 1,
+      "finding": "Repeated viewer paint was dominated by the macOS maximize transition, not Rust window calls or image decoding.",
+      "evidence": "viewerNativeVisible followed viewerRequest by about 1 ms while viewerPainted remained about 400 ms later"
+    },
+    {
+      "rank": 2,
+      "finding": "Prewarmed preview paint is bounded by the existing pointer and paint cadence near 50 ms.",
+      "evidence": "text, file, and image shell medians remained 47-51 ms with image cache hits below the 120 ms budget"
+    },
+    {
+      "rank": 3,
+      "finding": "Resident main show and native visibility are already low cost.",
+      "evidence": "hot main median was 18-22 ms and no same-frame duplicate show request was observed"
+    }
+  ],
+  "acceptedChanges": [
+    "Retain a hidden maximized viewer so repeated opens avoid another native maximize animation.",
+    "Set focusable, decorations, and shadow only in the auxiliary descriptor at creation time.",
+    "Use a shared LaunchServices primary launcher so macOS benchmark runs avoid parent-process AppKit registration aborts."
+  ],
+  "noChangeDecisions": {
+    "css": "The shared stylesheet is 6.89 KiB gzip and no style, layout, paint, or compositing evidence justified fragmentation.",
+    "reactMemoization": "Trace and source audit showed no repeated component commit bottleneck, so no memo wrappers were added.",
+    "previewGeometry": "Live monitor geometry, preview X preservation, pointer polling, and zero-debounce behavior remain unchanged."
+  },
+  "compatibilityAudit": {
+    "fullHistoryBroadcast": "removed",
+    "legacyGetHistoryCommand": "removed",
+    "staticAuxiliaryWindowPath": "removed",
+    "benchmarkLauncher": "split into launch-app.mjs",
+    "publicHistoryAndSettingsFormats": "unchanged"
+  }
+}

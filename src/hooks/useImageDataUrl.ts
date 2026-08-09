@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getImageBase64 } from "../services/ipc/commands";
 import {
   resolveImageDataUrl,
+  readImageBase64Shared,
   type ImageDataUrlState,
 } from "../utils/imageDataUrl";
 
@@ -23,7 +24,7 @@ export function useImageDataUrl(imagePath: string | null): ImageDataUrlState {
 
     void resolveImageDataUrl(
       imagePath,
-      getImageBase64,
+      (requestedPath) => readImageBase64Shared(requestedPath, getImageBase64),
       () => cancelled,
     ).then((nextState) => {
       if (nextState !== null) {

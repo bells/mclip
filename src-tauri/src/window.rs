@@ -13,6 +13,12 @@ use tauri::{
 };
 use tauri_plugin_positioner::{Position as TrayPosition, WindowExt};
 
+use crate::auxiliary_windows::ensure_auxiliary_window_ready;
+use crate::performance::{
+    next_interaction_id, record_rust_milestone, PerformanceInteraction, PerformanceMilestoneName,
+    PerformanceOutcome, PerformanceRecorder, PerformanceWindowLabel,
+};
+
 #[cfg(target_os = "macos")]
 use raw_window_handle::HasWindowHandle;
 
@@ -214,13 +220,22 @@ pub fn adjust_window_height_to_content(
 }
 
 #[tauri::command]
-pub fn show_history_preview_window(
+pub async fn show_history_preview_window(
     app_handle: AppHandle,
     anchor_top: f64,
     preview_height: f64,
     preview_width: f64,
     required_preview_width: f64,
+    interaction_id: Option<String>,
 ) -> Result<PreviewWindowPosition, String> {
+    record_rust_milestone(
+        &app_handle.state::<PerformanceRecorder>(),
+        PerformanceMilestoneName::PreviewRequest,
+        Some(PerformanceWindowLabel::Preview),
+        interaction_id.clone(),
+        PerformanceOutcome::Success,
+    );
+    ensure_auxiliary_window_ready(&app_handle, PREVIEW_WINDOW_LABEL).await?;
     let Some(main_window) = app_handle.get_webview_window("main") else {
         return Ok(default_preview_window_position());
     };
@@ -291,6 +306,13 @@ pub fn show_history_preview_window(
     }
 
     preview_window.show().map_err(|error| error.to_string())?;
+    record_rust_milestone(
+        &app_handle.state::<PerformanceRecorder>(),
+        PerformanceMilestoneName::PreviewNativeVisible,
+        Some(PerformanceWindowLabel::Preview),
+        interaction_id,
+        PerformanceOutcome::Success,
+    );
 
     Ok(position)
 }
@@ -404,12 +426,21 @@ pub fn hide_history_preview_detail_window(app_handle: AppHandle) -> Result<(), S
 }
 
 #[tauri::command]
-pub fn show_history_preview_detail_window(
+pub async fn show_history_preview_detail_window(
     app_handle: AppHandle,
     detail_anchor_top: f64,
     detail_height: f64,
     detail_width: f64,
+    interaction_id: Option<String>,
 ) -> Result<PreviewFamilyPosition, String> {
+    record_rust_milestone(
+        &app_handle.state::<PerformanceRecorder>(),
+        PerformanceMilestoneName::PreviewRequest,
+        Some(PerformanceWindowLabel::PreviewDetail),
+        interaction_id.clone(),
+        PerformanceOutcome::Success,
+    );
+    ensure_auxiliary_window_ready(&app_handle, PREVIEW_DETAIL_WINDOW_LABEL).await?;
     let Some(main_window) = app_handle.get_webview_window("main") else {
         return Ok(default_preview_family_position());
     };
@@ -521,17 +552,26 @@ pub fn show_history_preview_detail_window(
     preview_detail_window
         .show()
         .map_err(|error| error.to_string())?;
+    record_rust_milestone(
+        &app_handle.state::<PerformanceRecorder>(),
+        PerformanceMilestoneName::PreviewNativeVisible,
+        Some(PerformanceWindowLabel::PreviewDetail),
+        interaction_id,
+        PerformanceOutcome::Success,
+    );
 
     Ok(position)
 }
 
 #[tauri::command]
-pub fn show_about_window(app_handle: AppHandle) -> Result<(), String> {
+pub async fn show_about_window(app_handle: AppHandle) -> Result<(), String> {
+    ensure_auxiliary_window_ready(&app_handle, ABOUT_WINDOW_LABEL).await?;
     show_centered_dialog_window(&app_handle, ABOUT_WINDOW_LABEL)
 }
 
 #[tauri::command]
-pub fn show_preferences_window(app_handle: AppHandle) -> Result<(), String> {
+pub async fn show_preferences_window(app_handle: AppHandle) -> Result<(), String> {
+    ensure_auxiliary_window_ready(&app_handle, PREFERENCES_WINDOW_LABEL).await?;
     show_centered_dialog_window(&app_handle, PREFERENCES_WINDOW_LABEL)
 }
 
@@ -648,6 +688,14 @@ pub fn configure_main_window(app_handle: &AppHandle) {
         apply_window_corner_radius(app_handle, "about", CORNER_RADIUS);
         apply_window_corner_radius(app_handle, "preferences", CORNER_RADIUS);
     }
+}
+
+pub fn apply_auxiliary_window_corner_radius(app_handle: &AppHandle, label: &str) {
+    #[cfg(target_os = "macos")]
+    apply_window_corner_radius(app_handle, label, CORNER_RADIUS);
+
+    #[cfg(not(target_os = "macos"))]
+    let _ = (app_handle, label);
 }
 
 fn show_centered_dialog_window(app_handle: &AppHandle, label: &str) -> Result<(), String> {
@@ -770,7 +818,18 @@ fn reinforce_image_viewer_focus<R: Runtime>(viewer: WebviewWindow<R>) {
 }
 
 #[tauri::command]
-pub fn show_image_viewer(app_handle: AppHandle) -> Result<(), String> {
+pub async fn show_image_viewer(
+    app_handle: AppHandle,
+    interaction_id: Option<String>,
+) -> Result<(), String> {
+    record_rust_milestone(
+        &app_handle.state::<PerformanceRecorder>(),
+        PerformanceMilestoneName::ViewerRequest,
+        Some(PerformanceWindowLabel::ImageViewer),
+        interaction_id.clone(),
+        PerformanceOutcome::Success,
+    );
+    ensure_auxiliary_window_ready(&app_handle, IMAGE_VIEWER_WINDOW_LABEL).await?;
     let viewer = app_handle
         .get_webview_window(IMAGE_VIEWER_WINDOW_LABEL)
         .ok_or_else(|| "missing image-viewer window".to_string())?;
@@ -796,24 +855,28 @@ pub fn show_image_viewer(app_handle: AppHandle) -> Result<(), String> {
     .ok_or_else(|| "missing monitor for image-viewer".to_string())?;
 
     hide_history_preview_window(app_handle.clone())?;
+    let was_maximized = viewer.is_maximized().map_err(|error| error.to_string())?;
 
     let show_result = (|| -> Result<(), String> {
         set_main_window_always_on_top(&app_handle, false)?;
-        restore_image_viewer_if_maximized(&viewer)?;
-        viewer
-            .set_focusable(true)
-            .map_err(|error| error.to_string())?;
-        viewer
-            .set_decorations(false)
-            .map_err(|error| error.to_string())?;
-        viewer.set_shadow(true).map_err(|error| error.to_string())?;
-        set_image_viewer_windowed_frame(&viewer, &target_monitor)?;
+        if !was_maximized {
+            set_image_viewer_windowed_frame(&viewer, &target_monitor)?;
+        }
         viewer.show().map_err(|error| error.to_string())?;
-        viewer.maximize().map_err(|error| error.to_string())?;
+        if !was_maximized {
+            viewer.maximize().map_err(|error| error.to_string())?;
+        }
         focus_image_viewer(&viewer)
     })();
 
     if let Err(error) = show_result {
+        record_rust_milestone(
+            &app_handle.state::<PerformanceRecorder>(),
+            PerformanceMilestoneName::ViewerNativeVisible,
+            Some(PerformanceWindowLabel::ImageViewer),
+            interaction_id,
+            PerformanceOutcome::Failure,
+        );
         let _ = viewer.unmaximize();
         let _ = viewer.hide();
         let _ = set_main_window_always_on_top(&app_handle, true);
@@ -823,6 +886,14 @@ pub fn show_image_viewer(app_handle: AppHandle) -> Result<(), String> {
 
     #[cfg(target_os = "macos")]
     reinforce_image_viewer_focus(viewer);
+
+    record_rust_milestone(
+        &app_handle.state::<PerformanceRecorder>(),
+        PerformanceMilestoneName::ViewerNativeVisible,
+        Some(PerformanceWindowLabel::ImageViewer),
+        interaction_id,
+        PerformanceOutcome::Success,
+    );
 
     Ok(())
 }
@@ -860,7 +931,6 @@ pub fn close_image_viewer(app_handle: AppHandle) -> Result<(), String> {
         }
 
         viewer.hide().map_err(|error| error.to_string())?;
-        viewer.unmaximize().map_err(|error| error.to_string())?;
         set_main_window_always_on_top(&app_handle, true)?;
         show_main_window_in_place(&app_handle)
     })();
@@ -870,6 +940,14 @@ pub fn close_image_viewer(app_handle: AppHandle) -> Result<(), String> {
 }
 
 pub fn show_main_window(app_handle: &AppHandle, placement: WindowPlacement) -> Result<(), String> {
+    let interaction_id = next_interaction_id("main");
+    record_rust_milestone(
+        &app_handle.state::<PerformanceRecorder>(),
+        PerformanceMilestoneName::MainShowRequest,
+        Some(PerformanceWindowLabel::Main),
+        Some(interaction_id.clone()),
+        PerformanceOutcome::Success,
+    );
     if let Some(window) = app_handle.get_webview_window("main") {
         let _ = window.unminimize();
 
@@ -882,8 +960,18 @@ pub fn show_main_window(app_handle: &AppHandle, placement: WindowPlacement) -> R
 
         window.show().map_err(|error| error.to_string())?;
         window.set_focus().map_err(|error| error.to_string())?;
+        record_rust_milestone(
+            &app_handle.state::<PerformanceRecorder>(),
+            PerformanceMilestoneName::MainNativeVisible,
+            Some(PerformanceWindowLabel::Main),
+            Some(interaction_id.clone()),
+            PerformanceOutcome::Success,
+        );
         app_handle
-            .emit(MAIN_WINDOW_SHOWN_EVENT, ())
+            .emit(
+                MAIN_WINDOW_SHOWN_EVENT,
+                PerformanceInteraction { interaction_id },
+            )
             .map_err(|error| error.to_string())?;
     }
 

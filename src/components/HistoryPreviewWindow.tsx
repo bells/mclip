@@ -11,9 +11,10 @@ import {
   hideHistoryPreviewDetailWindow,
   hideHistoryPreviewWindow,
   hideMainWindow,
-  listenToHistoryUpdated,
+  listenToHistoryPreviewInvalidated,
   listenToHistoryPreviewKeyboardNavigation,
   listenToHistoryPreviewUpdated,
+  listenToPerformanceAutomation,
   notifyHistoryPreviewGroupItemActivated,
   notifyHistoryPreviewPointerEntered,
   notifyHistoryPreviewPlacementUpdated,
@@ -29,7 +30,15 @@ import type { HistoryPreviewPayload } from "../types";
 import { getNextGroupPreviewItemIndex } from "../utils/keyboardNavigation";
 import { getItemPreviewAnchorTop, getItemPreviewHeight } from "../utils/preview";
 import { shouldAutoPasteAfterHistoryPreviewSelection } from "../utils/selectionBehavior";
-import { reconcilePreviewWithHistoryIds } from "../utils/previewHistory";
+import { reconcilePreviewWithInvalidation } from "../utils/previewHistory";
+import {
+  createPerformanceInteractionId,
+  recordFrontendPerformanceAfterPaint,
+} from "../services/performance";
+import {
+  ensureAuxiliaryWindowReady,
+  reportAuxiliaryListenerReady,
+} from "../services/auxiliaryWindows";
 import { HistoryGroupPreviewWindow } from "./HistoryGroupPreviewWindow";
 import { HistoryItemPreviewWindow } from "./HistoryItemPreviewWindow";
 
@@ -170,6 +179,7 @@ export function HistoryPreviewWindow() {
     }).then((unsubscribe) => {
       if (isActive) {
         unlisten = unsubscribe;
+        reportAuxiliaryListenerReady("historyPreviewUpdated");
         return;
       }
 
@@ -186,18 +196,54 @@ export function HistoryPreviewWindow() {
     let isActive = true;
     let unlisten: (() => void) | undefined;
 
-    void listenToHistoryUpdated((history) => {
-      const existingIds = new Set(history.map((item) => item.id));
+    void listenToPerformanceAutomation((action) => {
+      if (action !== "openViewer") {
+        return;
+      }
+
+      const currentPreview = previewRef.current;
+      if (currentPreview?.kind !== "item" || currentPreview.item.kind !== "image") {
+        return;
+      }
+
+      void openImageViewer({
+        appearanceTheme: currentPreview.appearanceTheme,
+        item: currentPreview.item,
+        language: currentPreview.language,
+      }).catch((error) => {
+        console.error("性能测试打开图片查看器失败:", error);
+      });
+    }).then((unsubscribe) => {
+      if (isActive) {
+        unlisten = unsubscribe;
+        reportAuxiliaryListenerReady("performanceAutomation");
+        return;
+      }
+
+      unsubscribe();
+    });
+
+    return () => {
+      isActive = false;
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    let unlisten: (() => void) | undefined;
+
+    void listenToHistoryPreviewInvalidated((invalidation) => {
       const currentPreview = previewRef.current;
 
       if (!currentPreview) {
         return;
       }
 
-      const reconciliation = reconcilePreviewWithHistoryIds(
+      const reconciliation = reconcilePreviewWithInvalidation(
         currentPreview,
         hoveredItemIdRef.current,
-        existingIds,
+        invalidation,
       );
 
       if (reconciliation.shouldClearActiveItem) {
@@ -217,6 +263,7 @@ export function HistoryPreviewWindow() {
     }).then((unsubscribe) => {
       if (isActive) {
         unlisten = unsubscribe;
+        reportAuxiliaryListenerReady("historyPreviewInvalidated");
         return;
       }
 
@@ -231,6 +278,13 @@ export function HistoryPreviewWindow() {
 
   useEffect(() => {
     previewRef.current = preview;
+
+    if (preview) {
+      recordFrontendPerformanceAfterPaint("previewPainted", {
+        interactionId: preview.performanceInteractionId,
+        windowLabel: "preview",
+      });
+    }
   }, [preview]);
 
   useEffect(() => {
@@ -274,6 +328,7 @@ export function HistoryPreviewWindow() {
     }).then((unsubscribe) => {
       if (isActive) {
         unlisten = unsubscribe;
+        reportAuxiliaryListenerReady("keyboardNavigation");
         return;
       }
 
@@ -354,12 +409,22 @@ export function HistoryPreviewWindow() {
           return;
         }
 
+        const performanceInteractionId = createPerformanceInteractionId("previewdetail");
+
+        await ensureAuxiliaryWindowReady("preview-detail");
+
+        if (hoveredItemIdRef.current !== requestedItem.id) {
+          return;
+        }
+
         await updateHistoryPreviewDetailWindow({
           autoPaste: requestedPreview.autoPaste,
           appearanceTheme: requestedPreview.appearanceTheme,
+          historyRevision: requestedPreview.historyRevision,
           item: requestedItem,
           kind: "item",
           language: requestedPreview.language,
+          performanceInteractionId,
         });
 
         if (hoveredItemIdRef.current !== requestedItem.id) {
@@ -375,6 +440,7 @@ export function HistoryPreviewWindow() {
           detailAnchorTop,
           getItemPreviewHeight(requestedItem),
           GROUP_PREVIEW_DETAIL_WINDOW_WIDTH,
+          performanceInteractionId,
         );
 
         if (hoveredItemIdRef.current !== requestedItem.id) {
