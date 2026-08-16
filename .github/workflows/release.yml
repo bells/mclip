@@ -109,7 +109,7 @@ jobs:
             ## 本版本包含
 
             - 文本、图片、文件三类剪贴板历史，重复复制会自动更新到最新位置。
-            - 最近历史快速访问，主界面和历史分组展示条数可配置，默认分别为 10。
+            - 最近历史快速访问，主界面和历史分组展示条数可配置，默认分别为 10 和 50。
             - 主窗口搜索栏和底部操作区固定，大条数历史只滚动中间内容并受显示器工作区保护。
             - 历史分组按真实内容定高，hover 详情使用独立窗口，删除动作统一放在详情标题区。
             - 搜索、复制、删除、清空历史，以及 `CommandOrControl+Shift+V` 全局快捷键。
@@ -121,7 +121,7 @@ jobs:
             ## Included in this release
 
             - Text, image, and file clipboard history, with repeated copies moved back to the top.
-            - Quick access to recent history, with configurable main-window and archive-group item counts, both defaulting to 10.
+            - Quick access to recent history, with configurable main-window and archive-group item counts, defaulting to 10 and 50 respectively.
             - Fixed search and footer regions, with large histories scrolling only in the middle and native height capped to the monitor work area.
             - Content-sized archive windows, independent hover details, and a consistent detail-owned delete action.
             - Search, copy, delete, clear history, and the `CommandOrControl+Shift+V` global shortcut.

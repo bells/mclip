@@ -44,6 +44,7 @@ test("main window height follows measured content instead of row-count estimates
   assert.doesNotMatch(hookSource, /adjustWindowHeight\(/);
   assert.match(commandSource, /adjustWindowHeightToContent/);
   assert.match(commandSource, /"adjust_window_height_to_content"/);
+  assert.match(appSource, /listenToMainWindowShown[\s\S]*measureAndApplyMainWindowHeight\(true\)/);
 });
 
 test("main footer and archive groups keep the compact one-row-per-action contract", async () => {

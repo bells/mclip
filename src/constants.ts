@@ -16,9 +16,10 @@ export const GROUP_PREVIEW_WITH_DETAIL_WIDTH =
 
 export const MIN_MAX_HISTORY_COUNT = 10;
 export const MAX_MAX_HISTORY_COUNT = 500;
-export const DEFAULT_VISIBLE_ITEM_COUNT = 10;
+export const DEFAULT_MAIN_WINDOW_ITEM_COUNT = 10;
+export const DEFAULT_HISTORY_GROUP_ITEM_COUNT = 50;
 export const MIN_VISIBLE_ITEM_COUNT = 5;
-export const MAX_VISIBLE_ITEM_COUNT = 20;
+export const MAX_HISTORY_GROUP_ITEM_COUNT = 100;
 
 export const DEFAULT_SETTINGS: AppSettings = {
   autoPaste: false,
@@ -31,8 +32,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   launchAtLogin: false,
   maxHistoryCount: 200,
   menuBarIconStyle: "light",
-  mainWindowItemCount: DEFAULT_VISIBLE_ITEM_COUNT,
-  historyGroupItemCount: DEFAULT_VISIBLE_ITEM_COUNT,
+  mainWindowItemCount: DEFAULT_MAIN_WINDOW_ITEM_COUNT,
+  historyGroupItemCount: DEFAULT_HISTORY_GROUP_ITEM_COUNT,
   showHistoryItemNumbers: true,
   showMainWindowBrand: true,
   appearanceTheme: "system",
@@ -52,7 +53,7 @@ export function clampMainWindowItemCount(value: number, maxHistoryCount: number)
 
 export function clampHistoryGroupItemCount(value: number) {
   return Math.min(
-    MAX_VISIBLE_ITEM_COUNT,
+    MAX_HISTORY_GROUP_ITEM_COUNT,
     Math.max(MIN_VISIBLE_ITEM_COUNT, value),
   );
 }

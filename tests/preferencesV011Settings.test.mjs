@@ -55,6 +55,24 @@ test("main window count uses max history count as its dynamic maximum", async ()
   assert.match(preferencesSource, /t\.rangeNote\(MIN_VISIBLE_ITEM_COUNT,\s*mainWindowItemCountMax\)/);
 });
 
+test("archive groups default to 50 items and allow up to 100", async () => {
+  const [constantsSource, rustSettingsSource, preferencesSource] = await Promise.all([
+    readSource("src/constants.ts"),
+    readSource("src-tauri/src/settings.rs"),
+    readSource("src/components/PreferencesWindow.tsx"),
+  ]);
+
+  assert.match(constantsSource, /DEFAULT_HISTORY_GROUP_ITEM_COUNT\s*=\s*50/);
+  assert.match(constantsSource, /MAX_HISTORY_GROUP_ITEM_COUNT\s*=\s*100/);
+  assert.match(
+    constantsSource,
+    /historyGroupItemCount:\s*DEFAULT_HISTORY_GROUP_ITEM_COUNT/,
+  );
+  assert.match(rustSettingsSource, /DEFAULT_HISTORY_GROUP_ITEM_COUNT:\s*u32\s*=\s*50/);
+  assert.match(rustSettingsSource, /MAX_HISTORY_GROUP_ITEM_COUNT:\s*u32\s*=\s*100/);
+  assert.match(preferencesSource, /max=\{MAX_HISTORY_GROUP_ITEM_COUNT\}/);
+});
+
 test("history retention defaults to 200 entries and allows up to 500", async () => {
   const [constantsSource, rustSettingsSource, preferencesSource] = await Promise.all([
     readSource("src/constants.ts"),

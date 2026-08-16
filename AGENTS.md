@@ -27,7 +27,7 @@
 - 全局快捷键 `CommandOrControl+Shift+V` 唤起或隐藏主窗口。
 - 保存文本、图片、文件三类剪贴板历史；文件历史选择后应回填系统文件列表，而不是普通路径文本。
 - 去重后最新内容在最前，同一内容重复复制会更新次数和时间。
-- 主窗口默认显示最新 10 条，更多历史默认按每 10 条分组；主界面条数和历史分组条数都可在偏好设置里调整。
+- 主窗口默认显示最新 10 条，更多历史默认按每 50 条分组；主界面条数和历史分组条数都可在偏好设置里调整。
 - 文本和文件列表使用紧凑行高，图片条目保留更高的缩略图行；不要为了统一高度压缩图片。
 - 历史分组和单条详情都使用独立透明 preview 窗口，不把预览塞回主窗口 DOM。
 - 图片详情可打开独立 `image-viewer`，默认最大化，支持恢复、删除和 `Escape` 关闭。
@@ -164,7 +164,7 @@ src-tauri/tests/
 - 监听后端 `history-changed` 事件，按 `upsert/remove/clear/replace` delta 更新；revision 不连续时重新读取 snapshot。
 - 监听后端 `settings-updated` 事件刷新语言和偏好设置。
 - 根据搜索词计算 `filteredHistory`。
-- 按设置计算主窗口显示条数和历史分组条数，默认都是 10。
+- 按设置计算主窗口显示条数和历史分组条数，主窗口默认 10，历史分组默认 50。
 - 维护 `previewHistoryGroupIndex`、`previewHistoryItemId`、`previewAnchorTop` 和 async request revision。
 - 调用 `adjust_window_height_to_content`，由 Rust 按显示器工作区限制主窗口高度。
 - 推送 item/group payload 到 `preview`，推送分组激活项 payload 到独立 `preview-detail`。
@@ -469,7 +469,7 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - 改 preview 尺寸时，同步检查 `src/constants.ts`、`src/utils/preview.ts`、`src-tauri/src/window.rs` 和 Rust 单元测试。
 - 改分组实测高度时同步检查 `src/utils/previewHistory.ts`、`HistoryGroupPreviewWindow.tsx`、`useHistoryPreviewController.ts` 和 `resize_history_preview_window`，后者必须保留 X。
 - 改历史条数逻辑时，前端 clamp 和后端 sanitize 都要同步考虑。
-- 改主界面/历史分组展示条数时，同步检查 `DEFAULT_VISIBLE_ITEM_COUNT`、前端 clamp、后端 sanitize、`getHistoryGroups` 和键盘/preview 逻辑。
+- 改主界面/历史分组展示条数时，同步检查 `DEFAULT_MAIN_WINDOW_ITEM_COUNT`、`DEFAULT_HISTORY_GROUP_ITEM_COUNT`、前端 clamp、后端 sanitize、`getHistoryGroups` 和键盘/preview 逻辑。
 - 改保存类型时，同步检查 `HistoryKind`、`HistoryTypes`、`PreferencesWindow`、`clipboard.rs` 和 `history.rs`。
 - 改文件历史展示时，同步检查 `src/utils/history.ts`、`HistoryList.tsx`、`HistoryGroupPreviewWindow.tsx` 和 `HistoryPreviewDetailContent.tsx`；列表可省略，详情不能省略。
 - 改文件复制/粘贴语义时，同步检查 `src-tauri/src/clipboard.rs` 的文件列表读取、`file://` 文本兼容和 `HistoryEntry::Files` 写回逻辑。

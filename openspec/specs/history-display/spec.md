@@ -83,7 +83,7 @@ The system SHALL let users configure how many copied history items appear in eac
 
 - **GIVEN** no saved archive group item count exists
 - **WHEN** settings are loaded
-- **THEN** `historyGroupItemCount` is `10`.
+- **THEN** `historyGroupItemCount` is `50`.
 
 #### Scenario: Adjusted archive group item count
 
@@ -102,9 +102,9 @@ The system SHALL let users configure how many copied history items appear in eac
 
 #### Scenario: Archive group item count is clamped
 
-- **GIVEN** a saved `historyGroupItemCount` outside `5..=20`
+- **GIVEN** a saved `historyGroupItemCount` outside `5..=100`
 - **WHEN** settings are loaded
-- **THEN** the value is clamped into `5..=20`.
+- **THEN** the value is clamped into `5..=100`.
 
 ### Requirement: Color Code Display
 

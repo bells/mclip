@@ -36,8 +36,8 @@ return to their current work with minimal interruption.
 - History is local only. `history.json`, `settings.json`, and image assets live
   in the local app config directory.
 - Duplicate clipboard content is deduplicated and moved back to the top.
-- Main-window and archive-group visible item counts default to `10` and are user
-  configurable.
+- Main-window and archive-group visible item counts default to `10` and `50`
+  respectively, and are user configurable.
 - Preferences include launch at login, language, appearance theme, menu bar icon
   style, auto paste, max history count, visible counts, row number visibility,
   and enabled history types.

@@ -19,7 +19,7 @@ import {
   clampMainWindowItemCount,
   DEFAULT_SETTINGS,
   MAX_MAX_HISTORY_COUNT,
-  MAX_VISIBLE_ITEM_COUNT,
+  MAX_HISTORY_GROUP_ITEM_COUNT,
   MIN_MAX_HISTORY_COUNT,
   MIN_VISIBLE_ITEM_COUNT,
 } from "../constants";
@@ -783,7 +783,7 @@ export function PreferencesWindow() {
   const getVisibleItemCountMax = (settingKey: VisibleItemCountSetting) =>
     settingKey === "mainWindowItemCount"
       ? latestSettingsRef.current.maxHistoryCount
-      : MAX_VISIBLE_ITEM_COUNT;
+      : MAX_HISTORY_GROUP_ITEM_COUNT;
 
   const updateVisibleItemCount = (
     settingKey: VisibleItemCountSetting,
@@ -1189,7 +1189,10 @@ export function PreferencesWindow() {
                       {t.historyGroupItemCountDescription}
                     </div>
                     <div className={ui.settingsNote}>
-                      {t.rangeNote(MIN_VISIBLE_ITEM_COUNT, MAX_VISIBLE_ITEM_COUNT)}
+                      {t.rangeNote(
+                        MIN_VISIBLE_ITEM_COUNT,
+                        MAX_HISTORY_GROUP_ITEM_COUNT,
+                      )}
                     </div>
                   </div>
 
@@ -1197,7 +1200,7 @@ export function PreferencesWindow() {
                     <input
                       aria-label={t.historyGroupItemCountAriaLabel}
                       className={ui.stepperInput}
-                      max={MAX_VISIBLE_ITEM_COUNT}
+                      max={MAX_HISTORY_GROUP_ITEM_COUNT}
                       min={MIN_VISIBLE_ITEM_COUNT}
                       onBlur={() =>
                         commitVisibleItemCountInput("historyGroupItemCount")

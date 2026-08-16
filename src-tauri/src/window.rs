@@ -1026,6 +1026,10 @@ pub fn toggle_main_window(
 }
 
 fn calculate_window_height(item_count: u32, group_count: u32) -> f64 {
+    calculate_desired_window_height(item_count, group_count).min(MAX_WINDOW_HEIGHT)
+}
+
+fn calculate_desired_window_height(item_count: u32, group_count: u32) -> f64 {
     let content_height = if item_count == 0 {
         EMPTY_STATE_HEIGHT
     } else {
@@ -1034,8 +1038,7 @@ fn calculate_window_height(item_count: u32, group_count: u32) -> f64 {
     let visible_archive_group_count = group_count.saturating_sub(1);
     let group_rows_height = calculate_archive_group_height(visible_archive_group_count);
 
-    (HEADER_HEIGHT + BODY_VERTICAL_PADDING + group_rows_height + FOOTER_HEIGHT + content_height)
-        .min(MAX_WINDOW_HEIGHT)
+    HEADER_HEIGHT + BODY_VERTICAL_PADDING + group_rows_height + FOOTER_HEIGHT + content_height
 }
 
 fn calculate_window_height_for_screen_bounds(
@@ -1043,36 +1046,34 @@ fn calculate_window_height_for_screen_bounds(
     group_count: u32,
     screen_bounds: ScreenBounds,
 ) -> f64 {
-    let height = calculate_window_height(item_count, group_count);
-
     if screen_bounds.height <= 0.0 {
-        return height;
+        return calculate_window_height(item_count, group_count);
     }
 
-    height.min(screen_bounds.height)
+    calculate_desired_window_height(item_count, group_count).min(screen_bounds.height)
 }
 
 fn calculate_content_window_height(content_height: f64) -> f64 {
+    calculate_desired_content_window_height(content_height).min(MAX_WINDOW_HEIGHT)
+}
+
+fn calculate_desired_content_window_height(content_height: f64) -> f64 {
     if !content_height.is_finite() || content_height <= 0.0 {
         return MIN_MAIN_WINDOW_HEIGHT;
     }
 
-    content_height
-        .ceil()
-        .clamp(MIN_MAIN_WINDOW_HEIGHT, MAX_WINDOW_HEIGHT)
+    content_height.ceil().max(MIN_MAIN_WINDOW_HEIGHT)
 }
 
 fn calculate_content_window_height_for_screen_bounds(
     content_height: f64,
     screen_bounds: ScreenBounds,
 ) -> f64 {
-    let height = calculate_content_window_height(content_height);
-
     if screen_bounds.height <= 0.0 {
-        return height;
+        return calculate_content_window_height(content_height);
     }
 
-    height.min(screen_bounds.height)
+    calculate_desired_content_window_height(content_height).min(screen_bounds.height)
 }
 
 fn calculate_archive_group_height(visible_group_count: u32) -> f64 {
@@ -1529,6 +1530,21 @@ mod tests {
     }
 
     #[test]
+    fn list_height_can_exceed_fallback_cap_on_a_tall_monitor() {
+        let screen_bounds = super::ScreenBounds {
+            left: 0.0,
+            top: 24.0,
+            width: 1024.0,
+            height: 1100.0,
+        };
+
+        assert_eq!(
+            calculate_window_height_for_screen_bounds(100, 10, screen_bounds),
+            1100.0
+        );
+    }
+
+    #[test]
     fn measured_content_height_is_used_for_tight_main_window_sizing() {
         assert_eq!(calculate_content_window_height(428.4), 429.0);
         assert_eq!(calculate_content_window_height(0.0), 220.0);
@@ -1548,6 +1564,25 @@ mod tests {
         assert_eq!(
             calculate_content_window_height_for_screen_bounds(820.0, screen_bounds),
             676.0
+        );
+    }
+
+    #[test]
+    fn measured_content_height_can_exceed_fallback_cap_on_a_tall_monitor() {
+        let screen_bounds = super::ScreenBounds {
+            left: 0.0,
+            top: 24.0,
+            width: 1024.0,
+            height: 1100.0,
+        };
+
+        assert_eq!(
+            calculate_content_window_height_for_screen_bounds(1040.0, screen_bounds),
+            1040.0
+        );
+        assert_eq!(
+            calculate_content_window_height_for_screen_bounds(1200.0, screen_bounds),
+            1100.0
         );
     }
 

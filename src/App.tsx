@@ -105,7 +105,7 @@ function App() {
     [hasHistory, historyGroups.length, visibleHistory],
   );
 
-  const measureAndApplyMainWindowHeight = useCallback(() => {
+  const measureAndApplyMainWindowHeight = useCallback((force = false) => {
     const headerHeight = headerMeasureRef.current?.getBoundingClientRect().height ?? 0;
     const contentHeight = contentMeasureRef.current?.scrollHeight ?? 0;
     const footerHeight = footerMeasureRef.current?.getBoundingClientRect().height ?? 0;
@@ -125,7 +125,7 @@ function App() {
         : nextIsMainScrollConstrained,
     );
 
-    if (lastMeasuredWindowHeightRef.current === contentWindowHeight) {
+    if (!force && lastMeasuredWindowHeightRef.current === contentWindowHeight) {
       return;
     }
 
@@ -330,6 +330,10 @@ function App() {
       updateActiveMainTarget(MAIN_SEARCH_TARGET_ID);
       searchInputRef.current?.focus();
       searchInputRef.current?.select();
+      // The tray can move the hidden window onto another monitor without
+      // changing its content. Re-apply the same measured height so Rust caps
+      // it against the work area of the monitor it now occupies.
+      measureAndApplyMainWindowHeight(true);
       recordFrontendPerformanceAfterPaint("mainPainted", {
         interactionId,
         windowLabel: "main",
@@ -341,7 +345,7 @@ function App() {
     return () => {
       unlisten?.();
     };
-  }, [updateActiveMainTarget]);
+  }, [measureAndApplyMainWindowHeight, updateActiveMainTarget]);
 
   useEffect(() => {
     const reconciledTargetId = reconcileMainKeyboardNavigationTargetId(
