@@ -83,14 +83,21 @@ test("pointer hit testing keeps both preview windows in one family", async () =>
 });
 
 test("detail sizing and placement share the group monitor physical coordinate space", async () => {
-  const [windowSource, cargoSource] = await Promise.all([
-    readSource("src-tauri/src/window.rs"),
-    readSource("src-tauri/Cargo.toml"),
-  ]);
+  const windowSource = await readSource("src-tauri/src/window.rs");
 
   assert.match(windowSource, /let preview_scale_factor = preview_window/);
   assert.match(windowSource, /set_size\(Size::Physical\(PhysicalSize/);
   assert.match(windowSource, /set_position\(Position::Physical\(PhysicalPosition/);
   assert.doesNotMatch(windowSource, /align_preview_detail_x|detail_ns_window\.frame/);
-  assert.doesNotMatch(cargoSource, /objc2-app-kit/);
+});
+
+test("native AppKit tray geometry stays scoped to the macOS dependency boundary", async () => {
+  const cargoSource = await readSource("src-tauri/Cargo.toml");
+  const macosDependencies = cargoSource.indexOf(
+    `[target.'cfg(target_os = "macos")'.dependencies]`,
+  );
+
+  assert.ok(macosDependencies > 0);
+  assert.doesNotMatch(cargoSource.slice(0, macosDependencies), /objc2-app-kit/);
+  assert.match(cargoSource.slice(macosDependencies), /objc2-app-kit/);
 });

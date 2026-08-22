@@ -58,6 +58,8 @@ use crate::settings::{
     get_settings, load_settings, resolve_app_language, AppLanguage, AppSettings, MenuBarIconStyle,
     ResolvedAppLanguage,
 };
+#[cfg(target_os = "macos")]
+use crate::window::macos_tray_window_anchor;
 use crate::window::{
     adjust_window_height, adjust_window_height_to_content, close_image_viewer,
     configure_main_window, get_history_preview_pointer_position,
@@ -165,12 +167,38 @@ fn build_tray(
             {
                 remember_current_paste_target(tray.app_handle());
                 protect_next_focus_loss(&show_guard_until);
-                // Use this click's rect directly; the positioner tray cache can
-                // produce a screen-level placement when the tray rect is stale.
-                let _ = toggle_main_window(
+                let event_anchor = TrayWindowAnchor::from_event(position, rect);
+                #[cfg(target_os = "macos")]
+                let anchor = macos_tray_window_anchor(tray, position, rect).unwrap_or_else(|error| {
+                    log_error(
+                        tray.app_handle(),
+                        "tray",
+                        &format!(
+                            "failed to resolve native macOS tray geometry; using event coordinates: {error}"
+                        ),
+                    );
+                    event_anchor
+                });
+                #[cfg(not(target_os = "macos"))]
+                let anchor = event_anchor;
+
+                #[cfg(all(target_os = "macos", debug_assertions))]
+                log_info(
                     tray.app_handle(),
-                    WindowPlacement::Tray(TrayWindowAnchor::from_event(position, rect)),
+                    "tray",
+                    &format!("resolved native tray click anchor: {anchor:?}"),
                 );
+
+                if let Err(error) = toggle_main_window(
+                    tray.app_handle(),
+                    WindowPlacement::Tray(anchor),
+                ) {
+                    log_error(
+                        tray.app_handle(),
+                        "tray",
+                        &format!("failed to toggle main window from tray: {error}"),
+                    );
+                }
             }
         })
         .on_menu_event(|app, event| {

@@ -6,7 +6,17 @@ use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(target_os = "macos")]
 use std::{thread, time::Duration};
 
+#[cfg(target_os = "macos")]
+use core_graphics::display::CGDisplay;
+#[cfg(target_os = "macos")]
+use objc2::MainThreadMarker;
+#[cfg(target_os = "macos")]
+use objc2_app_kit::{NSEvent, NSScreen, NSView};
+#[cfg(target_os = "macos")]
+use objc2_foundation::NSPoint;
 use serde::Serialize;
+#[cfg(target_os = "macos")]
+use tauri::tray::TrayIcon;
 use tauri::{
     AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Monitor, PhysicalPosition,
     PhysicalSize, Position, Rect, Runtime, Size, WebviewWindow,
@@ -63,6 +73,7 @@ pub struct TrayWindowAnchor {
     x: f64,
     y: f64,
     monitor_probe_y: f64,
+    screen_hint: Option<ScreenBounds>,
 }
 
 impl TrayWindowAnchor {
@@ -71,6 +82,7 @@ impl TrayWindowAnchor {
             x: position.x,
             y: position.y,
             monitor_probe_y: position.y,
+            screen_hint: None,
         })
     }
 
@@ -86,7 +98,201 @@ impl TrayWindowAnchor {
             x: rect_position.x + rect_size.width / 2.0,
             y: rect_position.y,
             monitor_probe_y: rect_position.y + rect_size.height / 2.0,
+            screen_hint: None,
         })
+    }
+
+    #[cfg(any(target_os = "macos", test))]
+    fn from_native_geometry(geometry: NativeTrayGeometry) -> Option<Self> {
+        if !geometry.is_valid() {
+            return None;
+        }
+
+        let scale_factor = geometry.scale_factor;
+        Some(Self {
+            x: (geometry.display_origin_x + geometry.tray_center_x_from_screen_left) * scale_factor,
+            y: (geometry.display_origin_y + geometry.tray_bottom_y_from_screen_top) * scale_factor,
+            monitor_probe_y: (geometry.display_origin_y + geometry.tray_center_y_from_screen_top)
+                * scale_factor,
+            screen_hint: Some(ScreenBounds {
+                left: (geometry.display_origin_x + geometry.visible_left_from_screen_left)
+                    * scale_factor,
+                top: geometry.display_origin_y * scale_factor,
+                width: geometry.visible_width * scale_factor,
+                height: geometry.visible_height * scale_factor,
+            }),
+        })
+    }
+}
+
+#[cfg(any(target_os = "macos", test))]
+#[derive(Debug, Clone, Copy)]
+struct NativeTrayGeometry {
+    display_origin_x: f64,
+    display_origin_y: f64,
+    scale_factor: f64,
+    tray_center_x_from_screen_left: f64,
+    tray_bottom_y_from_screen_top: f64,
+    tray_center_y_from_screen_top: f64,
+    visible_left_from_screen_left: f64,
+    visible_width: f64,
+    visible_height: f64,
+}
+
+#[cfg(any(target_os = "macos", test))]
+#[derive(Debug, Clone, Copy)]
+struct NativeScreenGeometry {
+    cocoa_left: f64,
+    cocoa_bottom: f64,
+    cocoa_width: f64,
+    cocoa_height: f64,
+    display_origin_x: f64,
+    display_origin_y: f64,
+    scale_factor: f64,
+    tray_bottom_y_from_screen_top: f64,
+    visible_left_from_screen_left: f64,
+    visible_width: f64,
+    visible_height: f64,
+}
+
+#[cfg(any(target_os = "macos", test))]
+impl NativeScreenGeometry {
+    fn contains_cursor(self, cursor_x: f64, cursor_y: f64) -> bool {
+        cursor_x >= self.cocoa_left
+            && cursor_x <= self.cocoa_left + self.cocoa_width
+            && cursor_y >= self.cocoa_bottom
+            && cursor_y <= self.cocoa_bottom + self.cocoa_height
+    }
+
+    fn tray_geometry_from_event(
+        self,
+        cursor_x: f64,
+        event_x: f64,
+        event_scale_factor: f64,
+        tray_rect_x: f64,
+        tray_rect_width: f64,
+        tray_rect_height: f64,
+    ) -> NativeTrayGeometry {
+        let event_scale_factor = if event_scale_factor.is_finite() && event_scale_factor > 0.0 {
+            event_scale_factor
+        } else {
+            self.scale_factor
+        };
+        let tray_center_offset = tray_rect_x + tray_rect_width / 2.0 - event_x;
+        let tray_center_x = if event_x.is_finite()
+            && tray_rect_x.is_finite()
+            && tray_rect_width.is_finite()
+            && tray_rect_width > 0.0
+            && tray_center_offset.abs() <= tray_rect_width / 2.0 + 2.0
+        {
+            // tray-icon converts both values with the event window's scale.
+            // Their difference is still a reliable local offset even when its
+            // global macOS coordinate conversion used the wrong display.
+            cursor_x + tray_center_offset / event_scale_factor
+        } else {
+            cursor_x
+        };
+        let event_tray_height = if tray_rect_height.is_finite() && tray_rect_height > 0.0 {
+            tray_rect_height / event_scale_factor
+        } else {
+            0.0
+        };
+        let tray_height = self
+            .tray_bottom_y_from_screen_top
+            .max(event_tray_height)
+            .max(1.0);
+
+        NativeTrayGeometry {
+            display_origin_x: self.display_origin_x,
+            display_origin_y: self.display_origin_y,
+            scale_factor: self.scale_factor,
+            tray_center_x_from_screen_left: tray_center_x - self.cocoa_left,
+            tray_bottom_y_from_screen_top: tray_height,
+            tray_center_y_from_screen_top: tray_height / 2.0,
+            visible_left_from_screen_left: self.visible_left_from_screen_left,
+            visible_width: self.visible_width,
+            visible_height: self.visible_height,
+        }
+    }
+
+    fn physical_work_area_bounds(self) -> ScreenBounds {
+        ScreenBounds {
+            left: (self.display_origin_x + self.visible_left_from_screen_left) * self.scale_factor,
+            top: self.display_origin_y * self.scale_factor,
+            width: self.visible_width * self.scale_factor,
+            height: self.visible_height * self.scale_factor,
+        }
+    }
+
+    fn cocoa_top_left_from_physical(self, position: PhysicalPosition<i32>) -> Option<(f64, f64)> {
+        if !self.scale_factor.is_finite() || self.scale_factor <= 0.0 {
+            return None;
+        }
+
+        let relative_x = f64::from(position.x) / self.scale_factor - self.display_origin_x;
+        let relative_y = f64::from(position.y) / self.scale_factor - self.display_origin_y;
+        Some((
+            self.cocoa_left + relative_x,
+            self.cocoa_bottom + self.cocoa_height - relative_y,
+        ))
+    }
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn clicked_native_screen(
+    cursor_x: f64,
+    cursor_y: f64,
+    screens: &[NativeScreenGeometry],
+) -> Option<NativeScreenGeometry> {
+    screens
+        .iter()
+        .copied()
+        .find(|screen| screen.contains_cursor(cursor_x, cursor_y))
+}
+
+#[cfg(target_os = "macos")]
+fn native_screen_geometries(main_thread: MainThreadMarker) -> Vec<NativeScreenGeometry> {
+    NSScreen::screens(main_thread)
+        .iter()
+        .map(|screen| {
+            let screen_frame = screen.frame();
+            let visible_frame = screen.visibleFrame();
+            let display_bounds = CGDisplay::new(screen.CGDirectDisplayID()).bounds();
+            let screen_top = screen_frame.origin.y + screen_frame.size.height;
+            let visible_top = visible_frame.origin.y + visible_frame.size.height;
+
+            NativeScreenGeometry {
+                cocoa_left: screen_frame.origin.x,
+                cocoa_bottom: screen_frame.origin.y,
+                cocoa_width: screen_frame.size.width,
+                cocoa_height: screen_frame.size.height,
+                display_origin_x: display_bounds.origin.x,
+                display_origin_y: display_bounds.origin.y,
+                scale_factor: screen.backingScaleFactor(),
+                tray_bottom_y_from_screen_top: (screen_top - visible_top).max(0.0),
+                visible_left_from_screen_left: visible_frame.origin.x - screen_frame.origin.x,
+                visible_width: visible_frame.size.width,
+                visible_height: visible_frame.size.height,
+            }
+        })
+        .collect()
+}
+
+#[cfg(any(target_os = "macos", test))]
+impl NativeTrayGeometry {
+    fn is_valid(self) -> bool {
+        self.display_origin_x.is_finite()
+            && self.display_origin_y.is_finite()
+            && self.scale_factor.is_finite()
+            && self.scale_factor > 0.0
+            && self.tray_center_x_from_screen_left.is_finite()
+            && self.tray_bottom_y_from_screen_top.is_finite()
+            && self.tray_center_y_from_screen_top.is_finite()
+            && self.visible_left_from_screen_left.is_finite()
+            && self.visible_width.is_finite()
+            && self.visible_width > 0.0
+            && self.visible_height.is_finite()
+            && self.visible_height > 0.0
     }
 }
 
@@ -105,12 +311,62 @@ pub struct PreviewWindowPosition {
     side: PreviewWindowSide,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct ScreenBounds {
     left: f64,
     top: f64,
     width: f64,
     height: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct ScreenPlacementBounds {
+    full: ScreenBounds,
+    work_area: ScreenBounds,
+}
+
+#[cfg(target_os = "macos")]
+pub fn macos_tray_window_anchor<R: Runtime>(
+    tray: &TrayIcon<R>,
+    event_position: PhysicalPosition<f64>,
+    rect: Rect,
+) -> Result<TrayWindowAnchor, String> {
+    // macOS can render one NSStatusItem on multiple displays while its button
+    // still reports the old display's window. Resolve the clicked display from
+    // the live pointer, then use the event rect only for icon X and height.
+    let rect_position = rect.position.to_physical::<f64>(1.0);
+    let rect_size = rect.size.to_physical::<f64>(1.0);
+    let geometry = tray
+        .with_inner_tray_icon(move |tray_icon| -> Result<NativeTrayGeometry, String> {
+            let main_thread = MainThreadMarker::new().ok_or_else(|| {
+                "native tray geometry must be read on the main thread".to_string()
+            })?;
+            let cursor = NSEvent::mouseLocation();
+            let button_width = tray_icon
+                .ns_status_item()
+                .and_then(|status_item| status_item.button(main_thread))
+                .map(|button| button.bounds().size.width)
+                .filter(|width| width.is_finite() && *width > 0.0);
+            let event_scale_factor = button_width
+                .map(|width| rect_size.width / width)
+                .filter(|scale| scale.is_finite() && *scale > 0.0);
+            let screens = native_screen_geometries(main_thread);
+            let screen = clicked_native_screen(cursor.x, cursor.y, &screens)
+                .ok_or_else(|| "failed to match the tray click to a macOS screen".to_string())?;
+
+            Ok(screen.tray_geometry_from_event(
+                cursor.x,
+                event_position.x,
+                event_scale_factor.unwrap_or(screen.scale_factor),
+                rect_position.x,
+                rect_size.width,
+                rect_size.height,
+            ))
+        })
+        .map_err(|error| error.to_string())??;
+
+    TrayWindowAnchor::from_native_geometry(geometry)
+        .ok_or_else(|| "macOS status item returned invalid screen geometry".to_string())
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -982,32 +1238,90 @@ fn move_window_to_tray_anchor<R: Runtime>(
     window: &WebviewWindow<R>,
     anchor: TrayWindowAnchor,
 ) -> Result<(), String> {
-    let window_size = window.outer_size().map_err(|error| error.to_string())?;
-    let monitor_bounds = window
+    let monitors = window
         .available_monitors()
-        .map_err(|error| error.to_string())?
+        .map_err(|error| error.to_string())?;
+    let monitor_placements = monitors
         .iter()
-        .map(monitor_physical_work_area_bounds)
+        .map(monitor_physical_placement_bounds)
         .collect::<Vec<_>>();
-    let fallback_bounds = window
+    let fallback_placement = window
         .current_monitor()
         .map_err(|error| error.to_string())?
         .as_ref()
-        .map(monitor_physical_work_area_bounds)
-        .unwrap_or_else(|| fallback_screen_bounds(anchor.x, anchor.y));
-    let screen_bounds =
-        choose_screen_bounds_for_tray_anchor(anchor, &monitor_bounds, fallback_bounds);
+        .map(monitor_physical_placement_bounds)
+        .unwrap_or_else(|| {
+            let bounds = fallback_screen_bounds(anchor.x, anchor.y);
+            ScreenPlacementBounds {
+                full: bounds,
+                work_area: bounds,
+            }
+        });
+    let screen_placement =
+        choose_screen_placement_for_tray_anchor(anchor, &monitor_placements, fallback_placement);
+    let screen_bounds = screen_placement.work_area;
+    let current_scale_factor = window.scale_factor().map_err(|error| error.to_string())?;
+    let target_scale_factor = monitors
+        .iter()
+        .find(|monitor| {
+            screen_bounds_approximately_equal(
+                monitor_physical_placement_bounds(monitor).full,
+                screen_placement.full,
+            )
+        })
+        .map(Monitor::scale_factor)
+        .unwrap_or(current_scale_factor);
+    let current_window_size = window.outer_size().map_err(|error| error.to_string())?;
+    let logical_window_size = current_window_size.to_logical::<f64>(current_scale_factor);
+    let target_window_size = logical_window_size.to_physical::<f64>(target_scale_factor);
     let position = calculate_tray_bottom_center_window_position(TrayWindowPositionInput {
         anchor_x: anchor.x,
         anchor_y: anchor.y,
-        window_width: f64::from(window_size.width),
-        window_height: f64::from(window_size.height),
+        window_width: target_window_size.width,
+        window_height: target_window_size.height,
         screen_bounds,
     });
+
+    #[cfg(target_os = "macos")]
+    if anchor.screen_hint.is_some() {
+        return set_macos_window_physical_position(window, position, screen_bounds);
+    }
 
     window
         .set_position(Position::Physical(position))
         .map_err(|error| error.to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn set_macos_window_physical_position<R: Runtime>(
+    window: &WebviewWindow<R>,
+    position: PhysicalPosition<i32>,
+    screen_bounds: ScreenBounds,
+) -> Result<(), String> {
+    use raw_window_handle::RawWindowHandle;
+
+    let main_thread = MainThreadMarker::new()
+        .ok_or_else(|| "native window position must be set on the main thread".to_string())?;
+    let native_screen = native_screen_geometries(main_thread)
+        .into_iter()
+        .find(|screen| {
+            screen_bounds_approximately_equal(screen.physical_work_area_bounds(), screen_bounds)
+        })
+        .ok_or_else(|| "failed to match target Tauri monitor to a macOS screen".to_string())?;
+    let (cocoa_x, cocoa_y) = native_screen
+        .cocoa_top_left_from_physical(position)
+        .ok_or_else(|| "target macOS screen returned an invalid scale factor".to_string())?;
+    let window_handle = window.window_handle().map_err(|error| error.to_string())?;
+    let RawWindowHandle::AppKit(handle) = window_handle.as_raw() else {
+        return Err("main window did not expose an AppKit window handle".to_string());
+    };
+    let ns_view = unsafe { &*handle.ns_view.as_ptr().cast::<NSView>() };
+    let ns_window = ns_view
+        .window()
+        .ok_or_else(|| "main AppKit view is not attached to a window".to_string())?;
+    ns_window.setFrameTopLeftPoint(NSPoint::new(cocoa_x, cocoa_y));
+
+    Ok(())
 }
 
 pub fn toggle_main_window(
@@ -1145,6 +1459,22 @@ fn monitor_physical_work_area_bounds(monitor: &Monitor) -> ScreenBounds {
     }
 }
 
+fn monitor_physical_bounds(monitor: &Monitor) -> ScreenBounds {
+    ScreenBounds {
+        left: f64::from(monitor.position().x),
+        top: f64::from(monitor.position().y),
+        width: f64::from(monitor.size().width),
+        height: f64::from(monitor.size().height),
+    }
+}
+
+fn monitor_physical_placement_bounds(monitor: &Monitor) -> ScreenPlacementBounds {
+    ScreenPlacementBounds {
+        full: monitor_physical_bounds(monitor),
+        work_area: monitor_physical_work_area_bounds(monitor),
+    }
+}
+
 fn fallback_screen_bounds(main_x: f64, main_y: f64) -> ScreenBounds {
     let half_size = FALLBACK_SCREEN_BOUNDS_SIZE / 2.0;
 
@@ -1180,16 +1510,39 @@ fn calculate_tray_bottom_center_window_position(
     )
 }
 
-fn choose_screen_bounds_for_tray_anchor(
+fn choose_screen_placement_for_tray_anchor(
     anchor: TrayWindowAnchor,
-    screen_bounds: &[ScreenBounds],
-    fallback_bounds: ScreenBounds,
-) -> ScreenBounds {
-    screen_bounds
+    screen_placements: &[ScreenPlacementBounds],
+    fallback_placement: ScreenPlacementBounds,
+) -> ScreenPlacementBounds {
+    if let Some(screen_hint) = anchor.screen_hint {
+        if let Some(screen_placement) = screen_placements
+            .iter()
+            .copied()
+            .find(|placement| screen_bounds_approximately_equal(placement.work_area, screen_hint))
+        {
+            return screen_placement;
+        }
+    }
+
+    screen_placements
         .iter()
         .copied()
-        .find(|bounds| bounds.contains_point(anchor.x, anchor.monitor_probe_y))
-        .unwrap_or(fallback_bounds)
+        .find(|placement| {
+            placement
+                .full
+                .contains_point(anchor.x, anchor.monitor_probe_y)
+        })
+        .unwrap_or(fallback_placement)
+}
+
+fn screen_bounds_approximately_equal(left: ScreenBounds, right: ScreenBounds) -> bool {
+    const PHYSICAL_PIXEL_TOLERANCE: f64 = 2.0;
+
+    (left.left - right.left).abs() <= PHYSICAL_PIXEL_TOLERANCE
+        && (left.top - right.top).abs() <= PHYSICAL_PIXEL_TOLERANCE
+        && (left.width - right.width).abs() <= PHYSICAL_PIXEL_TOLERANCE
+        && (left.height - right.height).abs() <= PHYSICAL_PIXEL_TOLERANCE
 }
 
 fn calculate_preview_window_position(input: PreviewWindowPositionInput) -> PreviewWindowPosition {
@@ -1487,9 +1840,10 @@ mod tests {
     use super::{
         calculate_content_window_height, calculate_content_window_height_for_screen_bounds,
         calculate_tray_bottom_center_window_position, calculate_window_height,
-        calculate_window_height_for_screen_bounds, choose_screen_bounds_for_tray_anchor,
+        calculate_window_height_for_screen_bounds, choose_screen_placement_for_tray_anchor,
         clamp_preview_height, clamp_preview_height_for_screen_bounds, clamp_preview_width,
-        is_physical_point_in_rect, TrayWindowAnchor, TrayWindowPositionInput, MAX_WINDOW_HEIGHT,
+        clicked_native_screen, is_physical_point_in_rect, NativeScreenGeometry, NativeTrayGeometry,
+        ScreenPlacementBounds, TrayWindowAnchor, TrayWindowPositionInput, MAX_WINDOW_HEIGHT,
     };
     use tauri::{PhysicalPosition, PhysicalSize, Rect};
 
@@ -1626,31 +1980,185 @@ mod tests {
 
     #[test]
     fn tray_position_uses_screen_bounds_that_contain_the_anchor() {
-        let primary = super::ScreenBounds {
+        let primary_work_area = super::ScreenBounds {
             left: 0.0,
             top: 24.0,
             width: 1920.0,
             height: 1056.0,
         };
-        let secondary = super::ScreenBounds {
+        let secondary_work_area = super::ScreenBounds {
             left: 1920.0,
             top: 24.0,
             width: 1920.0,
             height: 1056.0,
         };
+        let primary = ScreenPlacementBounds {
+            full: super::ScreenBounds {
+                left: 0.0,
+                top: 0.0,
+                width: 1920.0,
+                height: 1080.0,
+            },
+            work_area: primary_work_area,
+        };
+        let secondary = ScreenPlacementBounds {
+            full: super::ScreenBounds {
+                left: 1920.0,
+                top: 0.0,
+                width: 1920.0,
+                height: 1080.0,
+            },
+            work_area: secondary_work_area,
+        };
 
-        let bounds = choose_screen_bounds_for_tray_anchor(
+        let placement = choose_screen_placement_for_tray_anchor(
             TrayWindowAnchor {
                 x: 3700.0,
                 y: 24.0,
                 monitor_probe_y: 36.0,
+                screen_hint: None,
             },
             &[primary, secondary],
             primary,
         );
 
-        assert_eq!(bounds.left, secondary.left);
-        assert_eq!(bounds.width, secondary.width);
+        assert_eq!(placement, secondary);
+    }
+
+    #[test]
+    fn windows_taskbar_edges_select_the_clicked_monitor_before_work_area_clamping() {
+        let fallback = ScreenPlacementBounds {
+            full: super::ScreenBounds {
+                left: 0.0,
+                top: 0.0,
+                width: 1920.0,
+                height: 1080.0,
+            },
+            work_area: super::ScreenBounds {
+                left: 0.0,
+                top: 0.0,
+                width: 1920.0,
+                height: 1040.0,
+            },
+        };
+        let cases = [
+            (
+                "bottom taskbar",
+                ScreenPlacementBounds {
+                    full: super::ScreenBounds {
+                        left: 1920.0,
+                        top: 0.0,
+                        width: 2560.0,
+                        height: 1440.0,
+                    },
+                    work_area: super::ScreenBounds {
+                        left: 1920.0,
+                        top: 0.0,
+                        width: 2560.0,
+                        height: 1392.0,
+                    },
+                },
+                (4300.0, 1410.0),
+            ),
+            (
+                "top taskbar on an upper-left monitor",
+                ScreenPlacementBounds {
+                    full: super::ScreenBounds {
+                        left: -1600.0,
+                        top: -900.0,
+                        width: 1600.0,
+                        height: 900.0,
+                    },
+                    work_area: super::ScreenBounds {
+                        left: -1600.0,
+                        top: -852.0,
+                        width: 1600.0,
+                        height: 852.0,
+                    },
+                },
+                (-1500.0, -880.0),
+            ),
+            (
+                "left taskbar on a negative-coordinate monitor",
+                ScreenPlacementBounds {
+                    full: super::ScreenBounds {
+                        left: -2560.0,
+                        top: 0.0,
+                        width: 2560.0,
+                        height: 1440.0,
+                    },
+                    work_area: super::ScreenBounds {
+                        left: -2512.0,
+                        top: 0.0,
+                        width: 2512.0,
+                        height: 1440.0,
+                    },
+                },
+                (-2540.0, 100.0),
+            ),
+            (
+                "right taskbar on a lower-right monitor",
+                ScreenPlacementBounds {
+                    full: super::ScreenBounds {
+                        left: 1920.0,
+                        top: 1080.0,
+                        width: 2560.0,
+                        height: 1440.0,
+                    },
+                    work_area: super::ScreenBounds {
+                        left: 1920.0,
+                        top: 1080.0,
+                        width: 2512.0,
+                        height: 1440.0,
+                    },
+                },
+                (4460.0, 1200.0),
+            ),
+        ];
+
+        for (case, target, (anchor_x, anchor_y)) in cases {
+            let selected = choose_screen_placement_for_tray_anchor(
+                TrayWindowAnchor {
+                    x: anchor_x,
+                    y: anchor_y,
+                    monitor_probe_y: anchor_y,
+                    screen_hint: None,
+                },
+                &[fallback, target],
+                fallback,
+            );
+
+            assert_eq!(selected, target, "{case}");
+
+            let window_width = 320.0;
+            let window_height = 420.0;
+            let position = calculate_tray_bottom_center_window_position(TrayWindowPositionInput {
+                anchor_x,
+                anchor_y,
+                window_width,
+                window_height,
+                screen_bounds: selected.work_area,
+            });
+            let window_left = f64::from(position.x);
+            let window_top = f64::from(position.y);
+
+            assert!(
+                window_left >= selected.work_area.left,
+                "{case}: window crossed the work area's left edge"
+            );
+            assert!(
+                window_left + window_width <= selected.work_area.left + selected.work_area.width,
+                "{case}: window crossed the work area's right edge"
+            );
+            assert!(
+                window_top >= selected.work_area.top,
+                "{case}: window crossed the work area's top edge"
+            );
+            assert!(
+                window_top + window_height <= selected.work_area.top + selected.work_area.height,
+                "{case}: window crossed the work area's bottom edge"
+            );
+        }
     }
 
     #[test]
@@ -1664,6 +2172,237 @@ mod tests {
         assert_eq!(anchor.x, 1820.0);
         assert_eq!(anchor.y, 24.0);
         assert_eq!(anchor.monitor_probe_y, 36.0);
+    }
+
+    #[test]
+    fn native_tray_anchor_maps_to_an_upper_retina_monitor_coordinate_space() {
+        let anchor = TrayWindowAnchor::from_native_geometry(NativeTrayGeometry {
+            display_origin_x: 0.0,
+            display_origin_y: -982.0,
+            scale_factor: 2.0,
+            tray_center_x_from_screen_left: 1300.0,
+            tray_bottom_y_from_screen_top: 24.0,
+            tray_center_y_from_screen_top: 12.0,
+            visible_left_from_screen_left: 0.0,
+            visible_width: 1512.0,
+            visible_height: 958.0,
+        })
+        .expect("valid native tray geometry should create an anchor");
+
+        assert_eq!(anchor.x, 2600.0);
+        assert_eq!(anchor.y, -1916.0);
+        assert_eq!(anchor.monitor_probe_y, -1940.0);
+        assert_eq!(
+            anchor.screen_hint,
+            Some(super::ScreenBounds {
+                left: 0.0,
+                top: -1964.0,
+                width: 3024.0,
+                height: 1916.0,
+            })
+        );
+    }
+
+    #[test]
+    fn native_tray_anchor_maps_to_a_lower_external_monitor_coordinate_space() {
+        let anchor = TrayWindowAnchor::from_native_geometry(NativeTrayGeometry {
+            display_origin_x: 0.0,
+            display_origin_y: 982.0,
+            scale_factor: 1.0,
+            tray_center_x_from_screen_left: 1800.0,
+            tray_bottom_y_from_screen_top: 24.0,
+            tray_center_y_from_screen_top: 12.0,
+            visible_left_from_screen_left: 0.0,
+            visible_width: 1920.0,
+            visible_height: 1056.0,
+        })
+        .expect("valid native tray geometry should create an anchor");
+
+        assert_eq!(anchor.x, 1800.0);
+        assert_eq!(anchor.y, 1006.0);
+        assert_eq!(anchor.monitor_probe_y, 994.0);
+        assert_eq!(anchor.screen_hint.expect("screen hint").top, 982.0);
+    }
+
+    #[test]
+    fn cursor_switches_the_clicked_screen_even_when_the_status_item_window_is_stale() {
+        let upper = NativeScreenGeometry {
+            cocoa_left: 0.0,
+            cocoa_bottom: 0.0,
+            cocoa_width: 1512.0,
+            cocoa_height: 982.0,
+            display_origin_x: 0.0,
+            display_origin_y: 0.0,
+            scale_factor: 2.0,
+            tray_bottom_y_from_screen_top: 24.0,
+            visible_left_from_screen_left: 0.0,
+            visible_width: 1512.0,
+            visible_height: 958.0,
+        };
+        let lower = NativeScreenGeometry {
+            cocoa_left: -240.0,
+            cocoa_bottom: -1200.0,
+            cocoa_width: 1920.0,
+            cocoa_height: 1200.0,
+            display_origin_x: -240.0,
+            display_origin_y: 982.0,
+            scale_factor: 1.0,
+            tray_bottom_y_from_screen_top: 24.0,
+            visible_left_from_screen_left: 0.0,
+            visible_width: 1920.0,
+            visible_height: 1176.0,
+        };
+        // The lower geometry is listed first to model NSStatusItem retaining
+        // its old lower-display window after the pointer clicks the upper copy.
+        let screens = [lower, upper];
+
+        let first_click = clicked_native_screen(600.0, -20.0, &screens)
+            .expect("lower click should resolve a screen");
+        let second_click = clicked_native_screen(900.0, 970.0, &screens)
+            .expect("upper click should resolve a screen");
+
+        assert_eq!(first_click.display_origin_y, 982.0);
+        assert_eq!(second_click.display_origin_y, 0.0);
+        assert_eq!(
+            first_click.cocoa_top_left_from_physical(PhysicalPosition::new(650, 1006)),
+            Some((650.0, -24.0))
+        );
+        assert_eq!(
+            second_click.cocoa_top_left_from_physical(PhysicalPosition::new(1348, 60)),
+            Some((674.0, 952.0))
+        );
+
+        let anchor = TrayWindowAnchor::from_native_geometry(
+            second_click.tray_geometry_from_event(900.0, 1800.0, 2.0, 1760.0, 80.0, 48.0),
+        )
+        .expect("upper click should create an anchor");
+        assert_eq!(anchor.x, 1800.0);
+        assert_eq!(anchor.y, 48.0);
+        assert_eq!(anchor.screen_hint.expect("screen hint").top, 0.0);
+    }
+
+    #[test]
+    fn native_tray_anchor_uses_only_the_event_local_offset_for_icon_centering() {
+        let screen = NativeScreenGeometry {
+            cocoa_left: 0.0,
+            cocoa_bottom: 0.0,
+            cocoa_width: 1512.0,
+            cocoa_height: 982.0,
+            display_origin_x: 0.0,
+            display_origin_y: 0.0,
+            scale_factor: 2.0,
+            tray_bottom_y_from_screen_top: 24.0,
+            visible_left_from_screen_left: 0.0,
+            visible_width: 1512.0,
+            visible_height: 958.0,
+        };
+
+        // The click is 10 logical points left of the icon center. The event
+        // coordinates contain the old global transform, but their local delta
+        // still centers the anchor on the clicked icon.
+        let centered = TrayWindowAnchor::from_native_geometry(
+            screen.tray_geometry_from_event(890.0, 1780.0, 2.0, 1760.0, 80.0, 48.0),
+        )
+        .expect("local event offset should create an anchor");
+        assert_eq!(centered.x, 1800.0);
+
+        // If the old display's rect is too far from this click to be the same
+        // icon, ignore it completely instead of moving back to that display.
+        let stale_rect = TrayWindowAnchor::from_native_geometry(
+            screen.tray_geometry_from_event(900.0, 1800.0, 1.0, 1400.0, 24.0, 24.0),
+        )
+        .expect("stale event rect should fall back to the live cursor");
+        assert_eq!(stale_rect.x, 1800.0);
+    }
+
+    #[test]
+    fn native_screen_hint_disambiguates_overlapping_mixed_scale_monitor_bounds() {
+        let retina_primary = super::ScreenBounds {
+            left: 0.0,
+            top: 0.0,
+            width: 3024.0,
+            height: 1916.0,
+        };
+        let external = super::ScreenBounds {
+            left: 1512.0,
+            top: 0.0,
+            width: 1920.0,
+            height: 1056.0,
+        };
+        let anchor = TrayWindowAnchor::from_native_geometry(NativeTrayGeometry {
+            display_origin_x: 1512.0,
+            display_origin_y: 0.0,
+            scale_factor: 1.0,
+            tray_center_x_from_screen_left: 288.0,
+            tray_bottom_y_from_screen_top: 24.0,
+            tray_center_y_from_screen_top: 12.0,
+            visible_left_from_screen_left: 0.0,
+            visible_width: 1920.0,
+            visible_height: 1056.0,
+        })
+        .expect("valid native tray geometry should create an anchor");
+
+        assert!(retina_primary.contains_point(anchor.x, anchor.monitor_probe_y));
+        assert!(external.contains_point(anchor.x, anchor.monitor_probe_y));
+        assert_eq!(
+            choose_screen_placement_for_tray_anchor(
+                anchor,
+                &[
+                    ScreenPlacementBounds {
+                        full: retina_primary,
+                        work_area: retina_primary,
+                    },
+                    ScreenPlacementBounds {
+                        full: external,
+                        work_area: external,
+                    },
+                ],
+                ScreenPlacementBounds {
+                    full: retina_primary,
+                    work_area: retina_primary,
+                },
+            ),
+            ScreenPlacementBounds {
+                full: external,
+                work_area: external,
+            }
+        );
+    }
+
+    #[test]
+    fn native_screen_hint_preserves_a_left_side_dock_work_area() {
+        let anchor = TrayWindowAnchor::from_native_geometry(NativeTrayGeometry {
+            display_origin_x: -1920.0,
+            display_origin_y: 0.0,
+            scale_factor: 1.0,
+            tray_center_x_from_screen_left: 960.0,
+            tray_bottom_y_from_screen_top: 24.0,
+            tray_center_y_from_screen_top: 12.0,
+            visible_left_from_screen_left: 80.0,
+            visible_width: 1840.0,
+            visible_height: 1056.0,
+        })
+        .expect("valid native tray geometry should create an anchor");
+
+        assert_eq!(anchor.x, -960.0);
+        assert_eq!(anchor.screen_hint.expect("screen hint").left, -1840.0);
+    }
+
+    #[test]
+    fn invalid_native_tray_geometry_falls_back_instead_of_creating_an_anchor() {
+        let anchor = TrayWindowAnchor::from_native_geometry(NativeTrayGeometry {
+            display_origin_x: 0.0,
+            display_origin_y: 0.0,
+            scale_factor: 0.0,
+            tray_center_x_from_screen_left: 100.0,
+            tray_bottom_y_from_screen_top: 24.0,
+            tray_center_y_from_screen_top: 12.0,
+            visible_left_from_screen_left: 0.0,
+            visible_width: 1920.0,
+            visible_height: 1056.0,
+        });
+
+        assert!(anchor.is_none());
     }
 
     #[test]
