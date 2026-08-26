@@ -14,7 +14,7 @@ const features = [
   },
   {
     title: "Text, images, and files",
-    body: "mclip keeps text snippets, screenshots, and files from Finder or File Explorer. Selecting file history restores a system file list rather than path-only text, while details still show the full absolute path and name.",
+    body: "mclip keeps text snippets, screenshots, and files from Finder or File Explorer. Pin up to 100 frequently reused items ahead of ordinary history without consuming the main or archive count. Selecting file history restores a system file list rather than path-only text, while details still show the full absolute path and name.",
   },
   {
     title: "Compact, independent previews",
@@ -41,7 +41,7 @@ const agentCliPoints = [
   },
   {
     title: "Controlled actions, no desktop noise",
-    body: "agent/list/get/search/context are read-only. add writes history without replacing the system clipboard; copy writes one selected item back to the clipboard.",
+    body: "agent/list/get/search/context are read-only and support pinned filtering. pin/unpin mutate one stable item; clear --yes --keep-pinned removes ordinary history while preserving pins.",
   },
   {
     title: "Built for errors, code, and prompts",
@@ -127,6 +127,8 @@ const faqItems = [
       "mclip-cli context --last 3 --format markdown",
       "mclip-cli add \"note from agent\"",
       "mclip-cli copy --index 1",
+      "mclip-cli pin --id h_xxx",
+      "mclip-cli list --pinned --json",
     ]}
     points={agentCliPoints}
     note="The installer downloads the prebuilt mclip-cli and SHA-256 companion from the same GitHub Release, verifies it before replacing an older CLI, and accepts MCLIP_VERSION for pinned installs. It falls back to a source build only when the binary asset is missing. Windows CLI users should run it from Git Bash or another POSIX-compatible shell."

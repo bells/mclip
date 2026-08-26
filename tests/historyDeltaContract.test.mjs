@@ -23,12 +23,11 @@ test("history synchronization uses a snapshot, main-only deltas, and preview inv
   assert.doesNotMatch(previewSource, /HistoryEntry\[\]|listenToHistoryChanged/);
 });
 
-test("unrelated auxiliary windows do not subscribe to history deltas", async () => {
+test("only windows that render history subscribe to pin invalidations", async () => {
   const sources = await Promise.all(
     [
       "src/components/AboutWindow.tsx",
       "src/components/PreferencesWindow.tsx",
-      "src/components/FullscreenImageViewer.tsx",
     ].map((path) => readFile(path, "utf8")),
   );
 
@@ -37,5 +36,16 @@ test("unrelated auxiliary windows do not subscribe to history deltas", async () 
       source,
       /listenToHistoryChanged|listenToHistoryPreviewInvalidated|history-updated/,
     );
+  }
+
+  const historySurfaces = await Promise.all(
+    [
+      "src/components/HistoryPreviewWindow.tsx",
+      "src/components/HistoryPreviewDetailWindow.tsx",
+      "src/components/FullscreenImageViewer.tsx",
+    ].map((path) => readFile(path, "utf8")),
+  );
+  for (const source of historySurfaces) {
+    assert.match(source, /listenToHistoryPreviewInvalidated/);
   }
 });

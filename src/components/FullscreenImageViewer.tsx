@@ -6,6 +6,8 @@ import {
   closeImageViewer,
   deleteHistoryItem,
   listenToImageViewerUpdated,
+  listenToHistoryPreviewInvalidated,
+  toggleHistoryItemPinned,
   toggleImageViewerMaximize,
 } from "../lib/tauri";
 import type { ImageViewerPayload } from "../types";
@@ -15,6 +17,7 @@ import { reportAuxiliaryListenerReady } from "../services/auxiliaryWindows";
 import { DialogWindowFrame } from "./DialogWindowFrame";
 import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
+import { HistoryPinButton } from "./HistoryPinButton";
 import { CloseIcon, ExpandIcon, RestoreIcon } from "./UiIcons";
 
 export function FullscreenImageViewer() {
@@ -52,6 +55,32 @@ export function FullscreenImageViewer() {
       isActive = false;
       unlisten?.();
     };
+  }, []);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    void listenToHistoryPreviewInvalidated((invalidation) => {
+      if (invalidation.kind !== "upsert" || invalidation.closeCurrentPreview) {
+        return;
+      }
+      setPayload((current) =>
+        current &&
+        current.item.id === invalidation.entry.id &&
+        invalidation.entry.kind === "image"
+          ? {
+              ...current,
+              item: {
+                ...invalidation.entry,
+                position: current.item.position,
+                renderId: current.item.renderId,
+              },
+            }
+          : current,
+      );
+    }).then((unsubscribe) => {
+      unlisten = unsubscribe;
+    });
+    return () => unlisten?.();
   }, []);
 
   const requestToggleMaximize = useCallback(async () => {
@@ -146,6 +175,14 @@ export function FullscreenImageViewer() {
         draggableHeader
         headerAction={
           <>
+            <HistoryPinButton
+              disabled={isClosing || isDeleting}
+              isPinned={payload.item.isPinned}
+              label={payload.item.isPinned ? translations.history.unpinItemAriaLabel : translations.history.pinItemAriaLabel}
+              onToggle={() => {
+                void toggleHistoryItemPinned(payload.item.id);
+              }}
+            />
             <button
               aria-label={
                 isMaximized

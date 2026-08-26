@@ -404,6 +404,53 @@ fn add_deduplicates_text_and_moves_it_to_the_front() {
 }
 
 #[test]
+fn add_returns_the_saved_id_when_a_pin_stays_ahead_of_new_history() {
+    let history_path = write_history_fixture("add-with-pin");
+    let path = history_path.to_str().expect("history path should be utf-8");
+
+    let pinned = run_cli(&[
+        "--history-path",
+        path,
+        "pin",
+        "--id",
+        "text-panic",
+        "--json",
+    ]);
+    assert!(
+        pinned.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&pinned.stderr)
+    );
+
+    let output = run_cli(&[
+        "--history-path",
+        path,
+        "add",
+        "--json",
+        "new history behind pin",
+    ]);
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("stdout should be json");
+    let history = read_history(&history_path);
+    let saved = history
+        .as_array()
+        .expect("history should be array")
+        .iter()
+        .find(|entry| entry["text"] == "new history behind pin")
+        .expect("new text should be persisted");
+
+    assert_eq!(history[0]["id"], "text-panic");
+    assert_eq!(stdout["id"], saved["id"]);
+    assert_ne!(stdout["id"], "text-panic");
+}
+
+#[test]
 fn delete_removes_history_item_by_one_based_index() {
     let history_path = write_history_fixture("delete-index");
 
@@ -465,5 +512,102 @@ fn clear_requires_confirmation_and_removes_history_file() {
         serde_json::from_slice(&output.stdout).expect("stdout should be json");
     assert_eq!(stdout["action"], "clear");
     assert_eq!(stdout["historyCount"], 0);
+    assert_eq!(stdout["pinnedRemovedCount"], 0);
     assert!(!history_path.exists());
+}
+
+#[test]
+fn pin_unpin_filter_dedupe_and_keep_pinned_clear_share_one_persisted_contract() {
+    let history_path = write_history_fixture("pin-flow");
+    let path = history_path.to_str().expect("history path should be utf-8");
+
+    let pin = run_cli(&[
+        "--history-path",
+        path,
+        "pin",
+        "--id",
+        REMEMBER_DOCS_ID,
+        "--json",
+    ]);
+    assert!(
+        pin.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&pin.stderr)
+    );
+    let pin_json: serde_json::Value = serde_json::from_slice(&pin.stdout).unwrap();
+    assert_eq!(pin_json["isPinned"], true);
+    assert_eq!(read_history(&history_path)[0]["id"], REMEMBER_DOCS_ID);
+
+    let filtered = run_cli(&["--history-path", path, "list", "--pinned", "--json"]);
+    let filtered_json: serde_json::Value = serde_json::from_slice(&filtered.stdout).unwrap();
+    assert_eq!(filtered_json.as_array().unwrap().len(), 1);
+    assert_eq!(filtered_json[0]["id"], REMEMBER_DOCS_ID);
+
+    let duplicate = run_cli(&[
+        "--history-path",
+        path,
+        "add",
+        "remember to update docs",
+        "--json",
+    ]);
+    assert!(duplicate.status.success());
+    let history = read_history(&history_path);
+    assert_eq!(history[0]["id"], REMEMBER_DOCS_ID);
+    assert_eq!(history[0]["isPinned"], true);
+    assert_eq!(history[0]["copyCount"], 2);
+
+    let keep = run_cli(&[
+        "--history-path",
+        path,
+        "clear",
+        "--yes",
+        "--keep-pinned",
+        "--json",
+    ]);
+    let keep_json: serde_json::Value = serde_json::from_slice(&keep.stdout).unwrap();
+    assert_eq!(keep_json["historyCount"], 1);
+    assert_eq!(keep_json["keptPinned"], true);
+    assert_eq!(keep_json["pinnedRemovedCount"], 0);
+    assert_eq!(read_history(&history_path).as_array().unwrap().len(), 1);
+
+    let unpin = run_cli(&["--history-path", path, "unpin", "--index", "1", "--json"]);
+    let unpin_json: serde_json::Value = serde_json::from_slice(&unpin.stdout).unwrap();
+    assert_eq!(unpin_json["isPinned"], false);
+    assert_eq!(read_history(&history_path)[0]["isPinned"], false);
+}
+
+#[test]
+fn cli_rejects_the_one_hundred_and_first_pin_without_mutating_history() {
+    let history_path = missing_history_fixture("pin-cap");
+    fs::create_dir_all(history_path.parent().unwrap()).unwrap();
+    let entries = (0..=100)
+        .map(|index| {
+            serde_json::json!({
+                "kind": "text",
+                "id": format!("item-{index}"),
+                "displayText": format!("item-{index}"),
+                "firstCopiedAt": index,
+                "lastCopiedAt": index,
+                "sourceApp": null,
+                "copyCount": 1,
+                "isPinned": index < 100,
+                "pinnedAt": (index < 100).then_some(index),
+                "text": format!("item-{index}")
+            })
+        })
+        .collect::<Vec<_>>();
+    fs::write(&history_path, serde_json::to_vec(&entries).unwrap()).unwrap();
+    let before = fs::read(&history_path).unwrap();
+
+    let output = run_cli(&[
+        "--history-path",
+        history_path.to_str().unwrap(),
+        "pin",
+        "--id",
+        "item-100",
+        "--json",
+    ]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("pinnedHistoryLimitReached"));
+    assert_eq!(fs::read(&history_path).unwrap(), before);
 }

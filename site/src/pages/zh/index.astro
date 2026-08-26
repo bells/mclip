@@ -14,7 +14,7 @@ const features = [
   },
   {
     title: "文本、图片、文件都能找回",
-    body: "保存常见复制场景：一段文字、一张截图、Finder 或资源管理器里的文件。选择文件历史时会回填系统文件列表，而不是只复制绝对路径；详情仍会显示完整绝对路径和文件名。",
+    body: "保存文字、截图和 Finder 或资源管理器里的文件。最多可将 100 条常用记录置顶在普通历史之前，不占主界面或分组条数；选择文件历史时仍会回填系统文件列表，详情仍会显示完整绝对路径和文件名。",
   },
   {
     title: "紧凑的独立预览",
@@ -41,7 +41,7 @@ const agentCliPoints = [
   },
   {
     title: "受控操作，不抢桌面",
-    body: "agent/list/get/search/context 只读；add 只写入历史不覆盖系统剪贴板；copy 才会把指定历史项写回剪贴板。",
+    body: "agent/list/get/search/context 只读并支持筛选置顶；pin/unpin 只修改一个稳定历史项；clear --yes --keep-pinned 清除普通历史并保留置顶。",
   },
   {
     title: "适合错误、代码和 Prompt",
@@ -127,6 +127,8 @@ const faqItems = [
       "mclip-cli context --last 3 --format markdown",
       "mclip-cli add \"note from agent\"",
       "mclip-cli copy --index 1",
+      "mclip-cli pin --id h_xxx",
+      "mclip-cli list --pinned --json",
     ]}
     points={agentCliPoints}
     note="安装脚本会下载同一 GitHub Release 的预构建 mclip-cli 与 SHA-256 校验资产，验证成功后才替换旧 CLI；可用 MCLIP_VERSION 固定版本。只有二进制资产不存在时才回退到源码构建。Windows CLI 用户请在 Git Bash 或兼容 POSIX shell 中运行。"

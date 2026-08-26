@@ -32,15 +32,38 @@ export function reconcilePreviewWithInvalidation(
     activeItemId !== null && removedIds.has(activeItemId);
 
   if (preview.kind === "item") {
+    const nextItem =
+      invalidation.kind === "upsert" && invalidation.entry.id === preview.item.id
+        ? {
+            ...invalidation.entry,
+            renderId: preview.item.renderId,
+            position: preview.item.position,
+          }
+        : preview.item;
     return {
       preview: removedIds.has(preview.item.id)
         ? null
-        : { ...preview, historyRevision: invalidation.revision },
+        : { ...preview, historyRevision: invalidation.revision, item: nextItem },
       shouldClearActiveItem,
     };
   }
 
-  const nextItems = preview.items.filter((item) => !removedIds.has(item.id));
+  const nextItems = preview.items
+    .filter((item) => !removedIds.has(item.id))
+    .flatMap((item) => {
+      if (invalidation.kind !== "upsert" || invalidation.entry.id !== item.id) {
+        return [item];
+      }
+      return invalidation.entry.isPinned
+        ? []
+        : [
+            {
+              ...invalidation.entry,
+              renderId: item.renderId,
+              position: item.position,
+            },
+          ];
+    });
 
   return {
     preview:

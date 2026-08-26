@@ -34,8 +34,10 @@ function textEntry(id, text = id, copyCount = 1, lastCopiedAt = 1) {
     displayText: text,
     firstCopiedAt: 1,
     id,
+    isPinned: false,
     kind: "text",
     lastCopiedAt,
+    pinnedAt: null,
     sourceApp: null,
     text,
   };
@@ -144,6 +146,25 @@ test("a missing intermediate delta requests full replace recovery", () => {
 
   assert.equal(result.status, "needsReplace");
   assert.strictEqual(result.snapshot, snapshot);
+});
+
+test("pin upserts preserve canonical visible order without a full replace", () => {
+  const pinned = {
+    ...textEntry("older", "older", 1, 1),
+    isPinned: true,
+    pinnedAt: 20,
+  };
+  const snapshot = apply(
+    { entries: [textEntry("newer", "newer", 1, 10), textEntry("older", "older", 1, 1)], revision: 1 },
+    {
+      baseRevision: 1,
+      entry: pinned,
+      kind: "upsert",
+      removedIds: [],
+      revision: 2,
+    },
+  );
+  assert.deepEqual(snapshot.entries.map((entry) => entry.id), ["older", "newer"]);
 });
 
 test("accepted deltas remain correct under active search and grouping", async () => {

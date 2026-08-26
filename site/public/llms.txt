@@ -27,6 +27,7 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 - Clipboard content types: text, images, and files
 - File history restores a system file list instead of copying path-only text
 - New installs retain 200 history items by default, configurable from 10 to 500
+- Up to 100 frequently reused entries can be pinned ahead of ordinary history; pins do not consume the ordinary retention, main-window, or archive-group counts
 - The main app window shows the latest 10 items by default and groups older history by 10 by default; both display counts are configurable
 - Preferences include appearance theme, main/group display counts, row number visibility, and main-window branding
 - System, light, and dark appearance applies across the main, preview, preview-detail, image viewer, About, and Preferences windows
@@ -48,7 +49,7 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 mclip includes a local CLI called mclip-cli for AI Agent workflows.
 The CLI has an Agent Mode: mclip-cli agent --last 5 --json emits recent history, a command capability map, and safety boundaries in one structured bundle.
 The CLI also reads local clipboard history and can output text, JSON, raw text, or Markdown.
-It can also add text to history, copy a selected history item back to the system clipboard, delete one item, or clear history with explicit confirmation.
+It can also add text to history, copy a selected history item back to the system clipboard, pin or unpin one stable item, delete one item, or clear history with explicit confirmation.
 It is useful when tools such as Codex, Claude Code, Cursor, and Cline need recent local context that the user already copied or want to save important output without opening the desktop UI.
 
 Typical commands:
@@ -61,6 +62,10 @@ Typical commands:
 - mclip-cli add "note from agent"
 - mclip-cli copy --index 1
 - mclip-cli delete --id h_xxx
+- mclip-cli pin --id h_xxx
+- mclip-cli list --pinned --json
+- mclip-cli unpin --index 1
+- mclip-cli clear --yes --keep-pinned
 - mclip-cli clear --yes
 
 Safety boundaries:
@@ -69,6 +74,7 @@ Safety boundaries:
 - mclip-cli add writes text into history without replacing the current system clipboard.
 - mclip-cli copy writes a selected item back to the system clipboard.
 - mclip-cli clear requires --yes.
+- mclip-cli clear --yes removes pins too and reports their count; --keep-pinned removes only ordinary history.
 
 Public installer command:
 

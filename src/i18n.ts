@@ -33,7 +33,8 @@ export const translations = {
     clearHistoryConfirm: {
       cancel: "取消",
       confirm: "清除",
-      message: "这会删除本机保存的全部剪贴板历史，操作无法撤销。",
+      keepPinned: "清除但保留置顶",
+      message: (pinnedCount: number) => `这会删除本机保存的全部剪贴板历史，其中包含 ${pinnedCount} 条置顶记录。操作无法撤销。`,
       title: "清除所有历史？",
     },
     footer: {
@@ -57,6 +58,8 @@ export const translations = {
       itemPreviewKicker: "历史详情",
       contentLabel: "内容",
       deleteItemAriaLabel: "删除这条历史",
+      pinItemAriaLabel: "置顶这条历史",
+      unpinItemAriaLabel: "取消置顶这条历史",
       viewImageFullscreenAriaLabel: "在图片查看器中打开",
       firstCopiedTimeLabel: "首次复制时间",
       lastCopiedTimeLabel: "上次复制时间",
@@ -227,7 +230,8 @@ export const translations = {
     clearHistoryConfirm: {
       cancel: "Cancel",
       confirm: "Clear",
-      message: "This deletes all clipboard history saved on this device. This cannot be undone.",
+      keepPinned: "Clear, Keep Pinned",
+      message: (pinnedCount: number) => `This deletes all clipboard history saved on this device, including ${pinnedCount} pinned item${pinnedCount === 1 ? "" : "s"}. This cannot be undone.`,
       title: "Clear all history?",
     },
     footer: {
@@ -251,6 +255,8 @@ export const translations = {
       itemPreviewKicker: "History Details",
       contentLabel: "Content",
       deleteItemAriaLabel: "Delete this history item",
+      pinItemAriaLabel: "Pin this history item",
+      unpinItemAriaLabel: "Unpin this history item",
       viewImageFullscreenAriaLabel: "Open in image viewer",
       firstCopiedTimeLabel: "First copied",
       lastCopiedTimeLabel: "Last copied",

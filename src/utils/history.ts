@@ -90,6 +90,21 @@ export function filterHistoryItems(
     );
 }
 
+export function splitPinnedHistoryItems(items: HistoryListItem[]) {
+  return {
+    pinned: items.filter((item) => item.isPinned),
+    unpinned: items.filter((item) => !item.isPinned),
+  };
+}
+
+export function getVisibleHistoryItems(
+  items: HistoryListItem[],
+  mainWindowItemCount: number,
+) {
+  const { pinned, unpinned } = splitPinnedHistoryItems(items);
+  return [...pinned, ...unpinned.slice(0, mainWindowItemCount)];
+}
+
 export function getHistoryGroups(
   itemCount: number,
   mainWindowItemCount: number,
@@ -130,5 +145,6 @@ export function getHistoryGroupItems(
   group: HistoryGroupInfo,
 ): HistoryListItem[] {
   const startIndex = Math.max(0, group.startPosition - 1);
-  return items.slice(startIndex, Math.min(items.length, group.endPosition));
+  const unpinned = items.filter((item) => !item.isPinned);
+  return unpinned.slice(startIndex, Math.min(unpinned.length, group.endPosition));
 }

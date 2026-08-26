@@ -21,6 +21,7 @@ import {
   notifyHistoryPreviewSelectionCancelled,
   notifyHistoryPreviewSelectionStarted,
   pasteClipboard,
+  toggleHistoryItemPinned,
   openImageViewer,
   requestHistoryPreviewClose,
   showHistoryPreviewDetailWindow,
@@ -472,6 +473,11 @@ export function HistoryPreviewWindow() {
           void deletePreviewItem(id);
         }}
         onPointerInside={notifyPointerInside}
+        onTogglePinned={(id) => {
+          void toggleHistoryItemPinned(id).catch((error) => {
+            console.error("更新历史置顶状态失败:", error);
+          });
+        }}
         onViewFullscreen={() => {
           if (preview.item.kind !== "image") {
             return Promise.resolve();

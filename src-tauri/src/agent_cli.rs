@@ -6,9 +6,10 @@ use serde::Serialize;
 
 use crate::clipboard::write_history_item_to_clipboard;
 use crate::history::{
-    cleanup_unused_image_assets_for_history_path, clear_history_from_path, load_history_from_path,
-    merge_text_history_item, persist_history_to_path, remove_history_item_by_id, HistoryEntry,
-    HistoryKind,
+    cleanup_unused_image_assets_for_history_path, clear_history_from_path,
+    clear_history_keep_pinned_from_path, load_history_from_path, merge_text_history_item,
+    persist_history_to_path, remove_history_item_by_id, toggle_history_item_pinned_from_path,
+    HistoryEntry, HistoryKind,
 };
 use crate::settings::MAX_MAX_HISTORY_COUNT;
 
@@ -36,6 +37,14 @@ struct ActionResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     id: Option<String>,
     history_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    is_pinned: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    removed_count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pinned_removed_count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    kept_pinned: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]
@@ -120,7 +129,9 @@ fn run(args: Vec<String>) -> Result<String, CliError> {
         "add" => run_add(&path, history, command_args),
         "copy" => run_copy(&history, command_args),
         "delete" | "remove" => run_delete(&path, &history, command_args),
-        "clear" => run_clear(&path, command_args),
+        "pin" => run_pin(&path, &history, command_args, true),
+        "unpin" => run_pin(&path, &history, command_args, false),
+        "clear" => run_clear(&path, &history, command_args),
         other => Err(CliError::Usage(format!("unknown command: {other}"))),
     }
 }
@@ -157,6 +168,7 @@ fn run_list(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErro
     let mut limit = 10;
     let mut format = OutputFormat::Text;
     let mut kind = None;
+    let mut pinned_only = false;
     let mut index = 0;
 
     while index < args.len() {
@@ -168,6 +180,10 @@ fn run_list(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErro
             "--kind" => {
                 kind = Some(parse_kind_option(args, index)?);
                 index += 2;
+            }
+            "--pinned" => {
+                pinned_only = true;
+                index += 1;
             }
             "--json" => {
                 format = OutputFormat::Json;
@@ -186,7 +202,7 @@ fn run_list(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErro
         }
     }
 
-    let entries = select_recent(history, limit, kind);
+    let entries = select_recent(history, limit, kind, pinned_only);
     format_entries(&entries, format)
 }
 
@@ -238,6 +254,7 @@ fn run_search(history: &[HistoryEntry], args: &[String]) -> Result<String, CliEr
     let mut limit = 10;
     let mut format = OutputFormat::Text;
     let mut kind = None;
+    let mut pinned_only = false;
     let mut index = 0;
 
     while index < args.len() {
@@ -249,6 +266,10 @@ fn run_search(history: &[HistoryEntry], args: &[String]) -> Result<String, CliEr
             "--kind" => {
                 kind = Some(parse_kind_option(args, index)?);
                 index += 2;
+            }
+            "--pinned" => {
+                pinned_only = true;
+                index += 1;
             }
             "--json" => {
                 format = OutputFormat::Json;
@@ -283,6 +304,7 @@ fn run_search(history: &[HistoryEntry], args: &[String]) -> Result<String, CliEr
     let entries = history
         .iter()
         .filter(|entry| kind_matches(entry, kind))
+        .filter(|entry| !pinned_only || entry.is_pinned())
         .filter(|entry| searchable_text(entry).to_lowercase().contains(&query))
         .take(limit)
         .cloned()
@@ -295,6 +317,7 @@ fn run_context(history: &[HistoryEntry], args: &[String]) -> Result<String, CliE
     let mut last = 5;
     let mut format = OutputFormat::Markdown;
     let mut kind = None;
+    let mut pinned_only = false;
     let mut index = 0;
 
     while index < args.len() {
@@ -306,6 +329,10 @@ fn run_context(history: &[HistoryEntry], args: &[String]) -> Result<String, CliE
             "--kind" => {
                 kind = Some(parse_kind_option(args, index)?);
                 index += 2;
+            }
+            "--pinned" => {
+                pinned_only = true;
+                index += 1;
             }
             "--json" => {
                 format = OutputFormat::Json;
@@ -324,7 +351,7 @@ fn run_context(history: &[HistoryEntry], args: &[String]) -> Result<String, CliE
         }
     }
 
-    let entries = select_recent(history, last, kind);
+    let entries = select_recent(history, last, kind, pinned_only);
     format_entries(&entries, format)
 }
 
@@ -332,6 +359,7 @@ fn run_agent(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErr
     let mut last = 5;
     let mut kind = None;
     let mut json = false;
+    let mut pinned_only = false;
     let mut index = 0;
 
     while index < args.len() {
@@ -348,6 +376,10 @@ fn run_agent(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErr
                 json = true;
                 index += 1;
             }
+            "--pinned" => {
+                pinned_only = true;
+                index += 1;
+            }
             "--format" => {
                 json = parse_agent_format_option(args, index)?;
                 index += 2;
@@ -357,7 +389,7 @@ fn run_agent(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErr
         }
     }
 
-    let entries = select_recent(history, last, kind);
+    let entries = select_recent(history, last, kind, pinned_only);
 
     if json {
         let bundle = AgentBundle {
@@ -439,6 +471,10 @@ fn run_add(path: &Path, history: Vec<HistoryEntry>, args: &[String]) -> Result<S
             action: "add",
             id: Some(saved_entry.id().to_string()),
             history_count: next_history.len(),
+            is_pinned: None,
+            removed_count: None,
+            pinned_removed_count: None,
+            kept_pinned: None,
         },
         json,
     )
@@ -466,6 +502,10 @@ where
             action: "copy",
             id: Some(id),
             history_count: history.len(),
+            is_pinned: None,
+            removed_count: None,
+            pinned_removed_count: None,
+            kept_pinned: None,
         },
         json,
     )
@@ -495,14 +535,50 @@ fn run_delete(path: &Path, history: &[HistoryEntry], args: &[String]) -> Result<
             action: "delete",
             id: Some(id),
             history_count: next_history.len(),
+            is_pinned: None,
+            removed_count: None,
+            pinned_removed_count: None,
+            kept_pinned: None,
         },
         json,
     )
 }
 
-fn run_clear(path: &Path, args: &[String]) -> Result<String, CliError> {
+fn run_pin(
+    path: &Path,
+    history: &[HistoryEntry],
+    args: &[String],
+    is_pinned: bool,
+) -> Result<String, CliError> {
+    let command = if is_pinned { "pin" } else { "unpin" };
+    let (selector, json) = parse_selector_action_args(args, command)?;
+    let selected = find_entry(history, selector)?;
+    let id = selected.id().to_string();
+    let (next_history, final_is_pinned) = if selected.is_pinned() == is_pinned {
+        (history.to_vec(), is_pinned)
+    } else {
+        toggle_history_item_pinned_from_path(path, &id, MAX_MAX_HISTORY_COUNT as usize)
+            .map_err(CliError::Runtime)?
+    };
+
+    format_action_result(
+        ActionResult {
+            action: command,
+            id: Some(id),
+            history_count: next_history.len(),
+            is_pinned: Some(final_is_pinned),
+            removed_count: None,
+            pinned_removed_count: None,
+            kept_pinned: None,
+        },
+        json,
+    )
+}
+
+fn run_clear(path: &Path, history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
     let mut confirmed = false;
     let mut json = false;
+    let mut keep_pinned = false;
     let mut index = 0;
 
     while index < args.len() {
@@ -513,6 +589,10 @@ fn run_clear(path: &Path, args: &[String]) -> Result<String, CliError> {
             }
             "--json" => {
                 json = true;
+                index += 1;
+            }
+            "--keep-pinned" => {
+                keep_pinned = true;
                 index += 1;
             }
             "--help" | "-h" => return Err(CliError::Help),
@@ -526,12 +606,27 @@ fn run_clear(path: &Path, args: &[String]) -> Result<String, CliError> {
         ));
     }
 
-    clear_history_from_path(path).map_err(CliError::Runtime)?;
+    let pinned_count = history.iter().filter(|entry| entry.is_pinned()).count();
+    let (history_count, removed_count, pinned_removed_count) = if keep_pinned {
+        let remaining = clear_history_keep_pinned_from_path(path).map_err(CliError::Runtime)?;
+        (
+            remaining.len(),
+            history.len().saturating_sub(remaining.len()),
+            0,
+        )
+    } else {
+        clear_history_from_path(path).map_err(CliError::Runtime)?;
+        (0, history.len(), pinned_count)
+    };
     format_action_result(
         ActionResult {
             action: "clear",
             id: None,
-            history_count: 0,
+            history_count,
+            is_pinned: None,
+            removed_count: Some(removed_count),
+            pinned_removed_count: Some(pinned_removed_count),
+            kept_pinned: Some(keep_pinned),
         },
         json,
     )
@@ -633,8 +728,17 @@ fn format_action_result(result: ActionResult, json: bool) -> Result<String, CliE
         .map(|id| format!(" {id}"))
         .unwrap_or_default();
 
+    let clear_suffix = result
+        .removed_count
+        .map_or_else(String::new, |removed_count| {
+            format!(
+                " Removed: {removed_count}; pinned removed: {}; kept pinned: {}.",
+                result.pinned_removed_count.unwrap_or(0),
+                result.kept_pinned.unwrap_or(false)
+            )
+        });
     Ok(format!(
-        "{} history item{id_suffix}. History count: {}\n",
+        "{} history item{id_suffix}. History count: {}{clear_suffix}\n",
         past_tense_action(result.action),
         result.history_count
     ))
@@ -646,12 +750,30 @@ fn past_tense_action(action: &str) -> &'static str {
         "copy" => "Copied",
         "delete" => "Deleted",
         "clear" => "Cleared",
+        "pin" => "Pinned",
+        "unpin" => "Unpinned",
         _ => "Updated",
     }
 }
 
 fn agent_commands() -> Vec<AgentCommand> {
     vec![
+        AgentCommand {
+            name: "pin",
+            purpose: "Pin one selected history item by snapshot-relative index or stable id.",
+            example: "mclip-cli pin --id h_xxx",
+            mutates_history: true,
+            writes_clipboard: false,
+            destructive: false,
+        },
+        AgentCommand {
+            name: "unpin",
+            purpose: "Unpin one selected history item and apply ordinary retention.",
+            example: "mclip-cli unpin --index 1",
+            mutates_history: true,
+            writes_clipboard: false,
+            destructive: false,
+        },
         AgentCommand {
             name: "agent",
             purpose: "Print an agent-ready bundle with recent context, command capabilities, and safety notes.",
@@ -732,7 +854,8 @@ fn agent_safety_contract() -> Vec<&'static str> {
         "list, get, search, context, and agent read local history only.",
         "add writes text into history without replacing the system clipboard.",
         "copy writes one selected history item back to the system clipboard.",
-        "delete removes one selected item; clear requires --yes and removes local history.",
+        "pin and unpin mutate one stable entry; --pinned filters supported read commands.",
+        "delete removes one selected item; clear requires --yes, and --keep-pinned preserves pins.",
         "mclip-cli does not start the desktop UI and all history data stays local.",
     ]
 }
@@ -785,10 +908,12 @@ fn select_recent(
     history: &[HistoryEntry],
     limit: usize,
     kind: Option<HistoryKind>,
+    pinned_only: bool,
 ) -> Vec<HistoryEntry> {
     history
         .iter()
         .filter(|entry| kind_matches(entry, kind))
+        .filter(|entry| !pinned_only || entry.is_pinned())
         .take(limit)
         .cloned()
         .collect()
@@ -827,12 +952,13 @@ fn format_text_list(entries: &[HistoryEntry]) -> String {
 fn format_text_item(index: usize, entry: &HistoryEntry) -> String {
     let common = entry.common();
     format!(
-        "{index}. [{}] {} | sourceApp: {} | lastCopiedAt: {} | copyCount: {}\n",
+        "{index}. [{}] {} | sourceApp: {} | lastCopiedAt: {} | copyCount: {} | isPinned: {}\n",
         kind_name(entry),
         common.display_text,
         common.source_app.as_deref().unwrap_or("unknown"),
         common.last_copied_at,
-        common.copy_count
+        common.copy_count,
+        common.is_pinned
     )
 }
 
@@ -878,6 +1004,7 @@ fn push_markdown_entries(markdown: &mut String, entries: &[HistoryEntry], headin
         ));
         markdown.push_str(&format!("- lastCopiedAt: {}\n", common.last_copied_at));
         markdown.push_str(&format!("- copyCount: {}\n\n", common.copy_count));
+        markdown.push_str(&format!("- isPinned: {}\n\n", common.is_pinned));
         markdown.push_str(&markdown_code_block("text", &raw_content(entry)));
         markdown.push('\n');
     }
@@ -1026,15 +1153,17 @@ fn default_config_dir() -> Option<PathBuf> {
 
 fn usage() -> &'static str {
     r#"Usage:
-  mclip-cli [--history-path PATH] list [--limit N] [--kind text|image|files] [--json|--format text|json|raw|markdown]
+  mclip-cli [--history-path PATH] list [--limit N] [--kind text|image|files] [--pinned] [--json|--format text|json|raw|markdown]
   mclip-cli [--history-path PATH] get (--index N|--id ID) [--raw|--json|--format text|json|raw|markdown]
-  mclip-cli [--history-path PATH] search QUERY [--limit N] [--kind text|image|files] [--json|--format text|json|raw|markdown]
-  mclip-cli [--history-path PATH] context [--last N] [--kind text|image|files] [--json|--format text|json|raw|markdown]
-  mclip-cli [--history-path PATH] agent [--last N] [--kind text|image|files] [--json|--format markdown|json]
+  mclip-cli [--history-path PATH] search QUERY [--limit N] [--kind text|image|files] [--pinned] [--json|--format text|json|raw|markdown]
+  mclip-cli [--history-path PATH] context [--last N] [--kind text|image|files] [--pinned] [--json|--format text|json|raw|markdown]
+  mclip-cli [--history-path PATH] agent [--last N] [--kind text|image|files] [--pinned] [--json|--format markdown|json]
   mclip-cli [--history-path PATH] add [--source-app NAME] [--max-history N] [--json] [TEXT...]
   mclip-cli [--history-path PATH] copy (--index N|--id ID) [--json]
   mclip-cli [--history-path PATH] delete (--index N|--id ID) [--json]
-  mclip-cli [--history-path PATH] clear --yes [--json]
+  mclip-cli [--history-path PATH] pin (--index N|--id ID) [--json]
+  mclip-cli [--history-path PATH] unpin (--index N|--id ID) [--json]
+  mclip-cli [--history-path PATH] clear --yes [--keep-pinned] [--json]
 
 Environment:
   MCLIP_HISTORY_PATH  Override the default local mclip history.json path.
@@ -1055,6 +1184,8 @@ mod tests {
                 last_copied_at: 200,
                 source_app: Some("Codex".to_string()),
                 copy_count: 1,
+                is_pinned: false,
+                pinned_at: None,
             },
             text: text.to_string(),
         }

@@ -41,6 +41,16 @@ export function TrashIcon(props: IconProps) {
   );
 }
 
+export function PinIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m8 4 8 8" />
+      <path d="m14 3 7 7-3 1-4 4-1 3-7-7 3-1 4-4 1-3Z" />
+      <path d="m9 15-6 6" />
+    </IconBase>
+  );
+}
+
 export function ExpandIcon(props: IconProps) {
   return (
     <IconBase {...props}>

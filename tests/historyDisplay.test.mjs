@@ -25,7 +25,14 @@ async function importTypeScriptModule(sourcePath) {
   return import(compiledPath);
 }
 
-const { getHistoryListDisplayText } = await importTypeScriptModule(
+const {
+  filterHistoryItems,
+  getHistoryGroupItems,
+  getHistoryGroups,
+  getHistoryListDisplayText,
+  getVisibleHistoryItems,
+  splitPinnedHistoryItems,
+} = await importTypeScriptModule(
   "src/utils/history.ts",
 );
 
@@ -36,9 +43,26 @@ function fileItem(filePaths) {
     filePaths,
     firstCopiedAt: 1,
     id: "h_file",
+    isPinned: false,
     kind: "files",
     lastCopiedAt: 1,
+    pinnedAt: null,
     sourceApp: null,
+  };
+}
+
+function textItem(id, lastCopiedAt, isPinned = false, pinnedAt = null) {
+  return {
+    copyCount: 1,
+    displayText: id,
+    firstCopiedAt: 1,
+    id,
+    isPinned,
+    kind: "text",
+    lastCopiedAt,
+    pinnedAt,
+    sourceApp: null,
+    text: id,
   };
 }
 
@@ -82,4 +106,30 @@ test("archive groups use compact rows without decorative gaps", async () => {
   );
   assert.match(stylesSource, /archiveList: "grid content-start gap-0"/);
   assert.match(stylesSource, /export function archiveRow[\s\S]*"grid h-\[28px\]/);
+});
+
+test("pins do not consume the main or archive count and search keeps pins first", () => {
+  const history = [
+    textItem("pin", 5, true, 10),
+    textItem("recent", 4),
+    textItem("older", 3),
+    textItem("oldest", 2),
+  ];
+  const filtered = filterHistoryItems(history, "");
+  const { pinned, unpinned } = splitPinnedHistoryItems(filtered);
+  const visible = getVisibleHistoryItems(filtered, 2);
+  const groups = getHistoryGroups(unpinned.length, 2, 2);
+
+  assert.deepEqual(pinned.map((item) => item.id), ["pin"]);
+  assert.deepEqual(visible.map((item) => item.id), ["pin", "recent", "older"]);
+  assert.equal(groups[1].startPosition, 3);
+  assert.equal(groups[1].endPosition, 4);
+  assert.deepEqual(getHistoryGroupItems(filtered, groups[1]).map((item) => item.id), ["oldest"]);
+});
+
+test("the TypeScript common history contract names both pin fields exactly", async () => {
+  const source = await readFile("src/types.ts", "utf8");
+  assert.match(source, /isPinned: boolean/);
+  assert.match(source, /pinnedAt: number \| null/);
+  assert.doesNotMatch(source, /is_pinned|pinned_at/);
 });

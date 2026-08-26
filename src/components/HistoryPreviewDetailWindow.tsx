@@ -8,9 +8,11 @@ import {
   deleteHistoryItem,
   hideHistoryPreviewDetailWindow,
   listenToHistoryPreviewDetailUpdated,
+  listenToHistoryPreviewInvalidated,
   listenToHistoryPreviewPlacementUpdated,
   notifyHistoryPreviewPointerEntered,
   openImageViewer,
+  toggleHistoryItemPinned,
   requestHistoryPreviewClose,
   type PreviewWindowSide,
 } from "../lib/tauri";
@@ -21,6 +23,7 @@ import { reportAuxiliaryListenerReady } from "../services/auxiliaryWindows";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
 import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
 import { HistoryDetailFullscreenButton } from "./HistoryDetailFullscreenButton";
+import { HistoryPinButton } from "./HistoryPinButton";
 
 export function HistoryPreviewDetailWindow() {
   const [preview, setPreview] = useState<HistoryItemPreviewPayload | null>(null);
@@ -43,6 +46,31 @@ export function HistoryPreviewDetailWindow() {
     return () => {
       unlisten?.();
     };
+  }, []);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    void listenToHistoryPreviewInvalidated((invalidation) => {
+      if (invalidation.kind !== "upsert" || invalidation.closeCurrentPreview) {
+        return;
+      }
+      setPreview((current) =>
+        current && current.item.id === invalidation.entry.id
+          ? {
+              ...current,
+              historyRevision: invalidation.revision,
+              item: {
+                ...invalidation.entry,
+                position: current.item.position,
+                renderId: current.item.renderId,
+              },
+            }
+          : current,
+      );
+    }).then((unsubscribe) => {
+      unlisten = unsubscribe;
+    });
+    return () => unlisten?.();
   }, []);
 
   useEffect(() => {
@@ -117,6 +145,14 @@ export function HistoryPreviewDetailWindow() {
         ariaLabel={translations.itemPreviewAriaLabel}
         headerAction={
           <>
+            <HistoryPinButton
+              disabled={isDeleting}
+              isPinned={preview.item.isPinned}
+              label={preview.item.isPinned ? translations.unpinItemAriaLabel : translations.pinItemAriaLabel}
+              onToggle={() => {
+                void toggleHistoryItemPinned(preview.item.id);
+              }}
+            />
             {imageItem ? (
               <HistoryDetailFullscreenButton
                 disabled={isDeleting}

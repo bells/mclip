@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 
 import {
   clearHistory as clearHistoryCommand,
+  clearHistoryKeepPinned,
   copyHistoryItem,
   deleteHistoryItem as deleteHistoryItemCommand,
   pasteClipboard,
@@ -27,7 +28,7 @@ type UseClipboardActionsArgs = {
 };
 
 type UseClipboardActionsResult = {
-  clearHistory: () => Promise<void>;
+  clearHistory: (keepPinned?: boolean) => Promise<void>;
   deleteHistoryItem: (id: string) => Promise<void>;
   hideWindow: () => Promise<void>;
   openAboutDialog: () => Promise<void>;
@@ -86,9 +87,11 @@ export function useClipboardActions({
     }
   };
 
-  const clearHistory = async () => {
+  const clearHistory = async (keepPinned = false) => {
     try {
-      applyHistoryChange(await clearHistoryCommand());
+      applyHistoryChange(
+        await (keepPinned ? clearHistoryKeepPinned() : clearHistoryCommand()),
+      );
       clearPreviewState();
       setSelectedHistoryIndex(-1);
     } catch (error) {

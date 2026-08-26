@@ -50,7 +50,7 @@ export function HistoryList({
 
   return (
     <div className={ui.historyGroup}>
-      {items.map((item) => {
+      {items.map((item, index) => {
         const displayText = getHistoryListDisplayText(item);
         const targetId = serializeMainKeyboardNavigationTarget({
           itemId: item.id,
@@ -58,60 +58,64 @@ export function HistoryList({
         });
 
         return (
-          <div
-            className={historyItemRow(
-              item.kind,
-              selectedItemId === item.id,
-              isKeyboardNavigating,
-            )}
-            // key 不会作为 prop 传给子组件；它只给 React 的列表 diff 算法使用。
-            key={item.renderId}
-            onMouseLeave={onScheduleClosePreview}
-          >
-            <button
-              className={historyItem(item.kind, showItemNumbers)}
-              data-main-keyboard-target={targetId}
-              onClick={() => onSelectItem(item.id)}
-              onFocus={(event) => {
-                onOpenItemPreview(
-                  item,
-                  event.currentTarget.getBoundingClientRect().top,
-                  targetId,
-                  "focus",
-                );
-              }}
-              onPointerMove={(event) => {
-                onOpenItemPreview(
-                  item,
-                  event.currentTarget.getBoundingClientRect().top,
-                  targetId,
-                  "pointer",
-                );
-              }}
-              type="button"
-            >
-              {showItemNumbers ? (
-                <span className={ui.itemIndex}>{item.position}.</span>
-              ) : null}
-              {item.kind === "image" ? (
-                <span className={ui.itemThumbnailWrap}>
-                  <ImageThumb
-                    alt={displayText}
-                    className={ui.itemThumbnail}
-                    imagePath={item.imagePath}
-                  />
-                  <span className={ui.itemText}>{displayText}</span>
-                </span>
-              ) : item.kind === "text" ? (
-                <HistoryListText
-                  className={ui.itemText}
-                  displayText={displayText}
-                  text={item.text}
-                />
-              ) : (
-                <span className={ui.itemText}>{displayText}</span>
+          <div key={item.renderId}>
+            {index > 0 && items[index - 1]?.isPinned && !item.isPinned ? (
+              <div aria-hidden="true" className={ui.historyPinnedDivider} />
+            ) : null}
+            <div
+              className={historyItemRow(
+                item.kind,
+                selectedItemId === item.id,
+                isKeyboardNavigating,
               )}
-            </button>
+              // key 不会作为 prop 传给子组件；它只给 React 的列表 diff 算法使用。
+              onMouseLeave={onScheduleClosePreview}
+            >
+              <button
+                className={historyItem(item.kind, showItemNumbers)}
+                data-main-keyboard-target={targetId}
+                onClick={() => onSelectItem(item.id)}
+                onFocus={(event) => {
+                  onOpenItemPreview(
+                    item,
+                    event.currentTarget.getBoundingClientRect().top,
+                    targetId,
+                    "focus",
+                  );
+                }}
+                onPointerMove={(event) => {
+                  onOpenItemPreview(
+                    item,
+                    event.currentTarget.getBoundingClientRect().top,
+                    targetId,
+                    "pointer",
+                  );
+                }}
+                type="button"
+              >
+                {showItemNumbers ? (
+                  <span className={ui.itemIndex}>{item.position}.</span>
+                ) : null}
+                {item.kind === "image" ? (
+                  <span className={ui.itemThumbnailWrap}>
+                    <ImageThumb
+                      alt={displayText}
+                      className={ui.itemThumbnail}
+                      imagePath={item.imagePath}
+                    />
+                    <span className={ui.itemText}>{displayText}</span>
+                  </span>
+                ) : item.kind === "text" ? (
+                  <HistoryListText
+                    className={ui.itemText}
+                    displayText={displayText}
+                    text={item.text}
+                  />
+                ) : (
+                  <span className={ui.itemText}>{displayText}</span>
+                )}
+              </button>
+            </div>
           </div>
         );
       })}

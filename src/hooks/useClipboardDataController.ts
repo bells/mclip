@@ -14,8 +14,9 @@ import type {
 } from "../types";
 import {
   filterHistoryItems,
-  getHistoryGroupItems,
+  getVisibleHistoryItems,
   getHistoryGroups,
+  splitPinnedHistoryItems,
 } from "../utils/history";
 import { getSearchQueryAfterHistorySelection } from "../utils/searchInteraction";
 import { normalizeSettings } from "../utils/settings";
@@ -33,6 +34,7 @@ type UseClipboardDataControllerResult = {
   hasHistory: boolean;
   historyGroups: HistoryGroupInfo[];
   historyRevision: number;
+  pinnedHistoryCount: number;
   searchQuery: string;
   setSearchQuery: Dispatch<SetStateAction<string>>;
   settings: AppSettings;
@@ -62,12 +64,14 @@ export function useClipboardDataController({
     [history, searchQuery],
   );
   const historyGroups = useMemo(
-    () =>
-      getHistoryGroups(
-        filteredHistory.length,
+    () => {
+      const { unpinned } = splitPinnedHistoryItems(filteredHistory);
+      return getHistoryGroups(
+        unpinned.length,
         settings.mainWindowItemCount,
         settings.historyGroupItemCount,
-      ),
+      );
+    },
     [
       filteredHistory.length,
       settings.historyGroupItemCount,
@@ -75,11 +79,8 @@ export function useClipboardDataController({
     ],
   );
   const visibleHistory = useMemo(
-    () =>
-      historyGroups[0]
-        ? getHistoryGroupItems(filteredHistory, historyGroups[0])
-        : [],
-    [filteredHistory, historyGroups],
+    () => getVisibleHistoryItems(filteredHistory, settings.mainWindowItemCount),
+    [filteredHistory, settings.mainWindowItemCount],
   );
 
   function clearSearchQueryAfterHistorySelection() {
@@ -225,6 +226,7 @@ export function useClipboardDataController({
     hasHistory: history.length > 0,
     historyGroups,
     historyRevision: historySnapshot.revision,
+    pinnedHistoryCount: history.filter((item) => item.isPinned).length,
     searchQuery,
     setSearchQuery,
     settings,

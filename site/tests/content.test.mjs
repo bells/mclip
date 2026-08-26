@@ -44,6 +44,10 @@ test("site publishes the v0.1.1 release and current product capabilities", async
   assert.match(en, /SHA-256 companion/);
   assert.match(llms, /On Windows, run the shell installer from Git Bash/);
   assert.match(llms, /preserves an existing CLI on verification failure/);
+  assert.match(zh, /最多可将 100 条常用记录置顶/);
+  assert.match(en, /Pin up to 100 frequently reused items/);
+  assert.match(llms, /mclip-cli list --pinned --json/);
+  assert.match(llms, /--keep-pinned/);
 });
 
 test("site includes trust, installation, and FAQ content", async () => {

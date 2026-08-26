@@ -23,6 +23,18 @@ function withoutIds(entries: HistoryEntry[], removedIds: readonly string[]) {
   return entries.filter((entry) => !removedIdSet.has(entry.id));
 }
 
+function canonicalHistoryOrder(entries: HistoryEntry[]) {
+  return [...entries].sort((left, right) => {
+    if (left.isPinned !== right.isPinned) {
+      return left.isPinned ? -1 : 1;
+    }
+    if (left.isPinned && left.pinnedAt !== right.pinnedAt) {
+      return (right.pinnedAt ?? 0) - (left.pinnedAt ?? 0);
+    }
+    return right.lastCopiedAt - left.lastCopiedAt || left.id.localeCompare(right.id);
+  });
+}
+
 export function applyHistoryChange(
   snapshot: HistorySnapshot,
   change: HistoryChange,
@@ -46,13 +58,13 @@ export function applyHistoryChange(
     case "upsert":
       return {
         snapshot: {
-          entries: [
+          entries: canonicalHistoryOrder([
             change.entry,
             ...withoutIds(snapshot.entries, [
               change.entry.id,
               ...change.removedIds,
             ]),
-          ],
+          ]),
           revision: change.revision,
         },
         status: "applied",

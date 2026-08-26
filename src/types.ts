@@ -109,6 +109,8 @@ export type HistoryEntryBase = {
   id: string;
   lastCopiedAt: number;
   sourceApp: string | null;
+  isPinned: boolean;
+  pinnedAt: number | null;
 };
 
 export type TextHistoryEntry = HistoryEntryBase & {
@@ -138,6 +140,11 @@ export type HistoryEntry =
 export type HistorySnapshot = {
   entries: HistoryEntry[];
   revision: number;
+};
+
+export type HistoryCommandError = {
+  code: "pinnedHistoryLimitReached" | "historyMutationFailed";
+  message: string;
 };
 
 type RevisionedHistoryChange = {
@@ -170,7 +177,13 @@ export type HistoryPreviewInvalidation =
     })
   | (RevisionedHistoryChange & {
       closeCurrentPreview: boolean;
-      kind: "upsert" | "remove";
+      kind: "remove";
+      removedIds: string[];
+    })
+  | (RevisionedHistoryChange & {
+      closeCurrentPreview: boolean;
+      entry: HistoryEntry;
+      kind: "upsert";
       removedIds: string[];
     });
 

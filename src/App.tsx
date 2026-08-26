@@ -74,6 +74,7 @@ function App() {
   // 自定义 Hook 把剪贴板历史、设置、窗口命令等逻辑集中起来，组件只负责组装界面。
   const {
     visibleHistory,
+    pinnedHistoryCount,
     historyGroups,
     hasHistory,
     previewHistoryGroupIndex,
@@ -555,9 +556,9 @@ function App() {
     setIsClearConfirmOpen(true);
   };
 
-  const confirmClearHistory = () => {
+  const confirmClearHistory = (keepPinned = false) => {
     setIsClearConfirmOpen(false);
-    void clearHistory();
+    void clearHistory(keepPinned);
   };
 
   const activeMainTarget = parseMainKeyboardNavigationTarget(
@@ -681,11 +682,20 @@ function App() {
                 </button>
                 <button
                   className={`${ui.modalButton} ${ui.modalDangerButton}`}
-                  onClick={confirmClearHistory}
+                  onClick={() => confirmClearHistory(false)}
                   type="button"
                 >
                   {t.clearHistoryConfirm.confirm}
                 </button>
+                {pinnedHistoryCount > 0 ? (
+                  <button
+                    className={`${ui.modalButton} ${ui.modalPrimaryButton}`}
+                    onClick={() => confirmClearHistory(true)}
+                    type="button"
+                  >
+                    {t.clearHistoryConfirm.keepPinned}
+                  </button>
+                ) : null}
               </>
             }
             onRequestClose={() => setIsClearConfirmOpen(false)}
@@ -696,7 +706,7 @@ function App() {
                 <AlertIcon className="size-4" />
               </span>
               <p className={ui.clearConfirmMessage}>
-                {t.clearHistoryConfirm.message}
+                {t.clearHistoryConfirm.message(pinnedHistoryCount)}
               </p>
             </div>
           </Modal>

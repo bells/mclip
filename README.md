@@ -32,6 +32,7 @@
 - 全局快捷键 `CommandOrControl+Shift+V` 唤起或隐藏主窗口。
 - 支持文本、图片、文件三类剪贴板历史；文件历史可回填为系统文件列表，方便继续粘贴文件本身。
 - 历史记录本地保存，重复内容会合并并移动到最前。
+- 支持将常用文本、图片和文件置顶；置顶记录固定显示在普通历史之前，不占用主窗口或历史分组条数，并且不会被自动历史裁剪删除。最多可置顶 100 条。
 - 主窗口默认展示最新 10 条，更多记录默认按每 50 条分组；两个展示条数都可在偏好设置中调整。
 - 历史分组使用独立透明 preview 窗口，不会撑宽主窗口。
 - 支持单条历史详情、分组 hover 详情、独立大图查看器、图片缩略图、颜色代码 swatch、常用表情放大展示和文件详情。
@@ -72,6 +73,10 @@ npm run cli -- context --last 3 --format markdown
 npm run cli -- add "note from agent"
 npm run cli -- copy --index 1
 npm run cli -- delete --id h_xxx
+npm run cli -- pin --id h_xxx
+npm run cli -- list --pinned --json
+npm run cli -- unpin --index 1
+npm run cli -- clear --yes --keep-pinned
 npm run cli -- clear --yes
 ```
 
@@ -91,7 +96,7 @@ curl -fsSL https://www.mclip.cn/install.sh | sh
 
 Windows CLI 用户请在 Git Bash（或兼容的 POSIX shell）中执行该命令；桌面应用仍应使用 GitHub Releases 提供的 `.msi` 或 `.exe` 安装包。
 
-当前 CLI 不启动桌面 UI。`--help`/`help` 输出帮助，`--version`、`-V` 和 `version` 输出与 mclip 产品 Release 一致的版本号，且这些信息命令不会读取历史文件。`agent` 会输出一个面向 AI Agent 的聚合包，包含最近历史、可用命令能力表和安全边界，默认 Markdown，也支持 `--json`；`list/get/search/context` 只读取历史并输出 text、JSON、raw 或 Markdown；`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy` 会把指定历史项写回系统剪贴板；`delete` 和 `clear --yes` 会修改本地 `history.json`。偏好设置会下载与当前桌面版本完全一致的 GitHub Release 资产；公开安装脚本默认下载最新公开 Release，也可通过 `MCLIP_VERSION` 固定版本。两条预构建安装路径都会先验证同 Release 的 SHA-256 资产，校验失败时保留旧 CLI。只有预构建二进制不存在时，公开脚本才回退到本地或源码构建并要求 Rust/Cargo 和 Git。
+当前 CLI 不启动桌面 UI。`--help`/`help` 输出帮助，`--version`、`-V` 和 `version` 输出与 mclip 产品 Release 一致的版本号，且这些信息命令不会读取历史文件。`agent` 会输出一个面向 AI Agent 的聚合包，包含最近历史、可用命令能力表和安全边界，默认 Markdown，也支持 `--json`；`list/search/context/agent --pinned` 只返回置顶记录；`pin` 和 `unpin` 使用稳定 ID 或当前快照的一位起始序号；`clear --yes` 仍清除全部历史并报告其中的置顶条数，`clear --yes --keep-pinned` 只清除普通历史。`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy` 会把指定历史项写回系统剪贴板。偏好设置会下载与当前桌面版本完全一致的 GitHub Release 资产；公开安装脚本默认下载最新公开 Release，也可通过 `MCLIP_VERSION` 固定版本。两条预构建安装路径都会先验证同 Release 的 SHA-256 资产，校验失败时保留旧 CLI。只有预构建二进制不存在时，公开脚本才回退到本地或源码构建并要求 Rust/Cargo 和 Git。
 
 ### Windows 注意事项
 
@@ -120,6 +125,8 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - `history.json`：剪贴板历史。
 - `settings.json`：偏好设置。
 - `history-assets/images/`：图片历史生成的 PNG 资源。
+
+置顶字段以兼容旧版的附加 JSON 字段保存。v0.1.1 的 serde 模型会忽略这些未知字段，因此可以读取 v0.2.0 的文件；但旧版不理解置顶保护，可能把这些记录当普通历史裁剪。降级前应先备份 `history.json` 和 `history-assets/`，需要回到新版时再恢复备份。
 
 应用本身不会上传剪贴板内容。只有在你手动点击“检查更新”时，应用会请求 GitHub Releases 的最新版本信息。Windows 安装器仅在缺少 WebView2 运行时时可能联网下载运行时组件。
 
@@ -214,6 +221,7 @@ These performance results come from an Apple M2 macOS release build with an anon
 - Toggle the main window with `CommandOrControl+Shift+V`.
 - Saves text, image, and file clipboard history. File history is restored as a system file list, so files can be pasted again as files.
 - Keeps history locally, deduplicates repeated content, and moves reused items to the top.
+- Pins frequently reused text, images, or files ahead of ordinary history. Pins do not consume main/archive counts and are protected from automatic retention; up to 100 items can be pinned.
 - Shows the latest 10 items in the main window by default, with older items grouped by 10 by default; both display counts are configurable in Preferences.
 - Uses a separate transparent preview window for grouped history, so the main window stays compact.
 - Supports item details, grouped hover details, a dedicated image viewer, image thumbnails, color-code swatches, common emoji display, and file details.
@@ -254,6 +262,10 @@ npm run cli -- context --last 3 --format markdown
 npm run cli -- add "note from agent"
 npm run cli -- copy --index 1
 npm run cli -- delete --id h_xxx
+npm run cli -- pin --id h_xxx
+npm run cli -- list --pinned --json
+npm run cli -- unpin --index 1
+npm run cli -- clear --yes --keep-pinned
 npm run cli -- clear --yes
 ```
 
@@ -273,7 +285,7 @@ curl -fsSL https://www.mclip.cn/install.sh | sh
 
 Windows CLI users should run this command from Git Bash or another POSIX-compatible shell. The desktop app should still be installed from the `.msi` or `.exe` asset on GitHub Releases.
 
-The current CLI does not start the desktop UI. `--help`/`help` prints help, and `--version`, `-V`, and `version` print the shared mclip product Release version without reading the history file. `agent` emits an AI-agent-ready bundle with recent history, command capabilities, and safety boundaries; it defaults to Markdown and supports `--json`. `list/get/search/context` only read history and emit text, JSON, raw, or Markdown output; `add` writes text into history without replacing the current system clipboard; `copy` writes a selected history item back to the system clipboard; `delete` and `clear --yes` modify the local `history.json`. Preferences downloads the GitHub Release asset for the exact desktop version; the public installer defaults to the latest published Release and accepts `MCLIP_VERSION` for a pinned install. Both prebuilt paths verify the companion SHA-256 asset before replacement and preserve the previous CLI on failure. The public script falls back to local/source builds only when a prebuilt binary is missing, so Rust/Cargo and Git are not required for the normal path.
+The current CLI does not start the desktop UI. `--help`/`help` prints help, and `--version`, `-V`, and `version` print the shared mclip product Release version without reading the history file. `agent` emits an AI-agent-ready bundle with recent history, command capabilities, and safety boundaries; it defaults to Markdown and supports `--json`. `list/search/context/agent --pinned` returns only pins; `pin` and `unpin` use a stable ID or a one-based index from the current snapshot. `clear --yes` still clears everything and reports the pinned count, while `clear --yes --keep-pinned` removes only ordinary history. `add` writes text into history without replacing the current system clipboard, and `copy` writes one selected item back to the system clipboard. Preferences downloads the GitHub Release asset for the exact desktop version; the public installer defaults to the latest published Release and accepts `MCLIP_VERSION` for a pinned install. Both prebuilt paths verify the companion SHA-256 asset before replacement and preserve the previous CLI on failure. The public script falls back to local/source builds only when a prebuilt binary is missing, so Rust/Cargo and Git are not required for the normal path.
 
 ### Windows Notes
 
@@ -300,6 +312,8 @@ Open `mclip` again after removing the quarantine attribute.
 - `history.json`: clipboard history.
 - `settings.json`: preferences.
 - `history-assets/images/`: PNG assets generated for image history.
+
+Pin metadata is stored as additive JSON fields that the v0.1.1 serde model ignores, so it can parse a v0.2.0 history file. The older app does not understand pin protection and may trim those entries as ordinary history. Before downgrading, back up both `history.json` and `history-assets/`, then restore that backup when returning to the newer version.
 
 The app does not upload clipboard contents. It requests the latest GitHub Releases version only when you manually click “Check for Updates”. On Windows, the installer may access the network only to download WebView2 when the runtime is missing.
 

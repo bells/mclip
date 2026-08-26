@@ -6,6 +6,7 @@ import { ui } from "../uiStyles";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
 import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
 import { HistoryDetailFullscreenButton } from "./HistoryDetailFullscreenButton";
+import { HistoryPinButton } from "./HistoryPinButton";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
 
@@ -15,6 +16,7 @@ type HistoryItemPreviewWindowProps = {
   onDeleteItem: (id: string) => void;
   onViewFullscreen: () => Promise<void>;
   onPointerInside: () => void;
+  onTogglePinned: (id: string) => void;
   onRequestClose: () => void;
 };
 
@@ -24,6 +26,7 @@ export function HistoryItemPreviewWindow({
   onDeleteItem,
   onViewFullscreen,
   onPointerInside,
+  onTogglePinned,
   onRequestClose,
 }: HistoryItemPreviewWindowProps) {
   return (
@@ -37,6 +40,11 @@ export function HistoryItemPreviewWindow({
         ariaLabel={translations.itemPreviewAriaLabel}
         headerAction={
           <>
+            <HistoryPinButton
+              isPinned={preview.item.isPinned}
+              label={preview.item.isPinned ? translations.unpinItemAriaLabel : translations.pinItemAriaLabel}
+              onToggle={() => onTogglePinned(preview.item.id)}
+            />
             {preview.item.kind === "image" ? (
               <HistoryDetailFullscreenButton
                 label={translations.viewImageFullscreenAriaLabel}

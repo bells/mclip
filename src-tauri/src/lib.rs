@@ -44,8 +44,9 @@ use crate::diagnostics::{
     open_logs_dir, open_project_link, write_client_log,
 };
 use crate::history::{
-    clear_history, delete_history_item, get_history_snapshot, history_assets_dir_for_history_path,
-    history_path,
+    clear_history, clear_history_keep_pinned, delete_history_item, get_history_snapshot,
+    history_assets_dir_for_history_path, history_path, set_history_item_pinned,
+    toggle_history_item_pinned,
 };
 use crate::image_cache::{get_image_base64, get_image_cache_stats, ImageDataCache};
 use crate::performance::{
@@ -557,7 +558,10 @@ pub fn run() {
             install_cli,
             get_history_snapshot,
             clear_history,
+            clear_history_keep_pinned,
             delete_history_item,
+            set_history_item_pinned,
+            toggle_history_item_pinned,
             adjust_window_height,
             adjust_window_height_to_content,
             show_history_preview_window,

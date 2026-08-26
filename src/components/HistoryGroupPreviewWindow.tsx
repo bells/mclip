@@ -7,7 +7,7 @@ import {
   getHistoryPreviewPointerPosition,
   reportHistoryPreviewMeasured,
 } from "../lib/tauri";
-import type { HistoryGroupInfo, HistoryGroupPreviewPayload, HistoryListItem } from "../types";
+import type { HistoryGroupPreviewPayload } from "../types";
 import { previewItem, previewItemRow, ui } from "../uiStyles";
 import { getHistoryListDisplayText } from "../utils/history";
 import { shouldActivateGroupPreviewPointerItem } from "../utils/keyboardNavigation";
@@ -33,10 +33,9 @@ type HistoryGroupPreviewWindowProps = {
   onSelectItem: (id: string) => void;
 };
 
-function getLocalDisplayPosition(item: HistoryListItem, group: HistoryGroupInfo) {
-  // item.position 是全局序号；preview 里显示的是当前分组内的相对序号。
-  const localPosition = item.position - group.startPosition + 1;
-  return String(localPosition);
+function getLocalDisplayPosition(itemIndex: number) {
+  // 分组 payload 已按未置顶历史切片；直接使用本组索引，避免置顶项改变全局序号后造成偏移。
+  return String(itemIndex + 1);
 }
 
 function findPreviewItemId(target: EventTarget | null) {
@@ -249,7 +248,7 @@ export function HistoryGroupPreviewWindow({
               }
             }}
           >
-            {preview.items.map((item) => {
+            {preview.items.map((item, itemIndex) => {
               const displayText = getHistoryListDisplayText(item);
 
               return (
@@ -301,7 +300,7 @@ export function HistoryGroupPreviewWindow({
                   >
                     {preview.showHistoryItemNumbers ? (
                       <span className={ui.historyPreviewIndex}>
-                        {getLocalDisplayPosition(item, preview.group)}.
+                        {getLocalDisplayPosition(itemIndex)}.
                       </span>
                     ) : null}
                     {item.kind === "image" ? (

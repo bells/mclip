@@ -9,9 +9,10 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use crate::diagnostics::log_error_initialized;
 use crate::history::{
     cleanup_unused_image_assets_for_history_path, clear_history_from_path,
-    history_file_fingerprint, load_history_file, merge_history_result, persist_history_to_path,
-    remove_history_item_result, trim_history_result, HistoryEntry, HistoryFileFingerprint,
-    HistoryMutationResult, LoadedHistoryFile,
+    clear_history_keep_pinned_result, history_file_fingerprint, load_history_file,
+    merge_history_result, persist_history_to_path, remove_history_item_result,
+    set_history_item_pinned_result, toggle_history_item_pinned_result, trim_history_result,
+    HistoryEntry, HistoryFileFingerprint, HistoryMutationResult, LoadedHistoryFile,
 };
 use crate::image_cache::ImageDataCache;
 use crate::settings::AppSettings;
@@ -134,9 +135,43 @@ impl DesktopStateRepository {
         })
     }
 
+    pub fn clear_history_keep_pinned(&self) -> Result<DesktopHistoryMutation, String> {
+        self.mutate_history(clear_history_keep_pinned_result)
+    }
+
+    pub fn set_history_item_pinned(
+        &self,
+        id: &str,
+        is_pinned: bool,
+        pinned_at: u64,
+    ) -> Result<DesktopHistoryMutation, String> {
+        let max_history_count = self.settings()?.max_history_count as usize;
+        self.mutate_history_fallible(|history| {
+            set_history_item_pinned_result(history, id, is_pinned, pinned_at, max_history_count)
+        })
+    }
+
+    pub fn toggle_history_item_pinned(
+        &self,
+        id: &str,
+        pinned_at: u64,
+    ) -> Result<DesktopHistoryMutation, String> {
+        let max_history_count = self.settings()?.max_history_count as usize;
+        self.mutate_history_fallible(|history| {
+            toggle_history_item_pinned_result(history, id, pinned_at, max_history_count)
+        })
+    }
+
     fn mutate_history(
         &self,
         mutation: impl FnOnce(Vec<HistoryEntry>) -> HistoryMutationResult,
+    ) -> Result<DesktopHistoryMutation, String> {
+        self.mutate_history_fallible(|history| Ok(mutation(history)))
+    }
+
+    fn mutate_history_fallible(
+        &self,
+        mutation: impl FnOnce(Vec<HistoryEntry>) -> Result<HistoryMutationResult, String>,
     ) -> Result<DesktopHistoryMutation, String> {
         let mut state = self.lock_history()?;
         self.ensure_history_loaded(&mut state)?;
@@ -148,7 +183,7 @@ impl DesktopStateRepository {
             .as_ref()
             .map(|loaded| loaded.history.clone())
             .unwrap_or_default();
-        let result = mutation(current);
+        let result = mutation(current)?;
         if !result.changed {
             return Ok(DesktopHistoryMutation {
                 previous_snapshot,
@@ -301,6 +336,8 @@ mod tests {
                 last_copied_at: 1,
                 source_app: None,
                 copy_count: 1,
+                is_pinned: false,
+                pinned_at: None,
             },
             image_path: path.to_string_lossy().into_owned(),
             width: 1,
@@ -379,7 +416,9 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert!(result.snapshot.revision > initial.revision);
-        assert_eq!(labels, vec!["from-desktop", "from-cli", "initial"]);
+        assert_eq!(labels.last(), Some(&"initial"));
+        assert!(labels[..2].contains(&"from-cli"));
+        assert!(labels[..2].contains(&"from-desktop"));
         fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
 

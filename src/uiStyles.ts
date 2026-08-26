@@ -68,6 +68,8 @@ export const ui = {
     ].join(" "),
 
   historyGroup: "overflow-visible",
+  historyPinnedDivider:
+    "mx-1 my-1 h-[2px] rounded-full bg-[var(--mclip-line-strong)]",
   empty:
     "mx-0 my-1 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-surface-translucent)] px-3 py-4 text-center text-[12px] font-medium leading-5 text-[var(--mclip-ink-soft)]",
   itemIndex:
@@ -84,6 +86,7 @@ export const ui = {
   itemThumbnail:
     "size-[60px] shrink-0 rounded-md border border-[var(--mclip-line)] object-cover",
   deleteIcon: "size-3.5",
+  pinIcon: "size-3.5",
 
   archive: "-mt-1 px-[6px] pb-0 pt-0",
   archiveDivider:
@@ -140,6 +143,8 @@ export const ui = {
     `${historyDetailActionButton} hover:bg-[var(--mclip-row-hover-bg)] hover:text-[var(--mclip-danger)]`,
   historyDetailFullscreenButton:
     `${historyDetailActionButton} hover:bg-[var(--mclip-row-hover-bg)] hover:text-[var(--mclip-ink)]`,
+  historyDetailPinButton:
+    `${historyDetailActionButton} hover:bg-[var(--mclip-row-hover-bg)] hover:text-[var(--mclip-ink)] aria-pressed:text-[var(--mclip-accent-cool)]`,
   fullscreenIcon: "size-4",
   historyPreviewKicker:
     "text-[10px] font-bold uppercase tracking-normal text-[var(--mclip-kicker)]",

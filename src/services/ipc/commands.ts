@@ -62,6 +62,21 @@ export function clearHistory() {
   return invoke<HistoryChange | null>("clear_history");
 }
 
+export function clearHistoryKeepPinned() {
+  return invoke<HistoryChange | null>("clear_history_keep_pinned");
+}
+
+export function setHistoryItemPinned(id: string, isPinned: boolean) {
+  return invoke<HistoryChange | null>("set_history_item_pinned", {
+    id,
+    isPinned,
+  });
+}
+
+export function toggleHistoryItemPinned(id: string) {
+  return invoke<HistoryChange | null>("toggle_history_item_pinned", { id });
+}
+
 export function deleteHistoryItem(id: string) {
   return invoke<HistoryChange | null>("delete_history_item", { id });
 }

@@ -1,5 +1,6 @@
 //! 剪贴板历史的读取、合并、裁剪和前端事件通知。
 
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -13,6 +14,7 @@ use crate::desktop_state::{
     DesktopHistoryMutation, DesktopHistorySnapshot, DesktopStateRepository,
 };
 use crate::performance::performance_config_dir_override;
+use crate::settings::{resolve_app_language, AppLanguage, ResolvedAppLanguage};
 use crate::source_app::current_source_app_name;
 use crate::storage::write_text_atomically;
 
@@ -20,6 +22,9 @@ pub const HISTORY_CHANGED_EVENT: &str = "history-changed";
 pub const HISTORY_PREVIEW_INVALIDATED_EVENT: &str = "history-preview-invalidated";
 const MAIN_WINDOW_LABEL: &str = "main";
 const PREVIEW_WINDOW_LABEL: &str = "preview";
+pub const MAX_PINNED_HISTORY_COUNT: usize = 100;
+pub const MAX_PERSISTED_HISTORY_COUNT: usize = 600;
+pub const PIN_LIMIT_ERROR_CODE: &str = "pinnedHistoryLimitReached";
 
 #[derive(Debug, Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -66,6 +71,10 @@ pub struct HistoryEntryCommon {
     pub last_copied_at: u64,
     pub source_app: Option<String>,
     pub copy_count: u32,
+    #[serde(default)]
+    pub is_pinned: bool,
+    #[serde(default)]
+    pub pinned_at: Option<u64>,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
@@ -73,6 +82,36 @@ pub struct HistoryEntryCommon {
 pub struct HistorySnapshot {
     pub entries: Vec<HistoryEntry>,
     pub revision: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryCommandError {
+    pub code: String,
+    pub message: String,
+}
+
+impl HistoryCommandError {
+    fn from_message(message: String, language: &AppLanguage) -> Self {
+        if message.starts_with(PIN_LIMIT_ERROR_CODE) {
+            let localized = match resolve_app_language(language) {
+                ResolvedAppLanguage::ZhCn => {
+                    format!("最多可置顶 {MAX_PINNED_HISTORY_COUNT} 条历史记录。")
+                }
+                ResolvedAppLanguage::En => {
+                    format!("You can pin up to {MAX_PINNED_HISTORY_COUNT} history items.")
+                }
+            };
+            return Self {
+                code: PIN_LIMIT_ERROR_CODE.to_string(),
+                message: localized,
+            };
+        }
+        Self {
+            code: "historyMutationFailed".to_string(),
+            message,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
@@ -119,6 +158,7 @@ pub enum HistoryPreviewInvalidation {
     Upsert {
         base_revision: u64,
         revision: u64,
+        entry: HistoryEntry,
         removed_ids: Vec<String>,
         close_current_preview: bool,
     },
@@ -198,7 +238,7 @@ impl HistoryEntry {
         }
     }
 
-    fn common_mut(&mut self) -> &mut HistoryEntryCommon {
+    pub(crate) fn common_mut(&mut self) -> &mut HistoryEntryCommon {
         match self {
             HistoryEntry::Text { common, .. }
             | HistoryEntry::Image { common, .. }
@@ -211,6 +251,10 @@ impl HistoryEntry {
             HistoryEntry::Image { image_path, .. } => Some(image_path),
             _ => None,
         }
+    }
+
+    pub fn is_pinned(&self) -> bool {
+        self.common().is_pinned
     }
 }
 
@@ -255,6 +299,75 @@ pub async fn clear_history(app_handle: AppHandle) -> Result<Option<HistoryChange
 }
 
 #[tauri::command]
+pub async fn clear_history_keep_pinned(
+    app_handle: AppHandle,
+) -> Result<Option<HistoryChange>, String> {
+    let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    let mutation =
+        tauri::async_runtime::spawn_blocking(move || repository.clear_history_keep_pinned())
+            .await
+            .map_err(|error| error.to_string())??;
+    let change = history_change_for_remove(&mutation);
+    if let Some(change) = &change {
+        emit_history_change(&app_handle, change)?;
+    }
+    Ok(change)
+}
+
+#[tauri::command]
+pub async fn set_history_item_pinned(
+    app_handle: AppHandle,
+    id: String,
+    is_pinned: bool,
+) -> Result<Option<HistoryChange>, HistoryCommandError> {
+    let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    let language = repository
+        .settings()
+        .map_err(|message| HistoryCommandError::from_message(message, &AppLanguage::En))?
+        .language;
+    let mutation_id = id.clone();
+    let mutation = tauri::async_runtime::spawn_blocking(move || {
+        repository.set_history_item_pinned(&mutation_id, is_pinned, current_timestamp_millis())
+    })
+    .await
+    .map_err(|error| HistoryCommandError::from_message(error.to_string(), &language))?
+    .map_err(|message| HistoryCommandError::from_message(message, &language))?;
+    let change = history_change_for_upsert_id(&mutation, &id);
+    let change = change.or_else(|| history_change_for_remove(&mutation));
+    if let Some(change) = &change {
+        emit_history_change_with_preview_policy(&app_handle, change, false)
+            .map_err(|message| HistoryCommandError::from_message(message, &language))?;
+    }
+    Ok(change)
+}
+
+#[tauri::command]
+pub async fn toggle_history_item_pinned(
+    app_handle: AppHandle,
+    id: String,
+) -> Result<Option<HistoryChange>, HistoryCommandError> {
+    let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    let language = repository
+        .settings()
+        .map_err(|message| HistoryCommandError::from_message(message, &AppLanguage::En))?
+        .language;
+    let mutation_id = id.clone();
+    let mutation = tauri::async_runtime::spawn_blocking(move || {
+        repository.toggle_history_item_pinned(&mutation_id, current_timestamp_millis())
+    })
+    .await
+    .map_err(|error| HistoryCommandError::from_message(error.to_string(), &language))?
+    .map_err(|message| HistoryCommandError::from_message(message, &language))?;
+    let change = history_change_for_upsert_id(&mutation, &id);
+    let change = change.or_else(|| history_change_for_remove(&mutation));
+    if let Some(change) = &change {
+        emit_history_change_with_preview_policy(&app_handle, change, false)
+            .map_err(|message| HistoryCommandError::from_message(message, &language))?;
+    }
+    Ok(change)
+}
+
+#[tauri::command]
 pub async fn delete_history_item(
     app_handle: AppHandle,
     id: String,
@@ -285,10 +398,11 @@ pub fn process_new_history_item(
     let copied_at = current_timestamp_millis();
     let source_app = current_source_app_name();
     let new_entry = create_history_entry(app_handle, new_item, copied_at, source_app)?;
+    let entry_id = new_entry.id().to_string();
     let mutation =
         repository.merge_history_entry(new_entry, settings.max_history_count as usize)?;
 
-    Ok(history_change_for_upsert(&mutation))
+    Ok(history_change_for_upsert_id(&mutation, &entry_id))
 }
 
 pub fn trim_history_to_max(app_handle: &AppHandle, max_history_count: usize) -> Result<(), String> {
@@ -302,20 +416,32 @@ pub fn trim_history_to_max(app_handle: &AppHandle, max_history_count: usize) -> 
 }
 
 pub fn emit_history_change(app_handle: &AppHandle, change: &HistoryChange) -> Result<(), String> {
+    emit_history_change_with_preview_policy(app_handle, change, true)
+}
+
+fn emit_history_change_with_preview_policy(
+    app_handle: &AppHandle,
+    change: &HistoryChange,
+    close_current_preview: bool,
+) -> Result<(), String> {
     app_handle
         .emit_to(MAIN_WINDOW_LABEL, HISTORY_CHANGED_EVENT, change)
         .map_err(|error| error.to_string())?;
 
-    if app_handle
-        .get_webview_window(PREVIEW_WINDOW_LABEL)
-        .is_some()
-    {
+    for label in [PREVIEW_WINDOW_LABEL, "preview-detail", "image-viewer"] {
+        if app_handle.get_webview_window(label).is_none() {
+            continue;
+        }
+        let mut invalidation = HistoryPreviewInvalidation::from(change);
+        if let HistoryPreviewInvalidation::Upsert {
+            close_current_preview: should_close,
+            ..
+        } = &mut invalidation
+        {
+            *should_close = close_current_preview;
+        }
         app_handle
-            .emit_to(
-                PREVIEW_WINDOW_LABEL,
-                HISTORY_PREVIEW_INVALIDATED_EVENT,
-                HistoryPreviewInvalidation::from(change),
-            )
+            .emit_to(label, HISTORY_PREVIEW_INVALIDATED_EVENT, invalidation)
             .map_err(|error| error.to_string())?;
     }
 
@@ -346,11 +472,12 @@ impl From<&HistoryChange> for HistoryPreviewInvalidation {
             HistoryChange::Upsert {
                 base_revision,
                 revision,
+                entry,
                 removed_ids,
-                ..
             } => Self::Upsert {
                 base_revision: *base_revision,
                 revision: *revision,
+                entry: entry.clone(),
                 removed_ids: removed_ids.clone(),
                 close_current_preview: true,
             },
@@ -376,9 +503,20 @@ impl From<&HistoryChange> for HistoryPreviewInvalidation {
     }
 }
 
-fn history_change_for_upsert(mutation: &DesktopHistoryMutation) -> Option<HistoryChange> {
+fn history_change_for_upsert_id(
+    mutation: &DesktopHistoryMutation,
+    id: &str,
+) -> Option<HistoryChange> {
     history_replace_for_external_reload(mutation).or_else(|| {
-        let entry = mutation.snapshot.history.first()?.clone();
+        if !mutation.changed {
+            return None;
+        }
+        let entry = mutation
+            .snapshot
+            .history
+            .iter()
+            .find(|entry| entry.id() == id)?
+            .clone();
         Some(HistoryChange::Upsert {
             base_revision: mutation.previous_snapshot.revision,
             revision: mutation.snapshot.revision,
@@ -476,8 +614,13 @@ pub fn merge_text_history_item(
 ) -> (Vec<HistoryEntry>, HistoryEntry) {
     let copied_at = current_timestamp_millis();
     let new_entry = create_text_entry(text, copied_at, copied_at, source_app, 1);
+    let saved_entry_id = new_entry.id().to_string();
     let next_history = merge_history(history, new_entry.clone(), max_history_count);
-    let saved_entry = next_history.first().cloned().unwrap_or(new_entry);
+    let saved_entry = next_history
+        .iter()
+        .find(|entry| entry.id() == saved_entry_id)
+        .cloned()
+        .unwrap_or(new_entry);
 
     (next_history, saved_entry)
 }
@@ -487,6 +630,59 @@ pub fn remove_history_item_by_id(
     id: &str,
 ) -> (Vec<HistoryEntry>, bool) {
     remove_history_item(history, id)
+}
+
+pub fn set_history_item_pinned_from_path(
+    path: &Path,
+    id: &str,
+    is_pinned: bool,
+    max_history_count: usize,
+) -> Result<(Vec<HistoryEntry>, bool), String> {
+    let history = load_history_from_path(path)?;
+    let result = set_history_item_pinned_result(
+        history,
+        id,
+        is_pinned,
+        current_timestamp_millis(),
+        max_history_count,
+    )?;
+    if !result.changed {
+        return Ok((result.history, is_pinned));
+    }
+    persist_history_transaction_for_path(path, &result.history)?;
+    Ok((result.history, is_pinned))
+}
+
+pub fn toggle_history_item_pinned_from_path(
+    path: &Path,
+    id: &str,
+    max_history_count: usize,
+) -> Result<(Vec<HistoryEntry>, bool), String> {
+    let history = load_history_from_path(path)?;
+    let is_pinned = history
+        .iter()
+        .find(|entry| entry.id() == id)
+        .ok_or_else(|| format!("history item {id} was not found"))?
+        .is_pinned();
+    set_history_item_pinned_from_path(path, id, !is_pinned, max_history_count)
+}
+
+pub fn clear_history_keep_pinned_from_path(path: &Path) -> Result<Vec<HistoryEntry>, String> {
+    let result = clear_history_keep_pinned_result(load_history_from_path(path)?);
+    persist_history_transaction_for_path(path, &result.history)?;
+    Ok(result.history)
+}
+
+fn persist_history_transaction_for_path(
+    path: &Path,
+    history: &[HistoryEntry],
+) -> Result<(), String> {
+    if history.is_empty() {
+        clear_history_from_path(path)
+    } else {
+        persist_history_to_path(path, history)?;
+        cleanup_unused_image_assets_for_history_path(path, history)
+    }
 }
 
 pub fn clear_history_from_path(path: &Path) -> Result<(), String> {
@@ -546,7 +742,8 @@ pub(crate) fn history_assets_dir_for_history_path(history_path: &Path) -> PathBu
 }
 
 fn parse_history_content(content: &str) -> Result<Vec<HistoryEntry>, String> {
-    if let Ok(history) = serde_json::from_str::<Vec<HistoryEntry>>(content) {
+    if let Ok(mut history) = serde_json::from_str::<Vec<HistoryEntry>>(content) {
+        sanitize_and_sort_history(&mut history);
         return Ok(history);
     }
 
@@ -621,6 +818,8 @@ fn create_history_entry(
                     last_copied_at: copied_at,
                     source_app,
                     copy_count: 1,
+                    is_pinned: false,
+                    pinned_at: None,
                 },
                 image_path: image_path.to_string_lossy().into_owned(),
                 width,
@@ -637,6 +836,8 @@ fn create_history_entry(
                 last_copied_at: copied_at,
                 source_app,
                 copy_count: 1,
+                is_pinned: false,
+                pinned_at: None,
             },
             file_paths,
         }),
@@ -653,15 +854,15 @@ fn merge_history(
         let new_common = new_item.common_mut();
         new_common.first_copied_at = existing_common.first_copied_at;
         new_common.copy_count = existing_common.copy_count.saturating_add(1);
+        new_common.is_pinned = existing_common.is_pinned;
+        new_common.pinned_at = existing_common.pinned_at;
     }
 
     let new_item_id = new_item.id().to_string();
     history.retain(|item| item.id() != new_item_id);
-    history.insert(0, new_item);
-
-    if history.len() > max_history_count {
-        history.truncate(max_history_count);
-    }
+    history.push(new_item);
+    sanitize_and_sort_history(&mut history);
+    trim_unpinned_in_place(&mut history, max_history_count);
 
     history
 }
@@ -694,12 +895,122 @@ pub fn trim_history_result(
     mut history: Vec<HistoryEntry>,
     max_history_count: usize,
 ) -> HistoryMutationResult {
-    let changed = history.len() > max_history_count;
-    if changed {
-        history.truncate(max_history_count);
-    }
+    sanitize_and_sort_history(&mut history);
+    let changed = trim_unpinned_in_place(&mut history, max_history_count);
 
     HistoryMutationResult { history, changed }
+}
+
+pub fn canonical_history_cmp(left: &HistoryEntry, right: &HistoryEntry) -> Ordering {
+    let left_common = left.common();
+    let right_common = right.common();
+    right_common
+        .is_pinned
+        .cmp(&left_common.is_pinned)
+        .then_with(|| {
+            if left_common.is_pinned {
+                right_common.pinned_at.cmp(&left_common.pinned_at)
+            } else {
+                Ordering::Equal
+            }
+        })
+        .then_with(|| right_common.last_copied_at.cmp(&left_common.last_copied_at))
+        .then_with(|| left_common.id.cmp(&right_common.id))
+}
+
+pub fn sanitize_and_sort_history(history: &mut [HistoryEntry]) {
+    for entry in history.iter_mut() {
+        let common = entry.common_mut();
+        if common.is_pinned {
+            if common.pinned_at.is_none() {
+                common.pinned_at = Some(common.last_copied_at);
+            }
+        } else {
+            common.pinned_at = None;
+        }
+    }
+    history.sort_by(canonical_history_cmp);
+}
+
+fn trim_unpinned_in_place(history: &mut Vec<HistoryEntry>, max_history_count: usize) -> bool {
+    let mut unpinned_seen = 0usize;
+    let original_len = history.len();
+    history.retain(|entry| {
+        if entry.is_pinned() {
+            true
+        } else {
+            unpinned_seen += 1;
+            unpinned_seen <= max_history_count
+        }
+    });
+    debug_assert!(history.len() <= max_history_count.saturating_add(MAX_PINNED_HISTORY_COUNT));
+    if max_history_count == 500 {
+        debug_assert!(history.len() <= MAX_PERSISTED_HISTORY_COUNT);
+    }
+    history.len() != original_len
+}
+
+pub fn set_history_item_pinned_result(
+    mut history: Vec<HistoryEntry>,
+    id: &str,
+    is_pinned: bool,
+    pinned_at: u64,
+    max_history_count: usize,
+) -> Result<HistoryMutationResult, String> {
+    let Some(index) = history.iter().position(|entry| entry.id() == id) else {
+        return Err(format!("history item {id} was not found"));
+    };
+    if history[index].is_pinned() == is_pinned {
+        return Ok(HistoryMutationResult {
+            history,
+            changed: false,
+        });
+    }
+    if is_pinned
+        && history.iter().filter(|entry| entry.is_pinned()).count() >= MAX_PINNED_HISTORY_COUNT
+    {
+        return Err(format!(
+            "{PIN_LIMIT_ERROR_CODE}: at most {MAX_PINNED_HISTORY_COUNT} history items can be pinned"
+        ));
+    }
+    let common = history[index].common_mut();
+    common.is_pinned = is_pinned;
+    common.pinned_at = is_pinned.then_some(pinned_at);
+    sanitize_and_sort_history(&mut history);
+    if !is_pinned {
+        trim_unpinned_in_place(&mut history, max_history_count);
+    }
+    Ok(HistoryMutationResult {
+        history,
+        changed: true,
+    })
+}
+
+pub fn toggle_history_item_pinned_result(
+    history: Vec<HistoryEntry>,
+    id: &str,
+    pinned_at: u64,
+    max_history_count: usize,
+) -> Result<HistoryMutationResult, String> {
+    let is_pinned = history
+        .iter()
+        .find(|entry| entry.id() == id)
+        .ok_or_else(|| format!("history item {id} was not found"))?
+        .is_pinned();
+    set_history_item_pinned_result(history, id, !is_pinned, pinned_at, max_history_count)
+}
+
+pub fn clear_history_keep_pinned_result(history: Vec<HistoryEntry>) -> HistoryMutationResult {
+    let original_len = history.len();
+    let mut history = history
+        .into_iter()
+        .filter(HistoryEntry::is_pinned)
+        .collect::<Vec<_>>();
+    sanitize_and_sort_history(&mut history);
+    HistoryMutationResult {
+        changed: history.len() != original_len,
+        history,
+    }
 }
 
 fn fingerprint_for_bytes(bytes: &[u8]) -> HistoryFileFingerprint {
@@ -727,6 +1038,8 @@ fn create_text_entry(
             last_copied_at,
             source_app,
             copy_count,
+            is_pinned: false,
+            pinned_at: None,
         },
         text,
     }
@@ -796,11 +1109,12 @@ mod tests {
 
     use super::{
         create_text_entry, files_display_text, hash_hex, history_change_for_remove,
-        history_change_for_upsert, history_file_fingerprint, load_history_file, merge_history,
+        history_change_for_upsert_id, history_file_fingerprint, load_history_file, merge_history,
         merge_history_result, merge_text_history_item, migrate_legacy_text_history,
         migrate_structured_text_history, remove_history_item, remove_history_item_result,
-        trim_history_result, HistoryChange, HistoryEntry, HistoryKind, HistoryPreviewInvalidation,
-        HistorySnapshot, LegacyTextHistoryEntry, NewHistoryItem,
+        set_history_item_pinned_result, trim_history_result, HistoryChange, HistoryEntry,
+        HistoryKind, HistoryPreviewInvalidation, HistorySnapshot, LegacyTextHistoryEntry,
+        NewHistoryItem, MAX_PERSISTED_HISTORY_COUNT, MAX_PINNED_HISTORY_COUNT,
     };
 
     fn text_entry(text: &str, copied_at: u64, source_app: Option<&str>) -> HistoryEntry {
@@ -850,6 +1164,8 @@ mod tests {
                 last_copied_at: 1,
                 source_app: None,
                 copy_count: 1,
+                is_pinned: false,
+                pinned_at: None,
             },
             image_path: alias
                 .join("history-assets/images/used.png")
@@ -912,7 +1228,10 @@ mod tests {
         assert_eq!(change_json["removedIds"][0], "trimmed");
         assert_eq!(invalidation_json["kind"], "upsert");
         assert_eq!(invalidation_json["closeCurrentPreview"], true);
-        assert!(invalidation_json.get("entry").is_none());
+        assert_eq!(
+            invalidation_json["entry"]["id"],
+            snapshot_json["entries"][0]["id"]
+        );
     }
 
     #[test]
@@ -934,7 +1253,7 @@ mod tests {
         };
 
         assert_eq!(
-            history_change_for_upsert(&upsert_mutation),
+            history_change_for_upsert_id(&upsert_mutation, latest.id()),
             Some(HistoryChange::Upsert {
                 base_revision: 3,
                 revision: 4,
@@ -1046,8 +1365,8 @@ mod tests {
         assert_eq!(merged[0].common().last_copied_at, 4000);
         assert_eq!(merged[0].common().source_app.as_deref(), Some("Safari"));
         assert_eq!(merged[0].common().copy_count, 2);
-        assert_eq!(merged[1].common().display_text, "first");
-        assert_eq!(merged[2].common().display_text, "third");
+        assert_eq!(merged[1].common().display_text, "third");
+        assert_eq!(merged[2].common().display_text, "first");
     }
 
     #[test]
@@ -1060,7 +1379,7 @@ mod tests {
         let merged = merge_history(history, text_entry("latest", 4000, None), 2);
 
         assert_eq!(merged[0].common().display_text, "latest");
-        assert_eq!(merged[1].common().display_text, "first");
+        assert_eq!(merged[1].common().display_text, "third");
         assert_eq!(merged.len(), 2);
     }
 
@@ -1079,6 +1398,20 @@ mod tests {
         assert_eq!(merged[0].common().first_copied_at, 2000);
         assert_eq!(merged[0].common().source_app.as_deref(), Some("CLI"));
         assert_eq!(merged[0].common().copy_count, 2);
+    }
+
+    #[test]
+    fn merge_text_history_item_returns_the_saved_entry_when_pins_sort_first() {
+        let mut pinned = text_entry("pinned", 1000, None);
+        pinned.common_mut().is_pinned = true;
+        pinned.common_mut().pinned_at = Some(3000);
+
+        let (merged, saved_entry) =
+            merge_text_history_item(vec![pinned], "new text".to_string(), None, 10);
+
+        assert!(merged[0].is_pinned());
+        assert_eq!(saved_entry.common().display_text, "new text");
+        assert_eq!(saved_entry.id(), merged[1].id());
     }
 
     #[test]
@@ -1153,6 +1486,8 @@ mod tests {
                 last_copied_at: 200,
                 source_app: None,
                 copy_count: 1,
+                is_pinned: false,
+                pinned_at: None,
             },
             file_paths: vec!["/tmp/note.txt".to_string()],
         };
@@ -1173,6 +1508,8 @@ mod tests {
                 last_copied_at: 200,
                 source_app: None,
                 copy_count: 1,
+                is_pinned: false,
+                pinned_at: None,
             },
             image_path: "/tmp/image.png".to_string(),
             width: 1,
@@ -1189,6 +1526,8 @@ mod tests {
         assert!(json.get("image_path").is_none());
         assert!(json.get("byte_size").is_none());
         assert!(json.get("content_hash").is_none());
+        assert_eq!(json["isPinned"], false);
+        assert!(json.get("pinnedAt").is_some());
     }
 
     #[test]
@@ -1212,6 +1551,184 @@ mod tests {
             }
             _ => panic!("expected files entry"),
         }
+    }
+
+    #[test]
+    fn v011_entries_load_unpinned_and_invalid_pin_pairs_are_sanitized_without_rewrite() {
+        let path = unique_history_path("pin-migration");
+        let content = r#"[{"kind":"text","id":"old","displayText":"old","firstCopiedAt":1,"lastCopiedAt":2,"sourceApp":null,"copyCount":1,"text":"old"},{"kind":"text","id":"invalid","displayText":"invalid","firstCopiedAt":1,"lastCopiedAt":3,"sourceApp":null,"copyCount":1,"isPinned":false,"pinnedAt":99,"text":"invalid"}]"#;
+        fs::write(&path, content).unwrap();
+
+        let loaded = load_history_file(&path).unwrap();
+        assert!(loaded.history.iter().all(|entry| !entry.is_pinned()));
+        assert!(loaded
+            .history
+            .iter()
+            .all(|entry| entry.common().pinned_at.is_none()));
+        assert_eq!(fs::read_to_string(&path).unwrap(), content);
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn v011_common_contract_ignores_v020_pin_fields_for_documented_downgrade() {
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct V011Common {
+            id: String,
+            copy_count: u32,
+        }
+        let old: V011Common = serde_json::from_value(serde_json::json!({
+            "id": "pinned",
+            "copyCount": 2,
+            "isPinned": true,
+            "pinnedAt": 123
+        }))
+        .unwrap();
+        assert_eq!(old.id, "pinned");
+        assert_eq!(old.copy_count, 2);
+    }
+
+    #[test]
+    fn canonical_order_places_recent_pins_before_chronological_history_with_stable_ids() {
+        let mut old_pin = text_entry("old-pin", 9000, None);
+        old_pin.common_mut().is_pinned = true;
+        old_pin.common_mut().pinned_at = Some(100);
+        let mut new_pin_b = text_entry("new-pin-b", 1000, None);
+        new_pin_b.common_mut().is_pinned = true;
+        new_pin_b.common_mut().pinned_at = Some(200);
+        let mut new_pin_a = text_entry("new-pin-a", 1000, None);
+        new_pin_a.common_mut().is_pinned = true;
+        new_pin_a.common_mut().pinned_at = Some(200);
+        let result = merge_history_result(
+            vec![
+                text_entry("recent", 8000, None),
+                old_pin,
+                new_pin_b,
+                new_pin_a,
+            ],
+            text_entry("latest", 10000, None),
+            10,
+        );
+        let labels = result
+            .history
+            .iter()
+            .map(|entry| entry.common().display_text.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(labels[2..], ["old-pin", "latest", "recent"]);
+        assert!(labels[..2].contains(&"new-pin-a"));
+        assert!(labels[..2].contains(&"new-pin-b"));
+        assert!(result.history[0].id() < result.history[1].id());
+    }
+
+    #[test]
+    fn dedupe_preserves_pin_metadata_and_trim_counts_only_unpinned_entries() {
+        let mut pinned = text_entry("pinned", 100, None);
+        pinned.common_mut().is_pinned = true;
+        pinned.common_mut().pinned_at = Some(77);
+        let duplicate = text_entry("pinned", 500, Some("CLI"));
+        let merged = merge_history(
+            vec![
+                pinned,
+                text_entry("one", 400, None),
+                text_entry("two", 300, None),
+            ],
+            duplicate,
+            1,
+        );
+        assert_eq!(merged.len(), 2);
+        assert!(merged[0].is_pinned());
+        assert_eq!(merged[0].common().pinned_at, Some(77));
+        assert_eq!(merged[0].common().copy_count, 2);
+        assert_eq!(merged[1].common().display_text, "one");
+    }
+
+    #[test]
+    fn pin_cap_and_total_persisted_bound_are_enforced() {
+        let mut history = (0..MAX_PINNED_HISTORY_COUNT)
+            .map(|index| {
+                let mut entry = text_entry(&format!("pin-{index}"), index as u64, None);
+                entry.common_mut().is_pinned = true;
+                entry.common_mut().pinned_at = Some(index as u64);
+                entry
+            })
+            .collect::<Vec<_>>();
+        let candidate = text_entry("candidate", 1000, None);
+        let candidate_id = candidate.id().to_string();
+        history.push(candidate);
+        let error =
+            set_history_item_pinned_result(history, &candidate_id, true, 2000, 500).unwrap_err();
+        assert!(error.contains(super::PIN_LIMIT_ERROR_CODE));
+        assert_eq!(MAX_PERSISTED_HISTORY_COUNT, 500 + MAX_PINNED_HISTORY_COUNT);
+        let zh = super::HistoryCommandError::from_message(
+            format!("{}: limit", super::PIN_LIMIT_ERROR_CODE),
+            &crate::settings::AppLanguage::ZhCn,
+        );
+        let en = super::HistoryCommandError::from_message(
+            format!("{}: limit", super::PIN_LIMIT_ERROR_CODE),
+            &crate::settings::AppLanguage::En,
+        );
+        assert_eq!(zh.code, super::PIN_LIMIT_ERROR_CODE);
+        assert!(zh.message.contains("最多"));
+        assert!(en.message.contains("up to 100"));
+    }
+
+    #[test]
+    fn unpin_runs_retention_and_keep_pinned_clear_preserves_only_pins() {
+        let mut pinned = text_entry("old-pin", 1, None);
+        let pinned_id = pinned.id().to_string();
+        pinned.common_mut().is_pinned = true;
+        pinned.common_mut().pinned_at = Some(10);
+        let history = vec![pinned, text_entry("new", 100, None)];
+        let unpinned =
+            set_history_item_pinned_result(history.clone(), &pinned_id, false, 20, 1).unwrap();
+        assert_eq!(unpinned.history.len(), 1);
+        assert_eq!(unpinned.history[0].common().display_text, "new");
+
+        let kept = super::clear_history_keep_pinned_result(history);
+        assert_eq!(kept.history.len(), 1);
+        assert_eq!(kept.history[0].id(), pinned_id);
+    }
+
+    #[test]
+    fn trim_and_cleanup_keep_pinned_images_live_and_remove_only_unused_assets() {
+        let root = unique_history_path("pinned-image-retention").with_extension("root");
+        let history_path = root.join("history.json");
+        let image_dir = super::history_assets_dir_for_history_path(&history_path).join("images");
+        fs::create_dir_all(&image_dir).unwrap();
+        let pinned_path = image_dir.join("pinned.png");
+        let removed_path = image_dir.join("removed.png");
+        fs::write(&pinned_path, b"pinned").unwrap();
+        fs::write(&removed_path, b"removed").unwrap();
+        let image = |id: &str, path: &std::path::Path, is_pinned: bool| HistoryEntry::Image {
+            common: super::HistoryEntryCommon {
+                id: id.to_string(),
+                display_text: id.to_string(),
+                first_copied_at: 1,
+                last_copied_at: 1,
+                source_app: None,
+                copy_count: 1,
+                is_pinned,
+                pinned_at: is_pinned.then_some(5),
+            },
+            image_path: path.to_string_lossy().into_owned(),
+            width: 1,
+            height: 1,
+            byte_size: 1,
+            content_hash: id.to_string(),
+        };
+        let result = trim_history_result(
+            vec![
+                image("pinned", &pinned_path, true),
+                text_entry("new", 10, None),
+                image("removed", &removed_path, false),
+            ],
+            1,
+        );
+        super::cleanup_unused_image_assets_for_history_path(&history_path, &result.history)
+            .unwrap();
+        assert!(pinned_path.exists());
+        assert!(!removed_path.exists());
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

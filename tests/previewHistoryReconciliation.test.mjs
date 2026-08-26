@@ -34,8 +34,10 @@ function createItem(id, position) {
     displayText: id,
     firstCopiedAt: 1,
     id,
+    isPinned: false,
     kind: "text",
     lastCopiedAt: 1,
+    pinnedAt: null,
     position,
     renderId: id,
     sourceApp: null,
@@ -124,6 +126,7 @@ test("clipboard upsert closes an old preview without a history array", () => {
     {
       baseRevision: 4,
       closeCurrentPreview: true,
+      entry: createItem("replacement", 1),
       kind: "upsert",
       removedIds: [],
       revision: 5,
@@ -131,6 +134,39 @@ test("clipboard upsert closes an old preview without a history array", () => {
   );
 
   assert.equal(result.preview, null);
+});
+
+test("pin upsert refreshes item detail but removes the item from an archive preview", () => {
+  const item = createItem("pin-me", 11);
+  const pinned = { ...item, isPinned: true, pinnedAt: 99 };
+  const invalidation = {
+    baseRevision: 4,
+    closeCurrentPreview: false,
+    entry: pinned,
+    kind: "upsert",
+    removedIds: [],
+    revision: 5,
+  };
+  const detail = reconcilePreviewWithInvalidation(
+    {
+      appearanceTheme: "system",
+      autoPaste: false,
+      historyRevision: 4,
+      item,
+      kind: "item",
+      language: "system",
+    },
+    null,
+    invalidation,
+  );
+  const group = reconcilePreviewWithInvalidation(
+    createGroupPreview([item, createItem("other", 12)]),
+    item.id,
+    invalidation,
+  );
+
+  assert.equal(detail.preview.item.isPinned, true);
+  assert.deepEqual(group.preview.items.map((entry) => entry.id), ["other"]);
 });
 
 test("duplicate invalidation cannot close a newer preview payload", () => {
