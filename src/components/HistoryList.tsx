@@ -5,6 +5,7 @@ import type { HistoryListItem } from "../types";
 import { historyItem, historyItemRow, ui } from "../uiStyles";
 import { getHistoryListDisplayText } from "../utils/history";
 import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
+import { isSensitiveTextEntry } from "../utils/sensitiveContent";
 import { ImageThumb } from "./ImageThumb";
 import { HistoryListText } from "./HistoryListText";
 
@@ -74,7 +75,7 @@ export function HistoryList({
               <button
                 className={historyItem(item.kind, showItemNumbers)}
                 aria-label={
-                  item.kind === "text" && item.secretType
+                  isSensitiveTextEntry(item)
                     ? translations.copySensitiveItemAriaLabel
                     : undefined
                 }
@@ -114,7 +115,7 @@ export function HistoryList({
                   <HistoryListText
                     className={ui.itemText}
                     displayText={displayText}
-                    isSensitive={item.secretType !== null}
+                    isSensitive={isSensitiveTextEntry(item)}
                     sensitiveLabel={translations.sensitiveBadge}
                     text={item.text}
                   />

@@ -15,6 +15,7 @@ import {
   getGroupPreviewNaturalHeight,
   shouldApplyMeasuredPreviewHeight,
 } from "../utils/preview";
+import { isSensitiveTextEntry } from "../utils/sensitiveContent";
 import { HistoryListText } from "./HistoryListText";
 import { ImageThumb } from "./ImageThumb";
 
@@ -316,7 +317,7 @@ export function HistoryGroupPreviewWindow({
                       <HistoryListText
                         className={ui.historyPreviewText}
                         displayText={displayText}
-                        isSensitive={item.secretType !== null}
+                        isSensitive={isSensitiveTextEntry(item)}
                         sensitiveLabel={translations.sensitiveBadge}
                         text={item.text}
                       />

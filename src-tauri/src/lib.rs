@@ -16,6 +16,7 @@ pub mod sensitive_content;
 mod settings;
 mod source_app;
 mod storage;
+pub mod text_transform;
 mod window;
 
 use std::io;
@@ -36,8 +37,8 @@ use crate::auxiliary_window_contract::AuxiliaryWindowRegistry;
 use crate::auxiliary_windows::{ensure_auxiliary_window, mark_auxiliary_window_ready};
 use crate::cli_install::{get_cli_install_status, install_cli};
 use crate::clipboard::{
-    copy_history_item, get_auto_paste_permission_status, open_auto_paste_permission_settings,
-    paste_current_clipboard, spawn_clipboard_watcher,
+    copy_history_item, copy_text_to_clipboard, get_auto_paste_permission_status,
+    open_auto_paste_permission_settings, paste_current_clipboard, spawn_clipboard_watcher,
 };
 use crate::desktop_state::DesktopStateRepository;
 use crate::diagnostics::{
@@ -47,7 +48,8 @@ use crate::diagnostics::{
 use crate::history::{
     clear_history, clear_history_keep_pinned, delete_history_item, get_history_snapshot,
     history_assets_dir_for_history_path, history_path, reclassify_sensitive_history,
-    reveal_sensitive_history_text, set_history_item_pinned, toggle_history_item_pinned,
+    replace_history_text, reveal_sensitive_history_text, set_history_item_pinned,
+    toggle_history_item_pinned,
 };
 use crate::image_cache::{get_image_base64, get_image_cache_stats, ImageDataCache};
 use crate::performance::{
@@ -61,6 +63,7 @@ use crate::settings::{
     ResolvedAppLanguage,
 };
 use crate::source_app::get_source_app_detection_status;
+use crate::text_transform::{get_applicable_text_transform_actions, transform_text};
 #[cfg(target_os = "macos")]
 use crate::window::macos_tray_window_anchor;
 use crate::window::{
@@ -70,8 +73,9 @@ use crate::window::{
     is_image_viewer_visible, is_pointer_over_history_preview_window,
     is_pointer_over_preview_window, resize_history_preview_window, show_about_window,
     show_history_preview_detail_window, show_history_preview_window, show_image_viewer,
-    show_main_window, show_preferences_window, toggle_image_viewer_maximize, toggle_main_window,
-    TrayWindowAnchor, WindowPlacement, IMAGE_VIEWER_WINDOW_LABEL,
+    show_main_window, show_preferences_window, show_quick_action_window,
+    toggle_image_viewer_maximize, toggle_main_window, TrayWindowAnchor, WindowPlacement,
+    IMAGE_VIEWER_WINDOW_LABEL,
 };
 
 const SHOW_GUARD_MS: u64 = 450;
@@ -548,6 +552,7 @@ pub fn run() {
         .plugin(tauri_plugin_positioner::init())
         .invoke_handler(tauri::generate_handler![
             copy_history_item,
+            copy_text_to_clipboard,
             paste_current_clipboard,
             open_auto_paste_permission_settings,
             get_auto_paste_permission_status,
@@ -567,6 +572,9 @@ pub fn run() {
             delete_history_item,
             set_history_item_pinned,
             toggle_history_item_pinned,
+            replace_history_text,
+            transform_text,
+            get_applicable_text_transform_actions,
             adjust_window_height,
             adjust_window_height_to_content,
             show_history_preview_window,
@@ -579,6 +587,7 @@ pub fn run() {
             close_image_viewer,
             show_about_window,
             show_preferences_window,
+            show_quick_action_window,
             is_pointer_over_history_preview_window,
             get_history_preview_pointer_position,
             open_logs_dir,

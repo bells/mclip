@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use crate::clipboard::write_history_item_to_clipboard;
+use crate::clipboard::{write_history_item_to_clipboard, write_text_to_clipboard_for_cli};
 use crate::history::{
     cleanup_unused_image_assets_for_history_path, clear_history_from_path,
     clear_history_keep_pinned_from_path, load_history_from_path, merge_text_history_item,
@@ -12,6 +12,10 @@ use crate::history::{
     HistoryEntry, HistoryKind,
 };
 use crate::settings::MAX_MAX_HISTORY_COUNT;
+use crate::text_transform::{
+    perform_text_transform, TextTransformAction, TextTransformRequest,
+    MAX_TEXT_TRANSFORM_INPUT_BYTES,
+};
 
 const APP_IDENTIFIER: &str = "com.watson.mclip";
 
@@ -28,6 +32,28 @@ enum CliError {
     Help,
     Usage(String),
     Runtime(String),
+}
+
+trait CliInput {
+    fn is_terminal(&self) -> bool;
+    fn read_limited(&mut self, max_bytes: usize) -> Result<Vec<u8>, CliError>;
+}
+
+struct StandardInput;
+
+impl CliInput for StandardInput {
+    fn is_terminal(&self) -> bool {
+        io::stdin().is_terminal()
+    }
+
+    fn read_limited(&mut self, max_bytes: usize) -> Result<Vec<u8>, CliError> {
+        let mut bytes = Vec::new();
+        io::stdin()
+            .take(max_bytes.saturating_add(1) as u64)
+            .read_to_end(&mut bytes)
+            .map_err(|error| CliError::Runtime(error.to_string()))?;
+        Ok(bytes)
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -72,8 +98,9 @@ struct AgentBundle {
 
 pub fn run_from_env() -> i32 {
     let args = env::args().skip(1).collect::<Vec<_>>();
+    let mut input = StandardInput;
 
-    match run(args) {
+    match run(args, &mut input) {
         Ok(output) => {
             print!("{output}");
             0
@@ -93,7 +120,7 @@ pub fn run_from_env() -> i32 {
     }
 }
 
-fn run(args: Vec<String>) -> Result<String, CliError> {
+fn run<I: CliInput>(args: Vec<String>, input: &mut I) -> Result<String, CliError> {
     let (history_path, args) = extract_global_options(args)?;
     let Some((command, command_args)) = args.split_first() else {
         return Err(CliError::Usage("missing command".to_string()));
@@ -114,10 +141,17 @@ fn run(args: Vec<String>) -> Result<String, CliError> {
         return Err(CliError::Help);
     }
 
+    if command == "transform" {
+        return run_transform(command_args, input);
+    }
+
     let path = match history_path {
         Some(path) => path,
         None => default_history_path()?,
     };
+    if command == "copy" {
+        return run_copy(&path, command_args, input);
+    }
     let history = load_history_from_path(&path).map_err(CliError::Runtime)?;
 
     match command.as_str() {
@@ -126,8 +160,7 @@ fn run(args: Vec<String>) -> Result<String, CliError> {
         "search" => run_search(&history, command_args),
         "context" => run_context(&history, command_args),
         "agent" => run_agent(&history, command_args),
-        "add" => run_add(&path, history, command_args),
-        "copy" => run_copy(&history, command_args),
+        "add" => run_add(&path, history, command_args, input),
         "delete" | "remove" => run_delete(&path, &history, command_args),
         "pin" => run_pin(&path, &history, command_args, true),
         "unpin" => run_pin(&path, &history, command_args, false),
@@ -436,7 +469,12 @@ fn run_agent(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErr
     Ok(format_agent_markdown(history.len(), &presented_entries))
 }
 
-fn run_add(path: &Path, history: Vec<HistoryEntry>, args: &[String]) -> Result<String, CliError> {
+fn run_add<I: CliInput>(
+    path: &Path,
+    history: Vec<HistoryEntry>,
+    args: &[String],
+    input: &mut I,
+) -> Result<String, CliError> {
     let mut source_app = Some("mclip-cli".to_string());
     let mut max_history_count = MAX_MAX_HISTORY_COUNT as usize;
     let mut json = false;
@@ -476,7 +514,9 @@ fn run_add(path: &Path, history: Vec<HistoryEntry>, args: &[String]) -> Result<S
     }
 
     let text = if text_parts.is_empty() {
-        read_stdin_text()?
+        read_stdin_text(input, false, "add")?.ok_or_else(|| {
+            CliError::Usage("add requires text arguments or piped stdin".to_string())
+        })?
     } else {
         text_parts.join(" ")
     };
@@ -506,35 +546,130 @@ fn run_add(path: &Path, history: Vec<HistoryEntry>, args: &[String]) -> Result<S
     )
 }
 
-fn run_copy(history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
-    run_copy_with_writer(history, args, write_history_item_to_clipboard)
+fn run_copy<I: CliInput>(
+    history_path: &Path,
+    args: &[String],
+    input: &mut I,
+) -> Result<String, CliError> {
+    run_copy_with_sources(
+        args,
+        input,
+        || load_history_from_path(history_path).map_err(CliError::Runtime),
+        write_history_item_to_clipboard,
+        write_text_to_clipboard_for_cli,
+    )
 }
 
-fn run_copy_with_writer<F>(
-    history: &[HistoryEntry],
+fn run_copy_with_sources<I, L, H, T>(
     args: &[String],
-    mut write_clipboard: F,
+    input: &mut I,
+    load_history: L,
+    mut write_history_clipboard: H,
+    mut write_text_clipboard: T,
 ) -> Result<String, CliError>
 where
-    F: FnMut(HistoryEntry) -> Result<(), String>,
+    I: CliInput,
+    L: FnOnce() -> Result<Vec<HistoryEntry>, CliError>,
+    H: FnMut(HistoryEntry) -> Result<(), String>,
+    T: FnMut(String) -> Result<(), String>,
 {
-    let (selector, json) = parse_selector_action_args(args, "copy")?;
-    let entry = find_entry(history, selector)?.clone();
-    let id = entry.id().to_string();
-    write_clipboard(entry).map_err(CliError::Runtime)?;
+    let options = parse_copy_args(args)?;
+    if options.selector.is_some() && options.explicit_stdin {
+        return Err(CliError::Usage(
+            "copy accepts exactly one selector or stdin source".to_string(),
+        ));
+    }
 
-    format_action_result(
-        ActionResult {
-            action: "copy",
-            id: Some(id),
-            history_count: history.len(),
-            is_pinned: None,
-            removed_count: None,
-            pinned_removed_count: None,
-            kept_pinned: None,
-        },
+    let stdin_text = read_stdin_text(input, options.explicit_stdin, "copy")?;
+    if let Some(selector) = options.selector {
+        if stdin_text.as_ref().is_some_and(|text| !text.is_empty()) {
+            return Err(CliError::Usage(
+                "copy accepts exactly one selector or stdin source".to_string(),
+            ));
+        }
+        let history = load_history()?;
+        let entry = find_entry(&history, selector)?.clone();
+        let id = entry.id().to_string();
+        write_history_clipboard(entry).map_err(CliError::Runtime)?;
+
+        return format_action_result(
+            ActionResult {
+                action: "copy",
+                id: Some(id),
+                history_count: history.len(),
+                is_pinned: None,
+                removed_count: None,
+                pinned_removed_count: None,
+                kept_pinned: None,
+            },
+            options.json,
+        );
+    }
+
+    let text = stdin_text.ok_or_else(|| {
+        CliError::Usage("copy requires --index, --id, --stdin, or piped stdin".to_string())
+    })?;
+    write_text_clipboard(text).map_err(CliError::Runtime)?;
+
+    if options.json {
+        Ok("{\"action\":\"copy\",\"source\":\"stdin\"}\n".to_string())
+    } else {
+        Ok("Copied stdin text to the system clipboard.\n".to_string())
+    }
+}
+
+#[derive(Debug)]
+struct CopyOptions {
+    selector: Option<EntrySelector>,
+    explicit_stdin: bool,
+    json: bool,
+}
+
+fn parse_copy_args(args: &[String]) -> Result<CopyOptions, CliError> {
+    let mut selector = None;
+    let mut explicit_stdin = false;
+    let mut json = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--index" => {
+                set_selector(
+                    &mut selector,
+                    EntrySelector::Index(parse_usize_option(args, index, "--index")?),
+                    "copy",
+                )?;
+                index += 2;
+            }
+            "--id" => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| CliError::Usage("--id requires a value".to_string()))?;
+                set_selector(&mut selector, EntrySelector::Id(value.to_string()), "copy")?;
+                index += 2;
+            }
+            "--stdin" => {
+                if explicit_stdin {
+                    return Err(CliError::Usage(
+                        "copy accepts --stdin only once".to_string(),
+                    ));
+                }
+                explicit_stdin = true;
+                index += 1;
+            }
+            "--json" => {
+                json = true;
+                index += 1;
+            }
+            other => {
+                return Err(CliError::Usage(format!("unknown copy option: {other}")));
+            }
+        }
+    }
+    Ok(CopyOptions {
+        selector,
+        explicit_stdin,
         json,
-    )
+    })
 }
 
 fn run_delete(path: &Path, history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
@@ -695,16 +830,22 @@ fn parse_selector_action_args(
     while index < args.len() {
         match args[index].as_str() {
             "--index" => {
-                selector = Some(EntrySelector::Index(parse_usize_option(
-                    args, index, "--index",
-                )?));
+                set_selector(
+                    &mut selector,
+                    EntrySelector::Index(parse_usize_option(args, index, "--index")?),
+                    command_name,
+                )?;
                 index += 2;
             }
             "--id" => {
                 let value = args
                     .get(index + 1)
                     .ok_or_else(|| CliError::Usage("--id requires a value".to_string()))?;
-                selector = Some(EntrySelector::Id(value.to_string()));
+                set_selector(
+                    &mut selector,
+                    EntrySelector::Id(value.to_string()),
+                    command_name,
+                )?;
                 index += 2;
             }
             "--json" => {
@@ -725,20 +866,99 @@ fn parse_selector_action_args(
         .ok_or_else(|| CliError::Usage(format!("{command_name} requires --index or --id")))
 }
 
-fn read_stdin_text() -> Result<String, CliError> {
-    let mut stdin = io::stdin();
+fn set_selector(
+    selector: &mut Option<EntrySelector>,
+    next: EntrySelector,
+    command_name: &str,
+) -> Result<(), CliError> {
+    if selector.is_some() {
+        return Err(CliError::Usage(format!(
+            "{command_name} accepts exactly one --index or --id selector"
+        )));
+    }
+    *selector = Some(next);
+    Ok(())
+}
 
-    if stdin.is_terminal() {
-        return Err(CliError::Usage(
-            "add requires text arguments or piped stdin".to_string(),
-        ));
+fn read_stdin_text<I: CliInput>(
+    input: &mut I,
+    explicit: bool,
+    command_name: &str,
+) -> Result<Option<String>, CliError> {
+    if input.is_terminal() && !explicit {
+        return Ok(None);
+    }
+    let bytes = input.read_limited(MAX_TEXT_TRANSFORM_INPUT_BYTES)?;
+    if bytes.len() > MAX_TEXT_TRANSFORM_INPUT_BYTES {
+        return Err(CliError::Usage(format!(
+            "{command_name} stdin exceeds the {} byte limit",
+            MAX_TEXT_TRANSFORM_INPUT_BYTES
+        )));
+    }
+    String::from_utf8(bytes)
+        .map(Some)
+        .map_err(|_| CliError::Usage(format!("{command_name} stdin must be valid UTF-8")))
+}
+
+fn run_transform<I: CliInput>(args: &[String], input: &mut I) -> Result<String, CliError> {
+    let Some((action_name, options)) = args.split_first() else {
+        return Err(CliError::Usage("transform requires an action".to_string()));
+    };
+    let action = TextTransformAction::from_cli_name(action_name)
+        .ok_or_else(|| CliError::Usage(format!("unknown transform action: {action_name}")))?;
+    let mut text = None;
+    let mut explicit_stdin = false;
+    let mut index = 0;
+    while index < options.len() {
+        match options[index].as_str() {
+            "--text" => {
+                if text.is_some() {
+                    return Err(CliError::Usage(
+                        "transform accepts --text only once".to_string(),
+                    ));
+                }
+                text = Some(
+                    options
+                        .get(index + 1)
+                        .ok_or_else(|| CliError::Usage("--text requires a value".to_string()))?
+                        .to_string(),
+                );
+                index += 2;
+            }
+            "--stdin" => {
+                if explicit_stdin {
+                    return Err(CliError::Usage(
+                        "transform accepts --stdin only once".to_string(),
+                    ));
+                }
+                explicit_stdin = true;
+                index += 1;
+            }
+            other => {
+                return Err(CliError::Usage(format!(
+                    "unknown transform option: {other}"
+                )));
+            }
+        }
     }
 
-    let mut text = String::new();
-    stdin
-        .read_to_string(&mut text)
-        .map_err(|error| CliError::Runtime(error.to_string()))?;
-    Ok(text)
+    if text.is_some() && explicit_stdin {
+        return Err(CliError::Usage(
+            "transform accepts exactly one --text or stdin source".to_string(),
+        ));
+    }
+    let stdin_text = read_stdin_text(input, explicit_stdin, "transform")?;
+    if text.is_some() && stdin_text.as_ref().is_some_and(|value| !value.is_empty()) {
+        return Err(CliError::Usage(
+            "transform accepts exactly one --text or stdin source".to_string(),
+        ));
+    }
+    let input = text.or(stdin_text).ok_or_else(|| {
+        CliError::Usage("transform requires --text, --stdin, or piped stdin".to_string())
+    })?;
+    perform_text_transform(TextTransformRequest { action, input })
+        .map(|result| result.output)
+        .map_err(|error| CliError::Runtime(error.diagnostic()))
 }
 
 fn format_action_result(result: ActionResult, json: bool) -> Result<String, CliError> {
@@ -850,10 +1070,18 @@ fn agent_commands() -> Vec<AgentCommand> {
         },
         AgentCommand {
             name: "copy",
-            purpose: "Write one selected history item back to the system clipboard.",
-            example: "mclip-cli copy --index 1",
+            purpose: "Write one selected history item or one explicit stdin source to the system clipboard without mutating history.",
+            example: "printf 'hello' | mclip-cli copy",
             mutates_history: false,
             writes_clipboard: true,
+            destructive: false,
+        },
+        AgentCommand {
+            name: "transform",
+            purpose: "Transform one explicit text or stdin source locally without reading history or writing the clipboard.",
+            example: "printf '{\"ok\":true}' | mclip-cli transform json-prettify",
+            mutates_history: false,
+            writes_clipboard: false,
             destructive: false,
         },
         AgentCommand {
@@ -880,6 +1108,8 @@ fn agent_safety_contract() -> Vec<&'static str> {
         "list, get, search, context, and agent mask classified secrets by default; --raw and --reveal-secrets explicitly reveal them.",
         "add writes text into history without replacing the system clipboard.",
         "copy writes one selected history item back to the system clipboard.",
+        "copy stdin mode writes only the supplied UTF-8 text to the system clipboard and does not mutate history.",
+        "transform reads no history, writes no clipboard, executes no shell or network action, and prints content-only stdout on success.",
         "pin and unpin mutate one stable entry; --pinned filters supported read commands.",
         "delete removes one selected item; clear requires --yes, and --keep-pinned preserves pins.",
         "mclip-cli does not start the desktop UI and all history data stays local.",
@@ -1212,7 +1442,10 @@ fn usage() -> &'static str {
   mclip-cli [--history-path PATH] context [--last N] [--kind text|image|files] [--pinned] [--reveal-secrets] [--json|--format text|json|raw|markdown]
   mclip-cli [--history-path PATH] agent [--last N] [--kind text|image|files] [--pinned] [--reveal-secrets] [--json|--format markdown|json]
   mclip-cli [--history-path PATH] add [--source-app NAME] [--max-history N] [--json] [TEXT...]
-  mclip-cli [--history-path PATH] copy (--index N|--id ID) [--json]
+  mclip-cli [--history-path PATH] copy [(--index N|--id ID)|--stdin] [--json]
+  command | mclip-cli copy [--json]
+  mclip-cli transform <json-prettify|json-minify|base64-encode|base64-decode|url-component-encode|url-component-decode> (--text TEXT|--stdin)
+  command | mclip-cli transform <action>
   mclip-cli [--history-path PATH] delete (--index N|--id ID) [--json]
   mclip-cli [--history-path PATH] pin (--index N|--id ID) [--json]
   mclip-cli [--history-path PATH] unpin (--index N|--id ID) [--json]
@@ -1230,9 +1463,65 @@ Privacy:
 
 #[cfg(test)]
 mod tests {
-    use super::{run_copy_with_writer, CliError};
+    use super::{
+        run_copy_with_sources, run_transform, CliError, CliInput, MAX_TEXT_TRANSFORM_INPUT_BYTES,
+    };
     use crate::history::{HistoryEntry, HistoryEntryCommon};
     use crate::sensitive_content::{SecretType, SECRET_DETECTOR_VERSION};
+
+    struct TestInput {
+        bytes: Vec<u8>,
+        terminal: bool,
+    }
+
+    impl TestInput {
+        fn terminal() -> Self {
+            Self {
+                bytes: Vec::new(),
+                terminal: true,
+            }
+        }
+
+        fn piped(bytes: impl Into<Vec<u8>>) -> Self {
+            Self {
+                bytes: bytes.into(),
+                terminal: false,
+            }
+        }
+    }
+
+    impl CliInput for TestInput {
+        fn is_terminal(&self) -> bool {
+            self.terminal
+        }
+
+        fn read_limited(&mut self, max_bytes: usize) -> Result<Vec<u8>, CliError> {
+            Ok(self
+                .bytes
+                .iter()
+                .copied()
+                .take(max_bytes.saturating_add(1))
+                .collect())
+        }
+    }
+
+    fn run_copy_with_writer<F>(
+        history: &[HistoryEntry],
+        args: &[String],
+        writer: F,
+    ) -> Result<String, CliError>
+    where
+        F: FnMut(HistoryEntry) -> Result<(), String>,
+    {
+        let mut input = TestInput::terminal();
+        run_copy_with_sources(
+            args,
+            &mut input,
+            || Ok(history.to_vec()),
+            writer,
+            |_| panic!("selector copy must not use the text writer"),
+        )
+    }
 
     fn text_entry(id: &str, text: &str) -> HistoryEntry {
         HistoryEntry::Text {
@@ -1274,6 +1563,132 @@ mod tests {
         assert_eq!(copied.as_deref(), Some("second"));
         assert!(output.contains(r#""action":"copy""#));
         assert!(output.contains(r#""id":"second""#));
+    }
+
+    #[test]
+    fn stdin_copy_validates_sources_and_utf8_before_clipboard_mutation() {
+        let mut copied = None;
+        let mut input = TestInput::piped(b"pipeline text".to_vec());
+        let output = run_copy_with_sources(
+            &[],
+            &mut input,
+            || panic!("stdin copy must not load history"),
+            |_| panic!("stdin copy must not use the history writer"),
+            |text| {
+                copied = Some(text);
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(copied.as_deref(), Some("pipeline text"));
+        assert!(output.contains("Copied stdin text"));
+
+        let mut wrote = false;
+        let mut invalid = TestInput::piped(vec![0xff]);
+        let error = run_copy_with_sources(
+            &[],
+            &mut invalid,
+            || Ok(Vec::new()),
+            |_| Ok(()),
+            |_| {
+                wrote = true;
+                Ok(())
+            },
+        )
+        .unwrap_err();
+        assert!(matches!(error, CliError::Usage(message) if message.contains("UTF-8")));
+        assert!(!wrote);
+    }
+
+    #[test]
+    fn copy_rejects_terminal_no_source_and_selector_stdin_ambiguity() {
+        let mut terminal = TestInput::terminal();
+        let error = run_copy_with_sources(
+            &[],
+            &mut terminal,
+            || Ok(Vec::new()),
+            |_| Ok(()),
+            |_| Ok(()),
+        )
+        .unwrap_err();
+        assert!(matches!(error, CliError::Usage(_)));
+
+        let mut piped = TestInput::piped(b"ambiguous".to_vec());
+        let error = run_copy_with_sources(
+            &["--id".to_string(), "first".to_string()],
+            &mut piped,
+            || Ok(vec![text_entry("first", "alpha")]),
+            |_| Ok(()),
+            |_| Ok(()),
+        )
+        .unwrap_err();
+        assert!(matches!(error, CliError::Usage(message) if message.contains("exactly one")));
+
+        let mut explicit = TestInput {
+            bytes: b"explicit".to_vec(),
+            terminal: true,
+        };
+        let mut copied = None;
+        run_copy_with_sources(
+            &["--stdin".to_string()],
+            &mut explicit,
+            || panic!("explicit stdin must not load history"),
+            |_| panic!("explicit stdin must not use history clipboard"),
+            |text| {
+                copied = Some(text);
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(copied.as_deref(), Some("explicit"));
+
+        let mut terminal = TestInput::terminal();
+        let duplicate_selector = run_copy_with_sources(
+            &[
+                "--id".to_string(),
+                "first".to_string(),
+                "--index".to_string(),
+                "1".to_string(),
+            ],
+            &mut terminal,
+            || Ok(vec![text_entry("first", "alpha")]),
+            |_| Ok(()),
+            |_| Ok(()),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(duplicate_selector, CliError::Usage(message) if message.contains("exactly one"))
+        );
+
+        let mut oversized = TestInput::piped(vec![b'x'; MAX_TEXT_TRANSFORM_INPUT_BYTES + 1]);
+        let oversize_error = run_copy_with_sources(
+            &[],
+            &mut oversized,
+            || Ok(Vec::new()),
+            |_| Ok(()),
+            |_| Ok(()),
+        )
+        .unwrap_err();
+        assert!(matches!(oversize_error, CliError::Usage(message) if message.contains("exceeds")));
+    }
+
+    #[test]
+    fn transform_supports_text_and_piped_sources_with_content_only_output() {
+        let mut terminal = TestInput::terminal();
+        let output = run_transform(
+            &[
+                "json-minify".to_string(),
+                "--text".to_string(),
+                "{ \"ok\": true }".to_string(),
+            ],
+            &mut terminal,
+        )
+        .unwrap();
+        assert_eq!(output, "{\"ok\":true}");
+
+        let mut piped = TestInput::piped("hello".as_bytes().to_vec());
+        let output = run_transform(&["base64-encode".to_string()], &mut piped).unwrap();
+        assert_eq!(output, "aGVsbG8=");
     }
 
     #[test]

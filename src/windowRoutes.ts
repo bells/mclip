@@ -17,6 +17,9 @@ const windowRouteLoaders = {
   preferences: () => import("./components/PreferencesWindow").then(
     ({ PreferencesWindow }) => ({ default: PreferencesWindow }),
   ),
+  "quick-action": () => import("./components/QuickActionWindow").then(
+    ({ QuickActionWindow }) => ({ default: QuickActionWindow }),
+  ),
   preview: () => import("./components/HistoryPreviewWindow").then(
     ({ HistoryPreviewWindow }) => ({ default: HistoryPreviewWindow }),
   ),

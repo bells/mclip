@@ -14,6 +14,8 @@ use std::time::Instant;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
+use crate::text_transform::TextTransformAction;
+
 const PERFORMANCE_MODE_ENV: &str = "MCLIP_PERF_MODE";
 const PERFORMANCE_TRACE_PATH_ENV: &str = "MCLIP_PERF_TRACE_PATH";
 const PERFORMANCE_CONFIG_DIR_ENV: &str = "MCLIP_PERF_CONFIG_DIR";
@@ -58,6 +60,7 @@ pub enum PerformanceMilestoneName {
     ImageCacheMiss,
     ImageReady,
     ImageError,
+    TextTransformComplete,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
@@ -69,6 +72,7 @@ pub enum PerformanceWindowLabel {
     ImageViewer,
     About,
     Preferences,
+    QuickAction,
 }
 
 impl PerformanceWindowLabel {
@@ -80,6 +84,7 @@ impl PerformanceWindowLabel {
             "image-viewer" => Some(Self::ImageViewer),
             "about" => Some(Self::About),
             "preferences" => Some(Self::Preferences),
+            "quick-action" => Some(Self::QuickAction),
             _ => None,
         }
     }
@@ -115,6 +120,10 @@ pub struct PerformanceMilestone {
     pub elapsed_ms: f64,
     pub fixture_size: Option<u32>,
     pub outcome: PerformanceOutcome,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text_transform_action: Option<TextTransformAction>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<f64>,
 }
 
 impl PerformanceMilestone {
@@ -124,6 +133,12 @@ impl PerformanceMilestone {
             || self.elapsed_ms > MAX_ELAPSED_MS
         {
             return Err("performance elapsedMs is outside the allowed range".to_string());
+        }
+
+        if self.duration_ms.is_some_and(|duration| {
+            !duration.is_finite() || duration.is_sign_negative() || duration > MAX_ELAPSED_MS
+        }) {
+            return Err("performance durationMs is outside the allowed range".to_string());
         }
 
         if self
@@ -242,6 +257,27 @@ pub fn record_rust_milestone(
         elapsed_ms: process_elapsed_ms(),
         fixture_size: performance_fixture_size(),
         outcome,
+        text_transform_action: None,
+        duration_ms: None,
+    });
+}
+
+pub fn record_text_transform_performance(
+    recorder: &PerformanceRecorder,
+    action: TextTransformAction,
+    duration_ms: f64,
+    outcome: PerformanceOutcome,
+) {
+    let _ = recorder.record(PerformanceMilestone {
+        clock: PerformanceClock::Rust,
+        milestone: PerformanceMilestoneName::TextTransformComplete,
+        window_label: None,
+        interaction_id: Some(next_interaction_id("transform")),
+        elapsed_ms: process_elapsed_ms(),
+        fixture_size: None,
+        outcome,
+        text_transform_action: Some(action),
+        duration_ms: Some(duration_ms),
     });
 }
 
@@ -317,6 +353,8 @@ fn frontend_receipt_at(
         elapsed_ms,
         fixture_size,
         outcome: milestone.outcome,
+        text_transform_action: milestone.text_transform_action,
+        duration_ms: milestone.duration_ms,
     }
 }
 
@@ -353,6 +391,8 @@ mod tests {
             elapsed_ms: 8.0,
             fixture_size: Some(50),
             outcome: PerformanceOutcome::Success,
+            text_transform_action: None,
+            duration_ms: None,
         };
         assert!(safe.validate().is_ok());
 
@@ -385,6 +425,8 @@ mod tests {
             elapsed_ms: 12.0,
             fixture_size: None,
             outcome: PerformanceOutcome::Success,
+            text_transform_action: None,
+            duration_ms: None,
         };
 
         let receipt = super::frontend_receipt_at(&frontend, 24.5, Some(50));

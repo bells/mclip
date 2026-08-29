@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { getTranslations } from "../i18n";
 import type {
   AppLanguage,
+  AppearanceTheme,
   HistoryListItem,
   SensitiveHistoryRevealErrorCode,
 } from "../types";
@@ -17,11 +18,13 @@ import {
   normalizeSensitiveHistoryRevealError,
 } from "../utils/sensitiveContent";
 import { HistoryPreviewDetailContent } from "./HistoryPreviewDetailContent";
+import { TextQuickActions } from "./TextQuickActions";
 
 type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
 
 type HistoryDetailPanelProps = {
   ariaLabel: string;
+  appearanceTheme: AppearanceTheme;
   item: HistoryListItem;
   language: AppLanguage;
   translations: HistoryTranslations;
@@ -48,6 +51,7 @@ function formatHistoryTimestamp(timestamp: number, language: AppLanguage) {
 
 export function HistoryDetailPanel({
   ariaLabel,
+  appearanceTheme,
   item,
   language,
   translations,
@@ -164,6 +168,14 @@ export function HistoryDetailPanel({
             presentation={presentation}
             translations={translations}
           />
+          {displayItem.kind === "text" ? (
+            <TextQuickActions
+              appearanceTheme={appearanceTheme}
+              isContentAvailable={!isSensitiveTextMasked(displayItem)}
+              item={displayItem}
+              language={language}
+            />
+          ) : null}
         </div>
 
         {revealError ? (

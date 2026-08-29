@@ -31,13 +31,15 @@ export type PerformanceMilestoneName =
   | "imageCacheHit"
   | "imageCacheMiss"
   | "imageReady"
-  | "imageError";
+  | "imageError"
+  | "textTransformComplete";
 export type PerformanceWindowLabel =
   | "main"
   | "preview"
   | "preview-detail"
   | "image-viewer"
   | "about"
+  | "quick-action"
   | "preferences";
 export type PerformanceOutcome = "success" | "failure";
 export type PerformanceAutomationAction = "openViewer" | "closeViewer";
@@ -46,6 +48,7 @@ export type AuxiliaryWindowLabel =
   | "preview-detail"
   | "image-viewer"
   | "about"
+  | "quick-action"
   | "preferences";
 
 export type PerformanceMilestone = {
@@ -56,6 +59,51 @@ export type PerformanceMilestone = {
   milestone: PerformanceMilestoneName;
   outcome: PerformanceOutcome;
   windowLabel: PerformanceWindowLabel | null;
+  textTransformAction?: TextTransformAction;
+  durationMs?: number;
+};
+
+export type TextTransformAction =
+  | "jsonPrettify"
+  | "jsonMinify"
+  | "base64Encode"
+  | "base64Decode"
+  | "urlComponentEncode"
+  | "urlComponentDecode";
+
+export type TextTransformRequest = {
+  action: TextTransformAction;
+  input: string;
+};
+
+export type TextTransformResult = {
+  action: TextTransformAction;
+  output: string;
+  inputBytes: number;
+  outputBytes: number;
+};
+
+export type TextTransformErrorCode =
+  | "inputTooLarge"
+  | "outputTooLarge"
+  | "invalidJson"
+  | "invalidBase64"
+  | "nonUtf8Base64"
+  | "invalidPercentEncoding"
+  | "nonUtf8PercentEncoding"
+  | "workerFailed";
+
+export type TextTransformError = {
+  action: TextTransformAction;
+  code: TextTransformErrorCode;
+  inputBytes: number;
+  outputBytes: number | null;
+};
+
+export type QuickActionPayload = TextTransformResult & {
+  appearanceTheme: AppearanceTheme;
+  language: AppLanguage;
+  targetId: string;
 };
 
 export type EnabledHistoryTypes = Record<HistoryKind, boolean>;

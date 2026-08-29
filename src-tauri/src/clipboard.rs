@@ -263,6 +263,53 @@ pub(crate) fn write_history_item_to_clipboard(history_item: HistoryEntry) -> Res
     }
 }
 
+pub(crate) fn write_text_to_clipboard(text: String) -> Result<(), String> {
+    Clipboard::new()
+        .map_err(|error| error.to_string())?
+        .set_text(text)
+        .map_err(|error| error.to_string())
+}
+
+pub(crate) fn write_text_to_clipboard_for_cli(text: String) -> Result<(), String> {
+    #[cfg(debug_assertions)]
+    if let Some(path) = std::env::var_os("MCLIP_CLI_TEST_CLIPBOARD_PATH").map(PathBuf::from) {
+        let temp_root = std::env::temp_dir()
+            .canonicalize()
+            .map_err(|error| error.to_string())?;
+        let parent = path
+            .parent()
+            .ok_or_else(|| "test clipboard path has no parent".to_string())?
+            .canonicalize()
+            .map_err(|error| error.to_string())?;
+        if parent != temp_root && !parent.starts_with(&temp_root) {
+            return Err("test clipboard path must stay inside the temporary directory".to_string());
+        }
+        return std::fs::write(path, text.as_bytes()).map_err(|error| error.to_string());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        use arboard::SetExtLinux;
+
+        return Clipboard::new()
+            .map_err(|error| error.to_string())?
+            .set()
+            .wait()
+            .text(text)
+            .map_err(|error| error.to_string());
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    write_text_to_clipboard(text)
+}
+
+#[tauri::command]
+pub async fn copy_text_to_clipboard(text: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || write_text_to_clipboard(text))
+        .await
+        .map_err(|_| "clipboardTextWriteWorkerFailed".to_string())?
+}
+
 #[cfg(target_os = "macos")]
 fn trigger_system_paste() -> Result<(), String> {
     use core_graphics::event::{CGEvent, CGEventFlags, CGEventTapLocation};

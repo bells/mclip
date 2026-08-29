@@ -45,7 +45,7 @@ const agentCliPoints = [
   },
   {
     title: "Built for errors, code, and prompts",
-    body: "Agent Mode defaults to Markdown and supports JSON. Classified sensitive text is masked by default; --raw and --reveal-secrets explicitly reveal local plaintext for one invocation.",
+    body: "Agent Mode defaults to Markdown and supports JSON. transform composes JSON, Base64, and URL-component operations over stdin/stdout, while copy accepts one stdin source. Neither mode directly mutates history.",
   },
 ];
 
@@ -131,6 +131,8 @@ const faqItems = [
       "mclip-cli context --last 3 --format markdown",
       "mclip-cli add \"note from agent\"",
       "mclip-cli copy --index 1",
+      "printf '%s' '{\"ok\":true}' | mclip-cli transform json-prettify",
+      "printf '%s' 'pipeline clipboard text' | mclip-cli copy",
       "mclip-cli pin --id h_xxx",
       "mclip-cli list --pinned --json",
     ]}

@@ -10,6 +10,7 @@ export type AuxiliaryListenerToken =
   | "performanceAutomation"
   | "placementUpdated"
   | "previewDetailUpdated"
+  | "quickActionUpdated"
   | "settingsUpdated";
 
 const expectedListenerTokens: Record<
@@ -19,6 +20,7 @@ const expectedListenerTokens: Record<
   about: new Set(["settingsUpdated"]),
   "image-viewer": new Set(["imageViewerUpdated"]),
   preferences: new Set(["settingsUpdated"]),
+  "quick-action": new Set(["quickActionUpdated"]),
   preview: new Set([
     "historyPreviewUpdated",
     "historyPreviewInvalidated",

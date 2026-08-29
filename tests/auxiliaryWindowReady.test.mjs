@@ -20,6 +20,7 @@ test("only main is configured at startup while fixed auxiliary labels retain cap
     "preview-detail",
     "image-viewer",
     "about",
+    "quick-action",
     "preferences",
   ];
 
@@ -50,15 +51,17 @@ test("typed ready handshake includes generation, timeout recovery, and dynamic U
 });
 
 test("payload listeners acknowledge ready before producers emit to dynamic routes", async () => {
-  const [previewSource, detailSource, viewerSource, aboutSource, preferencesSource, controllerSource, imageServiceSource] =
+  const [previewSource, detailSource, viewerSource, aboutSource, quickActionSource, preferencesSource, controllerSource, imageServiceSource, quickActionServiceSource] =
     await Promise.all([
       readSource("src/components/HistoryPreviewWindow.tsx"),
       readSource("src/components/HistoryPreviewDetailWindow.tsx"),
       readSource("src/components/FullscreenImageViewer.tsx"),
       readSource("src/components/AboutWindow.tsx"),
+      readSource("src/components/QuickActionWindow.tsx"),
       readSource("src/components/PreferencesWindow.tsx"),
       readSource("src/hooks/useHistoryPreviewController.ts"),
       readSource("src/services/imageViewer.ts"),
+      readSource("src/services/quickActions.ts"),
     ]);
 
   for (const [source, token] of [
@@ -70,6 +73,7 @@ test("payload listeners acknowledge ready before producers emit to dynamic route
     [detailSource, "placementUpdated"],
     [viewerSource, "imageViewerUpdated"],
     [aboutSource, "settingsUpdated"],
+    [quickActionSource, "quickActionUpdated"],
     [preferencesSource, "settingsUpdated"],
   ]) {
     assert.match(source, new RegExp(`reportAuxiliaryListenerReady\\("${token}"\\)`));
@@ -86,5 +90,9 @@ test("payload listeners acknowledge ready before producers emit to dynamic route
   assert.ok(
     imageServiceSource.indexOf('ensureAuxiliaryWindowReady("image-viewer")') <
       imageServiceSource.indexOf("updateImageViewerWindow(measuredPayload)"),
+  );
+  assert.ok(
+    quickActionServiceSource.indexOf('ensureAuxiliaryWindowReady("quick-action")') <
+      quickActionServiceSource.indexOf("updateQuickActionWindow({"),
   );
 });

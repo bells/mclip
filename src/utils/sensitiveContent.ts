@@ -10,7 +10,7 @@ export const SENSITIVE_CONTENT_MASK = "••••••••";
 export function isSensitiveTextEntry(
   entry: HistoryEntry,
 ): entry is TextHistoryEntry {
-  return entry.kind === "text" && entry.secretType !== null;
+  return entry.kind === "text" && entry.secretType != null;
 }
 
 export function maskSensitiveHistoryEntry<T extends HistoryEntry>(

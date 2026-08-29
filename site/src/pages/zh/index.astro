@@ -45,7 +45,7 @@ const agentCliPoints = [
   },
   {
     title: "适合错误、代码和 Prompt",
-    body: "Agent 模式默认输出 Markdown，也支持 JSON。已分类的敏感文本默认遮罩；--raw 和 --reveal-secrets 会为单次命令显式显示本地原文。",
+    body: "Agent 模式默认输出 Markdown，也支持 JSON。transform 可在 stdin/stdout 中完成 JSON、Base64 和 URL 组件转换；copy 也支持唯一 stdin 输入。两者都不会直接修改历史。",
   },
 ];
 
@@ -131,6 +131,8 @@ const faqItems = [
       "mclip-cli context --last 3 --format markdown",
       "mclip-cli add \"note from agent\"",
       "mclip-cli copy --index 1",
+      "printf '%s' '{\"ok\":true}' | mclip-cli transform json-prettify",
+      "printf '%s' 'pipeline clipboard text' | mclip-cli copy",
       "mclip-cli pin --id h_xxx",
       "mclip-cli list --pinned --json",
     ]}

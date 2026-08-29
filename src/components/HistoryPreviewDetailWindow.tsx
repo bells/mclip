@@ -147,6 +147,7 @@ export function HistoryPreviewDetailWindow() {
     >
       <HistoryDetailPanel
         ariaLabel={translations.itemPreviewAriaLabel}
+        appearanceTheme={preview.appearanceTheme}
         headerAction={
           <>
             <HistoryPinButton

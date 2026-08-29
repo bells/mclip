@@ -21,6 +21,7 @@ arboard = "3.4.1"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 sha2 = "0.10"
 base64 = "0.22"
+percent-encoding = "2.3"
 tauri-plugin-global-shortcut = "2"
 raw-window-handle = "0.6"
 tauri-plugin-single-instance = "2"

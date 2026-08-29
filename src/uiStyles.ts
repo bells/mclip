@@ -191,6 +191,17 @@ export const ui = {
     "m-0 text-[11px] font-semibold text-[var(--mclip-meta)]",
   historyDetailMetaValue:
     "m-0 min-w-0 whitespace-normal break-words text-[11px] font-semibold leading-4 text-[var(--mclip-ink-soft)] [overflow-wrap:anywhere]",
+  quickActionSection:
+    "mt-2 grid gap-1.5 border-t border-[var(--mclip-line)] pt-2",
+  quickActionSectionLabel:
+    "text-[10px] font-bold uppercase text-[var(--mclip-kicker)]",
+  quickActionGrid: "flex flex-wrap gap-1.5",
+  quickActionChip:
+    `${compactButton} min-h-7 px-2.5 text-[10px]`,
+  quickActionHint:
+    "mt-2 border-t border-[var(--mclip-line)] pt-2 text-[10px] font-medium leading-4 text-[var(--mclip-ink-dim)]",
+  quickActionError:
+    "m-0 text-[10px] font-semibold leading-4 text-[var(--mclip-danger)]",
   historyGroupPreviewWindow:
     "flex h-screen w-screen overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))]",
   historyGroupPreview:
@@ -207,6 +218,17 @@ export const ui = {
   imageViewerWindowFrame: "rounded-none [clip-path:none]",
   imageViewerDetail:
     "!rounded-none !border-0 !shadow-none [clip-path:none]",
+  quickActionWindowFrame: "rounded-[var(--mclip-radius-lg)]",
+  quickActionWindowBody:
+    "flex min-h-0 flex-1 flex-col [background:var(--mclip-surface-bg)] text-[var(--mclip-ink)]",
+  quickActionStatusBar:
+    "flex h-9 shrink-0 items-center justify-between gap-4 border-b border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] px-3 text-[10px] text-[var(--mclip-ink-dim)] [&>strong]:font-semibold [&>strong]:text-[var(--mclip-ink)]",
+  quickActionResult:
+    "mclip-scrollbar m-3 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] p-3 font-mono text-[12px] leading-5 text-[var(--mclip-ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--mclip-focus)] [overflow-wrap:anywhere]",
+  quickActionWindowError:
+    "mx-3 mb-2 mt-0 text-[11px] font-semibold text-[var(--mclip-danger)]",
+  quickActionWindowFooter:
+    "flex shrink-0 justify-end gap-2 border-t border-[var(--mclip-line)] px-3 py-2.5",
 
   dialogFrame:
     "h-screen w-screen overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))] text-[var(--mclip-ink)]",

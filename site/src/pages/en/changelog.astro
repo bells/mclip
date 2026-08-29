@@ -26,6 +26,16 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
       </p>
     </article>
     <article class="release-note">
+      <p class="eyebrow">0.2.0 · In development</p>
+      <h2>Text quick actions and composable CLI pipelines</h2>
+      <p>
+        Text details add JSON prettify/minify, Base64, and URL-component encode/decode. Results preview in an independent window; Copy follows the normal clipboard flow, while replacing the original requires confirmation and preserves its stable ID and pin state.
+      </p>
+      <p>
+        <code>mclip-cli transform</code> keeps stdout content-only and reads no history or clipboard. <code>copy --stdin</code> and implicit pipelines write one UTF-8 source to the system clipboard without directly mutating history. Input is limited to 1 MiB and output to 4 MiB.
+      </p>
+    </article>
+    <article class="release-note">
       <p class="eyebrow">0.1.1</p>
       <h2>A faster, clearer complete core experience</h2>
       <p>

@@ -9,12 +9,14 @@ type DialogStatusBarProps = {
   centerTitle?: boolean;
   controlsLabels: DialogWindowControlLabels;
   title: string;
+  onClose?: () => void;
 };
 
 export function DialogStatusBar({
   centerTitle = false,
   controlsLabels,
   title,
+  onClose,
 }: DialogStatusBarProps) {
   const controlSide = getPreferredWindowControlSide();
   const titleClassName = [ui.modalTitle, centerTitle ? ui.dialogCenteredTitle : ""]
@@ -27,7 +29,7 @@ export function DialogStatusBar({
         className={dialogStatusBar(controlSide, true)}
         data-dialog-drag-region
       >
-        <DialogWindowControls labels={controlsLabels} />
+        <DialogWindowControls labels={controlsLabels} onClose={onClose} />
         <span className={titleClassName}>{title}</span>
       </div>
     );
@@ -40,13 +42,13 @@ export function DialogStatusBar({
     >
       {controlSide === "left" ? (
         <>
-          <DialogWindowControls labels={controlsLabels} />
+          <DialogWindowControls labels={controlsLabels} onClose={onClose} />
           <span className={titleClassName}>{title}</span>
         </>
       ) : (
         <>
           <span className={titleClassName}>{title}</span>
-          <DialogWindowControls labels={controlsLabels} />
+          <DialogWindowControls labels={controlsLabels} onClose={onClose} />
         </>
       )}
     </div>

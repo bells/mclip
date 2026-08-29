@@ -12,6 +12,7 @@ import type {
   ImageViewerPayload,
   PerformanceAutomationAction,
   PerformanceInteraction,
+  QuickActionPayload,
   SensitiveHistoryRevealError,
 } from "../../types";
 import type { PreviewWindowPosition } from "./commands";
@@ -36,6 +37,7 @@ const HISTORY_PREVIEW_SELECTION_STARTED_EVENT =
 const HISTORY_PREVIEW_SELECTION_CANCELLED_EVENT =
   "history-preview-selection-cancelled";
 const IMAGE_VIEWER_UPDATED_EVENT = "image-viewer-updated";
+const QUICK_ACTION_UPDATED_EVENT = "quick-action-updated";
 const MAIN_WINDOW_SHOWN_EVENT = "main-window-shown";
 const PERFORMANCE_AUTOMATION_EVENT = "performance-automation";
 const SENSITIVE_REVEAL_RESET_EVENT = "sensitive-reveal-reset";
@@ -45,6 +47,19 @@ const MAIN_WINDOW_LABEL = "main";
 const PREVIEW_WINDOW_LABEL = "preview";
 const PREVIEW_DETAIL_WINDOW_LABEL = "preview-detail";
 const IMAGE_VIEWER_WINDOW_LABEL = "image-viewer";
+const QUICK_ACTION_WINDOW_LABEL = "quick-action";
+
+export function updateQuickActionWindow(payload: QuickActionPayload) {
+  return emitTo(QUICK_ACTION_WINDOW_LABEL, QUICK_ACTION_UPDATED_EVENT, payload);
+}
+
+export function listenToQuickActionUpdated(
+  handler: (payload: QuickActionPayload) => void,
+) {
+  return listen<QuickActionPayload>(QUICK_ACTION_UPDATED_EVENT, (event) =>
+    handler(event.payload),
+  );
+}
 
 export function updateHistoryPreviewWindow(payload: HistoryPreviewPayload) {
   return emitTo(PREVIEW_WINDOW_LABEL, HISTORY_PREVIEW_UPDATED_EVENT, payload);

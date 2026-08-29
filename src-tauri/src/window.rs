@@ -46,6 +46,7 @@ const IMAGE_VIEWER_DEFAULT_HEIGHT: f64 = 520.0;
 static IMAGE_VIEWER_CLOSE_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
 const ABOUT_WINDOW_LABEL: &str = "about";
 const PREFERENCES_WINDOW_LABEL: &str = "preferences";
+const QUICK_ACTION_WINDOW_LABEL: &str = "quick-action";
 
 const HEADER_HEIGHT: f64 = 52.0;
 const BODY_VERTICAL_PADDING: f64 = 8.0;
@@ -832,6 +833,13 @@ pub async fn show_about_window(app_handle: AppHandle) -> Result<(), String> {
 pub async fn show_preferences_window(app_handle: AppHandle) -> Result<(), String> {
     ensure_auxiliary_window_ready(&app_handle, PREFERENCES_WINDOW_LABEL).await?;
     show_centered_dialog_window(&app_handle, PREFERENCES_WINDOW_LABEL)
+}
+
+#[tauri::command]
+pub async fn show_quick_action_window(app_handle: AppHandle) -> Result<(), String> {
+    crate::auxiliary_windows::ensure_auxiliary_window_ready(&app_handle, QUICK_ACTION_WINDOW_LABEL)
+        .await?;
+    show_centered_dialog_window(&app_handle, QUICK_ACTION_WINDOW_LABEL)
 }
 
 #[tauri::command]

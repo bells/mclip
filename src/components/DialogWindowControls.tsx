@@ -11,6 +11,7 @@ export type DialogWindowControlSide = "left" | "right";
 
 type DialogWindowControlsProps = {
   labels: DialogWindowControlLabels;
+  onClose?: () => void;
 };
 
 export function getPreferredWindowControlSide(): DialogWindowControlSide {
@@ -19,7 +20,7 @@ export function getPreferredWindowControlSide(): DialogWindowControlSide {
   return platform.includes("mac") ? "left" : "right";
 }
 
-export function DialogWindowControls({ labels }: DialogWindowControlsProps) {
+export function DialogWindowControls({ labels, onClose }: DialogWindowControlsProps) {
   const side = getPreferredWindowControlSide();
   const controls = {
     close: (
@@ -28,7 +29,11 @@ export function DialogWindowControls({ labels }: DialogWindowControlsProps) {
         className={`${ui.windowControl} ${ui.windowControlClose}`}
         key="close"
         onClick={() => {
-          void hideCurrentWindow();
+          if (onClose) {
+            onClose();
+          } else {
+            void hideCurrentWindow();
+          }
         }}
         title={labels.close}
         type="button"

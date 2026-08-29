@@ -40,6 +40,7 @@ export function HistoryItemPreviewWindow({
     >
       <HistoryDetailPanel
         ariaLabel={translations.itemPreviewAriaLabel}
+        appearanceTheme={preview.appearanceTheme}
         headerAction={
           <>
             <HistoryPinButton

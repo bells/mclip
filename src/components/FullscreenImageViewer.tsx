@@ -171,6 +171,7 @@ export function FullscreenImageViewer() {
     <DialogWindowFrame className={ui.imageViewerWindowFrame}>
       <HistoryDetailPanel
         ariaLabel={translations.imageViewer.ariaLabel}
+        appearanceTheme={payload.appearanceTheme}
         className={ui.imageViewerDetail}
         draggableHeader
         headerAction={

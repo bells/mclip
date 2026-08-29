@@ -26,6 +26,16 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
       </p>
     </article>
     <article class="release-note">
+      <p class="eyebrow">0.2.0 · 开发中</p>
+      <h2>文本快速操作与可组合 CLI 管道</h2>
+      <p>
+        文本详情新增 JSON 格式化/压缩、Base64 和 URL 组件编解码。结果先在独立窗口预览；复制走普通剪贴板流程，替换原记录必须再次确认并保留稳定 ID 与置顶状态。
+      </p>
+      <p>
+        <code>mclip-cli transform</code> 使用内容唯一的 stdout，且不读取历史或写剪贴板；<code>copy --stdin</code> 与隐式管道只把唯一 UTF-8 输入写入系统剪贴板，不直接修改历史。输入限制为 1 MiB，输出限制为 4 MiB。
+      </p>
+    </article>
+    <article class="release-note">
       <p class="eyebrow">0.1.1</p>
       <h2>更快、更清晰的完整核心体验</h2>
       <p>

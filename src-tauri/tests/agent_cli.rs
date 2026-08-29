@@ -88,8 +88,15 @@ fn run_cli(args: &[&str]) -> std::process::Output {
 }
 
 fn run_cli_with_stdin(args: &[&str], stdin: &str) -> std::process::Output {
+    run_cli_with_stdin_bytes(args, stdin.as_bytes())
+}
+
+fn run_cli_with_stdin_bytes(args: &[&str], stdin: &[u8]) -> std::process::Output {
+    let clipboard_sink =
+        std::env::temp_dir().join(format!("mclip-cli-test-clipboard-{}", std::process::id()));
     let mut child = Command::new(cli_path())
         .args(args)
+        .env("MCLIP_CLI_TEST_CLIPBOARD_PATH", clipboard_sink)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -100,12 +107,111 @@ fn run_cli_with_stdin(args: &[&str], stdin: &str) -> std::process::Output {
         .stdin
         .as_mut()
         .expect("stdin should be piped")
-        .write_all(stdin.as_bytes())
+        .write_all(stdin)
         .expect("stdin should be written");
 
     child
         .wait_with_output()
         .expect("mclip-cli output should be collected")
+}
+
+#[test]
+fn transform_is_content_only_history_independent_and_covers_all_actions() {
+    let invalid_history = write_invalid_history_fixture("transform-history-independent");
+    let history_arg = invalid_history
+        .to_str()
+        .expect("history path should be utf-8");
+    let cases = [
+        (
+            "json-prettify",
+            "{\"b\":2,\"a\":1}",
+            "{\n  \"a\": 1,\n  \"b\": 2\n}",
+        ),
+        ("json-minify", "{ \"b\": 2, \"a\": 1 }", "{\"a\":1,\"b\":2}"),
+        ("base64-encode", "hello", "aGVsbG8="),
+        ("base64-decode", "aGVsbG8=", "hello"),
+        ("url-component-encode", "a/b ?", "a%2Fb%20%3F"),
+        ("url-component-decode", "a%2Fb%20%3F", "a/b ?"),
+    ];
+    for (action, input, expected) in cases {
+        let output =
+            run_cli_with_stdin(&["--history-path", history_arg, "transform", action], input);
+        assert!(
+            output.status.success(),
+            "{action} stderr: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
+        assert!(output.stderr.is_empty());
+    }
+}
+
+#[test]
+fn transform_explicit_text_help_and_failures_preserve_pipeline_contract() {
+    let missing_history = missing_history_fixture("transform-help");
+    let history_arg = missing_history
+        .to_str()
+        .expect("history path should be utf-8");
+    let help = run_cli(&["--history-path", history_arg, "transform", "--help"]);
+    assert_eq!(help.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&help.stdout).contains("transform <"));
+
+    let explicit = run_cli(&[
+        "--history-path",
+        history_arg,
+        "transform",
+        "base64-encode",
+        "--text",
+        "hello",
+    ]);
+    assert!(explicit.status.success());
+    assert_eq!(String::from_utf8(explicit.stdout).unwrap(), "aGVsbG8=");
+    assert!(!missing_history.exists());
+
+    let invalid = run_cli_with_stdin(&["transform", "json-prettify"], "synthetic invalid json");
+    assert_eq!(invalid.status.code(), Some(1));
+    assert!(invalid.stdout.is_empty());
+    let stderr = String::from_utf8_lossy(&invalid.stderr);
+    assert!(stderr.contains("invalidJson"));
+    assert!(!stderr.contains("synthetic invalid json"));
+
+    let ambiguous = run_cli_with_stdin(&["transform", "base64-encode", "--text", "hello"], "other");
+    assert_eq!(ambiguous.status.code(), Some(2));
+    assert!(ambiguous.stdout.is_empty());
+
+    let invalid_utf8 = run_cli_with_stdin_bytes(&["transform", "base64-encode"], &[0xff, 0xfe]);
+    assert_eq!(invalid_utf8.status.code(), Some(2));
+    assert!(invalid_utf8.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&invalid_utf8.stderr).contains("UTF-8"));
+}
+
+#[test]
+fn copy_stdin_modes_do_not_mutate_history_and_ambiguous_sources_fail_first() {
+    let history_path = write_history_fixture("copy-stdin");
+    let history_arg = history_path.to_str().expect("history path should be utf-8");
+    let before = fs::read(&history_path).unwrap();
+
+    for args in [
+        vec!["--history-path", history_arg, "copy"],
+        vec!["--history-path", history_arg, "copy", "--stdin"],
+    ] {
+        let output = run_cli_with_stdin(&args, "pipeline clipboard text");
+        assert!(
+            output.status.success(),
+            "stderr: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stdout).contains("Copied stdin text"));
+        assert_eq!(fs::read(&history_path).unwrap(), before);
+    }
+
+    let ambiguous = run_cli_with_stdin(
+        &["--history-path", history_arg, "copy", "--id", "text-panic"],
+        "other source",
+    );
+    assert_eq!(ambiguous.status.code(), Some(2));
+    assert!(ambiguous.stdout.is_empty());
+    assert_eq!(fs::read(&history_path).unwrap(), before);
 }
 
 fn read_history(path: &PathBuf) -> serde_json::Value {
@@ -290,7 +396,8 @@ fn agent_mode_outputs_markdown_bundle_for_agents() {
     assert!(stdout.contains("## Safety Contract"));
     assert!(stdout.contains("add writes text into history without replacing the system clipboard"));
     assert!(stdout.contains("copy writes one selected history item back to the system clipboard"));
-    assert!(stdout.contains("mclip-cli copy --index 1"));
+    assert!(stdout.contains("printf 'hello' | mclip-cli copy"));
+    assert!(stdout.contains("transform reads no history, writes no clipboard"));
     assert!(stdout.contains("thread 'main' panicked at database unavailable"));
     assert!(stdout.contains("/tmp/report.txt"));
     assert!(!stdout.contains("remember to update docs"));
@@ -332,6 +439,30 @@ fn agent_mode_outputs_json_bundle_with_commands_and_context() {
         .expect("commands should be an array")
         .iter()
         .any(|command| command["name"] == "copy" && command["writesClipboard"] == true));
+    assert!(stdout["commands"]
+        .as_array()
+        .expect("commands should be an array")
+        .iter()
+        .any(|command| {
+            command["name"] == "transform"
+                && command["mutatesHistory"] == false
+                && command["writesClipboard"] == false
+                && command["purpose"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .contains("without reading history")
+        }));
+    assert!(stdout["commands"]
+        .as_array()
+        .expect("commands should be an array")
+        .iter()
+        .any(|command| {
+            command["name"] == "copy"
+                && command["purpose"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .contains("stdin source")
+        }));
     assert!(stdout["safety"]
         .as_array()
         .expect("safety should be an array")

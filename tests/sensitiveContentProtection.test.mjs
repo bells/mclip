@@ -24,6 +24,7 @@ async function importTypeScriptModule(sourcePath) {
 }
 
 const {
+  isSensitiveTextEntry,
   isSensitiveTextMasked,
   maskSensitiveHistoryEntry,
   normalizeSensitiveHistoryRevealError,
@@ -62,6 +63,25 @@ test("classified text view models are masked without mutating canonical input", 
 test("disabling masking preserves the original entry reference", () => {
   const original = secretEntry();
   assert.equal(maskSensitiveHistoryEntry(original, false), original);
+});
+
+test("missing runtime classification fields never mark ordinary text as sensitive", () => {
+  const ordinary = {
+    copyCount: 1,
+    displayText: "ordinary text",
+    firstCopiedAt: 1,
+    id: "ordinary-fixture",
+    isPinned: false,
+    kind: "text",
+    lastCopiedAt: 2,
+    pinnedAt: null,
+    sourceApp: null,
+    text: "ordinary text",
+  };
+
+  assert.equal(isSensitiveTextEntry(ordinary), false);
+  assert.equal(maskSensitiveHistoryEntry(ordinary, true), ordinary);
+  assert.equal(isSensitiveTextMasked(ordinary), false);
 });
 
 test("reveal is explicit and clears on item and window lifecycle events", async () => {

@@ -63,6 +63,8 @@ Typical commands:
 - mclip-cli search "panic" --json
 - mclip-cli add "note from agent"
 - mclip-cli copy --index 1
+- printf '%s' '{"ok":true}' | mclip-cli transform json-prettify
+- printf '%s' 'pipeline clipboard text' | mclip-cli copy
 - mclip-cli delete --id h_xxx
 - mclip-cli pin --id h_xxx
 - mclip-cli list --pinned --json
@@ -74,7 +76,9 @@ Safety boundaries:
 
 - mclip-cli agent, list, get, search, and context are read-only.
 - mclip-cli add writes text into history without replacing the current system clipboard.
-- mclip-cli copy writes a selected item back to the system clipboard.
+- mclip-cli copy writes exactly one selected item or UTF-8 stdin source to the system clipboard and does not directly mutate history for stdin mode.
+- mclip-cli transform supports JSON prettify/minify, RFC 4648 Base64 encode/decode, and URL-component encode/decode. It reads no history, writes no clipboard, and prints content-only stdout on success.
+- Text transforms are local and bounded to 1 MiB input and 4 MiB output. Desktop quick actions preview first; replacing a history item requires confirmation.
 - mclip-cli clear requires --yes.
 - mclip-cli clear --yes removes pins too and reports their count; --keep-pinned removes only ordinary history.
 

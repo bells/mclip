@@ -131,9 +131,15 @@ test("site introduces AI Agent and mclip-cli workflows", async () => {
   assert.match(en, /mclip-cli list --limit 5 --json/);
   assert.match(zh, /mclip-cli add/);
   assert.match(en, /mclip-cli copy --index 1/);
+  assert.match(zh, /mclip-cli transform json-prettify/);
+  assert.match(en, /mclip-cli transform json-prettify/);
+  assert.match(zh, /pipeline clipboard text/);
+  assert.match(en, /pipeline clipboard text/);
   assert.match(llms, /mclip-cli agent --last 5 --json/);
   assert.match(llms, /command capability map/);
   assert.match(llms, /mclip-cli clear --yes/);
+  assert.match(llms, /content-only stdout/);
+  assert.match(llms, /1 MiB input and 4 MiB output/);
   assert.match(llms, /mclip-cli/);
   assert.match(llms, /https:\/\/www\.mclip\.cn\/install\.sh/);
   assert.match(llms, /MCLIP_VERSION/);

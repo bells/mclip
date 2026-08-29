@@ -40,7 +40,7 @@ pub struct AuxiliaryWindowDescriptor {
 
 const DESKTOP_CAPABILITIES: &[&str] = &["default", "desktop-capability"];
 
-pub const AUXILIARY_WINDOW_DESCRIPTORS: [AuxiliaryWindowDescriptor; 5] = [
+pub const AUXILIARY_WINDOW_DESCRIPTORS: [AuxiliaryWindowDescriptor; 6] = [
     AuxiliaryWindowDescriptor {
         label: "preview",
         title: "mclip preview",
@@ -130,6 +130,37 @@ pub const AUXILIARY_WINDOW_DESCRIPTORS: [AuxiliaryWindowDescriptor; 5] = [
         minimizable: true,
         decorations: false,
         always_on_top: false,
+        skip_taskbar: true,
+        shadow: true,
+        macos_corner_behavior: MacosCornerBehavior::Rounded,
+        capability_identifiers: DESKTOP_CAPABILITIES,
+    },
+    AuxiliaryWindowDescriptor {
+        label: "quick-action",
+        title: "mclip Text Action",
+        url: "index.html",
+        size: LogicalWindowSize {
+            width: 560.0,
+            height: 420.0,
+        },
+        min_size: Some(LogicalWindowSize {
+            width: 560.0,
+            height: 420.0,
+        }),
+        max_size: Some(LogicalWindowSize {
+            width: 560.0,
+            height: 420.0,
+        }),
+        transparent: true,
+        focusable: true,
+        resizable: false,
+        maximizable: false,
+        minimizable: false,
+        decorations: false,
+        // The main popover stays always-on-top while text actions are open.
+        // Keep the focused result window in the same native level so it is
+        // ordered above the main window instead of being covered by it.
+        always_on_top: true,
         skip_taskbar: true,
         shadow: true,
         macos_corner_behavior: MacosCornerBehavior::Rounded,
@@ -321,7 +352,7 @@ mod tests {
     };
 
     #[test]
-    fn descriptors_preserve_exact_v011_auxiliary_window_contract() {
+    fn descriptors_preserve_auxiliary_window_contract() {
         assert_eq!(
             AUXILIARY_WINDOW_DESCRIPTORS
                 .iter()
@@ -332,6 +363,7 @@ mod tests {
                 "preview-detail",
                 "image-viewer",
                 "about",
+                "quick-action",
                 "preferences"
             ]
         );
@@ -370,12 +402,23 @@ mod tests {
         assert!(viewer.shadow);
         assert_eq!(viewer.macos_corner_behavior, MacosCornerBehavior::Standard);
 
+        let quick_action = auxiliary_window_descriptor("quick-action").unwrap();
+        assert!(quick_action.focusable);
+        assert!(quick_action.always_on_top);
+
         for (label, size) in [
             (
                 "about",
                 LogicalWindowSize {
                     width: 360.0,
                     height: 360.0,
+                },
+            ),
+            (
+                "quick-action",
+                LogicalWindowSize {
+                    width: 560.0,
+                    height: 420.0,
                 },
             ),
             (

@@ -13,6 +13,7 @@
     "preview-detail",
     "image-viewer",
     "about",
+    "quick-action",
     "preferences"
   ],
   "permissions": [

@@ -9,6 +9,9 @@ import type {
   HistorySnapshot,
   ImageCacheStats,
   SourceAppDetectionStatus,
+  TextTransformAction,
+  TextTransformRequest,
+  TextTransformResult,
 } from "../../types";
 import { normalizeSensitiveHistoryRevealError } from "../../utils/sensitiveContent";
 
@@ -93,6 +96,24 @@ export function toggleHistoryItemPinned(id: string) {
 
 export function deleteHistoryItem(id: string) {
   return invoke<HistoryChange | null>("delete_history_item", { id });
+}
+
+export function transformText(request: TextTransformRequest) {
+  return invoke<TextTransformResult>("transform_text", { request });
+}
+
+export function getApplicableTextTransformActions(input: string) {
+  return invoke<TextTransformAction[]>("get_applicable_text_transform_actions", {
+    input,
+  });
+}
+
+export function replaceHistoryText(id: string, text: string) {
+  return invoke<HistoryChange | null>("replace_history_text", { id, text });
+}
+
+export function copyTextToClipboard(text: string) {
+  return invoke<void>("copy_text_to_clipboard", { text });
 }
 
 export function adjustWindowHeight(itemCount: number, groupCount: number) {
@@ -204,6 +225,10 @@ export function showAboutWindow() {
 
 export function showPreferencesWindow() {
   return invoke<void>("show_preferences_window");
+}
+
+export function showQuickActionWindow() {
+  return invoke<void>("show_quick_action_window");
 }
 
 export function openLogsDir() {

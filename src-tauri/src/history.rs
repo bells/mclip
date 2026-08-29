@@ -66,9 +66,13 @@ pub enum HistoryEntry {
         #[serde(flatten)]
         common: HistoryEntryCommon,
         text: String,
-        #[serde(default)]
+        #[serde(default, rename = "secretType", alias = "secret_type")]
         secret_type: Option<SecretType>,
-        #[serde(default)]
+        #[serde(
+            default,
+            rename = "secretDetectorVersion",
+            alias = "secret_detector_version"
+        )]
         secret_detector_version: Option<u16>,
     },
     Image {
@@ -520,6 +524,32 @@ pub async fn toggle_history_item_pinned(
 }
 
 #[tauri::command]
+pub async fn replace_history_text(
+    app_handle: AppHandle,
+    id: String,
+    text: String,
+) -> Result<Option<HistoryChange>, HistoryCommandError> {
+    let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    let language = repository
+        .settings()
+        .map_err(|message| HistoryCommandError::from_message(message, &AppLanguage::En))?
+        .language;
+    let mutation_id = id.clone();
+    let mutation = tauri::async_runtime::spawn_blocking(move || {
+        repository.replace_history_text(&mutation_id, text)
+    })
+    .await
+    .map_err(|error| HistoryCommandError::from_message(error.to_string(), &language))?
+    .map_err(|message| HistoryCommandError::from_message(message, &language))?;
+    let change = history_change_for_upsert_id(&mutation, &id);
+    if let Some(change) = &change {
+        emit_history_change_with_preview_policy(&app_handle, change, false)
+            .map_err(|message| HistoryCommandError::from_message(message, &language))?;
+    }
+    Ok(change_for_command_response(&app_handle, change))
+}
+
+#[tauri::command]
 pub async fn delete_history_item(
     app_handle: AppHandle,
     id: String,
@@ -892,6 +922,49 @@ pub fn reclassify_sensitive_history_result(
     }
 
     HistoryMutationResult { history, changed }
+}
+
+pub fn replace_text_history_item_result(
+    mut history: Vec<HistoryEntry>,
+    id: &str,
+    replacement: String,
+    max_history_count: usize,
+) -> Result<HistoryMutationResult, String> {
+    let Some(index) = history.iter().position(|entry| entry.id() == id) else {
+        return Err("historyItemNotFound".to_string());
+    };
+    let HistoryEntry::Text {
+        common,
+        text,
+        secret_type,
+        secret_detector_version,
+    } = &mut history[index]
+    else {
+        return Err("historyItemNotText".to_string());
+    };
+    if text == &replacement {
+        return Ok(HistoryMutationResult {
+            history,
+            changed: false,
+        });
+    }
+
+    *text = replacement.clone();
+    common.display_text = replacement.clone();
+    let classification = classify_text(&replacement);
+    *secret_type = classification.secret_type;
+    *secret_detector_version = classification.detector_version;
+
+    history.retain(|entry| {
+        entry.id() == id
+            || !matches!(entry, HistoryEntry::Text { text, .. } if text == &replacement)
+    });
+    sanitize_and_sort_history(&mut history);
+    trim_unpinned_in_place(&mut history, max_history_count);
+    Ok(HistoryMutationResult {
+        history,
+        changed: true,
+    })
 }
 
 pub fn remove_history_item_by_id(
@@ -1384,9 +1457,10 @@ mod tests {
         history_change_for_upsert_id, history_file_fingerprint, load_history_file, merge_history,
         merge_history_result, merge_text_history_item, migrate_legacy_text_history,
         migrate_structured_text_history, reclassify_sensitive_history_result, remove_history_item,
-        remove_history_item_result, reveal_sensitive_history_entry, set_history_item_pinned_result,
-        trim_history_result, HistoryChange, HistoryEntry, HistoryKind, HistoryPreviewInvalidation,
-        HistorySnapshot, LegacyTextHistoryEntry, NewHistoryItem, SensitiveHistoryRevealError,
+        remove_history_item_result, replace_text_history_item_result,
+        reveal_sensitive_history_entry, set_history_item_pinned_result, trim_history_result,
+        HistoryChange, HistoryEntry, HistoryKind, HistoryPreviewInvalidation, HistorySnapshot,
+        LegacyTextHistoryEntry, NewHistoryItem, SensitiveHistoryRevealError,
         SensitiveHistoryRevealErrorCode, MAX_PERSISTED_HISTORY_COUNT, MAX_PINNED_HISTORY_COUNT,
     };
 
@@ -1804,6 +1878,48 @@ mod tests {
     }
 
     #[test]
+    fn text_history_entries_serialize_frontend_field_names() {
+        let entry = create_text_entry("ordinary text".to_string(), 100, 200, None, 1);
+
+        let json = serde_json::to_value(entry).unwrap();
+
+        assert_eq!(json["secretType"], serde_json::Value::Null);
+        assert_eq!(json["secretDetectorVersion"], serde_json::Value::Null);
+        assert!(json.get("secret_type").is_none());
+        assert!(json.get("secret_detector_version").is_none());
+    }
+
+    #[test]
+    fn text_history_entries_deserialize_legacy_snake_case_classification_fields() {
+        let json = serde_json::json!({
+            "kind": "text",
+            "id": "h_text",
+            "displayText": "synthetic",
+            "firstCopiedAt": 100,
+            "lastCopiedAt": 200,
+            "sourceApp": null,
+            "copyCount": 1,
+            "text": "synthetic",
+            "secret_type": "jwt",
+            "secret_detector_version": 1,
+        });
+
+        let entry: HistoryEntry = serde_json::from_value(json).unwrap();
+
+        match entry {
+            HistoryEntry::Text {
+                secret_type,
+                secret_detector_version,
+                ..
+            } => {
+                assert_eq!(secret_type, Some(crate::sensitive_content::SecretType::Jwt));
+                assert_eq!(secret_detector_version, Some(1));
+            }
+            _ => panic!("expected text entry"),
+        }
+    }
+
+    #[test]
     fn file_history_entries_deserialize_legacy_snake_case_field_names() {
         let json = serde_json::json!({
             "kind": "files",
@@ -2067,6 +2183,67 @@ mod tests {
         let kept = super::clear_history_keep_pinned_result(history);
         assert_eq!(kept.history.len(), 1);
         assert_eq!(kept.history[0].id(), pinned_id);
+    }
+
+    #[test]
+    fn text_replacement_preserves_identity_and_pin_while_recomputing_metadata_and_dedupe() {
+        let mut target = text_entry("plain", 10, Some("Editor"));
+        let target_id = target.id().to_string();
+        target.common_mut().is_pinned = true;
+        target.common_mut().pinned_at = Some(99);
+        let duplicate = text_entry("sk-proj-abcdefghijklmnopqrstuvwxyz", 20, Some("Terminal"));
+
+        let result = replace_text_history_item_result(
+            vec![target, duplicate],
+            &target_id,
+            "sk-proj-abcdefghijklmnopqrstuvwxyz".to_string(),
+            10,
+        )
+        .unwrap();
+
+        assert!(result.changed);
+        assert_eq!(result.history.len(), 1);
+        let replaced = &result.history[0];
+        assert_eq!(replaced.id(), target_id);
+        assert!(replaced.is_pinned());
+        assert_eq!(replaced.common().pinned_at, Some(99));
+        assert_eq!(replaced.common().source_app.as_deref(), Some("Editor"));
+        assert_eq!(
+            replaced.common().display_text,
+            "sk-proj-abcdefghijklmnopqrstuvwxyz"
+        );
+        assert!(replaced.is_secret());
+    }
+
+    #[test]
+    fn text_replacement_errors_do_not_return_mutated_history() {
+        let image = HistoryEntry::Image {
+            common: super::HistoryEntryCommon {
+                id: "image".to_string(),
+                display_text: "image".to_string(),
+                first_copied_at: 1,
+                last_copied_at: 1,
+                source_app: None,
+                copy_count: 1,
+                is_pinned: false,
+                pinned_at: None,
+            },
+            image_path: "/tmp/image.png".to_string(),
+            width: 1,
+            height: 1,
+            byte_size: 1,
+            content_hash: "image".to_string(),
+        };
+        assert_eq!(
+            replace_text_history_item_result(vec![image.clone()], "missing", "x".to_string(), 10)
+                .unwrap_err(),
+            "historyItemNotFound"
+        );
+        assert_eq!(
+            replace_text_history_item_result(vec![image], "image", "x".to_string(), 10)
+                .unwrap_err(),
+            "historyItemNotText"
+        );
     }
 
     #[test]

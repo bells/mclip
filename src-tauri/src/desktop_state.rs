@@ -11,8 +11,9 @@ use crate::history::{
     cleanup_unused_image_assets_for_history_path, clear_history_from_path,
     clear_history_keep_pinned_result, history_file_fingerprint, load_history_file,
     merge_history_result, persist_history_to_path, remove_history_item_result,
-    set_history_item_pinned_result, toggle_history_item_pinned_result, trim_history_result,
-    HistoryEntry, HistoryFileFingerprint, HistoryMutationResult, LoadedHistoryFile,
+    replace_text_history_item_result, set_history_item_pinned_result,
+    toggle_history_item_pinned_result, trim_history_result, HistoryEntry, HistoryFileFingerprint,
+    HistoryMutationResult, LoadedHistoryFile,
 };
 use crate::image_cache::ImageDataCache;
 use crate::settings::AppSettings;
@@ -175,6 +176,17 @@ impl DesktopStateRepository {
 
     pub fn reclassify_sensitive_history(&self) -> Result<DesktopHistoryMutation, String> {
         self.mutate_history(crate::history::reclassify_sensitive_history_result)
+    }
+
+    pub fn replace_history_text(
+        &self,
+        id: &str,
+        text: String,
+    ) -> Result<DesktopHistoryMutation, String> {
+        let max_history_count = self.settings()?.max_history_count as usize;
+        self.mutate_history_fallible(|history| {
+            replace_text_history_item_result(history, id, text, max_history_count)
+        })
     }
 
     fn mutate_history(
@@ -373,6 +385,32 @@ mod tests {
 
         assert_eq!(first.revision, 1);
         assert_eq!(second, first);
+        fs::remove_dir_all(path.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn text_replacement_advances_one_revision_and_errors_leave_state_unchanged() {
+        let path = unique_path("replace-text");
+        let entry = text_entry("before");
+        let id = entry.id().to_string();
+        persist_history_to_path(&path, &[entry]).unwrap();
+        let repository = DesktopStateRepository::new(path.clone(), AppSettings::default());
+        let initial = repository.history_snapshot().unwrap();
+
+        let mutation = repository
+            .replace_history_text(&id, "after".to_string())
+            .unwrap();
+        assert!(mutation.changed);
+        assert_eq!(mutation.previous_snapshot.revision, initial.revision);
+        assert_eq!(mutation.snapshot.revision, initial.revision + 1);
+        assert_eq!(mutation.snapshot.history[0].id(), id);
+
+        let error = repository
+            .replace_history_text("missing", "never written".to_string())
+            .unwrap_err();
+        assert_eq!(error, "historyItemNotFound");
+        let after_error = repository.history_snapshot().unwrap();
+        assert_eq!(after_error, mutation.snapshot);
         fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
 
