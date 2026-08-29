@@ -26,6 +26,7 @@ raw-window-handle = "0.6"
 tauri-plugin-single-instance = "2"
 semver = "1.0"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+regex = "1.11"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-positioner = { version = "2", features = ["tray-icon"] }
@@ -38,3 +39,6 @@ objc2-foundation = { version = "0.3", default-features = false, features = ["std
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = "0.13"

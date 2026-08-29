@@ -425,6 +425,7 @@ export function HistoryPreviewWindow() {
           item: requestedItem,
           kind: "item",
           language: requestedPreview.language,
+          maskSensitiveContent: requestedPreview.maskSensitiveContent,
           performanceInteractionId,
         });
 
@@ -491,6 +492,11 @@ export function HistoryPreviewWindow() {
         }}
         onRequestClose={() => {
           void requestHistoryPreviewClose();
+        }}
+        onSensitiveItemStale={() => {
+          previewRef.current = null;
+          setPreview(null);
+          void hideHistoryPreviewWindow();
         }}
       />
     );

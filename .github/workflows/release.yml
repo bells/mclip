@@ -116,6 +116,7 @@ jobs:
             - 偏好设置：登录时启动、语言、外观主题、菜单栏图标样式、自动粘贴、展示条数、序号、主窗口 Logo、最大历史条数和保存类型。
             - 颜色代码、Emoji、长文件名与完整文件路径提供更清晰的展示，但复制内容保持原样。
             - `mclip-cli` 提供 Agent 模式、无需读取历史的 help/version、版本感知升级和 SHA-256 校验的预构建安装。
+            - 已分类的敏感文本在桌面和 CLI/Agent 默认输出中遮罩；显式 reveal/raw 或 copy 仍使用本地原文。可按稳定来源应用标识排除捕获，并如实报告平台能力。
             - 剪贴板历史仅保存在本机，不会上传到云端。
 
             ## Included in this release
@@ -128,7 +129,14 @@ jobs:
             - Preferences for launch at login, language, appearance theme, menu bar icon style, auto paste, display counts, row numbers, main-window branding, maximum history size, and enabled history types.
             - Clearer color-code, emoji, long-file-name, and full-path presentation without changing copied content.
             - `mclip-cli` Agent Mode, history-independent help/version, version-aware upgrades, and SHA-256-verified prebuilt installation.
+            - Classified sensitive text is masked in desktop and default CLI/Agent output; explicit reveal/raw or copy still uses local original content. Capture can be excluded by stable source identity with honest platform capability reporting.
             - Clipboard history stays on your device and is not uploaded.
+
+            ## 隐私边界 / Privacy limits
+
+            敏感内容检测和来源应用识别都是启发式、best-effort 能力，可能误报或漏报；纯 Wayland 当前不支持来源应用排除。遮罩只是展示保护，不是静态加密，原始历史仍以本地明文保存。它不能替代密码管理器、DLP 或泄露防护。
+
+            Sensitive-content detection and source identity are heuristic, best-effort controls that can produce false positives or false negatives; source exclusion is unavailable on pure Wayland. Masking is presentation protection, not encryption at rest, and original history remains local plaintext. It is not a password manager, DLP system, or breach-prevention guarantee.
 
             ## 下载 / Downloads
 

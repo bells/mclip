@@ -14,17 +14,42 @@ use crate::desktop_state::{
     DesktopHistoryMutation, DesktopHistorySnapshot, DesktopStateRepository,
 };
 use crate::performance::performance_config_dir_override;
+use crate::sensitive_content::{classify_text, masked_text, SecretType};
 use crate::settings::{resolve_app_language, AppLanguage, ResolvedAppLanguage};
-use crate::source_app::current_source_app_name;
 use crate::storage::write_text_atomically;
 
 pub const HISTORY_CHANGED_EVENT: &str = "history-changed";
 pub const HISTORY_PREVIEW_INVALIDATED_EVENT: &str = "history-preview-invalidated";
+pub const SENSITIVE_HISTORY_REVEAL_FAILED_EVENT: &str = "sensitive-history-reveal-failed";
 const MAIN_WINDOW_LABEL: &str = "main";
 const PREVIEW_WINDOW_LABEL: &str = "preview";
 pub const MAX_PINNED_HISTORY_COUNT: usize = 100;
 pub const MAX_PERSISTED_HISTORY_COUNT: usize = 600;
 pub const PIN_LIMIT_ERROR_CODE: &str = "pinnedHistoryLimitReached";
+
+#[derive(Debug, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SensitiveHistoryRevealErrorCode {
+    ItemNotFound,
+    ClassificationStale,
+    HistoryUnavailable,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SensitiveHistoryRevealError {
+    pub code: SensitiveHistoryRevealErrorCode,
+}
+
+impl SensitiveHistoryRevealError {
+    const fn new(code: SensitiveHistoryRevealErrorCode) -> Self {
+        Self { code }
+    }
+
+    const fn history_unavailable() -> Self {
+        Self::new(SensitiveHistoryRevealErrorCode::HistoryUnavailable)
+    }
+}
 
 #[derive(Debug, Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -41,6 +66,10 @@ pub enum HistoryEntry {
         #[serde(flatten)]
         common: HistoryEntryCommon,
         text: String,
+        #[serde(default)]
+        secret_type: Option<SecretType>,
+        #[serde(default)]
+        secret_detector_version: Option<u16>,
     },
     Image {
         #[serde(flatten)]
@@ -256,6 +285,33 @@ impl HistoryEntry {
     pub fn is_pinned(&self) -> bool {
         self.common().is_pinned
     }
+
+    #[cfg(test)]
+    pub fn is_secret(&self) -> bool {
+        matches!(
+            self,
+            HistoryEntry::Text {
+                secret_type: Some(_),
+                ..
+            }
+        )
+    }
+
+    pub fn masked_for_presentation(&self) -> Self {
+        let mut entry = self.clone();
+        if let HistoryEntry::Text {
+            common,
+            text,
+            secret_type: Some(secret_type),
+            ..
+        } = &mut entry
+        {
+            let masked = masked_text(text, Some(*secret_type), true);
+            common.display_text = masked.clone();
+            *text = masked;
+        }
+        entry
+    }
 }
 
 impl NewHistoryItem {
@@ -279,10 +335,106 @@ impl NewHistoryItem {
 #[tauri::command]
 pub async fn get_history_snapshot(app_handle: AppHandle) -> Result<HistorySnapshot, String> {
     let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    let masking_enabled = repository.settings()?.mask_sensitive_content;
     tauri::async_runtime::spawn_blocking(move || repository.history_snapshot())
         .await
         .map_err(|error| error.to_string())?
         .map(HistorySnapshot::from)
+        .map(|snapshot| snapshot.for_presentation(masking_enabled))
+}
+
+#[tauri::command]
+pub async fn reveal_sensitive_history_text(
+    app_handle: AppHandle,
+    id: String,
+) -> Result<String, SensitiveHistoryRevealError> {
+    let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    let (refresh, reveal_result) = tauri::async_runtime::spawn_blocking(move || {
+        let refresh = repository
+            .refresh_history_snapshot()
+            .map_err(|_| SensitiveHistoryRevealError::history_unavailable())?;
+        let entry = refresh
+            .snapshot
+            .history
+            .iter()
+            .find(|entry| entry.id() == id)
+            .cloned();
+        Ok::<_, SensitiveHistoryRevealError>((refresh, reveal_sensitive_history_entry(entry)))
+    })
+    .await
+    .map_err(|_| SensitiveHistoryRevealError::history_unavailable())??;
+
+    if refresh.external_reloaded {
+        if let Some(change) = history_change_for_replace(&refresh) {
+            emit_history_change(&app_handle, &change)
+                .map_err(|_| SensitiveHistoryRevealError::history_unavailable())?;
+        }
+    }
+
+    if let Err(error) = &reveal_result {
+        let _ = app_handle.emit_to(
+            MAIN_WINDOW_LABEL,
+            SENSITIVE_HISTORY_REVEAL_FAILED_EVENT,
+            error,
+        );
+    }
+
+    reveal_result
+}
+
+fn reveal_sensitive_history_entry(
+    entry: Option<HistoryEntry>,
+) -> Result<String, SensitiveHistoryRevealError> {
+    let Some(entry) = entry else {
+        return Err(SensitiveHistoryRevealError::new(
+            SensitiveHistoryRevealErrorCode::ItemNotFound,
+        ));
+    };
+    let HistoryEntry::Text {
+        text,
+        secret_type,
+        secret_detector_version,
+        ..
+    } = entry
+    else {
+        return Err(SensitiveHistoryRevealError::new(
+            SensitiveHistoryRevealErrorCode::ClassificationStale,
+        ));
+    };
+
+    let current = classify_text(&text);
+    let is_current_classification = match (secret_type, secret_detector_version) {
+        (Some(secret_type), Some(detector_version)) => {
+            current.secret_type == Some(secret_type)
+                && current.detector_version == Some(detector_version)
+        }
+        (None, None) => current.secret_type.is_some(),
+        _ => false,
+    };
+
+    if !is_current_classification {
+        return Err(SensitiveHistoryRevealError::new(
+            SensitiveHistoryRevealErrorCode::ClassificationStale,
+        ));
+    }
+
+    Ok(text)
+}
+
+#[tauri::command]
+pub async fn reclassify_sensitive_history(
+    app_handle: AppHandle,
+) -> Result<Option<HistoryChange>, String> {
+    let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
+    let mutation =
+        tauri::async_runtime::spawn_blocking(move || repository.reclassify_sensitive_history())
+            .await
+            .map_err(|_| "sensitiveHistoryReclassificationWorkerFailed".to_string())??;
+    let change = history_change_for_replace(&mutation);
+    if let Some(change) = &change {
+        emit_history_change(&app_handle, change)?;
+    }
+    Ok(change_for_command_response(&app_handle, change))
 }
 
 #[tauri::command]
@@ -295,7 +447,7 @@ pub async fn clear_history(app_handle: AppHandle) -> Result<Option<HistoryChange
     if let Some(change) = &change {
         emit_history_change(&app_handle, change)?;
     }
-    Ok(change)
+    Ok(change_for_command_response(&app_handle, change))
 }
 
 #[tauri::command]
@@ -311,7 +463,7 @@ pub async fn clear_history_keep_pinned(
     if let Some(change) = &change {
         emit_history_change(&app_handle, change)?;
     }
-    Ok(change)
+    Ok(change_for_command_response(&app_handle, change))
 }
 
 #[tauri::command]
@@ -338,7 +490,7 @@ pub async fn set_history_item_pinned(
         emit_history_change_with_preview_policy(&app_handle, change, false)
             .map_err(|message| HistoryCommandError::from_message(message, &language))?;
     }
-    Ok(change)
+    Ok(change_for_command_response(&app_handle, change))
 }
 
 #[tauri::command]
@@ -364,7 +516,7 @@ pub async fn toggle_history_item_pinned(
         emit_history_change_with_preview_policy(&app_handle, change, false)
             .map_err(|message| HistoryCommandError::from_message(message, &language))?;
     }
-    Ok(change)
+    Ok(change_for_command_response(&app_handle, change))
 }
 
 #[tauri::command]
@@ -381,12 +533,13 @@ pub async fn delete_history_item(
     if let Some(change) = &change {
         emit_history_change(&app_handle, change)?;
     }
-    Ok(change)
+    Ok(change_for_command_response(&app_handle, change))
 }
 
 pub fn process_new_history_item(
     app_handle: &AppHandle,
     new_item: NewHistoryItem,
+    source_app: Option<String>,
 ) -> Result<Option<HistoryChange>, String> {
     let repository = app_handle.state::<DesktopStateRepository>();
     let settings = repository.settings()?;
@@ -396,7 +549,6 @@ pub fn process_new_history_item(
     }
 
     let copied_at = current_timestamp_millis();
-    let source_app = current_source_app_name();
     let new_entry = create_history_entry(app_handle, new_item, copied_at, source_app)?;
     let entry_id = new_entry.id().to_string();
     let mutation =
@@ -424,15 +576,21 @@ fn emit_history_change_with_preview_policy(
     change: &HistoryChange,
     close_current_preview: bool,
 ) -> Result<(), String> {
+    let masking_enabled = app_handle
+        .state::<DesktopStateRepository>()
+        .settings()
+        .map(|settings| settings.mask_sensitive_content)
+        .unwrap_or(true);
+    let presented_change = change.for_presentation(masking_enabled);
     app_handle
-        .emit_to(MAIN_WINDOW_LABEL, HISTORY_CHANGED_EVENT, change)
+        .emit_to(MAIN_WINDOW_LABEL, HISTORY_CHANGED_EVENT, &presented_change)
         .map_err(|error| error.to_string())?;
 
     for label in [PREVIEW_WINDOW_LABEL, "preview-detail", "image-viewer"] {
         if app_handle.get_webview_window(label).is_none() {
             continue;
         }
-        let mut invalidation = HistoryPreviewInvalidation::from(change);
+        let mut invalidation = HistoryPreviewInvalidation::from(&presented_change);
         if let HistoryPreviewInvalidation::Upsert {
             close_current_preview: should_close,
             ..
@@ -446,6 +604,81 @@ fn emit_history_change_with_preview_policy(
     }
 
     Ok(())
+}
+
+fn change_for_command_response(
+    app_handle: &AppHandle,
+    change: Option<HistoryChange>,
+) -> Option<HistoryChange> {
+    let masking_enabled = app_handle
+        .state::<DesktopStateRepository>()
+        .settings()
+        .map(|settings| settings.mask_sensitive_content)
+        .unwrap_or(true);
+    change.map(|change| change.for_presentation(masking_enabled))
+}
+
+impl HistoryChange {
+    fn for_presentation(&self, masking_enabled: bool) -> Self {
+        if !masking_enabled {
+            return self.clone();
+        }
+
+        match self {
+            Self::Replace {
+                base_revision,
+                revision,
+                entries,
+            } => Self::Replace {
+                base_revision: *base_revision,
+                revision: *revision,
+                entries: entries
+                    .iter()
+                    .map(HistoryEntry::masked_for_presentation)
+                    .collect(),
+            },
+            Self::Upsert {
+                base_revision,
+                revision,
+                entry,
+                removed_ids,
+            } => Self::Upsert {
+                base_revision: *base_revision,
+                revision: *revision,
+                entry: entry.masked_for_presentation(),
+                removed_ids: removed_ids.clone(),
+            },
+            Self::Remove {
+                base_revision,
+                revision,
+                removed_ids,
+            } => Self::Remove {
+                base_revision: *base_revision,
+                revision: *revision,
+                removed_ids: removed_ids.clone(),
+            },
+            Self::Clear {
+                base_revision,
+                revision,
+            } => Self::Clear {
+                base_revision: *base_revision,
+                revision: *revision,
+            },
+        }
+    }
+}
+
+impl HistorySnapshot {
+    fn for_presentation(mut self, masking_enabled: bool) -> Self {
+        if masking_enabled {
+            self.entries = self
+                .entries
+                .iter()
+                .map(HistoryEntry::masked_for_presentation)
+                .collect();
+        }
+        self
+    }
 }
 
 impl From<DesktopHistorySnapshot> for HistorySnapshot {
@@ -545,6 +778,14 @@ fn history_change_for_clear(mutation: &DesktopHistoryMutation) -> Option<History
     })
 }
 
+fn history_change_for_replace(mutation: &DesktopHistoryMutation) -> Option<HistoryChange> {
+    mutation.changed.then(|| HistoryChange::Replace {
+        base_revision: mutation.previous_snapshot.revision,
+        revision: mutation.snapshot.revision,
+        entries: mutation.snapshot.history.clone(),
+    })
+}
+
 fn history_replace_for_external_reload(mutation: &DesktopHistoryMutation) -> Option<HistoryChange> {
     mutation.external_reloaded.then(|| HistoryChange::Replace {
         base_revision: mutation.previous_snapshot.revision,
@@ -623,6 +864,34 @@ pub fn merge_text_history_item(
         .unwrap_or(new_entry);
 
     (next_history, saved_entry)
+}
+
+pub fn reclassify_sensitive_history_result(
+    mut history: Vec<HistoryEntry>,
+) -> HistoryMutationResult {
+    let mut changed = false;
+
+    for entry in &mut history {
+        let HistoryEntry::Text {
+            text,
+            secret_type,
+            secret_detector_version,
+            ..
+        } = entry
+        else {
+            continue;
+        };
+        let classification = classify_text(text);
+        if *secret_type != classification.secret_type
+            || *secret_detector_version != classification.detector_version
+        {
+            *secret_type = classification.secret_type;
+            *secret_detector_version = classification.detector_version;
+            changed = true;
+        }
+    }
+
+    HistoryMutationResult { history, changed }
 }
 
 pub fn remove_history_item_by_id(
@@ -1029,6 +1298,7 @@ fn create_text_entry(
     copy_count: u32,
 ) -> HistoryEntry {
     let id = history_id(&format!("text:{text}"));
+    let classification = classify_text(&text);
 
     HistoryEntry::Text {
         common: HistoryEntryCommon {
@@ -1042,6 +1312,8 @@ fn create_text_entry(
             pinned_at: None,
         },
         text,
+        secret_type: classification.secret_type,
+        secret_detector_version: classification.detector_version,
     }
 }
 
@@ -1111,10 +1383,11 @@ mod tests {
         create_text_entry, files_display_text, hash_hex, history_change_for_remove,
         history_change_for_upsert_id, history_file_fingerprint, load_history_file, merge_history,
         merge_history_result, merge_text_history_item, migrate_legacy_text_history,
-        migrate_structured_text_history, remove_history_item, remove_history_item_result,
-        set_history_item_pinned_result, trim_history_result, HistoryChange, HistoryEntry,
-        HistoryKind, HistoryPreviewInvalidation, HistorySnapshot, LegacyTextHistoryEntry,
-        NewHistoryItem, MAX_PERSISTED_HISTORY_COUNT, MAX_PINNED_HISTORY_COUNT,
+        migrate_structured_text_history, reclassify_sensitive_history_result, remove_history_item,
+        remove_history_item_result, reveal_sensitive_history_entry, set_history_item_pinned_result,
+        trim_history_result, HistoryChange, HistoryEntry, HistoryKind, HistoryPreviewInvalidation,
+        HistorySnapshot, LegacyTextHistoryEntry, NewHistoryItem, SensitiveHistoryRevealError,
+        SensitiveHistoryRevealErrorCode, MAX_PERSISTED_HISTORY_COUNT, MAX_PINNED_HISTORY_COUNT,
     };
 
     fn text_entry(text: &str, copied_at: u64, source_app: Option<&str>) -> HistoryEntry {
@@ -1567,6 +1840,113 @@ mod tests {
             .all(|entry| entry.common().pinned_at.is_none()));
         assert_eq!(fs::read_to_string(&path).unwrap(), content);
         fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn v011_text_fixture_loads_without_inventing_classification() {
+        let history =
+            super::parse_history_content(include_str!("../tests/fixtures/v0.1.1-history.json"))
+                .unwrap();
+        assert_eq!(history.len(), 1);
+        match &history[0] {
+            HistoryEntry::Text {
+                text,
+                secret_type,
+                secret_detector_version,
+                ..
+            } => {
+                assert_eq!(text, "legacy ordinary text");
+                assert_eq!(*secret_type, None);
+                assert_eq!(*secret_detector_version, None);
+            }
+            _ => panic!("fixture should remain a text entry"),
+        }
+    }
+
+    #[test]
+    fn reveal_allows_current_and_legacy_sensitive_text_without_rewriting_metadata() {
+        const SECRET: &str = "sk-proj-SYNTHETIC_FIXTURE_NOT_A_REAL_KEY_1234567890";
+        let classified = create_text_entry(SECRET.to_string(), 1, 1, None, 1);
+        assert_eq!(
+            reveal_sensitive_history_entry(Some(classified)).unwrap(),
+            SECRET
+        );
+
+        let mut legacy = create_text_entry(SECRET.to_string(), 1, 1, None, 1);
+        if let HistoryEntry::Text {
+            secret_type,
+            secret_detector_version,
+            ..
+        } = &mut legacy
+        {
+            *secret_type = None;
+            *secret_detector_version = None;
+        }
+        let unchanged = legacy.clone();
+
+        assert_eq!(
+            reveal_sensitive_history_entry(Some(legacy)).unwrap(),
+            SECRET
+        );
+        assert!(matches!(
+            unchanged,
+            HistoryEntry::Text {
+                secret_type: None,
+                secret_detector_version: None,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn reveal_rejects_missing_and_stale_classification_with_stable_codes() {
+        let missing = reveal_sensitive_history_entry(None).unwrap_err();
+        assert_eq!(missing.code, SensitiveHistoryRevealErrorCode::ItemNotFound);
+
+        let stale = reveal_sensitive_history_entry(Some(create_text_entry(
+            "ordinary text".to_string(),
+            1,
+            1,
+            None,
+            1,
+        )))
+        .unwrap_err();
+        assert_eq!(
+            stale.code,
+            SensitiveHistoryRevealErrorCode::ClassificationStale
+        );
+
+        assert_eq!(
+            serde_json::to_value(SensitiveHistoryRevealError::history_unavailable()).unwrap(),
+            serde_json::json!({ "code": "historyUnavailable" })
+        );
+    }
+
+    #[test]
+    fn explicit_reclassification_updates_only_changed_text_metadata() {
+        let mut secret = text_entry(
+            "sk-proj-SYNTHETIC_FIXTURE_NOT_A_REAL_KEY_1234567890",
+            10,
+            None,
+        );
+        if let HistoryEntry::Text {
+            secret_type,
+            secret_detector_version,
+            ..
+        } = &mut secret
+        {
+            *secret_type = None;
+            *secret_detector_version = None;
+        }
+        let ordinary = text_entry("ordinary", 20, None);
+
+        let result = reclassify_sensitive_history_result(vec![secret, ordinary]);
+        assert!(result.changed);
+        assert!(result.history[0].is_secret());
+        assert!(!result.history[1].is_secret());
+
+        let second = reclassify_sensitive_history_result(result.history);
+        assert!(!second.changed);
     }
 
     #[test]

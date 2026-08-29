@@ -12,6 +12,7 @@ import type {
   ImageViewerPayload,
   PerformanceAutomationAction,
   PerformanceInteraction,
+  SensitiveHistoryRevealError,
 } from "../../types";
 import type { PreviewWindowPosition } from "./commands";
 
@@ -37,6 +38,9 @@ const HISTORY_PREVIEW_SELECTION_CANCELLED_EVENT =
 const IMAGE_VIEWER_UPDATED_EVENT = "image-viewer-updated";
 const MAIN_WINDOW_SHOWN_EVENT = "main-window-shown";
 const PERFORMANCE_AUTOMATION_EVENT = "performance-automation";
+const SENSITIVE_REVEAL_RESET_EVENT = "sensitive-reveal-reset";
+const SENSITIVE_HISTORY_REVEAL_FAILED_EVENT =
+  "sensitive-history-reveal-failed";
 const MAIN_WINDOW_LABEL = "main";
 const PREVIEW_WINDOW_LABEL = "preview";
 const PREVIEW_DETAIL_WINDOW_LABEL = "preview-detail";
@@ -44,6 +48,19 @@ const IMAGE_VIEWER_WINDOW_LABEL = "image-viewer";
 
 export function updateHistoryPreviewWindow(payload: HistoryPreviewPayload) {
   return emitTo(PREVIEW_WINDOW_LABEL, HISTORY_PREVIEW_UPDATED_EVENT, payload);
+}
+
+export function listenToSensitiveRevealReset(handler: () => void) {
+  return listen<void>(SENSITIVE_REVEAL_RESET_EVENT, handler);
+}
+
+export function listenToSensitiveHistoryRevealFailed(
+  handler: (error: SensitiveHistoryRevealError) => void,
+) {
+  return listen<SensitiveHistoryRevealError>(
+    SENSITIVE_HISTORY_REVEAL_FAILED_EVENT,
+    (event) => handler(event.payload),
+  );
 }
 
 export function updateHistoryPreviewDetailWindow(

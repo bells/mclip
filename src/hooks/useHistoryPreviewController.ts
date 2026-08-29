@@ -355,6 +355,7 @@ export function useHistoryPreviewController({
             item: previewHistoryItem,
             kind: "item",
             language: settings.language,
+            maskSensitiveContent: settings.maskSensitiveContent,
             performanceInteractionId,
           });
         })
@@ -417,6 +418,7 @@ export function useHistoryPreviewController({
           items: previewHistory,
           kind: "group",
           language: settings.language,
+          maskSensitiveContent: settings.maskSensitiveContent,
           performanceInteractionId,
           showHistoryItemNumbers: settings.showHistoryItemNumbers,
         });
@@ -454,6 +456,7 @@ export function useHistoryPreviewController({
     settings.appearanceTheme,
     settings.autoPaste,
     settings.language,
+    settings.maskSensitiveContent,
     settings.showHistoryItemNumbers,
   ]);
 

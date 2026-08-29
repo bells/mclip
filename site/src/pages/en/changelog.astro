@@ -13,6 +13,19 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
     <a class="back-link" href="/en/">Back home</a>
     <h1>Changelog</h1>
     <article class="release-note">
+      <p class="eyebrow">0.2.0 · In development</p>
+      <h2>Sensitive-content presentation protection and source exclusions</h2>
+      <p>
+        Adds a local, bounded, versioned detector for a small high-confidence set of sensitive text. Desktop history and default CLI/Agent output mask classified content. Explicit UI actions or one-invocation <code>--raw</code>/<code>--reveal-secrets</code> options can reveal it, while copy continues to use the original content without echoing it in the action result.
+      </p>
+      <p>
+        Privacy Preferences can exclude capture by stable application identity and report the real platform capability. macOS uses a bundle ID, Windows a normalized executable name, and X11 <code>WM_CLASS</code>; pure Wayland is currently unavailable and is not reported as enforced.
+      </p>
+      <p>
+        Masking is presentation protection, not encryption at rest. History remains local plaintext, and heuristic detection or source identity can produce false positives or false negatives. This is not a password manager, DLP system, or breach-prevention guarantee.
+      </p>
+    </article>
+    <article class="release-note">
       <p class="eyebrow">0.1.1</p>
       <h2>A faster, clearer complete core experience</h2>
       <p>

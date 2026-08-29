@@ -316,7 +316,7 @@ fn agent_mode_outputs_json_bundle_with_commands_and_context() {
     );
     let stdout: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("stdout should be json");
-    assert_eq!(stdout["schemaVersion"], 1);
+    assert_eq!(stdout["schemaVersion"], 2);
     assert_eq!(stdout["mode"], "agent");
     assert_eq!(stdout["historyCount"], 3);
     assert_eq!(stdout["selectedCount"], 2);
@@ -373,6 +373,95 @@ fn add_writes_piped_text_to_history_without_touching_existing_items() {
     assert_eq!(history[0]["sourceApp"], "Codex");
     assert_eq!(history[0]["text"], "new agent note\nwith details");
     assert_eq!(history[1]["id"], "text-panic");
+}
+
+#[test]
+fn classified_text_is_masked_by_default_and_revealed_only_explicitly() {
+    const SYNTHETIC_SECRET: &str = "sk-proj-SYNTHETIC_FIXTURE_NOT_A_REAL_KEY_1234567890";
+    let history_path = missing_history_fixture("sensitive-output");
+    fs::create_dir_all(history_path.parent().unwrap()).unwrap();
+    let path = history_path.to_str().expect("history path should be utf-8");
+
+    let added = run_cli(&["--history-path", path, "add", "--json", SYNTHETIC_SECRET]);
+    assert!(added.status.success());
+    let add_output = String::from_utf8_lossy(&added.stdout);
+    assert!(!add_output.contains(SYNTHETIC_SECRET));
+
+    for args in [
+        vec!["--history-path", path, "list", "--json"],
+        vec!["--history-path", path, "get", "--index", "1", "--json"],
+        vec!["--history-path", path, "search", "SYNTHETIC", "--json"],
+        vec!["--history-path", path, "context", "--json"],
+    ] {
+        let output = run_cli(&args);
+        assert!(output.status.success());
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("••••••••"));
+        assert!(stdout.contains("openAiApiKey"));
+        assert!(!stdout.contains(SYNTHETIC_SECRET));
+    }
+
+    let agent = run_cli(&["--history-path", path, "agent", "--json"]);
+    let agent_json: serde_json::Value = serde_json::from_slice(&agent.stdout).unwrap();
+    assert_eq!(agent_json["schemaVersion"], 2);
+    assert_eq!(agent_json["context"][0]["text"], "••••••••");
+
+    for args in [
+        vec!["--history-path", path, "list"],
+        vec![
+            "--history-path",
+            path,
+            "search",
+            "SYNTHETIC",
+            "--format",
+            "markdown",
+        ],
+        vec!["--history-path", path, "context"],
+        vec!["--history-path", path, "agent"],
+    ] {
+        let output = run_cli(&args);
+        assert!(output.status.success());
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("••••••••"));
+        assert!(!stdout.contains(SYNTHETIC_SECRET));
+    }
+
+    let revealed = run_cli(&[
+        "--history-path",
+        path,
+        "get",
+        "--index",
+        "1",
+        "--json",
+        "--reveal-secrets",
+    ]);
+    assert!(String::from_utf8_lossy(&revealed.stdout).contains(SYNTHETIC_SECRET));
+
+    for command in ["list", "search", "context", "agent"] {
+        let args = if command == "search" {
+            vec![
+                "--history-path",
+                path,
+                command,
+                "SYNTHETIC",
+                "--reveal-secrets",
+            ]
+        } else {
+            vec!["--history-path", path, command, "--reveal-secrets"]
+        };
+        let output = run_cli(&args);
+        assert!(output.status.success(), "{command}");
+        assert!(
+            String::from_utf8_lossy(&output.stdout).contains(SYNTHETIC_SECRET),
+            "{command}"
+        );
+    }
+
+    let raw = run_cli(&["--history-path", path, "get", "--index", "1", "--raw"]);
+    assert_eq!(
+        String::from_utf8_lossy(&raw.stdout).trim(),
+        SYNTHETIC_SECRET
+    );
 }
 
 #[test]

@@ -20,6 +20,8 @@ export const DEFAULT_MAIN_WINDOW_ITEM_COUNT = 10;
 export const DEFAULT_HISTORY_GROUP_ITEM_COUNT = 50;
 export const MIN_VISIBLE_ITEM_COUNT = 5;
 export const MAX_HISTORY_GROUP_ITEM_COUNT = 100;
+export const MAX_IGNORED_SOURCE_APP_COUNT = 100;
+export const MAX_SOURCE_APP_IDENTIFIER_LENGTH = 255;
 
 export const DEFAULT_SETTINGS: AppSettings = {
   autoPaste: false,
@@ -37,6 +39,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showHistoryItemNumbers: true,
   showMainWindowBrand: true,
   appearanceTheme: "system",
+  maskSensitiveContent: true,
+  ignoredSourceAppIds: [],
 };
 
 export function clampHistoryCount(value: number) {

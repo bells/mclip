@@ -33,6 +33,7 @@ use crate::performance::{
 use raw_window_handle::HasWindowHandle;
 
 pub const WINDOW_WIDTH: f64 = 320.0;
+const SENSITIVE_REVEAL_RESET_EVENT: &str = "sensitive-reveal-reset";
 pub const MAX_WINDOW_HEIGHT: f64 = 900.0;
 const MIN_MAIN_WINDOW_HEIGHT: f64 = 220.0;
 pub const MAIN_WINDOW_SHOWN_EVENT: &str = "main-window-shown";
@@ -663,6 +664,7 @@ pub fn resize_history_preview_window(
 #[tauri::command]
 pub fn hide_history_preview_window(app_handle: AppHandle) -> Result<(), String> {
     if let Some(preview_window) = app_handle.get_webview_window(PREVIEW_WINDOW_LABEL) {
+        let _ = preview_window.emit(SENSITIVE_REVEAL_RESET_EVENT, ());
         preview_window.hide().map_err(|error| error.to_string())?;
     }
 
@@ -673,6 +675,7 @@ pub fn hide_history_preview_window(app_handle: AppHandle) -> Result<(), String> 
 pub fn hide_history_preview_detail_window(app_handle: AppHandle) -> Result<(), String> {
     if let Some(preview_detail_window) = app_handle.get_webview_window(PREVIEW_DETAIL_WINDOW_LABEL)
     {
+        let _ = preview_detail_window.emit(SENSITIVE_REVEAL_RESET_EVENT, ());
         preview_detail_window
             .hide()
             .map_err(|error| error.to_string())?;
@@ -1186,6 +1189,7 @@ pub fn close_image_viewer(app_handle: AppHandle) -> Result<(), String> {
             return Ok(());
         }
 
+        let _ = viewer.emit(SENSITIVE_REVEAL_RESET_EVENT, ());
         viewer.hide().map_err(|error| error.to_string())?;
         set_main_window_always_on_top(&app_handle, true)?;
         show_main_window_in_place(&app_handle)

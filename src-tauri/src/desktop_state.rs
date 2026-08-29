@@ -99,9 +99,20 @@ impl DesktopStateRepository {
     }
 
     pub fn history_snapshot(&self) -> Result<DesktopHistorySnapshot, String> {
+        Ok(self.refresh_history_snapshot()?.snapshot)
+    }
+
+    pub fn refresh_history_snapshot(&self) -> Result<DesktopHistoryMutation, String> {
         let mut state = self.lock_history()?;
         self.ensure_history_loaded(&mut state)?;
-        Ok(snapshot_from_state(&state))
+        let previous_snapshot = snapshot_from_state(&state);
+        let external_reloaded = self.reload_external_change(&mut state)?;
+        Ok(DesktopHistoryMutation {
+            previous_snapshot,
+            snapshot: snapshot_from_state(&state),
+            changed: external_reloaded,
+            external_reloaded,
+        })
     }
 
     pub fn find_history_item(&self, id: &str) -> Result<Option<HistoryEntry>, String> {
@@ -160,6 +171,10 @@ impl DesktopStateRepository {
         self.mutate_history_fallible(|history| {
             toggle_history_item_pinned_result(history, id, pinned_at, max_history_count)
         })
+    }
+
+    pub fn reclassify_sensitive_history(&self) -> Result<DesktopHistoryMutation, String> {
+        self.mutate_history(crate::history::reclassify_sensitive_history_result)
     }
 
     fn mutate_history(
@@ -359,6 +374,38 @@ mod tests {
         assert_eq!(first.revision, 1);
         assert_eq!(second, first);
         fs::remove_dir_all(path.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn history_snapshot_reconciles_an_external_cli_deletion() {
+        let path = unique_path("external-delete");
+        persist_history_to_path(&path, &[text_entry("initial")]).unwrap();
+        let repository = DesktopStateRepository::new(path.clone(), AppSettings::default());
+        let initial = repository.history_snapshot().unwrap();
+
+        fs::remove_file(&path).unwrap();
+        let refreshed = repository.refresh_history_snapshot().unwrap();
+
+        assert!(refreshed.external_reloaded);
+        assert!(refreshed.changed);
+        assert_eq!(refreshed.previous_snapshot, initial);
+        assert!(refreshed.snapshot.history.is_empty());
+        assert!(refreshed.snapshot.revision > initial.revision);
+        fs::remove_dir_all(path.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn poisoned_history_repository_returns_an_error() {
+        let path = unique_path("poisoned");
+        let repository = DesktopStateRepository::new(path, AppSettings::default());
+        let worker_repository = repository.clone();
+        let worker = std::thread::spawn(move || {
+            let _guard = worker_repository.inner.history.lock().unwrap();
+            panic!("synthetic repository poison");
+        });
+        assert!(worker.join().is_err());
+
+        assert!(repository.refresh_history_snapshot().is_err());
     }
 
     #[test]

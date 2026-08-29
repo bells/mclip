@@ -1,0 +1,29 @@
+{
+  "detectorVersion": 1,
+  "maxBytes": 65536,
+  "matches": [
+    {
+      "secretType": "pemPrivateKey",
+      "value": "-----BEGIN PRIVATE KEY-----\nSYNTHETIC-FIXTURE-NOT-A-KEY\n-----END PRIVATE KEY-----"
+    },
+    {
+      "secretType": "jwt",
+      "value": "eyJzeW50aGV0aWMiOnRydWV9.c3ludGhldGljLWZpeHR1cmU.c2lnbmF0dXJlLW5vdC1yZWFs"
+    },
+    {
+      "secretType": "awsAccessKeyId",
+      "value": "AKIASYNTHETICFIXTURE"
+    },
+    {
+      "secretType": "openAiApiKey",
+      "value": "sk-proj-SYNTHETIC_FIXTURE_NOT_A_REAL_KEY_1234567890"
+    }
+  ],
+  "nearMisses": [
+    "-----BEGIN PUBLIC KEY-----",
+    "header.payload",
+    "AKIASYNTHETICSHORT",
+    "sk-proj-too-short",
+    "ordinary UTF-8 text"
+  ]
+}

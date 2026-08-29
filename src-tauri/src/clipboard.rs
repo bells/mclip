@@ -23,6 +23,7 @@ use crate::history::{
     emit_history_change, hash_hex, process_new_history_item, HistoryEntry, NewHistoryItem,
 };
 use crate::settings::HistoryTypes;
+use crate::source_app::{current_source_app_identity, SourceApplicationIdentity};
 
 #[cfg(not(target_os = "windows"))]
 const CLIPBOARD_POLL_INTERVAL_MS: u64 = 500;
@@ -124,19 +125,92 @@ fn configured_history_types(app_handle: &AppHandle) -> Result<HistoryTypes, Stri
         .map(|settings| settings.enabled_history_types)
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct SourceCaptureDecision {
+    display_name: Option<String>,
+    skip_capture: bool,
+}
+
+fn source_capture_decision(
+    ignored_source_app_ids: &[String],
+    identity: Option<SourceApplicationIdentity>,
+) -> SourceCaptureDecision {
+    let Some(identity) = identity else {
+        return SourceCaptureDecision {
+            display_name: None,
+            skip_capture: false,
+        };
+    };
+    let skip_capture = ignored_source_app_ids
+        .iter()
+        .any(|ignored_id| ignored_id == &identity.id);
+
+    SourceCaptureDecision {
+        display_name: (!skip_capture).then_some(identity.display_name),
+        skip_capture,
+    }
+}
+
+fn current_source_capture_decision(app_handle: &AppHandle) -> SourceCaptureDecision {
+    let ignored_source_app_ids = app_handle
+        .state::<DesktopStateRepository>()
+        .settings()
+        .map(|settings| settings.ignored_source_app_ids)
+        .unwrap_or_default();
+    let identity = match current_source_app_identity() {
+        Ok(identity) => identity,
+        Err(error) => {
+            let _reason_code = error.code();
+            None
+        }
+    };
+    source_capture_decision(&ignored_source_app_ids, identity)
+}
+
+struct CapturedClipboardSnapshot {
+    snapshot: ClipboardSnapshot,
+    source_app: Option<String>,
+}
+
+fn read_current_clipboard_snapshot(
+    app_handle: &AppHandle,
+    history_types: &HistoryTypes,
+) -> Option<CapturedClipboardSnapshot> {
+    let source = current_source_capture_decision(app_handle);
+    read_clipboard_snapshot_for_source(source, || read_clipboard_snapshot(history_types))
+}
+
+fn read_clipboard_snapshot_for_source(
+    source: SourceCaptureDecision,
+    read_snapshot: impl FnOnce() -> Option<ClipboardSnapshot>,
+) -> Option<CapturedClipboardSnapshot> {
+    if source.skip_capture {
+        return None;
+    }
+
+    read_snapshot().map(|snapshot| CapturedClipboardSnapshot {
+        snapshot,
+        source_app: source.display_name,
+    })
+}
+
 // 统一处理平台监听得到的新内容：去重、写入历史、通知前端刷新。
 fn process_clipboard_snapshot(
     app_handle: &AppHandle,
     last_signature: &mut String,
-    snapshot: ClipboardSnapshot,
+    captured: CapturedClipboardSnapshot,
 ) {
+    let CapturedClipboardSnapshot {
+        snapshot,
+        source_app,
+    } = captured;
     if snapshot.signature == *last_signature {
         return;
     }
 
     *last_signature = snapshot.signature;
 
-    match process_new_history_item(app_handle, snapshot.item) {
+    match process_new_history_item(app_handle, snapshot.item, source_app) {
         Ok(Some(change)) => {
             if let Err(error) = emit_history_change(app_handle, &change) {
                 log_error(
@@ -461,11 +535,11 @@ fn read_clipboard_signature(enabled_types: &HistoryTypes) -> String {
 }
 
 #[cfg(any(target_os = "macos", test))]
-fn read_snapshot_after_change_token_update(
+fn read_snapshot_after_change_token_update<T>(
     last_change_token: &mut i64,
     current_change_token: Option<i64>,
-    read_snapshot: impl FnOnce() -> Option<ClipboardSnapshot>,
-) -> Option<ClipboardSnapshot> {
+    read_snapshot: impl FnOnce() -> Option<T>,
+) -> Option<T> {
     match current_change_token {
         Some(change_token) if change_token == *last_change_token => None,
         Some(change_token) => {
@@ -728,7 +802,8 @@ fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
         loop {
             // 其它平台保留完整轮询。每轮独立读取，避免长时间持有 Clipboard 导致后续读取不稳定。
             if let Ok(history_types) = configured_history_types(&app_handle) {
-                if let Some(snapshot) = read_clipboard_snapshot(&history_types) {
+                if let Some(snapshot) = read_current_clipboard_snapshot(&app_handle, &history_types)
+                {
                     process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
                 }
             }
@@ -751,7 +826,7 @@ mod macos_clipboard_watcher {
 
     use super::{
         configured_history_types, process_clipboard_snapshot, read_clipboard_signature,
-        read_clipboard_snapshot, read_snapshot_after_change_token_update,
+        read_current_clipboard_snapshot, read_snapshot_after_change_token_update,
         CLIPBOARD_CHANGE_SETTLE_DELAY_MS, CLIPBOARD_POLL_INTERVAL_MS,
     };
 
@@ -775,7 +850,7 @@ mod macos_clipboard_watcher {
                     if let Some(snapshot) = read_snapshot_after_change_token_update(
                         &mut last_change_token,
                         current_change_token,
-                        || read_clipboard_snapshot(&history_types),
+                        || read_current_clipboard_snapshot(&app_handle, &history_types),
                     ) {
                         process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
                     }
@@ -842,7 +917,9 @@ mod windows_clipboard_watcher {
 
     use tauri::AppHandle;
 
-    use super::{process_clipboard_snapshot, read_clipboard_signature, read_clipboard_snapshot};
+    use super::{
+        process_clipboard_snapshot, read_clipboard_signature, read_current_clipboard_snapshot,
+    };
     use crate::diagnostics::log_error;
 
     type Bool = i32;
@@ -979,7 +1056,9 @@ mod windows_clipboard_watcher {
             // window_proc 只负责把系统事件转成 channel 信号；实际读取剪贴板放在消息循环里做。
             while event_receiver.try_recv().is_ok() {
                 if let Ok(history_types) = super::configured_history_types(&app_handle) {
-                    if let Some(snapshot) = read_clipboard_snapshot(&history_types) {
+                    if let Some(snapshot) =
+                        read_current_clipboard_snapshot(&app_handle, &history_types)
+                    {
                         process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
                     }
                 }
@@ -1088,15 +1167,19 @@ fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
+
     use crate::settings::HistoryTypes;
 
     use super::{
         auto_paste_permission_status_from_parts, clipboard_file_list_paths,
         clipboard_snapshot_from_candidates, macos_auto_paste_access_result,
         macos_auto_paste_permission_settings_url, normalize_suspicious_clipboard_alpha,
-        read_snapshot_after_change_token_update, text_to_history_item, ClipboardSnapshot,
+        read_clipboard_snapshot_for_source, read_snapshot_after_change_token_update,
+        source_capture_decision, text_to_history_item, ClipboardSnapshot,
     };
     use crate::history::{HistoryKind, NewHistoryItem};
+    use crate::source_app::SourceApplicationIdentity;
     use image::RgbaImage;
 
     fn all_types() -> HistoryTypes {
@@ -1105,6 +1188,51 @@ mod tests {
             image: true,
             files: true,
         }
+    }
+
+    #[test]
+    fn ignored_source_matching_is_exact_after_normalization() {
+        let ignored = vec!["macos:com.example.passwords".to_string()];
+        let matched = source_capture_decision(
+            &ignored,
+            Some(SourceApplicationIdentity {
+                id: "macos:com.example.passwords".to_string(),
+                display_name: "Passwords".to_string(),
+            }),
+        );
+        assert!(matched.skip_capture);
+        assert_eq!(matched.display_name, None);
+
+        let near_miss = source_capture_decision(
+            &ignored,
+            Some(SourceApplicationIdentity {
+                id: "macos:com.example.passwords-beta".to_string(),
+                display_name: "Passwords Beta".to_string(),
+            }),
+        );
+        assert!(!near_miss.skip_capture);
+        assert_eq!(near_miss.display_name.as_deref(), Some("Passwords Beta"));
+    }
+
+    #[test]
+    fn ignored_source_skips_full_snapshot_read_and_history_input() {
+        let was_read = Cell::new(false);
+        let captured = read_clipboard_snapshot_for_source(
+            super::SourceCaptureDecision {
+                display_name: None,
+                skip_capture: true,
+            },
+            || {
+                was_read.set(true);
+                Some(ClipboardSnapshot {
+                    signature: "must-not-be-read".to_string(),
+                    item: NewHistoryItem::Text("must-not-be-read".to_string()),
+                })
+            },
+        );
+
+        assert!(captured.is_none());
+        assert!(!was_read.get());
     }
 
     #[test]

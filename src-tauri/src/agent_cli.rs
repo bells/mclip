@@ -169,6 +169,7 @@ fn run_list(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErro
     let mut format = OutputFormat::Text;
     let mut kind = None;
     let mut pinned_only = false;
+    let mut reveal_secrets = false;
     let mut index = 0;
 
     while index < args.len() {
@@ -193,6 +194,10 @@ fn run_list(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErro
                 format = OutputFormat::Raw;
                 index += 1;
             }
+            "--reveal-secrets" => {
+                reveal_secrets = true;
+                index += 1;
+            }
             "--format" => {
                 format = parse_format_option(args, index)?;
                 index += 2;
@@ -203,12 +208,13 @@ fn run_list(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErro
     }
 
     let entries = select_recent(history, limit, kind, pinned_only);
-    format_entries(&entries, format)
+    format_entries(&entries, format, reveal_secrets)
 }
 
 fn run_get(history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
     let mut selector = None;
     let mut format = OutputFormat::Text;
+    let mut reveal_secrets = false;
     let mut index = 0;
 
     while index < args.len() {
@@ -234,6 +240,10 @@ fn run_get(history: &[HistoryEntry], args: &[String]) -> Result<String, CliError
                 format = OutputFormat::Raw;
                 index += 1;
             }
+            "--reveal-secrets" => {
+                reveal_secrets = true;
+                index += 1;
+            }
             "--format" => {
                 format = parse_format_option(args, index)?;
                 index += 2;
@@ -246,7 +256,7 @@ fn run_get(history: &[HistoryEntry], args: &[String]) -> Result<String, CliError
     let selector =
         selector.ok_or_else(|| CliError::Usage("get requires --index or --id".to_string()))?;
     let entry = find_entry(history, selector)?;
-    format_single_entry(entry, format)
+    format_single_entry(entry, format, reveal_secrets)
 }
 
 fn run_search(history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
@@ -255,6 +265,7 @@ fn run_search(history: &[HistoryEntry], args: &[String]) -> Result<String, CliEr
     let mut format = OutputFormat::Text;
     let mut kind = None;
     let mut pinned_only = false;
+    let mut reveal_secrets = false;
     let mut index = 0;
 
     while index < args.len() {
@@ -277,6 +288,10 @@ fn run_search(history: &[HistoryEntry], args: &[String]) -> Result<String, CliEr
             }
             "--raw" => {
                 format = OutputFormat::Raw;
+                index += 1;
+            }
+            "--reveal-secrets" => {
+                reveal_secrets = true;
                 index += 1;
             }
             "--format" => {
@@ -310,7 +325,7 @@ fn run_search(history: &[HistoryEntry], args: &[String]) -> Result<String, CliEr
         .cloned()
         .collect::<Vec<_>>();
 
-    format_entries(&entries, format)
+    format_entries(&entries, format, reveal_secrets)
 }
 
 fn run_context(history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
@@ -318,6 +333,7 @@ fn run_context(history: &[HistoryEntry], args: &[String]) -> Result<String, CliE
     let mut format = OutputFormat::Markdown;
     let mut kind = None;
     let mut pinned_only = false;
+    let mut reveal_secrets = false;
     let mut index = 0;
 
     while index < args.len() {
@@ -342,6 +358,10 @@ fn run_context(history: &[HistoryEntry], args: &[String]) -> Result<String, CliE
                 format = OutputFormat::Raw;
                 index += 1;
             }
+            "--reveal-secrets" => {
+                reveal_secrets = true;
+                index += 1;
+            }
             "--format" => {
                 format = parse_format_option(args, index)?;
                 index += 2;
@@ -352,7 +372,7 @@ fn run_context(history: &[HistoryEntry], args: &[String]) -> Result<String, CliE
     }
 
     let entries = select_recent(history, last, kind, pinned_only);
-    format_entries(&entries, format)
+    format_entries(&entries, format, reveal_secrets)
 }
 
 fn run_agent(history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
@@ -360,6 +380,7 @@ fn run_agent(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErr
     let mut kind = None;
     let mut json = false;
     let mut pinned_only = false;
+    let mut reveal_secrets = false;
     let mut index = 0;
 
     while index < args.len() {
@@ -380,6 +401,10 @@ fn run_agent(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErr
                 pinned_only = true;
                 index += 1;
             }
+            "--reveal-secrets" => {
+                reveal_secrets = true;
+                index += 1;
+            }
             "--format" => {
                 json = parse_agent_format_option(args, index)?;
                 index += 2;
@@ -390,16 +415,17 @@ fn run_agent(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErr
     }
 
     let entries = select_recent(history, last, kind, pinned_only);
+    let presented_entries = presentation_entries(&entries, reveal_secrets);
 
     if json {
         let bundle = AgentBundle {
-            schema_version: 1,
+            schema_version: 2,
             mode: "agent",
             history_count: history.len(),
             selected_count: entries.len(),
             commands: agent_commands(),
             safety: agent_safety_contract(),
-            context: entries,
+            context: presented_entries,
         };
 
         return serde_json::to_string(&bundle)
@@ -407,7 +433,7 @@ fn run_agent(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErr
             .map_err(|error| CliError::Runtime(error.to_string()));
     }
 
-    Ok(format_agent_markdown(history.len(), &entries))
+    Ok(format_agent_markdown(history.len(), &presented_entries))
 }
 
 fn run_add(path: &Path, history: Vec<HistoryEntry>, args: &[String]) -> Result<String, CliError> {
@@ -851,7 +877,7 @@ fn agent_commands() -> Vec<AgentCommand> {
 
 fn agent_safety_contract() -> Vec<&'static str> {
     vec![
-        "list, get, search, context, and agent read local history only.",
+        "list, get, search, context, and agent mask classified secrets by default; --raw and --reveal-secrets explicitly reveal them.",
         "add writes text into history without replacing the system clipboard.",
         "copy writes one selected history item back to the system clipboard.",
         "pin and unpin mutate one stable entry; --pinned filters supported read commands.",
@@ -919,25 +945,52 @@ fn select_recent(
         .collect()
 }
 
-fn format_entries(entries: &[HistoryEntry], format: OutputFormat) -> Result<String, CliError> {
-    match format {
-        OutputFormat::Json => serde_json::to_string(entries)
-            .map(|json| format!("{json}\n"))
-            .map_err(|error| CliError::Runtime(error.to_string())),
-        OutputFormat::Raw => Ok(format_raw_entries(entries)),
-        OutputFormat::Markdown => Ok(format_markdown_context(entries)),
-        OutputFormat::Text => Ok(format_text_list(entries)),
+fn presentation_entries(entries: &[HistoryEntry], reveal_secrets: bool) -> Vec<HistoryEntry> {
+    if reveal_secrets {
+        entries.to_vec()
+    } else {
+        entries
+            .iter()
+            .map(HistoryEntry::masked_for_presentation)
+            .collect()
     }
 }
 
-fn format_single_entry(entry: &HistoryEntry, format: OutputFormat) -> Result<String, CliError> {
+fn format_entries(
+    entries: &[HistoryEntry],
+    format: OutputFormat,
+    reveal_secrets: bool,
+) -> Result<String, CliError> {
+    let presented_entries = presentation_entries(entries, reveal_secrets);
     match format {
-        OutputFormat::Json => serde_json::to_string(entry)
+        OutputFormat::Json => serde_json::to_string(&presented_entries)
+            .map(|json| format!("{json}\n"))
+            .map_err(|error| CliError::Runtime(error.to_string())),
+        OutputFormat::Raw => Ok(format_raw_entries(entries)),
+        OutputFormat::Markdown => Ok(format_markdown_context(&presented_entries)),
+        OutputFormat::Text => Ok(format_text_list(&presented_entries)),
+    }
+}
+
+fn format_single_entry(
+    entry: &HistoryEntry,
+    format: OutputFormat,
+    reveal_secrets: bool,
+) -> Result<String, CliError> {
+    let presented_entry = if reveal_secrets {
+        entry.clone()
+    } else {
+        entry.masked_for_presentation()
+    };
+    match format {
+        OutputFormat::Json => serde_json::to_string(&presented_entry)
             .map(|json| format!("{json}\n"))
             .map_err(|error| CliError::Runtime(error.to_string())),
         OutputFormat::Raw => Ok(format!("{}\n", raw_content(entry))),
-        OutputFormat::Markdown => Ok(format_markdown_context(std::slice::from_ref(entry))),
-        OutputFormat::Text => Ok(format_text_item(1, entry)),
+        OutputFormat::Markdown => Ok(format_markdown_context(std::slice::from_ref(
+            &presented_entry,
+        ))),
+        OutputFormat::Text => Ok(format_text_item(1, &presented_entry)),
     }
 }
 
@@ -1153,11 +1206,11 @@ fn default_config_dir() -> Option<PathBuf> {
 
 fn usage() -> &'static str {
     r#"Usage:
-  mclip-cli [--history-path PATH] list [--limit N] [--kind text|image|files] [--pinned] [--json|--format text|json|raw|markdown]
-  mclip-cli [--history-path PATH] get (--index N|--id ID) [--raw|--json|--format text|json|raw|markdown]
-  mclip-cli [--history-path PATH] search QUERY [--limit N] [--kind text|image|files] [--pinned] [--json|--format text|json|raw|markdown]
-  mclip-cli [--history-path PATH] context [--last N] [--kind text|image|files] [--pinned] [--json|--format text|json|raw|markdown]
-  mclip-cli [--history-path PATH] agent [--last N] [--kind text|image|files] [--pinned] [--json|--format markdown|json]
+  mclip-cli [--history-path PATH] list [--limit N] [--kind text|image|files] [--pinned] [--reveal-secrets] [--json|--format text|json|raw|markdown]
+  mclip-cli [--history-path PATH] get (--index N|--id ID) [--reveal-secrets] [--raw|--json|--format text|json|raw|markdown]
+  mclip-cli [--history-path PATH] search QUERY [--limit N] [--kind text|image|files] [--pinned] [--reveal-secrets] [--json|--format text|json|raw|markdown]
+  mclip-cli [--history-path PATH] context [--last N] [--kind text|image|files] [--pinned] [--reveal-secrets] [--json|--format text|json|raw|markdown]
+  mclip-cli [--history-path PATH] agent [--last N] [--kind text|image|files] [--pinned] [--reveal-secrets] [--json|--format markdown|json]
   mclip-cli [--history-path PATH] add [--source-app NAME] [--max-history N] [--json] [TEXT...]
   mclip-cli [--history-path PATH] copy (--index N|--id ID) [--json]
   mclip-cli [--history-path PATH] delete (--index N|--id ID) [--json]
@@ -1167,6 +1220,11 @@ fn usage() -> &'static str {
 
 Environment:
   MCLIP_HISTORY_PATH  Override the default local mclip history.json path.
+
+Privacy:
+  Classified secrets are masked by default. --raw and --reveal-secrets explicitly reveal
+  local plaintext history for that invocation. Detection is heuristic and masking is not
+  encryption at rest.
 "#
 }
 
@@ -1174,6 +1232,7 @@ Environment:
 mod tests {
     use super::{run_copy_with_writer, CliError};
     use crate::history::{HistoryEntry, HistoryEntryCommon};
+    use crate::sensitive_content::{SecretType, SECRET_DETECTOR_VERSION};
 
     fn text_entry(id: &str, text: &str) -> HistoryEntry {
         HistoryEntry::Text {
@@ -1188,6 +1247,8 @@ mod tests {
                 pinned_at: None,
             },
             text: text.to_string(),
+            secret_type: None,
+            secret_detector_version: None,
         }
     }
 
@@ -1213,6 +1274,40 @@ mod tests {
         assert_eq!(copied.as_deref(), Some("second"));
         assert!(output.contains(r#""action":"copy""#));
         assert!(output.contains(r#""id":"second""#));
+    }
+
+    #[test]
+    fn copy_writes_original_classified_text_without_echoing_it() {
+        let original = "sk-proj-SYNTHETIC_FIXTURE_NOT_A_REAL_KEY_1234567890";
+        let mut entry = text_entry("classified", original);
+        if let HistoryEntry::Text {
+            secret_type,
+            secret_detector_version,
+            ..
+        } = &mut entry
+        {
+            *secret_type = Some(SecretType::OpenAiApiKey);
+            *secret_detector_version = Some(SECRET_DETECTOR_VERSION);
+        }
+        let history = vec![entry];
+        let mut copied = None;
+
+        let output = run_copy_with_writer(
+            &history,
+            &["--index".to_string(), "1".to_string()],
+            |entry| {
+                copied = match entry {
+                    HistoryEntry::Text { text, .. } => Some(text),
+                    _ => None,
+                };
+                Ok(())
+            },
+        )
+        .expect("copy should succeed");
+
+        assert_eq!(copied.as_deref(), Some(original));
+        assert!(!output.contains(original));
+        assert!(!output.contains("••••••••"));
     }
 
     #[test]

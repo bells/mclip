@@ -4,13 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { DEFAULT_SETTINGS } from "../constants";
 import { getHistorySnapshot, getSettings } from "../services/ipc/commands";
-import { listenToHistoryChanged, listenToSettingsUpdated } from "../services/ipc/events";
+import {
+  listenToHistoryChanged,
+  listenToSensitiveHistoryRevealFailed,
+  listenToSettingsUpdated,
+} from "../services/ipc/events";
 import type {
   AppSettings,
   HistoryChange,
   HistoryGroupInfo,
   HistoryListItem,
   HistorySnapshot,
+  SensitiveHistoryRevealErrorCode,
 } from "../types";
 import {
   filterHistoryItems,
@@ -22,6 +27,7 @@ import { getSearchQueryAfterHistorySelection } from "../utils/searchInteraction"
 import { normalizeSettings } from "../utils/settings";
 import { recordFrontendPerformanceAfterPaint } from "../services/performance";
 import { applyHistoryChange as reduceHistoryChange } from "../utils/historyChanges";
+import { maskSensitiveHistoryItems } from "../utils/sensitiveContent";
 
 type UseClipboardDataControllerArgs = {
   onLikelyClipboardInsert: () => void;
@@ -36,6 +42,7 @@ type UseClipboardDataControllerResult = {
   historyRevision: number;
   pinnedHistoryCount: number;
   searchQuery: string;
+  sensitiveRevealNotice: SensitiveHistoryRevealErrorCode | null;
   setSearchQuery: Dispatch<SetStateAction<string>>;
   settings: AppSettings;
   visibleHistory: HistoryListItem[];
@@ -49,6 +56,8 @@ export function useClipboardDataController({
     revision: 0,
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [sensitiveRevealNotice, setSensitiveRevealNotice] =
+    useState<SensitiveHistoryRevealErrorCode | null>(null);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const historySnapshotRef = useRef(historySnapshot);
   const historyInitializedRef = useRef(false);
@@ -57,11 +66,20 @@ export function useClipboardDataController({
   const onLikelyClipboardInsertRef = useRef(onLikelyClipboardInsert);
   const pendingHistoryChangesRef = useRef<HistoryChange[]>([]);
   const searchQueryRef = useRef(searchQuery);
+  const sensitiveRevealNoticeTimerRef = useRef<number | null>(null);
   const history = historySnapshot.entries;
 
-  const filteredHistory = useMemo(
+  const unmaskedFilteredHistory = useMemo(
     () => filterHistoryItems(history, searchQuery),
     [history, searchQuery],
+  );
+  const filteredHistory = useMemo(
+    () =>
+      maskSensitiveHistoryItems(
+        unmaskedFilteredHistory,
+        settings.maskSensitiveContent,
+      ),
+    [unmaskedFilteredHistory, settings.maskSensitiveContent],
   );
   const historyGroups = useMemo(
     () => {
@@ -208,8 +226,38 @@ export function useClipboardDataController({
   useEffect(() => {
     let unlisten: UnlistenFn | undefined;
 
+    void listenToSensitiveHistoryRevealFailed(({ code }) => {
+      setSensitiveRevealNotice(code);
+      if (code === "itemNotFound" || code === "classificationStale") {
+        void refreshHistorySnapshot();
+      }
+
+      if (sensitiveRevealNoticeTimerRef.current !== null) {
+        window.clearTimeout(sensitiveRevealNoticeTimerRef.current);
+      }
+      sensitiveRevealNoticeTimerRef.current = window.setTimeout(() => {
+        sensitiveRevealNoticeTimerRef.current = null;
+        setSensitiveRevealNotice(null);
+      }, 4_000);
+    }).then((unsubscribe) => {
+      unlisten = unsubscribe;
+    });
+
+    return () => {
+      unlisten?.();
+      if (sensitiveRevealNoticeTimerRef.current !== null) {
+        window.clearTimeout(sensitiveRevealNoticeTimerRef.current);
+        sensitiveRevealNoticeTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let unlisten: UnlistenFn | undefined;
+
     void listenToSettingsUpdated((updatedSettings) => {
       setSettings(normalizeSettings(updatedSettings));
+      void refreshHistorySnapshot();
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
     });
@@ -228,6 +276,7 @@ export function useClipboardDataController({
     historyRevision: historySnapshot.revision,
     pinnedHistoryCount: history.filter((item) => item.isPinned).length,
     searchQuery,
+    sensitiveRevealNotice,
     setSearchQuery,
     settings,
     visibleHistory,

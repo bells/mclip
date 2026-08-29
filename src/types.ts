@@ -5,6 +5,11 @@ export type AppLanguage = "system" | ResolvedAppLanguage;
 export type HistoryKind = "text" | "image" | "files";
 export type MenuBarIconStyle = "appIcon" | "light" | "m";
 export type AppearanceTheme = "system" | "light" | "dark";
+export type SecretType =
+  | "pemPrivateKey"
+  | "jwt"
+  | "awsAccessKeyId"
+  | "openAiApiKey";
 export type PerformanceClock = "rust" | "frontend";
 export type PerformanceMilestoneName =
   | "processEntry"
@@ -73,6 +78,8 @@ export type AppSettings = {
   showHistoryItemNumbers: boolean;
   showMainWindowBrand: boolean;
   appearanceTheme: AppearanceTheme;
+  maskSensitiveContent: boolean;
+  ignoredSourceAppIds: string[];
 };
 
 export type CliInstallStatus = {
@@ -93,6 +100,11 @@ export type AutoPastePermissionStatus = {
   isGranted: boolean;
   requiresPermission: boolean;
   settingsUrl: string | null;
+};
+
+export type SourceAppDetectionStatus = {
+  capability: "available" | "degraded" | "unavailable";
+  reasonCode: string;
 };
 
 export type ImageCacheStats = {
@@ -116,6 +128,8 @@ export type HistoryEntryBase = {
 export type TextHistoryEntry = HistoryEntryBase & {
   kind: "text";
   text: string;
+  secretType: SecretType | null;
+  secretDetectorVersion: number | null;
 };
 
 export type ImageHistoryEntry = HistoryEntryBase & {
@@ -145,6 +159,15 @@ export type HistorySnapshot = {
 export type HistoryCommandError = {
   code: "pinnedHistoryLimitReached" | "historyMutationFailed";
   message: string;
+};
+
+export type SensitiveHistoryRevealErrorCode =
+  | "itemNotFound"
+  | "classificationStale"
+  | "historyUnavailable";
+
+export type SensitiveHistoryRevealError = {
+  code: SensitiveHistoryRevealErrorCode;
 };
 
 type RevisionedHistoryChange = {
@@ -207,6 +230,7 @@ export type HistoryGroupPreviewPayload = {
   historyRevision: number;
   items: HistoryListItem[];
   language: AppLanguage;
+  maskSensitiveContent: boolean;
   performanceInteractionId: string | null;
   showHistoryItemNumbers: boolean;
 };
@@ -218,6 +242,7 @@ export type HistoryItemPreviewPayload = {
   kind: "item";
   item: HistoryListItem;
   language: AppLanguage;
+  maskSensitiveContent: boolean;
   performanceInteractionId: string | null;
 };
 

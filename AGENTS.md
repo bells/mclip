@@ -61,7 +61,7 @@ npm run site:build
 
 `npm run check` 不包含根目录 `tests/*.test.mjs`，涉及前端契约、性能或窗口生命周期时还要单独跑 `node --test tests/*.test.mjs`。提交前优先跑这两道门禁。如果只改 TSX/CSS 文档化小界面，可以先跑 `npm run build` 快速确认，再跑完整检查。官网或发布文案有变化时还要跑 `npm run site:test`、`npm run site:build` 和 `git diff --check`。
 
-CLI 是 AI Agent/终端入口。`npm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持 `--help`/`help`、`--version`/`-V`/`version`，Agent 聚合命令 `agent`、只读命令 `list/get/search/context`，以及操作命令 `add/copy/delete/pin/unpin/clear`。help/version 不应读取历史文件；CLI 与桌面应用共用产品版本，Release 前 tag、两个 package/lockfile、Cargo package/lockfile 和构建后二进制输出必须一致。`agent` 输出最近历史、命令能力表和安全边界，默认 Markdown，`--json` 输出结构化包；`add` 只写历史不覆盖系统剪贴板，`copy` 才会写回系统剪贴板；`pin/unpin` 支持稳定 ID 或一位起始序号，read/Agent 命令支持 `--pinned`；`clear` 必须带 `--yes`，`--keep-pinned` 只清普通历史。`npm run cli:test` 是 CLI 的快速回归测试，`npm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
+CLI 是 AI Agent/终端入口。`npm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持 `--help`/`help`、`--version`/`-V`/`version`，Agent 聚合命令 `agent`、只读命令 `list/get/search/context`，以及操作命令 `add/copy/delete/pin/unpin/clear`。help/version 不应读取历史文件；CLI 与桌面应用共用产品版本，Release 前 tag、两个 package/lockfile、Cargo package/lockfile 和构建后二进制输出必须一致。`agent` 输出最近历史、命令能力表和安全边界，默认 Markdown，`--json` 输出结构化包；五个只读命令默认遮罩已分类的敏感文本，`--raw` 或 `--reveal-secrets` 只为当前调用显式显示原文；Agent 默认语义变更后 schema 为 2。`add` 只写历史不覆盖系统剪贴板，`copy` 才会写回原始内容且操作结果不得回显内容；`pin/unpin` 支持稳定 ID 或一位起始序号，read/Agent 命令支持 `--pinned`；`clear` 必须带 `--yes`，`--keep-pinned` 只清普通历史。`npm run cli:test` 是 CLI 的快速回归测试，`npm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
 
 ## 代码地图
 
@@ -121,6 +121,7 @@ src/
   utils/previewHistory.ts             preview payload 历史 reconciliation
   utils/selectionBehavior.ts          历史选择后的附加行为判断
   utils/settings.ts                   前端设置 normalize
+  utils/sensitiveContent.ts           敏感文本展示判断与固定遮罩辅助
   utils/historyChanges.ts             revision snapshot/delta reducer
   utils/imageDataUrl.ts                图片读取与失败处理辅助
 
@@ -143,8 +144,9 @@ src-tauri/
   src/history.rs                      历史持久化、去重、裁剪、图片资源清理
   src/image_cache.rs                  32 MiB 总量、8 MiB 单项上限的单飞图片缓存
   src/performance.rs                  默认关闭且不记录剪贴板内容的本地性能里程碑
+  src/sensitive_content.rs            64 KiB 有界、版本化的本地敏感文本分类与固定遮罩
   src/settings.rs                     设置持久化、登录启动、系统语言默认值
-  src/source_app.rs                   macOS/Windows 当前来源应用 best-effort 识别
+  src/source_app.rs                   macOS/Windows/X11 稳定来源标识 best-effort 识别与 Wayland 能力状态
   src/storage.rs                      原子写文件工具
 
 .github/workflows/
@@ -283,9 +285,17 @@ Windows 监听注意：
 
 - 由 `src-tauri/src/settings.rs` 管理。
 - 存在系统 app config 目录的 `settings.json`。
-- 字段包括 `launchAtLogin`、`language`、`menuBarIconStyle`、`autoPaste`、`maxHistoryCount`、`enabledHistoryTypes`、`mainWindowItemCount`、`historyGroupItemCount`、`showHistoryItemNumbers`、`showMainWindowBrand`、`appearanceTheme`。
+- 字段包括 `launchAtLogin`、`language`、`menuBarIconStyle`、`autoPaste`、`maxHistoryCount`、`enabledHistoryTypes`、`mainWindowItemCount`、`historyGroupItemCount`、`showHistoryItemNumbers`、`showMainWindowBrand`、`appearanceTheme`、`maskSensitiveContent`、`ignoredSourceAppIds`。
 - 每条 `HistoryEntryCommon` 还包含 `isPinned` 与 `pinnedAt`；旧文件缺省为未置顶，read-only load 只在内存修复非法组合，不单独改写文件。
 - 前端有 `normalizeSettings`，后端有 `AppSettings::sanitize`，改边界时两边都要同步考虑。
+
+隐私保护：
+
+- 敏感文本检测只在本地执行，detector v1 最多扫描 64 KiB，仅覆盖 PEM 私钥头、JWT 形态、AWS `AKIA`/`ASIA` 和 OpenAI `sk-proj-`/`sk-svcacct-`；不要加入宽泛 `sk-` 或熵检测而不升级版本和重新评审误报边界。
+- 原始文本仍是持久化与复制真相；遮罩固定为 `••••••••`，只用于桌面和 CLI 默认展示，不得保留原文前后缀，也不得描述为静态加密。
+- 旧历史只在用户从 Privacy Preferences 显式触发时重新分类；单纯读取 v0.1.1 文件不得改写。
+- 来源排除匹配稳定、规范化后的精确标识：macOS bundle ID、Windows 可执行文件名、X11 `WM_CLASS`；纯 Wayland 必须报告 unavailable，不得声称已执行排除。
+- 新增日志、错误、性能记录和能力诊断只能包含稳定 reason code 与有界元数据，不能包含剪贴板内容、匹配片段、私有路径、来源名称或忽略标识。
 
 语言规则：
 

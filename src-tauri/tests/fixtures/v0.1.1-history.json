@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "text",
+    "id": "v011-text-fixture",
+    "displayText": "legacy ordinary text",
+    "firstCopiedAt": 1,
+    "lastCopiedAt": 2,
+    "sourceApp": null,
+    "copyCount": 1,
+    "isPinned": false,
+    "pinnedAt": null,
+    "text": "legacy ordinary text"
+  }
+]

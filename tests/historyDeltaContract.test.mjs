@@ -12,7 +12,11 @@ test("history synchronization uses a snapshot, main-only deltas, and preview inv
       readFile("src/components/HistoryPreviewWindow.tsx", "utf8"),
     ]);
 
-  assert.match(rustSource, /emit_to\(MAIN_WINDOW_LABEL, HISTORY_CHANGED_EVENT, change\)/);
+  assert.match(rustSource, /let presented_change = change\.for_presentation\(masking_enabled\)/);
+  assert.match(
+    rustSource,
+    /emit_to\(MAIN_WINDOW_LABEL, HISTORY_CHANGED_EVENT, &presented_change\)/,
+  );
   assert.match(rustSource, /HISTORY_PREVIEW_INVALIDATED_EVENT/);
   assert.doesNotMatch(rustSource, /history-updated|HISTORY_UPDATED_EVENT/);
   assert.match(commandsSource, /invoke<HistorySnapshot>\("get_history_snapshot"\)/);

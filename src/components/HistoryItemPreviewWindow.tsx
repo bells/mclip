@@ -18,6 +18,7 @@ type HistoryItemPreviewWindowProps = {
   onPointerInside: () => void;
   onTogglePinned: (id: string) => void;
   onRequestClose: () => void;
+  onSensitiveItemStale: () => void;
 };
 
 export function HistoryItemPreviewWindow({
@@ -28,6 +29,7 @@ export function HistoryItemPreviewWindow({
   onPointerInside,
   onTogglePinned,
   onRequestClose,
+  onSensitiveItemStale,
 }: HistoryItemPreviewWindowProps) {
   return (
     <div
@@ -59,6 +61,7 @@ export function HistoryItemPreviewWindow({
         }
         item={preview.item}
         language={preview.language}
+        onSensitiveItemStale={onSensitiveItemStale}
         performanceInteractionId={preview.performanceInteractionId}
         role="dialog"
         translations={translations}

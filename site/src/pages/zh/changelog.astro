@@ -13,6 +13,19 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
     <a class="back-link" href="/zh/">返回首页</a>
     <h1>更新日志</h1>
     <article class="release-note">
+      <p class="eyebrow">0.2.0 · 开发中</p>
+      <h2>敏感内容展示保护与来源应用排除</h2>
+      <p>
+        新增本地、有界、版本化的高置信度敏感文本检测。桌面历史与 CLI/Agent 的默认输出会遮罩已分类内容；用户仍可通过明确的界面操作或单次 <code>--raw</code>/<code>--reveal-secrets</code> 参数查看原文，复制动作继续使用原始内容但不在结果中回显。
+      </p>
+      <p>
+        Privacy Preferences 可按稳定应用标识排除捕获，并明确展示平台能力。macOS 使用 bundle ID、Windows 使用可执行文件名、X11 使用 <code>WM_CLASS</code>；纯 Wayland 当前不可用，不会被描述为已执行排除。
+      </p>
+      <p>
+        遮罩是展示保护，不是静态加密。历史仍以本地明文保存；启发式检测和来源识别可能误报或漏报，不能替代密码管理器、DLP 或泄露防护。
+      </p>
+    </article>
+    <article class="release-note">
       <p class="eyebrow">0.1.1</p>
       <h2>更快、更清晰的完整核心体验</h2>
       <p>

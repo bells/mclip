@@ -18,6 +18,8 @@ pub const DEFAULT_MAIN_WINDOW_ITEM_COUNT: u32 = 10;
 pub const DEFAULT_HISTORY_GROUP_ITEM_COUNT: u32 = 50;
 pub const MIN_VISIBLE_ITEM_COUNT: u32 = 5;
 pub const MAX_HISTORY_GROUP_ITEM_COUNT: u32 = 100;
+pub const MAX_IGNORED_SOURCE_APP_COUNT: usize = 100;
+pub const MAX_SOURCE_APP_IDENTIFIER_LENGTH: usize = 255;
 pub const SETTINGS_UPDATED_EVENT: &str = "settings-updated";
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -77,6 +79,10 @@ pub struct AppSettings {
     pub show_main_window_brand: bool,
     #[serde(default)]
     pub appearance_theme: AppearanceTheme,
+    #[serde(default = "default_mask_sensitive_content")]
+    pub mask_sensitive_content: bool,
+    #[serde(default)]
+    pub ignored_source_app_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -121,6 +127,8 @@ impl Default for AppSettings {
             show_history_item_numbers: true,
             show_main_window_brand: true,
             appearance_theme: AppearanceTheme::default(),
+            mask_sensitive_content: true,
+            ignored_source_app_ids: Vec::new(),
         }
     }
 }
@@ -136,8 +144,49 @@ impl AppSettings {
         self.history_group_item_count = self
             .history_group_item_count
             .clamp(MIN_VISIBLE_ITEM_COUNT, MAX_HISTORY_GROUP_ITEM_COUNT);
+        self.ignored_source_app_ids =
+            normalize_ignored_source_app_ids(std::mem::take(&mut self.ignored_source_app_ids));
         self
     }
+}
+
+fn default_mask_sensitive_content() -> bool {
+    true
+}
+
+pub fn normalize_source_app_identifier(value: &str) -> Option<String> {
+    let normalized = value.trim().to_lowercase();
+    if normalized.is_empty() || normalized.len() > MAX_SOURCE_APP_IDENTIFIER_LENGTH {
+        return None;
+    }
+
+    normalized
+        .chars()
+        .all(|character| {
+            character.is_ascii_alphanumeric()
+                || matches!(character, '.' | '-' | '_' | ':' | '/' | '\\')
+        })
+        .then_some(normalized)
+}
+
+pub fn normalize_ignored_source_app_ids(values: Vec<String>) -> Vec<String> {
+    let mut normalized = Vec::new();
+
+    for value in values {
+        let Some(identifier) = normalize_source_app_identifier(&value) else {
+            continue;
+        };
+        if normalized.iter().any(|existing| existing == &identifier) {
+            continue;
+        }
+
+        normalized.push(identifier);
+        if normalized.len() == MAX_IGNORED_SOURCE_APP_COUNT {
+            break;
+        }
+    }
+
+    normalized
 }
 
 fn default_main_window_item_count() -> u32 {
@@ -396,10 +445,11 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
 #[cfg(test)]
 mod tests {
     use super::{
-        resolve_app_language, resolve_supported_language, AppLanguage, AppSettings,
-        AppearanceTheme, HistoryTypes, ResolvedAppLanguage, DEFAULT_HISTORY_GROUP_ITEM_COUNT,
-        DEFAULT_MAIN_WINDOW_ITEM_COUNT, DEFAULT_MAX_HISTORY_COUNT, MAX_HISTORY_GROUP_ITEM_COUNT,
-        MAX_MAX_HISTORY_COUNT, MIN_MAX_HISTORY_COUNT, MIN_VISIBLE_ITEM_COUNT,
+        normalize_ignored_source_app_ids, resolve_app_language, resolve_supported_language,
+        AppLanguage, AppSettings, AppearanceTheme, HistoryTypes, ResolvedAppLanguage,
+        DEFAULT_HISTORY_GROUP_ITEM_COUNT, DEFAULT_MAIN_WINDOW_ITEM_COUNT,
+        DEFAULT_MAX_HISTORY_COUNT, MAX_HISTORY_GROUP_ITEM_COUNT, MAX_MAX_HISTORY_COUNT,
+        MIN_MAX_HISTORY_COUNT, MIN_VISIBLE_ITEM_COUNT,
     };
     use crate::history::HistoryKind;
 
@@ -408,6 +458,32 @@ mod tests {
         assert_eq!(DEFAULT_MAX_HISTORY_COUNT, 200);
         assert_eq!(MAX_MAX_HISTORY_COUNT, 500);
         assert_eq!(AppSettings::default().max_history_count, 200);
+    }
+
+    #[test]
+    fn v011_settings_load_with_safe_privacy_defaults() {
+        let settings: AppSettings =
+            serde_json::from_str(include_str!("../tests/fixtures/v0.1.1-settings.json")).unwrap();
+        assert!(settings.mask_sensitive_content);
+        assert!(settings.ignored_source_app_ids.is_empty());
+    }
+
+    #[test]
+    fn ignored_source_apps_are_normalized_deduplicated_and_bounded() {
+        let values = (0..110)
+            .flat_map(|index| {
+                [
+                    format!(" MACOS:com.example.App{index} "),
+                    format!("macos:com.example.app{index}"),
+                ]
+            })
+            .chain(["invalid identifier with spaces".to_string()])
+            .collect();
+        let normalized = normalize_ignored_source_app_ids(values);
+
+        assert_eq!(normalized.len(), 100);
+        assert_eq!(normalized[0], "macos:com.example.app0");
+        assert_eq!(normalized[99], "macos:com.example.app99");
     }
 
     #[test]

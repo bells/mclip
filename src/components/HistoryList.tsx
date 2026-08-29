@@ -73,6 +73,11 @@ export function HistoryList({
             >
               <button
                 className={historyItem(item.kind, showItemNumbers)}
+                aria-label={
+                  item.kind === "text" && item.secretType
+                    ? translations.copySensitiveItemAriaLabel
+                    : undefined
+                }
                 data-main-keyboard-target={targetId}
                 onClick={() => onSelectItem(item.id)}
                 onFocus={(event) => {
@@ -109,6 +114,8 @@ export function HistoryList({
                   <HistoryListText
                     className={ui.itemText}
                     displayText={displayText}
+                    isSensitive={item.secretType !== null}
+                    sensitiveLabel={translations.sensitiveBadge}
                     text={item.text}
                   />
                 ) : (

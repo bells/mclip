@@ -68,6 +68,7 @@ npm run cli -- agent --last 5 --json
 npm run cli -- --version
 npm run cli -- list --limit 5 --json
 npm run cli -- get --index 1 --raw
+npm run cli -- get --index 1 --json --reveal-secrets
 npm run cli -- search "panic" --json
 npm run cli -- context --last 3 --format markdown
 npm run cli -- add "note from agent"
@@ -97,6 +98,8 @@ curl -fsSL https://www.mclip.cn/install.sh | sh
 Windows CLI 用户请在 Git Bash（或兼容的 POSIX shell）中执行该命令；桌面应用仍应使用 GitHub Releases 提供的 `.msi` 或 `.exe` 安装包。
 
 当前 CLI 不启动桌面 UI。`--help`/`help` 输出帮助，`--version`、`-V` 和 `version` 输出与 mclip 产品 Release 一致的版本号，且这些信息命令不会读取历史文件。`agent` 会输出一个面向 AI Agent 的聚合包，包含最近历史、可用命令能力表和安全边界，默认 Markdown，也支持 `--json`；`list/search/context/agent --pinned` 只返回置顶记录；`pin` 和 `unpin` 使用稳定 ID 或当前快照的一位起始序号；`clear --yes` 仍清除全部历史并报告其中的置顶条数，`clear --yes --keep-pinned` 只清除普通历史。`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy` 会把指定历史项写回系统剪贴板。偏好设置会下载与当前桌面版本完全一致的 GitHub Release 资产；公开安装脚本默认下载最新公开 Release，也可通过 `MCLIP_VERSION` 固定版本。两条预构建安装路径都会先验证同 Release 的 SHA-256 资产，校验失败时保留旧 CLI。只有预构建二进制不存在时，公开脚本才回退到本地或源码构建并要求 Rust/Cargo 和 Git。
+
+v0.2.0 开发版会在 `list`、`get`、`search`、`context` 和 `agent` 的 Text、Markdown、JSON 输出中默认遮罩已分类的敏感文本。`--raw` 和 `--reveal-secrets` 只为当前命令显式显示本地原文；`copy` 仍把用户选中的原始内容写回剪贴板，但不会在操作结果中回显。检测是有界的高置信度启发式规则，可能误报或漏报，不能替代凭证管理。
 
 ### Windows 注意事项
 
@@ -129,6 +132,8 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 置顶字段以兼容旧版的附加 JSON 字段保存。v0.1.1 的 serde 模型会忽略这些未知字段，因此可以读取 v0.2.0 的文件；但旧版不理解置顶保护，可能把这些记录当普通历史裁剪。降级前应先备份 `history.json` 和 `history-assets/`，需要回到新版时再恢复备份。
 
 应用本身不会上传剪贴板内容。只有在你手动点击“检查更新”时，应用会请求 GitHub Releases 的最新版本信息。Windows 安装器仅在缺少 WebView2 运行时时可能联网下载运行时组件。
+
+v0.2.0 开发版新增本地敏感内容分类、默认遮罩和可配置的来源应用排除。遮罩只保护界面与默认 CLI 输出，不是静态加密：原始文本仍以本地明文保存在 `history.json` 中，以保证复制内容逐字节一致。检测只覆盖一组版本化的高置信度模式，可能误报或漏报；来源应用识别同样是 best-effort，macOS 使用 bundle ID、Windows 使用可执行文件名、X11 使用 `WM_CLASS`，纯 Wayland 当前不可用。不要把这些能力当成密码管理器、DLP 或泄露防护保证。
 
 ### 本地开发
 
@@ -257,6 +262,7 @@ npm run cli -- agent --last 5 --json
 npm run cli -- --version
 npm run cli -- list --limit 5 --json
 npm run cli -- get --index 1 --raw
+npm run cli -- get --index 1 --json --reveal-secrets
 npm run cli -- search "panic" --json
 npm run cli -- context --last 3 --format markdown
 npm run cli -- add "note from agent"
@@ -287,6 +293,8 @@ Windows CLI users should run this command from Git Bash or another POSIX-compati
 
 The current CLI does not start the desktop UI. `--help`/`help` prints help, and `--version`, `-V`, and `version` print the shared mclip product Release version without reading the history file. `agent` emits an AI-agent-ready bundle with recent history, command capabilities, and safety boundaries; it defaults to Markdown and supports `--json`. `list/search/context/agent --pinned` returns only pins; `pin` and `unpin` use a stable ID or a one-based index from the current snapshot. `clear --yes` still clears everything and reports the pinned count, while `clear --yes --keep-pinned` removes only ordinary history. `add` writes text into history without replacing the current system clipboard, and `copy` writes one selected item back to the system clipboard. Preferences downloads the GitHub Release asset for the exact desktop version; the public installer defaults to the latest published Release and accepts `MCLIP_VERSION` for a pinned install. Both prebuilt paths verify the companion SHA-256 asset before replacement and preserve the previous CLI on failure. The public script falls back to local/source builds only when a prebuilt binary is missing, so Rust/Cargo and Git are not required for the normal path.
 
+The in-development v0.2.0 CLI masks classified sensitive text by default in Text, Markdown, and JSON output from `list`, `get`, `search`, `context`, and `agent`. `--raw` and `--reveal-secrets` explicitly reveal local plaintext for that invocation only. `copy` still writes the exact selected content to the clipboard without echoing it in the action result. Detection is a bounded, high-confidence heuristic and can produce false positives or false negatives; it is not a credential manager.
+
 ### Windows Notes
 
 The Windows installer is currently unsigned, so Windows SmartScreen may warn about an unknown publisher. Continue only if you trust the release.
@@ -316,6 +324,8 @@ Open `mclip` again after removing the quarantine attribute.
 Pin metadata is stored as additive JSON fields that the v0.1.1 serde model ignores, so it can parse a v0.2.0 history file. The older app does not understand pin protection and may trim those entries as ordinary history. Before downgrading, back up both `history.json` and `history-assets/`, then restore that backup when returning to the newer version.
 
 The app does not upload clipboard contents. It requests the latest GitHub Releases version only when you manually click “Check for Updates”. On Windows, the installer may access the network only to download WebView2 when the runtime is missing.
+
+The in-development v0.2.0 privacy controls add local sensitive-text classification, masked presentation, and configurable source-application exclusions. Masking protects the UI and default CLI output; it is not encryption at rest. Original text remains local plaintext in `history.json` so explicit copy stays byte-exact. The versioned detector intentionally covers only a small high-confidence set and can miss secrets or mask ordinary text. Source identity is also best-effort: macOS uses a bundle ID, Windows a normalized executable name, and X11 `WM_CLASS`; pure Wayland source exclusion is currently unavailable. These controls are not a password manager, DLP system, or breach-prevention guarantee.
 
 ### Development
 

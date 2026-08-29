@@ -80,6 +80,7 @@ function App() {
     previewHistoryGroupIndex,
     previewWindowSide,
     searchQuery,
+    sensitiveRevealNotice,
     settings,
     clearHistory,
     closeHistoryGroupPreview,
@@ -185,6 +186,7 @@ function App() {
     historyGroups.length,
     measureAndApplyMainWindowHeight,
     searchQuery,
+    sensitiveRevealNotice,
     settings.showMainWindowBrand,
     settings.showHistoryItemNumbers,
     visibleHistory.length,
@@ -576,6 +578,12 @@ function App() {
     activeMainTarget?.kind === "footer-action"
       ? activeMainTarget.action
       : undefined;
+  const sensitiveRevealNoticeMessage =
+    sensitiveRevealNotice === "itemNotFound"
+      ? t.history.revealSensitiveItemNotFound
+      : sensitiveRevealNotice === "classificationStale"
+        ? t.history.revealSensitiveClassificationStale
+        : t.history.revealSensitiveHistoryUnavailable;
 
   const openHistoryItemPreviewFromTarget = (
     item: (typeof visibleHistory)[number],
@@ -628,6 +636,11 @@ function App() {
 
         <div className={ui.mainScrollRegion(isMainScrollConstrained)}>
           <div className={ui.mainScrollContent} ref={contentMeasureRef}>
+            {sensitiveRevealNotice ? (
+              <div className={ui.historyStatusNotice} role="status">
+                {sensitiveRevealNoticeMessage}
+              </div>
+            ) : null}
             <div className={ui.appBody}>
               <HistoryList
                 hasHistory={hasHistory}

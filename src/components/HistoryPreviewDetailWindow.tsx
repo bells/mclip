@@ -20,6 +20,7 @@ import type { HistoryItemPreviewPayload } from "../types";
 import { ui } from "../uiStyles";
 import { recordFrontendPerformanceAfterPaint } from "../services/performance";
 import { reportAuxiliaryListenerReady } from "../services/auxiliaryWindows";
+import { maskSensitiveHistoryEntry } from "../utils/sensitiveContent";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
 import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
 import { HistoryDetailFullscreenButton } from "./HistoryDetailFullscreenButton";
@@ -59,11 +60,14 @@ export function HistoryPreviewDetailWindow() {
           ? {
               ...current,
               historyRevision: invalidation.revision,
-              item: {
-                ...invalidation.entry,
-                position: current.item.position,
-                renderId: current.item.renderId,
-              },
+              item: maskSensitiveHistoryEntry(
+                {
+                  ...invalidation.entry,
+                  position: current.item.position,
+                  renderId: current.item.renderId,
+                },
+                current.maskSensitiveContent,
+              ),
             }
           : current,
       );
@@ -177,6 +181,10 @@ export function HistoryPreviewDetailWindow() {
         }
         item={preview.item}
         language={preview.language}
+        onSensitiveItemStale={() => {
+          setPreview(null);
+          void hideHistoryPreviewDetailWindow();
+        }}
         performanceInteractionId={preview.performanceInteractionId}
         role="region"
         translations={translations}

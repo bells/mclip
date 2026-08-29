@@ -2226,6 +2226,7 @@ dependencies = [
  "objc2-app-kit",
  "objc2-foundation",
  "raw-window-handle",
+ "regex",
  "reqwest 0.12.28",
  "semver",
  "serde",
@@ -2237,6 +2238,7 @@ dependencies = [
  "tauri-plugin-positioner",
  "tauri-plugin-single-instance",
  "windows-sys 0.60.2",
+ "x11rb",
 ]
 
 [[package]]

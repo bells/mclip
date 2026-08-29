@@ -4,14 +4,29 @@ import { getTextHistoryAffordance } from "../utils/historyAffordance";
 type HistoryListTextProps = {
   className: string;
   displayText: string;
+  sensitiveLabel: string;
+  isSensitive: boolean;
   text: string;
 };
 
 export function HistoryListText({
   className,
   displayText,
+  sensitiveLabel,
+  isSensitive,
   text,
 }: HistoryListTextProps) {
+  if (isSensitive) {
+    return (
+      <span className={`${className} ${ui.historySensitiveText}`}>
+        <span aria-label={sensitiveLabel} className={ui.historySensitiveBadge}>
+          {sensitiveLabel}
+        </span>
+        <span className={ui.historyDisplayText}>{displayText}</span>
+      </span>
+    );
+  }
+
   const textAffordance = getTextHistoryAffordance(text);
 
   if (textAffordance?.kind === "emoji") {

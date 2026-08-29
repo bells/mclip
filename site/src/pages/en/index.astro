@@ -26,7 +26,7 @@ const features = [
   },
   {
     title: "Local-first privacy",
-    body: "Clipboard history, settings, and image assets stay on your computer. mclip does not upload clipboard contents.",
+    body: "Clipboard history, settings, and image assets stay on your computer. The in-development v0.2.0 uses bounded heuristics to classify and mask high-confidence sensitive text by default and can exclude configured source applications; both controls can miss or misclassify content.",
   },
   {
     title: "Themes, languages, and platforms",
@@ -45,7 +45,7 @@ const agentCliPoints = [
   },
   {
     title: "Built for errors, code, and prompts",
-    body: "Agent Mode defaults to Markdown and supports JSON. Regular commands support text, JSON, raw, and Markdown for copied errors, code snippets, and recent context.",
+    body: "Agent Mode defaults to Markdown and supports JSON. Classified sensitive text is masked by default; --raw and --reveal-secrets explicitly reveal local plaintext for one invocation.",
   },
 ];
 
@@ -68,6 +68,10 @@ const faqItems = [
   {
     question: "Does mclip upload my clipboard contents?",
     answer: "No. History, settings, and generated image assets stay on your computer in the local app configuration directory. The Windows installer may only access the network to install WebView2 when it is missing.",
+  },
+  {
+    question: "Is sensitive-content masking encryption?",
+    answer: "No. The in-development v0.2.0 mask protects the UI and default CLI output, while original history remains local plaintext so copy stays exact. Detection and source identity are best-effort and can produce false results; source-application exclusion is currently unavailable on pure Wayland.",
   },
   {
     question: "What if macOS says the app is damaged?",
@@ -136,10 +140,10 @@ const faqItems = [
 
   <section class="privacy-band">
     <div>
-      <h2>Your clipboard history stays on your computer.</h2>
+      <h2>Your clipboard history stays on your computer, with explicit protection limits.</h2>
     </div>
     <p>
-      mclip is a desktop utility, not a cloud service. History files, settings, and image assets live in the local app configuration directory.
+      mclip does not upload clipboard contents. The in-development v0.2.0 masks detected sensitive text by default, but history remains local plaintext: masking is not encryption at rest, and heuristic detection or source exclusions are not DLP or breach-prevention guarantees.
     </p>
   </section>
 

@@ -2,6 +2,7 @@ import type {
   HistoryPreviewInvalidation,
   HistoryPreviewPayload,
 } from "../types";
+import { maskSensitiveHistoryEntry } from "./sensitiveContent";
 
 export type PreviewHistoryReconciliation = {
   preview: HistoryPreviewPayload | null;
@@ -34,11 +35,14 @@ export function reconcilePreviewWithInvalidation(
   if (preview.kind === "item") {
     const nextItem =
       invalidation.kind === "upsert" && invalidation.entry.id === preview.item.id
-        ? {
-            ...invalidation.entry,
-            renderId: preview.item.renderId,
-            position: preview.item.position,
-          }
+        ? maskSensitiveHistoryEntry(
+            {
+              ...invalidation.entry,
+              renderId: preview.item.renderId,
+              position: preview.item.position,
+            },
+            preview.maskSensitiveContent,
+          )
         : preview.item;
     return {
       preview: removedIds.has(preview.item.id)
@@ -57,11 +61,14 @@ export function reconcilePreviewWithInvalidation(
       return invalidation.entry.isPinned
         ? []
         : [
-            {
-              ...invalidation.entry,
-              renderId: item.renderId,
-              position: item.position,
-            },
+            maskSensitiveHistoryEntry(
+              {
+                ...invalidation.entry,
+                renderId: item.renderId,
+                position: item.position,
+              },
+              preview.maskSensitiveContent,
+            ),
           ];
     });
 

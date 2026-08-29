@@ -316,6 +316,8 @@ export function HistoryGroupPreviewWindow({
                       <HistoryListText
                         className={ui.historyPreviewText}
                         displayText={displayText}
+                        isSensitive={item.secretType !== null}
+                        sensitiveLabel={translations.sensitiveBadge}
                         text={item.text}
                       />
                     ) : (

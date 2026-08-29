@@ -33,6 +33,7 @@ function historyRowPadding(kind: HistoryKind) {
 }
 
 export const ui = {
+  srOnly: "sr-only",
   focusRing,
   appFrame:
     "h-screen w-screen overflow-hidden rounded-[var(--mclip-radius-lg)] [clip-path:inset(0_round_var(--mclip-radius-lg))]",
@@ -72,6 +73,8 @@ export const ui = {
     "mx-1 my-1 h-[2px] rounded-full bg-[var(--mclip-line-strong)]",
   empty:
     "mx-0 my-1 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-surface-translucent)] px-3 py-4 text-center text-[12px] font-medium leading-5 text-[var(--mclip-ink-soft)]",
+  historyStatusNotice:
+    "mx-1 mt-1 rounded-[var(--mclip-radius-sm)] border border-[color-mix(in_srgb,var(--mclip-accent)_32%,transparent)] bg-[color-mix(in_srgb,var(--mclip-accent)_10%,transparent)] px-2.5 py-1.5 text-[11px] font-semibold leading-4 text-[var(--mclip-ink-soft)]",
   itemIndex:
     "min-w-[14px] shrink-0 text-left text-[11px] font-semibold tabular-nums text-[var(--mclip-index)]",
   itemText: listText,
@@ -328,6 +331,21 @@ export const ui = {
   settingsActionButton: compactButton,
   cliActionButton: compactButton,
   cliCopyButton: compactButton,
+  historySensitiveText: "flex min-w-0 items-center gap-1.5",
+  historySensitiveBadge:
+    "shrink-0 rounded-[4px] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-1 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.08em] text-[var(--mclip-ink-faint)]",
+  historySensitiveAction:
+    `${focusRing} h-6 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] px-2 text-[10px] font-bold text-[var(--mclip-ink-soft)] hover:bg-[var(--mclip-control-bg-hover)]`,
+  historySensitiveError:
+    "border-t border-[var(--mclip-line)] px-3 py-1.5 text-[10px] text-[var(--mclip-danger)]",
+  privacySourceInputRow: "grid grid-cols-[minmax(0,1fr)_auto] gap-2",
+  privacySourceInput:
+    `${focusRing} h-8 min-w-0 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-2 font-mono text-[11px] text-[var(--mclip-ink)] outline-none placeholder:font-sans placeholder:text-[var(--mclip-placeholder)]`,
+  privacyIgnoredList: "grid max-h-[112px] gap-1 overflow-y-auto",
+  privacyIgnoredRow:
+    "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-surface)] px-2 py-1",
+  privacyIgnoredIdentifier:
+    "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10px] text-[var(--mclip-ink-soft)]",
 };
 
 export function appFrame(isKeyboardNavigating: boolean) {

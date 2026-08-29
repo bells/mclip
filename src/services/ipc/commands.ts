@@ -8,7 +8,9 @@ import type {
   HistoryChange,
   HistorySnapshot,
   ImageCacheStats,
+  SourceAppDetectionStatus,
 } from "../../types";
+import { normalizeSensitiveHistoryRevealError } from "../../utils/sensitiveContent";
 
 export function ensureAuxiliaryWindow(label: AuxiliaryWindowLabel) {
   return invoke<number>("ensure_auxiliary_window", { label });
@@ -56,6 +58,18 @@ export function installCli() {
 
 export function getHistorySnapshot() {
   return invoke<HistorySnapshot>("get_history_snapshot");
+}
+
+export async function revealSensitiveHistoryText(id: string) {
+  try {
+    return await invoke<string>("reveal_sensitive_history_text", { id });
+  } catch (error: unknown) {
+    throw normalizeSensitiveHistoryRevealError(error);
+  }
+}
+
+export function reclassifySensitiveHistory() {
+  return invoke<HistoryChange | null>("reclassify_sensitive_history");
 }
 
 export function clearHistory() {
@@ -110,6 +124,10 @@ export function getAutoPastePermissionStatus() {
   return invoke<AutoPastePermissionStatus>(
     "get_auto_paste_permission_status",
   );
+}
+
+export function getSourceAppDetectionStatus() {
+  return invoke<SourceAppDetectionStatus>("get_source_app_detection_status");
 }
 
 export function getAssetUrl(path: string) {

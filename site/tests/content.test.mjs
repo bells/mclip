@@ -62,6 +62,27 @@ test("site includes trust, installation, and FAQ content", async () => {
   assert.match(en, /Windows SmartScreen/);
 });
 
+test("bilingual privacy copy states masking and source-exclusion limits", async () => {
+  const zh = await read("src/pages/zh/index.astro");
+  const en = await read("src/pages/en/index.astro");
+  const zhChangelog = await read("src/pages/zh/changelog.astro");
+  const enChangelog = await read("src/pages/en/changelog.astro");
+  const llms = await read("public/llms.txt");
+
+  assert.match(zh, /遮罩不是静态加密/);
+  assert.match(zh, /纯 Wayland 当前无法执行来源应用排除/);
+  assert.match(en, /masking is not encryption at rest/i);
+  assert.match(en, /unavailable on pure Wayland/);
+  assert.match(zhChangelog, /可能误报或漏报/);
+  assert.match(zhChangelog, /本地明文/);
+  assert.match(enChangelog, /false positives or false negatives/);
+  assert.match(enChangelog, /local plaintext/);
+  assert.match(llms, /--reveal-secrets/);
+  assert.match(llms, /Agent JSON uses schema version 2/);
+  assert.match(llms, /Masking is not encryption at rest/);
+  assert.match(llms, /pure Wayland source exclusion is currently unavailable/);
+});
+
 test("root path redirects at the Vercel edge instead of rendering a temporary page", async () => {
   const config = JSON.parse(await read("vercel.json"));
   const redirects = config.redirects ?? [];

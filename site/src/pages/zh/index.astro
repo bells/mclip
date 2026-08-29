@@ -26,7 +26,7 @@ const features = [
   },
   {
     title: "本地优先",
-    body: "剪贴板历史、设置和图片资源只保存在本机。mclip 不上传剪贴板内容。",
+    body: "剪贴板历史、设置和图片资源只保存在本机。v0.2.0 开发版可用有界启发式规则标记并默认遮罩高置信度敏感文本，也可按来源应用排除捕获；这些能力可能误报或漏报。",
   },
   {
     title: "主题、语言和跨平台",
@@ -45,7 +45,7 @@ const agentCliPoints = [
   },
   {
     title: "适合错误、代码和 Prompt",
-    body: "Agent 模式默认输出 Markdown，也支持 JSON；普通命令支持 text、JSON、raw、Markdown，方便把报错、代码片段和最近上下文交给 AI Agent。",
+    body: "Agent 模式默认输出 Markdown，也支持 JSON。已分类的敏感文本默认遮罩；--raw 和 --reveal-secrets 会为单次命令显式显示本地原文。",
   },
 ];
 
@@ -68,6 +68,10 @@ const faqItems = [
   {
     question: "mclip 会上传我的剪贴板内容吗？",
     answer: "不会。历史记录、设置和图片历史资源只保存在本机系统配置目录里。Windows 安装器仅在缺少 WebView2 运行时时可能联网下载运行时组件。",
+  },
+  {
+    question: "敏感内容遮罩等于加密吗？",
+    answer: "不等于。v0.2.0 开发版的遮罩只保护界面和默认 CLI 输出，原始历史仍以本地明文保存，以保证复制内容不变。检测与来源应用识别都是 best-effort，可能误报或漏报；纯 Wayland 当前无法执行来源应用排除。",
   },
   {
     question: "macOS 首次打开提示应用已损坏怎么办？",
@@ -136,10 +140,10 @@ const faqItems = [
 
   <section class="privacy-band">
     <div>
-      <h2>你的剪贴板历史只保存在本机。</h2>
+      <h2>本地保存，也诚实说明保护边界。</h2>
     </div>
     <p>
-      mclip 的目标是做一个可信的小工具，而不是云服务。历史文件、设置文件和图片资源都保存在本机应用配置目录。
+      mclip 不上传剪贴板内容。v0.2.0 开发版默认遮罩检测到的敏感文本，但历史仍是本地明文；遮罩不是静态加密，启发式检测和来源应用排除也不是 DLP 或泄露防护保证。
     </p>
   </section>
 

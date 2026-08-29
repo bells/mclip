@@ -8,6 +8,10 @@ import ts from "typescript";
 async function importTypeScriptModule(sourcePath) {
   const absoluteSourcePath = path.resolve(sourcePath);
   const source = await readFile(absoluteSourcePath, "utf8");
+  const sensitiveSource = await readFile(
+    path.resolve("src/utils/sensitiveContent.ts"),
+    "utf8",
+  );
   const output = ts.transpileModule(source, {
     compilerOptions: {
       module: ts.ModuleKind.ESNext,
@@ -15,12 +19,28 @@ async function importTypeScriptModule(sourcePath) {
     },
     fileName: absoluteSourcePath,
   });
-  const compiledPath = path.join(
+  const compilationId = `mclip-${path.basename(sourcePath, ".ts")}-${Date.now()}`;
+  const compiledPath = path.join(tmpdir(), `${compilationId}.mjs`);
+  const sensitivePath = path.join(
     tmpdir(),
-    `mclip-${path.basename(sourcePath, ".ts")}-${Date.now()}.mjs`,
+    `${compilationId}-sensitiveContent.mjs`,
+  );
+  const sensitiveOutput = ts.transpileModule(sensitiveSource, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: path.resolve("src/utils/sensitiveContent.ts"),
+  });
+  const compiledSource = output.outputText.replace(
+    '"./sensitiveContent"',
+    `"./${path.basename(sensitivePath)}"`,
   );
 
-  await writeFile(compiledPath, output.outputText, "utf8");
+  await Promise.all([
+    writeFile(compiledPath, compiledSource, "utf8"),
+    writeFile(sensitivePath, sensitiveOutput.outputText, "utf8"),
+  ]);
   return import(compiledPath);
 }
 
@@ -54,6 +74,7 @@ function createGroupPreview(items) {
     items,
     kind: "group",
     language: "system",
+    maskSensitiveContent: true,
     showHistoryItemNumbers: true,
   };
 }

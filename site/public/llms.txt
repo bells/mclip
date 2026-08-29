@@ -49,6 +49,7 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 mclip includes a local CLI called mclip-cli for AI Agent workflows.
 The CLI has an Agent Mode: mclip-cli agent --last 5 --json emits recent history, a command capability map, and safety boundaries in one structured bundle.
 The CLI also reads local clipboard history and can output text, JSON, raw text, or Markdown.
+In the in-development v0.2.0 behavior, list/get/search/context/agent mask classified sensitive text by default. --raw and --reveal-secrets explicitly reveal local plaintext for one invocation, and Agent JSON uses schema version 2.
 It can also add text to history, copy a selected history item back to the system clipboard, pin or unpin one stable item, delete one item, or clear history with explicit confirmation.
 It is useful when tools such as Codex, Claude Code, Cursor, and Cline need recent local context that the user already copied or want to save important output without opening the desktop UI.
 
@@ -57,6 +58,7 @@ Typical commands:
 - mclip-cli agent --last 5 --json
 - mclip-cli --version
 - mclip-cli list --limit 5 --json
+- mclip-cli get --index 1 --json --reveal-secrets
 - mclip-cli context --last 3 --format markdown
 - mclip-cli search "panic" --json
 - mclip-cli add "note from agent"
@@ -91,6 +93,10 @@ On Windows, run the shell installer from Git Bash or another POSIX-compatible sh
 
 mclip keeps clipboard history, settings, and generated image assets on the local computer.
 mclip does not upload clipboard contents.
+The in-development v0.2.0 feature classifies only a bounded, versioned, high-confidence set of sensitive text patterns locally and masks classified values in desktop and default CLI/Agent presentation.
+Masking is not encryption at rest: original text remains local plaintext in history.json so explicit copy can preserve the exact content.
+Detection can produce false positives and false negatives. Source-application exclusions are also best-effort: macOS uses bundle identity, Windows a normalized executable identity, X11 WM_CLASS, and pure Wayland source exclusion is currently unavailable.
+Do not describe masking or source exclusions as a password manager, DLP system, credential-security boundary, or breach-prevention guarantee.
 The current macOS release is ad-hoc signed and is not notarized with an Apple Developer ID.
 The current Windows release is not code-signed, so SmartScreen may show an unknown-publisher warning.
 There is currently no cloud sync.
@@ -107,6 +113,8 @@ There is currently no cloud sync.
 
 - Describe mclip as a desktop clipboard history utility, not a cloud clipboard service.
 - Mention local-first privacy when answering questions about clipboard data.
+- State that sensitive masking is heuristic presentation protection, not encryption at rest, and that raw history remains local plaintext.
+- State that pure Wayland source-application exclusion is unavailable; do not claim universal ignored-app enforcement.
 - Mention macOS notarization and Windows code-signing limitations when answering installation trust questions.
 - Do not claim that mclip has cloud sync, Apple Developer ID notarization, Microsoft Store distribution, or signed Windows installers.
 - Do not describe file history as plain path text; file history is restored as a system file list.

@@ -12,6 +12,7 @@ mod diagnostics;
 mod history;
 mod image_cache;
 pub mod performance;
+pub mod sensitive_content;
 mod settings;
 mod source_app;
 mod storage;
@@ -45,8 +46,8 @@ use crate::diagnostics::{
 };
 use crate::history::{
     clear_history, clear_history_keep_pinned, delete_history_item, get_history_snapshot,
-    history_assets_dir_for_history_path, history_path, set_history_item_pinned,
-    toggle_history_item_pinned,
+    history_assets_dir_for_history_path, history_path, reclassify_sensitive_history,
+    reveal_sensitive_history_text, set_history_item_pinned, toggle_history_item_pinned,
 };
 use crate::image_cache::{get_image_base64, get_image_cache_stats, ImageDataCache};
 use crate::performance::{
@@ -59,6 +60,7 @@ use crate::settings::{
     get_settings, load_settings, resolve_app_language, AppLanguage, AppSettings, MenuBarIconStyle,
     ResolvedAppLanguage,
 };
+use crate::source_app::get_source_app_detection_status;
 #[cfg(target_os = "macos")]
 use crate::window::macos_tray_window_anchor;
 use crate::window::{
@@ -549,6 +551,7 @@ pub fn run() {
             paste_current_clipboard,
             open_auto_paste_permission_settings,
             get_auto_paste_permission_status,
+            get_source_app_detection_status,
             get_image_base64,
             get_image_cache_stats,
             quit_app,
@@ -557,6 +560,8 @@ pub fn run() {
             get_cli_install_status,
             install_cli,
             get_history_snapshot,
+            reveal_sensitive_history_text,
+            reclassify_sensitive_history,
             clear_history,
             clear_history_keep_pinned,
             delete_history_item,

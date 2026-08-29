@@ -5,6 +5,8 @@ import {
   clampHistoryCount,
   clampMainWindowItemCount,
   DEFAULT_SETTINGS,
+  MAX_IGNORED_SOURCE_APP_COUNT,
+  MAX_SOURCE_APP_IDENTIFIER_LENGTH,
 } from "../constants";
 import type { AppLanguage, AppSettings, MenuBarIconStyle } from "../types";
 
@@ -22,6 +24,18 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
   };
 
   const maxHistoryCount = clampHistoryCount(settings.maxHistoryCount);
+  const ignoredSourceAppIds = Array.from(
+    new Set(
+      (settings.ignoredSourceAppIds ?? [])
+        .map((identifier) => identifier.trim().toLowerCase())
+        .filter(
+          (identifier) =>
+            identifier.length > 0 &&
+            identifier.length <= MAX_SOURCE_APP_IDENTIFIER_LENGTH &&
+            /^[a-z0-9._:/\\-]+$/.test(identifier),
+        ),
+    ),
+  ).slice(0, MAX_IGNORED_SOURCE_APP_COUNT);
 
   return {
     ...DEFAULT_SETTINGS,
@@ -47,5 +61,7 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
       settings.appearanceTheme === "light" || settings.appearanceTheme === "dark"
         ? settings.appearanceTheme
         : "system",
+    maskSensitiveContent: settings.maskSensitiveContent !== false,
+    ignoredSourceAppIds,
   };
 }
