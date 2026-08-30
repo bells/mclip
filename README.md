@@ -40,7 +40,7 @@
 - 支持搜索、方向键选择、回车复制、`Esc` 收起窗口；搜索、键盘和鼠标导航使用统一激活目标。
 - 支持偏好设置：登录时启动、界面语言、外观主题、菜单栏图标样式、自动粘贴、最大历史条数、主界面/历史分组展示条数、复制项序号显示、主界面 Logo 显示和保存类型。
 - 关于窗口支持手动检查 GitHub Releases 上的新版本。
-- 支持中英文界面，语言可选择跟随系统；中文系统显示中文，英语和其它未支持语言显示英文。
+- 支持中文、英文和日文界面，语言可选择跟随系统；`zh` locale 显示中文，`ja` locale 显示日文，其它未支持语言显示英文。`mclip-cli` 的命令名、帮助和输出仍以英文为准。
 
 ### 安装使用
 
@@ -237,7 +237,7 @@ These performance results come from an Apple M2 macOS release build with an anon
 - Supports search, arrow-key selection, Enter-to-copy, and Escape-to-hide, with one active target shared by search, keyboard, and pointer navigation.
 - Preferences include launch at login, display language, appearance theme, menu bar icon style, auto paste, maximum history count, main/group display counts, row number visibility, main-window logo visibility, and enabled content types.
 - The About window can manually check GitHub Releases for a newer version.
-- Supports Chinese and English UI. Language can follow the system: Chinese systems use Chinese, while English and other unsupported languages use English.
+- Supports Chinese, English, and Japanese UI. Follow System resolves `zh` locales to Chinese, `ja` locales to Japanese, and unsupported locales to English. `mclip-cli` command names, help, and output remain English-first.
 
 ### Installation
 

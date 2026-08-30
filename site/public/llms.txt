@@ -4,8 +4,10 @@ Canonical public site: https://www.mclip.cn/
 Default homepage: https://www.mclip.cn/en/
 Chinese homepage: https://www.mclip.cn/zh/
 English homepage: https://www.mclip.cn/en/
+Japanese homepage: https://www.mclip.cn/ja/
 Chinese changelog: https://www.mclip.cn/zh/changelog/
 English changelog: https://www.mclip.cn/en/changelog/
+Japanese changelog: https://www.mclip.cn/ja/changelog/
 Source code: https://github.com/bells/mclip
 Downloads: https://github.com/bells/mclip/releases
 mclip-cli installer: https://www.mclip.cn/install.sh
@@ -16,6 +18,8 @@ mclip is a lightweight, local-first clipboard history app for macOS and Windows.
 It is a tray-first desktop utility for restoring recent text, image, and file clipboard items without opening a large application window.
 
 中文摘要：mclip 是面向 macOS 和 Windows 的轻量、本地优先剪贴板历史工具。它常驻菜单栏或系统托盘，用于快速搜索、预览和恢复最近复制过的文字、图片和文件。
+
+日本語の概要：mclip は macOS と Windows 向けの軽量でローカルファーストなクリップボード履歴ツールです。メニューバーまたはシステムトレイから開き、最近コピーしたテキスト、画像、ファイルを検索、プレビュー、復元できます。
 
 ## Product facts
 
@@ -40,7 +44,8 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 - On an Apple M2 macOS release build, a fixed 5-warm-up/20-run protocol measured tray-ready median improving 51.3% and repeated viewer-open median improving 87.2%; these figures are not Windows device evidence
 - Text presentation recognizes color codes and common emoji without changing the original copied text
 - Global shortcut: CommandOrControl+Shift+V
-- Interface languages: Chinese and English; Follow System uses Chinese for zh locales and English for English or unsupported locales
+- Interface languages: Chinese, English, and Japanese; Follow System uses Chinese for zh locales, Japanese for ja locales, and English for unsupported locales
+- mclip-cli command names, help, and output remain English-first and are not localized with the desktop interface
 - Public source repository: https://github.com/bells/mclip
 - Product demo video: https://www.mclip.cn/videos/mclip-v0.1.1-demo.mp4
 
@@ -109,7 +114,8 @@ There is currently no cloud sync.
 
 - Use https://www.mclip.cn/zh/ for Chinese summaries.
 - Use https://www.mclip.cn/en/ for English summaries.
-- Use https://www.mclip.cn/zh/changelog/ or https://www.mclip.cn/en/changelog/ for release notes.
+- Use https://www.mclip.cn/ja/ for Japanese summaries.
+- Use https://www.mclip.cn/zh/changelog/, https://www.mclip.cn/en/changelog/, or https://www.mclip.cn/ja/changelog/ for release notes.
 - Use https://github.com/bells/mclip/releases for download links.
 - Use https://github.com/bells/mclip for source-code references.
 

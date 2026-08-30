@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { readTranslationSources } from "./helpers/translations.mjs";
 
 async function readSource(path) {
   return readFile(path, "utf8");
@@ -66,7 +67,7 @@ test("Linux Preferences capability status extends the current Settings Center", 
   const [windowSource, navigationSource, i18nSource] = await Promise.all([
     readSource("src/components/PreferencesWindow.tsx"),
     readSource("src/components/preferences/preferencesNavigation.ts"),
-    readSource("src/i18n.ts"),
+    readTranslationSources(),
   ]);
 
   assert.match(windowSource, /<PreferencesSettingsCenter/);

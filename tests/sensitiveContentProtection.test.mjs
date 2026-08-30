@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import ts from "typescript";
+import { readTranslationSources } from "./helpers/translations.mjs";
 
 async function importTypeScriptModule(sourcePath) {
   const absoluteSourcePath = path.resolve(sourcePath);
@@ -128,7 +129,7 @@ test("stale reveal refreshes main history, closes old details, and reports speci
       readFile("src/components/HistoryPreviewWindow.tsx", "utf8"),
       readFile("src/components/HistoryPreviewDetailWindow.tsx", "utf8"),
       readFile("src/App.tsx", "utf8"),
-      readFile("src/i18n.ts", "utf8"),
+      readTranslationSources(),
     ]);
 
   assert.doesNotMatch(panelSource, /catch\s*\{\s*setRevealError/);
@@ -146,7 +147,7 @@ test("stale reveal refreshes main history, closes old details, and reports speci
 test("privacy preferences remain immediate-save and disclose plaintext storage", async () => {
   const [preferencesSource, i18nSource, settingsSource] = await Promise.all([
     readFile("src/components/PreferencesWindow.tsx", "utf8"),
-    readFile("src/i18n.ts", "utf8"),
+    readTranslationSources(),
     readFile("src/utils/settings.ts", "utf8"),
   ]);
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { readTranslationSources } from "./helpers/translations.mjs";
 
 const read = (path) => readFile(path, "utf8");
 
@@ -53,7 +54,7 @@ test("the main list separates mixed pin results without section labels or row ma
   const [mainList, styles, i18n] = await Promise.all([
     read("src/components/HistoryList.tsx"),
     read("src/uiStyles.ts"),
-    read("src/i18n.ts"),
+    readTranslationSources(),
   ]);
 
   assert.match(
@@ -77,7 +78,7 @@ test("archive preview numbering stays local when canonical positions include pin
 
 test("clear copy is bilingual and explicitly offers the keep-pinned mode", async () => {
   const [i18n, app] = await Promise.all([
-    read("src/i18n.ts"),
+    readTranslationSources(),
     read("src/App.tsx"),
   ]);
   assert.match(i18n, /清除但保留置顶/);

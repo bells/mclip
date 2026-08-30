@@ -1,0 +1,35 @@
+---
+import {
+  localizedPaths,
+  SITE_LOCALE_LIST,
+  SITE_LOCALES,
+  type SiteLocale,
+} from "../i18n/locales";
+
+interface Props {
+  lang: SiteLocale;
+  path: string;
+}
+
+const { lang, path } = Astro.props;
+const paths = localizedPaths(path);
+const ariaLabels: Record<SiteLocale, string> = {
+  zh: "选择语言",
+  en: "Choose language",
+  ja: "言語を選択",
+};
+---
+
+<nav class="language-nav" aria-label={ariaLabels[lang]}>
+  {
+    SITE_LOCALE_LIST.map((locale) => (
+      <a
+        aria-current={locale === lang ? "page" : undefined}
+        href={paths[locale]}
+        lang={SITE_LOCALES[locale].htmlLang}
+      >
+        {SITE_LOCALES[locale].label}
+      </a>
+    ))
+  }
+</nav>

@@ -41,8 +41,10 @@ return to their current work with minimal interruption.
 - Preferences include launch at login, language, appearance theme, menu bar icon
   style, auto paste, max history count, visible counts, row number visibility,
   and enabled history types.
-- The app supports Chinese and English UI; user-facing copy changes must update
-  both languages.
+- The app supports Chinese, English, and Japanese UI; user-facing copy changes
+  must update all three parity-checked catalogs. Follow System resolves `zh`
+  locales to Chinese, `ja` locales to Japanese, and unsupported locales to
+  English. CLI command names, help, and output remain English-first.
 - The public website and `llms.txt` should stay aligned when public product,
   install, or CLI behavior changes.
 

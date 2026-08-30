@@ -27,16 +27,19 @@ pub const SETTINGS_UPDATED_EVENT: &str = "settings-updated";
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum AppLanguage {
-    #[default]
-    System,
     ZhCn,
     En,
+    Ja,
+    #[default]
+    #[serde(other)]
+    System,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResolvedAppLanguage {
     ZhCn,
     En,
+    Ja,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -263,6 +266,8 @@ fn resolve_supported_language(locale: &str) -> ResolvedAppLanguage {
 
     if normalized_locale.starts_with("zh") {
         ResolvedAppLanguage::ZhCn
+    } else if normalized_locale.starts_with("ja") {
+        ResolvedAppLanguage::Ja
     } else {
         ResolvedAppLanguage::En
     }
@@ -273,6 +278,7 @@ pub fn resolve_app_language(language: &AppLanguage) -> ResolvedAppLanguage {
         AppLanguage::System => resolve_supported_language(&system_locale()),
         AppLanguage::ZhCn => ResolvedAppLanguage::ZhCn,
         AppLanguage::En => ResolvedAppLanguage::En,
+        AppLanguage::Ja => ResolvedAppLanguage::Ja,
     }
 }
 
@@ -630,6 +636,15 @@ mod tests {
     }
 
     #[test]
+    fn resolve_supported_language_detects_japanese_locale() {
+        assert_eq!(resolve_supported_language("ja-JP"), ResolvedAppLanguage::Ja);
+        assert_eq!(
+            resolve_supported_language("JA_jp.UTF-8"),
+            ResolvedAppLanguage::Ja
+        );
+    }
+
+    #[test]
     fn resolve_supported_language_falls_back_to_english() {
         assert_eq!(resolve_supported_language("tr-TR"), ResolvedAppLanguage::En);
     }
@@ -643,6 +658,10 @@ mod tests {
         assert_eq!(
             resolve_app_language(&AppLanguage::En),
             ResolvedAppLanguage::En
+        );
+        assert_eq!(
+            resolve_app_language(&AppLanguage::Ja),
+            ResolvedAppLanguage::Ja
         );
     }
 
@@ -886,6 +905,46 @@ mod tests {
         let value = serde_json::to_value(settings).unwrap();
 
         assert_eq!(value["language"].as_str(), Some("system"));
+    }
+
+    #[test]
+    fn settings_round_trip_japanese_language() {
+        let settings = AppSettings {
+            language: AppLanguage::Ja,
+            ..AppSettings::default()
+        };
+        let serialized = serde_json::to_string(&settings).unwrap();
+        let restored: AppSettings = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(restored.language, AppLanguage::Ja);
+        assert_eq!(
+            serde_json::to_value(restored).unwrap()["language"].as_str(),
+            Some("ja")
+        );
+    }
+
+    #[test]
+    fn unknown_language_falls_back_without_discarding_other_settings() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{
+              "autoPaste": true,
+              "launchAtLogin": true,
+              "language": "futureLocale",
+              "maxHistoryCount": 321,
+              "enabledHistoryTypes": {
+                "text": true,
+                "image": false,
+                "files": true
+              }
+            }"#,
+        )
+        .unwrap();
+
+        assert_eq!(settings.language, AppLanguage::System);
+        assert!(settings.auto_paste);
+        assert!(settings.launch_at_login);
+        assert_eq!(settings.max_history_count, 321);
+        assert!(!settings.enabled_history_types.image);
     }
 
     #[test]

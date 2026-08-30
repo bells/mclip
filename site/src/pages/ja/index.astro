@@ -1,0 +1,167 @@
+---
+import AgentCliSection from "../../components/AgentCliSection.astro";
+import Faq from "../../components/Faq.astro";
+import FeatureGrid from "../../components/FeatureGrid.astro";
+import Hero from "../../components/Hero.astro";
+import InstallGuide from "../../components/InstallGuide.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+
+const features = [
+  {
+    title: "トレイからすぐに開く",
+    body: "メニューバーまたはシステムトレイのアイコンをクリックするか、CommandOrControl+Shift+V を押します。v0.1.1 では起動時にメインウィンドウだけを読み込み、プレビューを事前準備し、使用頻度の低いウィンドウは必要なときに作成します。Apple M2 での計測ではトレイ準備完了時間の中央値が 51.3% 短縮しました。",
+  },
+  {
+    title: "テキスト、画像、ファイル",
+    body: "テキスト、スクリーンショット、Finder またはエクスプローラーのファイルを保存します。よく使う項目は最大 100 件まで通常履歴より上にピン留めでき、メイン一覧や履歴グループの件数には含まれません。ファイル履歴を選ぶとパス文字列ではなくシステムのファイル一覧として復元し、詳細には完全な絶対パスとファイル名を表示します。",
+  },
+  {
+    title: "コンパクトで独立したプレビュー",
+    body: "最新 10 件を既定でコンパクトに表示し、テキストとファイルの行を詰めても画像行の高さは保ちます。古い履歴はグループ化し、ホバー時の詳細も独立したままです。画像は専用ビューアで最大化して開き、元のサイズに戻したり Escape で閉じたりできます。",
+  },
+  {
+    title: "検索とキーボード操作",
+    body: "入力して絞り込み、矢印キーで移動し、Enter でコピー、Escape で閉じます。検索、キーボード、ポインターは履歴、グループ、フッター操作で同じ選択対象を共有します。",
+  },
+  {
+    title: "ローカルファーストのプライバシー",
+    body: "クリップボード履歴、設定、画像アセットはこのコンピューターだけに保存されます。開発中の v0.2.0 は有界なヒューリスティックで高確度の機密テキストを分類して既定でマスクし、指定したコピー元アプリを除外できますが、どちらも誤検出や見落としが起こる可能性があります。",
+  },
+  {
+    title: "テーマ、言語、プラットフォーム",
+    body: "mclip は macOS と Windows に対応し、システムの外観と言語に従えます。中国語、英語、日本語を選択でき、新規インストールでは 200 件、最大 500 件まで履歴を保持します。一覧件数、項目番号、ブランド表示、対応する Agent CLI のインストールも設定できます。",
+  },
+];
+
+const agentCliPoints = [
+  {
+    title: "1 コマンドの Agent Mode",
+    body: "mclip-cli agent --last 5 --json は、最近の履歴、コマンド機能、安全境界を Codex、Claude Code、Cursor、Cline 向けにまとめて出力します。",
+  },
+  {
+    title: "デスクトップを邪魔しない制御された操作",
+    body: "agent/list/get/search/context は読み取り専用でピン留めの絞り込みに対応します。pin/unpin は 1 件だけを変更し、clear --yes --keep-pinned はピン留めを残して通常履歴を消去します。",
+  },
+  {
+    title: "エラー、コード、プロンプトに対応",
+    body: "Agent Mode は既定で Markdown、必要に応じて JSON を出力します。transform は stdin/stdout で JSON、Base64、URL コンポーネントを変換し、copy は 1 つの stdin 入力を受け取ります。どちらも履歴を直接変更しません。",
+  },
+];
+
+const installItems = [
+  {
+    title: "macOS",
+    body: "GitHub Releases から DMG をダウンロードし、mclip.app をアプリケーションフォルダへドラッグします。現在のビルドは notarization 済みではないため、ブラウザからのダウンロード後に macOS が隔離する場合があります。",
+  },
+  {
+    title: "Windows",
+    body: "MSI または EXE インストーラーをダウンロードし、セットアップを進めます。現在のインストーラーはコード署名されていないため、Windows SmartScreen が不明な発行元として警告する場合があります。",
+  },
+  {
+    title: "開発者",
+    body: "ソースコードは GitHub で公開しています。Tauri 2、React 19、TypeScript、Rust を使用し、npm run tauri:dev でローカル実行できます。",
+  },
+];
+
+const faqItems = [
+  {
+    question: "mclip はクリップボードの内容をアップロードしますか？",
+    answer: "いいえ。履歴、設定、生成した画像アセットはローカルのアプリ設定ディレクトリに保存されます。Windows インストーラーは WebView2 がない場合に限り、そのランタイムを取得するためネットワークへ接続することがあります。",
+  },
+  {
+    question: "機密内容のマスクは暗号化ですか？",
+    answer: "いいえ。開発中の v0.2.0 のマスクは画面と既定の CLI 出力を保護しますが、正確なコピーを保つため元の履歴はローカルに平文で残ります。検出とコピー元識別はベストエフォートで、誤った結果になる可能性があります。純粋な Wayland ではコピー元アプリの除外を現在利用できません。",
+  },
+  {
+    question: "macOS でアプリが破損していると表示されたら？",
+    answer: "現在の macOS ビルドは ad-hoc 署名で、Apple Developer ID による notarization は行っていません。mclip.app をアプリケーションへ移動し、その Release を信頼できる場合は xattr -dr com.apple.quarantine /Applications/mclip.app を実行できます。",
+  },
+  {
+    question: "Windows SmartScreen の警告は想定内ですか？",
+    answer: "現時点では想定内です。Windows パッケージはまだコード署名されていないため、不明な発行元として警告される場合があります。信頼できる GitHub Release だけをインストールしてください。",
+  },
+  {
+    question: "履歴は何件保存できますか？",
+    answer: "新規インストールでは既定で最大 200 件、10～500 件の範囲で設定できます。メインウィンドウと履歴グループの表示件数は別々に設定でき、テキスト、画像、ファイルから保存する種類も選べます。",
+  },
+];
+---
+
+<SiteLayout
+  lang="ja"
+  path="/ja/"
+  title="mclip - 軽量でローカルファーストなクリップボード履歴"
+  description="mclip は macOS と Windows 向けのローカルファーストなクリップボード履歴アプリです。テキスト、画像、ファイルの履歴、独立したプレビュー、トレイショートカット、Agent Mode 対応の AI Agent CLI を備えています。"
+  faqItems={faqItems}
+>
+  <Hero
+    lang="ja"
+    title="軽量でローカルファーストなクリップボード履歴"
+    description="mclip はメニューバーまたはシステムトレイに常駐します。以前コピーしたテキスト、画像、ファイルが必要なときだけ開き、大きなウィンドウに作業を遮られず、すぐ元の作業へ戻れます。"
+    primaryCta="mclip をダウンロード"
+    secondaryCta="GitHub で見る"
+    note="現在の公開バージョンは 0.1.1 です。ダウンロードは GitHub Releases から提供します。"
+    utilityLabel="macOS のメニューバー · Windows のシステムトレイ"
+    proofItems={[
+      "Apple M2 でトレイ準備完了時間の中央値を 51.3% 短縮",
+      "テキスト、画像、ファイルと専用画像ビューア",
+      "差分更新と画像キャッシュもローカルで完結",
+    ]}
+  />
+
+  <FeatureGrid
+    id="features"
+    title="コピー履歴を手元に置き、作業の邪魔をしない"
+    summary="トレイから開き、検索し、プレビューしてコピーしたら、すぐ元の作業へ戻る。mclip の画面はこの実際の流れに沿っています。"
+    features={features}
+  />
+
+  <AgentCliSection
+    id="agents"
+    eyebrow="開発者と AI Agent 向け"
+    title="AI Agent と CLI"
+    summary="mclip-cli は Codex、Claude Code、Cursor、Cline がローカルのクリップボード履歴を参照するためのターミナル入口です。Agent Mode は最近の履歴、利用可能なコマンド、安全境界をまとめ、同じ内容を何度も貼り付ける手間を減らします。CLI のヘルプと出力は引き続き英語です。"
+    installLabel="mclip-cli をインストール"
+    installCommand="curl -fsSL https://www.mclip.cn/install.sh | sh"
+    exampleLabel="よく使うコマンド"
+    examples={[
+      "mclip-cli agent --last 5 --json",
+      "mclip-cli list --limit 5 --json",
+      "mclip-cli context --last 3 --format markdown",
+      "mclip-cli add \"note from agent\"",
+      "mclip-cli copy --index 1",
+      "printf '%s' '{\"ok\":true}' | mclip-cli transform json-prettify",
+      "printf '%s' 'pipeline clipboard text' | mclip-cli copy",
+      "mclip-cli pin --id h_xxx",
+      "mclip-cli list --pinned --json",
+    ]}
+    points={agentCliPoints}
+    note="インストーラーは同じ GitHub Release からビルド済み mclip-cli と SHA-256 ファイルを取得し、古い CLI を置換する前に検証します。MCLIP_VERSION でバージョンを固定でき、バイナリアセットがない場合だけソースビルドへ切り替えます。Windows では Git Bash など POSIX 互換シェルから実行してください。"
+  />
+
+  <section class="privacy-band">
+    <div>
+      <h2>履歴はコンピューターに残し、保護の限界も明示します。</h2>
+    </div>
+    <p>
+      mclip はクリップボード内容をアップロードしません。開発中の v0.2.0 は検出した機密テキストを既定でマスクしますが、履歴はローカルの平文です。マスクは保存時の暗号化ではなく、ヒューリスティック検出やコピー元除外も DLP や漏えい防止を保証しません。
+    </p>
+  </section>
+
+  <InstallGuide
+    id="install"
+    title="GitHub Releases から始める"
+    intro="直接ダウンロードでき、現在の macOS notarization と Windows コード署名の制限もインストール前に確認できます。"
+    items={installItems}
+  />
+
+  <Faq
+    id="faq"
+    title="インストール前のよくある質問"
+    summary="署名、notarization、WebView2、ローカルデータの境界をダウンロード前に確認できます。"
+    items={faqItems}
+  />
+
+  <SiteFooter lang="ja" />
+</SiteLayout>

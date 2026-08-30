@@ -7,6 +7,10 @@ export function resolveSupportedLanguage(locale: string | null | undefined): Res
     return "zhCn";
   }
 
+  if (normalizedLocale.startsWith("ja")) {
+    return "ja";
+  }
+
   return "en";
 }
 
@@ -28,4 +32,14 @@ export function resolveAppLanguage(language: AppLanguage): ResolvedAppLanguage {
   }
 
   return language;
+}
+
+const DISPLAY_LOCALES: Record<ResolvedAppLanguage, string> = {
+  zhCn: "zh-CN",
+  en: "en-US",
+  ja: "ja-JP",
+};
+
+export function getDisplayLocale(language: AppLanguage): string {
+  return DISPLAY_LOCALES[resolveAppLanguage(language)];
 }

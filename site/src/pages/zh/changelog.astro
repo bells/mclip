@@ -1,17 +1,31 @@
 ---
 import SiteFooter from "../../components/SiteFooter.astro";
+import LanguageNav from "../../components/LanguageNav.astro";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 ---
 
 <SiteLayout
-  lang="zh-CN"
+  lang="zh"
   path="/zh/changelog/"
   title="mclip 更新日志"
   description="mclip 的公开版本更新记录。"
 >
   <main class="text-page">
-    <a class="back-link" href="/zh/">返回首页</a>
+    <div class="text-page-nav">
+      <a class="back-link" href="/zh/">返回首页</a>
+      <LanguageNav lang="zh" path="/zh/changelog/" />
+    </div>
     <h1>更新日志</h1>
+    <article class="release-note">
+      <p class="eyebrow">0.2.0 · 开发中</p>
+      <h2>应用与官网日文本地化</h2>
+      <p>
+        桌面应用新增日文，覆盖主历史、预览、图片查看器、文本快速操作、About 和偏好设置；跟随系统时，日文系统 locale 会解析为日文。中文、英文和日文共用一套经过类型完整性检查的词典契约。
+      </p>
+      <p>
+        官网新增日文首页与更新日志，并补齐三语言 canonical、hreflang、Open Graph 和 JSON-LD。根路径与 x-default 继续使用英文；mclip-cli 的命令名、帮助和输出保持英文优先，不在本次本地化范围内。
+      </p>
+    </article>
     <article class="release-note">
       <p class="eyebrow">0.2.0 · 开发中</p>
       <h2>敏感内容展示保护与来源应用排除</h2>

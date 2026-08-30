@@ -1143,6 +1143,7 @@ export function PreferencesWindow() {
                       <option value="system">{t.languageSystem}</option>
                       <option value="zhCn">{t.languageChinese}</option>
                       <option value="en">{t.languageEnglish}</option>
+                      <option value="ja">{t.languageJapanese}</option>
                     </select>
                   </SettingsSelectField>
 

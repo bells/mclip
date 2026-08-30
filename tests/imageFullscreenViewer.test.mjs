@@ -3,6 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { readTranslationSources } from "./helpers/translations.mjs";
 import ts from "typescript";
 
 async function readSource(sourcePath) {
@@ -230,7 +231,7 @@ test("viewer reuses the complete history detail and keeps guarded window actions
     readSource("src/components/HistoryDetailPanel.tsx"),
     readSource("src/components/HistoryPreviewDetailContent.tsx"),
     readSource("src/uiStyles.ts"),
-    readSource("src/i18n.ts"),
+    readTranslationSources(),
   ]);
 
   assert.match(viewerSource, /useApplyAppTheme\(payload\?\.appearanceTheme/);
@@ -285,7 +286,7 @@ test("normal image details expose compact loading and error fallbacks only", asy
     readSource("src/components/HistoryPreviewDetailContent.tsx"),
     readSource("src/components/ImageThumb.tsx"),
     readSource("src/uiStyles.ts"),
-    readSource("src/i18n.ts"),
+    readTranslationSources(),
   ]);
 
   assert.match(imageSource, /loadingFallback\?: ReactNode/);

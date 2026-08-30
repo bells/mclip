@@ -82,7 +82,8 @@ src/
   styles.css                          Tailwind 入口、全局 reset、语义主题 token
   uiStyles.ts                         组件 Tailwind class 映射；样式迁移后不再使用 App.css
   constants.ts                        app 名称、GitHub URL、preview 宽度、默认设置
-  i18n.ts                             中文和英文文案表
+  i18n.ts                             类型安全的语言词典入口与英文防御性回退
+  i18n/{zhCn,en,ja}.ts                中文、英文和日文完整文案表
   types.ts                            前后端共享的 camelCase 数据类型
   hooks/useClipboardApp.ts            组合数据、操作和 preview controller 的主入口
   hooks/useClipboardDataController.ts 历史/设置读取、事件订阅、过滤与分组
@@ -302,10 +303,10 @@ Windows 监听注意：
 
 语言规则：
 
-- `language` 字段支持 `system`、`zhCn`、`en`，默认值是 `system`。
-- `system` 表示跟随系统语言；系统 locale 以 `zh` 开头则解析为中文，其它语言（包括英语和暂不支持的语言）解析为英文。
+- `language` 字段支持 `system`、`zhCn`、`en`、`ja`，默认值是 `system`。
+- `system` 表示跟随系统语言；系统 locale 以 `zh` 开头则解析为中文，以 `ja` 开头则解析为日文，其它语言（包括英语和暂不支持的语言）解析为英文。
 - 前端文案、日期格式和 Rust 原生托盘 tooltip 展示前都要先解析 `system`，不要直接把 `system` 当作可展示语言。
-- 改文案时必须同时补中文和英文。
+- 改文案时必须同时补中文、英文和日文；三个词典必须满足同一 `AppTranslations` 类型契约。
 
 登录启动：
 
@@ -361,7 +362,7 @@ Windows 功能必须和 macOS 对齐：
 - 独立图片查看器的最大化、恢复、删除和 Escape 关闭。
 - About 和 Preferences 独立窗口。
 - 登录时启动。
-- 英文/中文界面和系统语言默认值。
+- 中文/英文/日文界面和系统语言默认值。
 
 Windows 特有实现：
 
@@ -489,7 +490,7 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - 改保存类型时，同步检查 `HistoryKind`、`HistoryTypes`、`PreferencesWindow`、`clipboard.rs` 和 `history.rs`。
 - 改文件历史展示时，同步检查 `src/utils/history.ts`、`HistoryList.tsx`、`HistoryGroupPreviewWindow.tsx` 和 `HistoryPreviewDetailContent.tsx`；列表可省略，详情不能省略。
 - 改文件复制/粘贴语义时，同步检查 `src-tauri/src/clipboard.rs` 的文件列表读取、`file://` 文本兼容和 `HistoryEntry::Files` 写回逻辑。
-- 改语言文案时，中文和英文都要补齐。
+- 改语言文案时，中文、英文和日文都要补齐。
 - 改 Tauri 命令或事件名时，要同步更新 `src/services/ipc/*`、`src/lib/tauri.ts` facade 和 Rust `generate_handler!`。
 - 新增 eager 主窗口时更新 `tauri.conf.json`；新增辅助窗口时更新 `AUXILIARY_WINDOW_DESCRIPTORS`、前后端 label/type/route、listener ready 协议、两个 capability 文件和 AGENTS 代码地图。
 - 新增 Tauri API 时，同步检查 `src-tauri/capabilities/default.json`。

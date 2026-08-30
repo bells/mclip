@@ -1,31 +1,40 @@
 ---
+import { localizedPath, type SiteLocale } from "../i18n/locales";
+
 interface Props {
-  lang: "zh" | "en";
+  lang: SiteLocale;
 }
 
 const { lang } = Astro.props;
+const copy: Record<SiteLocale, { changelog: string; description: string }> = {
+  zh: {
+    changelog: "更新日志",
+    description: "轻量、本地优先的剪贴板历史工具。",
+  },
+  en: {
+    changelog: "Changelog",
+    description: "A lightweight, local-first clipboard history tool.",
+  },
+  ja: {
+    changelog: "更新履歴",
+    description: "軽量でローカルファーストなクリップボード履歴ツール。",
+  },
+};
+const t = copy[lang];
 ---
 
 <footer class="site-footer">
   <div>
-    <a class="brand footer-brand" href={lang === "zh" ? "/zh/" : "/en/"}>
+    <a class="brand footer-brand" href={localizedPath(lang, "/en/")}>
       <img src="/app-icon.png" alt="" />
       <span>mclip</span>
     </a>
-    <p>
-      {
-        lang === "zh"
-          ? "轻量、本地优先的剪贴板历史工具。"
-          : "A lightweight, local-first clipboard history tool."
-      }
-    </p>
+    <p>{t.description}</p>
   </div>
   <div class="footer-links">
     <a href="https://github.com/bells/mclip">GitHub</a>
     <a href="https://github.com/bells/mclip/releases">Releases</a>
-    <a href={lang === "zh" ? "/zh/changelog/" : "/en/changelog/"}>
-      {lang === "zh" ? "更新日志" : "Changelog"}
-    </a>
+    <a href={localizedPath(lang, "/en/changelog/")}>{t.changelog}</a>
     <a href="/llms.txt">llms.txt</a>
   </div>
 </footer>

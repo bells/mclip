@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { readTranslationSources } from "./helpers/translations.mjs";
 
 async function readSource(path) {
   return readFile(path, "utf8");
@@ -19,19 +20,21 @@ test("preferences expose theme, visible item counts, and row number visibility",
   assert.match(source, /toggleHistoryItemNumbers/);
 });
 
-test("language settings support following the system language", async () => {
+test("language settings support Chinese, English, Japanese, and the system language", async () => {
   const [constantsSource, settingsSource, languageSource, i18nSource] = await Promise.all([
     readSource("src/constants.ts"),
     readSource("src/utils/settings.ts"),
     readSource("src/utils/language.ts"),
-    readSource("src/i18n.ts"),
+    readTranslationSources(),
   ]);
 
   assert.match(constantsSource, /language:\s*"system"/);
-  assert.match(settingsSource, /const APP_LANGUAGES:[\s\S]*"system"[\s\S]*"zhCn"[\s\S]*"en"/);
+  assert.match(settingsSource, /const APP_LANGUAGES:[\s\S]*"system"[\s\S]*"zhCn"[\s\S]*"en"[\s\S]*"ja"/);
   assert.match(languageSource, /startsWith\("zh"\)/);
+  assert.match(languageSource, /startsWith\("ja"\)/);
   assert.match(languageSource, /return "en";/);
   assert.match(i18nSource, /languageSystem:/);
+  assert.match(i18nSource, /languageJapanese:/);
   assert.match(i18nSource, /resolveAppLanguage\(language\)/);
 });
 
@@ -96,8 +99,8 @@ test("lowering max history count reconciles the main window item count", async (
   );
 });
 
-test("preferences translations include v0.1.1 settings in both languages", async () => {
-  const source = await readSource("src/i18n.ts");
+test("preferences translations include core settings in all languages", async () => {
+  const source = await readTranslationSources();
 
   for (const key of [
     "appearanceThemeLabel",

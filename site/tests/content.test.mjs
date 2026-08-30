@@ -4,9 +4,10 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("Chinese and English homepages expose the core product promise", async () => {
+test("Chinese, English, and Japanese homepages expose the core product promise", async () => {
   const zh = await read("src/pages/zh/index.astro");
   const en = await read("src/pages/en/index.astro");
+  const ja = await read("src/pages/ja/index.astro");
 
   assert.match(zh, /轻量、本地优先/);
   assert.match(zh, /macOS 和 Windows/);
@@ -14,6 +15,9 @@ test("Chinese and English homepages expose the core product promise", async () =
   assert.match(en, /Lightweight, local-first/);
   assert.match(en, /macOS and Windows/);
   assert.match(en, /Download mclip/);
+  assert.match(ja, /軽量でローカルファースト/);
+  assert.match(ja, /macOS と Windows/);
+  assert.match(ja, /mclip をダウンロード/);
 });
 
 test("site publishes the v0.1.1 release and current product capabilities", async () => {
@@ -21,6 +25,8 @@ test("site publishes the v0.1.1 release and current product capabilities", async
   const en = await read("src/pages/en/index.astro");
   const zhChangelog = await read("src/pages/zh/changelog.astro");
   const enChangelog = await read("src/pages/en/changelog.astro");
+  const ja = await read("src/pages/ja/index.astro");
+  const jaChangelog = await read("src/pages/ja/changelog.astro");
   const layout = await read("src/layouts/SiteLayout.astro");
   const llms = await read("public/llms.txt");
 
@@ -35,6 +41,13 @@ test("site publishes the v0.1.1 release and current product capabilities", async
   assert.match(enChangelog, /System\/Light\/Dark/);
   assert.match(enChangelog, /A faster, clearer complete core experience/);
   assert.match(enChangelog, /tray-ready median improved 51\.3%/);
+  assert.match(ja, /現在の公開バージョンは 0\.1\.1/);
+  assert.match(ja, /Windows では Git Bash/);
+  assert.match(ja, /最大 100 件/);
+  assert.match(jaChangelog, /0\.1\.1/);
+  assert.match(jaChangelog, /Tailwind CSS 4/);
+  assert.match(jaChangelog, /SHA-256/);
+  assert.match(jaChangelog, /Windows 実機の証拠ではありません/);
   assert.match(layout, /softwareVersion: "0\.1\.1"/);
   assert.match(llms, /Current public version: 0\.1\.1/);
   assert.match(llms, /independent detail window/);
@@ -53,6 +66,7 @@ test("site publishes the v0.1.1 release and current product capabilities", async
 test("site includes trust, installation, and FAQ content", async () => {
   const zh = await read("src/pages/zh/index.astro");
   const en = await read("src/pages/en/index.astro");
+  const ja = await read("src/pages/ja/index.astro");
 
   assert.match(zh, /只保存在本机/);
   assert.match(zh, /macOS 首次打开提示/);
@@ -60,14 +74,19 @@ test("site includes trust, installation, and FAQ content", async () => {
   assert.match(en, /stays on your computer/);
   assert.match(en, /macOS says the app is damaged/);
   assert.match(en, /Windows SmartScreen/);
+  assert.match(ja, /このコンピューターだけに保存/);
+  assert.match(ja, /macOS でアプリが破損/);
+  assert.match(ja, /Windows SmartScreen/);
 });
 
-test("bilingual privacy copy states masking and source-exclusion limits", async () => {
+test("multilingual privacy copy states masking and source-exclusion limits", async () => {
   const zh = await read("src/pages/zh/index.astro");
   const en = await read("src/pages/en/index.astro");
   const zhChangelog = await read("src/pages/zh/changelog.astro");
   const enChangelog = await read("src/pages/en/changelog.astro");
   const llms = await read("public/llms.txt");
+  const ja = await read("src/pages/ja/index.astro");
+  const jaChangelog = await read("src/pages/ja/changelog.astro");
 
   assert.match(zh, /遮罩不是静态加密/);
   assert.match(zh, /纯 Wayland 当前无法执行来源应用排除/);
@@ -77,6 +96,10 @@ test("bilingual privacy copy states masking and source-exclusion limits", async 
   assert.match(zhChangelog, /本地明文/);
   assert.match(enChangelog, /false positives or false negatives/);
   assert.match(enChangelog, /local plaintext/);
+  assert.match(ja, /マスクは保存時の暗号化ではなく/);
+  assert.match(ja, /純粋な Wayland ではコピー元アプリの除外を現在利用できません/);
+  assert.match(jaChangelog, /誤検出や見落とし/);
+  assert.match(jaChangelog, /ローカルに平文/);
   assert.match(llms, /--reveal-secrets/);
   assert.match(llms, /Agent JSON uses schema version 2/);
   assert.match(llms, /Masking is not encryption at rest/);
@@ -100,6 +123,7 @@ test("site describes file history as restorable files, not path-only text", asyn
   const en = await read("src/pages/en/index.astro");
   const zhChangelog = await read("src/pages/zh/changelog.astro");
   const enChangelog = await read("src/pages/en/changelog.astro");
+  const ja = await read("src/pages/ja/index.astro");
 
   assert.match(zh, /系统文件列表/);
   assert.match(zh, /完整绝对路径/);
@@ -109,6 +133,9 @@ test("site describes file history as restorable files, not path-only text", asyn
   assert.doesNotMatch(en, /file-path|file paths/);
   assert.match(zhChangelog, /文件保存与回填/);
   assert.match(enChangelog, /file history with file restore/);
+  assert.match(ja, /システムのファイル一覧として復元/);
+  assert.match(ja, /完全な絶対パス/);
+  assert.doesNotMatch(ja, /パス文字列として復元/);
 });
 
 test("site introduces AI Agent and mclip-cli workflows", async () => {
@@ -116,6 +143,7 @@ test("site introduces AI Agent and mclip-cli workflows", async () => {
   const zh = await read("src/pages/zh/index.astro");
   const en = await read("src/pages/en/index.astro");
   const llms = await read("public/llms.txt");
+  const ja = await read("src/pages/ja/index.astro");
 
   assert.match(hero, /#agents/);
   assert.match(zh, /AI Agent 与 CLI/);
@@ -135,6 +163,10 @@ test("site introduces AI Agent and mclip-cli workflows", async () => {
   assert.match(en, /mclip-cli transform json-prettify/);
   assert.match(zh, /pipeline clipboard text/);
   assert.match(en, /pipeline clipboard text/);
+  assert.match(ja, /AI Agent と CLI/);
+  assert.match(ja, /CLI のヘルプと出力は引き続き英語/);
+  assert.match(ja, /mclip-cli agent --last 5 --json/);
+  assert.match(ja, /mclip-cli transform json-prettify/);
   assert.match(llms, /mclip-cli agent --last 5 --json/);
   assert.match(llms, /command capability map/);
   assert.match(llms, /mclip-cli clear --yes/);
@@ -146,16 +178,23 @@ test("site introduces AI Agent and mclip-cli workflows", async () => {
   assert.match(llms, /missing\/outdated\/unknown\/current\/newer/);
 });
 
-test("shared SEO metadata declares bilingual routes and social image", async () => {
+test("shared SEO metadata declares three localized routes and social image", async () => {
   const config = await read("astro.config.mjs");
   const layout = await read("src/layouts/SiteLayout.astro");
+  const locales = await read("src/i18n/locales.ts");
+  const languageNav = await read("src/components/LanguageNav.astro");
 
   assert.match(config, /site: "https:\/\/www\.mclip\.cn"/);
   assert.match(layout, /https:\/\/www\.mclip\.cn/);
   assert.match(layout, /hreflang/);
-  assert.match(layout, /alternateZhPath/);
-  assert.match(layout, /alternateEnPath/);
-  assert.match(layout, /hreflang="x-default" href=\{alternateEn\}/);
+  assert.match(layout, /localizedPaths\(path\)/);
+  assert.match(layout, /hreflang="x-default" href=\{alternateUrls\.en\}/);
+  assert.match(layout, /og:locale:alternate/);
+  assert.match(locales, /SITE_LOCALE_LIST = \["zh", "en", "ja"\]/);
+  assert.match(locales, /htmlLang: "ja"/);
+  assert.match(locales, /ogLocale: "ja_JP"/);
+  assert.match(languageNav, /aria-current=\{locale === lang \? "page"/);
+  assert.match(languageNav, /localizedPaths\(path\)/);
   assert.match(layout, /og:image/);
   assert.match(layout, /og:image:alt/);
   assert.match(layout, /twitter:card/);
@@ -166,6 +205,7 @@ test("layout exposes structured data for search and AI summaries", async () => {
   const layout = await read("src/layouts/SiteLayout.astro");
   const zh = await read("src/pages/zh/index.astro");
   const en = await read("src/pages/en/index.astro");
+  const ja = await read("src/pages/ja/index.astro");
 
   assert.match(layout, /application\/ld\+json/);
   assert.match(layout, /@graph/);
@@ -181,6 +221,9 @@ test("layout exposes structured data for search and AI summaries", async () => {
   assert.match(layout, /https:\/\/github\.com\/bells\/mclip\/releases/);
   assert.match(zh, /faqItems=\{faqItems\}/);
   assert.match(en, /faqItems=\{faqItems\}/);
+  assert.match(ja, /faqItems=\{faqItems\}/);
+  assert.match(layout, /SITE_LOCALE_LIST\.map/);
+  assert.match(layout, /meta\.demoDescription/);
 });
 
 test("public SEO files expose crawl and sitemap hints", async () => {
@@ -203,6 +246,9 @@ test("public SEO files expose crawl and sitemap hints", async () => {
   assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/en\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/zh\/changelog\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/en\/changelog\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/ja\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/www\.mclip\.cn\/ja\/changelog\/<\/loc>/);
+  assert.match(sitemap, /hreflang="ja" href="https:\/\/www\.mclip\.cn\/ja\/"/);
   assert.match(sitemap, /hreflang="x-default" href="https:\/\/www\.mclip\.cn\/en\/"/);
   assert.match(sitemap, /hreflang="x-default" href="https:\/\/www\.mclip\.cn\/en\/changelog\/"/);
 });
@@ -214,9 +260,13 @@ test("public AI discovery file describes canonical mclip facts", async () => {
   assert.match(llms, /Default homepage: https:\/\/www\.mclip\.cn\/en\//);
   assert.match(llms, /https:\/\/www\.mclip\.cn\/zh\//);
   assert.match(llms, /https:\/\/www\.mclip\.cn\/en\//);
+  assert.match(llms, /https:\/\/www\.mclip\.cn\/ja\//);
   assert.match(llms, /https:\/\/github\.com\/bells\/mclip\/releases/);
   assert.match(llms, /local-first clipboard history/);
   assert.match(llms, /中文摘要/);
+  assert.match(llms, /日本語の概要/);
+  assert.match(llms, /Chinese, English, and Japanese/);
+  assert.match(llms, /mclip-cli command names, help, and output remain English-first/);
   assert.match(llms, /macOS and Windows/);
   assert.match(llms, /does not upload clipboard contents/);
   assert.match(llms, /Do not claim that mclip has cloud sync/);
@@ -293,4 +343,6 @@ test("mobile layout wraps long copy and isolates the hero image", async () => {
   assert.match(css, /\.agent-cli-board,[\s\S]*?\{\s*min-width:\s*0;/);
   assert.match(css, /@media\s*\(max-width:\s*620px\)[\s\S]*\.hero-figure\s*{[^}]*overflow:\s*hidden;/);
   assert.match(css, /@media\s*\(max-width:\s*620px\)[\s\S]*\.agent-terminal code\s*{[^}]*white-space:\s*pre-wrap;/);
+  assert.match(css, /\.language-nav\s*{[^}]*display:\s*inline-flex;/s);
+  assert.match(css, /@media\s*\(max-width:\s*620px\)[\s\S]*\.language-nav\s*{[^}]*flex-basis:\s*100%;/);
 });

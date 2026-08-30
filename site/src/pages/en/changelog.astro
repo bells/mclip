@@ -1,5 +1,6 @@
 ---
 import SiteFooter from "../../components/SiteFooter.astro";
+import LanguageNav from "../../components/LanguageNav.astro";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 ---
 
@@ -10,8 +11,21 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
   description="Public release notes for mclip."
 >
   <main class="text-page">
-    <a class="back-link" href="/en/">Back home</a>
+    <div class="text-page-nav">
+      <a class="back-link" href="/en/">Back home</a>
+      <LanguageNav lang="en" path="/en/changelog/" />
+    </div>
     <h1>Changelog</h1>
+    <article class="release-note">
+      <p class="eyebrow">0.2.0 · In development</p>
+      <h2>Japanese app and website localization</h2>
+      <p>
+        Adds Japanese across the desktop app, including main history, previews, the image viewer, quick actions, About, and Preferences. Follow System resolves Japanese OS locales to Japanese, while Chinese, English, and Japanese share one parity-checked typed catalog contract.
+      </p>
+      <p>
+        Publishes Japanese home and changelog routes with three-language canonical, hreflang, Open Graph, and JSON-LD metadata. The root and x-default remain English. mclip-cli command names, help, and output remain English-first and are not localized by this change.
+      </p>
+    </article>
     <article class="release-note">
       <p class="eyebrow">0.2.0 · In development</p>
       <h2>Sensitive-content presentation protection and source exclusions</h2>

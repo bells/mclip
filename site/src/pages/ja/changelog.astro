@@ -1,0 +1,77 @@
+---
+import LanguageNav from "../../components/LanguageNav.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+---
+
+<SiteLayout
+  lang="ja"
+  path="/ja/changelog/"
+  title="mclip 更新履歴"
+  description="mclip の公開リリースノートです。"
+>
+  <main class="text-page">
+    <div class="text-page-nav">
+      <a class="back-link" href="/ja/">ホームへ戻る</a>
+      <LanguageNav lang="ja" path="/ja/changelog/" />
+    </div>
+    <h1>更新履歴</h1>
+    <article class="release-note">
+      <p class="eyebrow">0.2.0 · 開発中</p>
+      <h2>日本語のアプリ画面と公式サイト</h2>
+      <p>
+        デスクトップアプリのメイン、プレビュー、画像ビューア、クイック操作、About、環境設定を日本語化し、日本語のシステム locale を「システムに従う」で自動判定します。中国語、英語、日本語は同じ型付き翻訳契約を共有します。
+      </p>
+      <p>
+        公式サイトに日本語のホームと更新履歴を追加し、3 言語の canonical、hreflang、Open Graph、JSON-LD を公開します。ルートと x-default は引き続き英語です。mclip-cli のコマンド、ヘルプ、出力は今回の範囲外で、英語のままです。
+      </p>
+    </article>
+    <article class="release-note">
+      <p class="eyebrow">0.2.0 · 開発中</p>
+      <h2>機密内容の表示保護とコピー元アプリの除外</h2>
+      <p>
+        少数の高確度な機密テキストを対象に、ローカルで動作する有界かつバージョン管理された検出器を追加します。デスクトップ履歴と既定の CLI/Agent 出力では分類済み内容をマスクします。明示的な画面操作または 1 回限りの <code>--raw</code>/<code>--reveal-secrets</code> で表示でき、コピーは元の内容を使用しますが操作結果へは表示しません。
+      </p>
+      <p>
+        Privacy 環境設定では安定したアプリ識別子で保存対象から除外し、実際のプラットフォーム能力を表示します。macOS は bundle ID、Windows は正規化した実行ファイル名、X11 は <code>WM_CLASS</code> を使用します。純粋な Wayland では現在利用できず、除外を実行済みとは表示しません。
+      </p>
+      <p>
+        マスクは表示上の保護であり、保存時の暗号化ではありません。履歴はローカルに平文で残り、ヒューリスティック検出とコピー元識別には誤検出や見落としがあります。パスワードマネージャー、DLP、漏えい防止を保証する機能ではありません。
+      </p>
+    </article>
+    <article class="release-note">
+      <p class="eyebrow">0.2.0 · 開発中</p>
+      <h2>テキストのクイック操作と組み合わせ可能な CLI パイプライン</h2>
+      <p>
+        テキスト詳細に JSON の整形/圧縮、Base64、URL コンポーネントのエンコード/デコードを追加します。結果は独立したウィンドウで確認し、コピーは通常のクリップボード処理を使用します。元の履歴の置換には確認が必要で、安定した ID とピン留め状態を保持します。
+      </p>
+      <p>
+        <code>mclip-cli transform</code> は stdout に内容だけを出力し、履歴やクリップボードを読みません。<code>copy --stdin</code> と暗黙のパイプラインは 1 つの UTF-8 入力をシステムクリップボードへ書き込み、履歴を直接変更しません。入力上限は 1 MiB、出力上限は 4 MiB です。
+      </p>
+    </article>
+    <article class="release-note">
+      <p class="eyebrow">0.1.1</p>
+      <h2>より速く、分かりやすい中核体験</h2>
+      <p>
+        Tailwind CSS 4 への移行と表示密度の改善を完了し、システム/ライト/ダーク外観、最大 500 件の履歴、メイン/履歴グループ件数、項目番号、ブランド表示を追加しました。テキストとファイルの行を詰めても画像行の高さは保ち、メイン、履歴グループ、詳細の各ウィンドウは独立しています。
+      </p>
+      <p>
+        最大化と復元、Escape に対応する専用画像ビューアを追加し、検索、キーボード、ポインターで 1 つの選択対象を共有します。カラーコード、Emoji、長いファイル名、完全なパスの表示も改善しました。
+      </p>
+      <p>
+        起動時はメインウィンドウだけを読み込み、プレビューを事前準備し、About、環境設定、画像ビューアは必要なときに作成します。revision 付き snapshot/delta 更新と有界な single-flight 画像キャッシュで非表示ウィンドウの負荷を削減しました。Apple M2 ではトレイ準備完了時間の中央値を 51.3% 短縮し、画像ビューアの再表示中央値は 384.62 ms から 49.37 ms へ短縮しました。この結果は Windows 実機の証拠ではありません。
+      </p>
+      <p>
+        Agent CLI タブは未インストール、古い、不明、現行、より新しいバージョンを区別し、自動ダウングレードせずインストール、アップグレード、再インストールを行います。デスクトップと公開インストーラーは置換前に同じ Release の SHA-256 アセットを検証します。
+      </p>
+    </article>
+    <article class="release-note">
+      <p class="eyebrow">0.1.0</p>
+      <h2>最初の公開リリース</h2>
+      <p>
+        macOS と Windows 向けのトレイ常駐クリップボード履歴、テキスト/画像/ファイル履歴とファイル復元、検索、独立したプレビューウィンドウ、環境設定、中国語と英語の UI を追加しました。
+      </p>
+    </article>
+  </main>
+  <SiteFooter lang="ja" />
+</SiteLayout>

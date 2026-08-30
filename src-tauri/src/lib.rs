@@ -95,6 +95,7 @@ fn tray_tooltip(language: &AppLanguage) -> &'static str {
     match resolve_app_language(language) {
         ResolvedAppLanguage::ZhCn => "更好用的剪贴板工具 mclip",
         ResolvedAppLanguage::En => "A better clipboard history tool, mclip",
+        ResolvedAppLanguage::Ja => "もっと使いやすいクリップボード履歴、mclip",
     }
 }
 
@@ -910,6 +911,10 @@ mod tests {
         assert_eq!(
             tray_tooltip(&AppLanguage::En),
             "A better clipboard history tool, mclip"
+        );
+        assert_eq!(
+            tray_tooltip(&AppLanguage::Ja),
+            "もっと使いやすいクリップボード履歴、mclip"
         );
         assert!(!tray_tooltip(&AppLanguage::System).is_empty());
     }

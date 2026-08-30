@@ -10,7 +10,7 @@ import {
 } from "../constants";
 import type { AppLanguage, AppSettings, MenuBarIconStyle } from "../types";
 
-const APP_LANGUAGES: readonly AppLanguage[] = ["system", "zhCn", "en"];
+const APP_LANGUAGES: readonly AppLanguage[] = ["system", "zhCn", "en", "ja"];
 const MENU_BAR_ICON_STYLES: readonly MenuBarIconStyle[] = [
   "appIcon",
   "light",

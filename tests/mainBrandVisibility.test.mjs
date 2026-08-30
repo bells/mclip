@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { readTranslationSources } from "./helpers/translations.mjs";
 
 async function readSource(path) {
   return readFile(path, "utf8");
@@ -21,7 +22,7 @@ test("settings contract includes main window brand visibility", async () => {
 
 test("preferences expose a General toggle for the main window brand", async () => {
   const preferencesSource = await readSource("src/components/PreferencesWindow.tsx");
-  const translationsSource = await readSource("src/i18n.ts");
+  const translationsSource = await readTranslationSources();
 
   assert.match(preferencesSource, /toggleMainWindowBrand/);
   assert.match(preferencesSource, /settingsDraft\.showMainWindowBrand/);

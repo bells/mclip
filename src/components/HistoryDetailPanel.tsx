@@ -11,7 +11,7 @@ import type {
   TextQuickActionSettings,
 } from "../types";
 import { ui } from "../uiStyles";
-import { resolveAppLanguage } from "../utils/language";
+import { getDisplayLocale } from "../utils/language";
 import { revealSensitiveHistoryText } from "../services/ipc/commands";
 import { listenToSensitiveRevealReset } from "../services/ipc/events";
 import {
@@ -40,9 +40,7 @@ type HistoryDetailPanelProps = {
 };
 
 function formatHistoryTimestamp(timestamp: number, language: AppLanguage) {
-  const locale = resolveAppLanguage(language) === "zhCn" ? "zh-CN" : "en-US";
-
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(getDisplayLocale(language), {
     month: "short",
     day: "numeric",
     hour: "2-digit",

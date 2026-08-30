@@ -134,6 +134,9 @@ impl HistoryCommandError {
                 ResolvedAppLanguage::En => {
                     format!("You can pin up to {MAX_PINNED_HISTORY_COUNT} history items.")
                 }
+                ResolvedAppLanguage::Ja => {
+                    format!("履歴項目は最大 {MAX_PINNED_HISTORY_COUNT} 件までピン留めできます。")
+                }
             };
             return Self {
                 code: PIN_LIMIT_ERROR_CODE.to_string(),
@@ -2163,9 +2166,14 @@ mod tests {
             format!("{}: limit", super::PIN_LIMIT_ERROR_CODE),
             &crate::settings::AppLanguage::En,
         );
+        let ja = super::HistoryCommandError::from_message(
+            format!("{}: limit", super::PIN_LIMIT_ERROR_CODE),
+            &crate::settings::AppLanguage::Ja,
+        );
         assert_eq!(zh.code, super::PIN_LIMIT_ERROR_CODE);
         assert!(zh.message.contains("最多"));
         assert!(en.message.contains("up to 100"));
+        assert!(ja.message.contains("最大 100 件"));
     }
 
     #[test]

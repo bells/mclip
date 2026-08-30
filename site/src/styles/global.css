@@ -179,6 +179,31 @@ p {
   font-size: 0.94rem;
 }
 
+.language-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: oklch(0.2 0.024 138 / 0.72);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.language-nav a {
+  padding: 5px 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 760;
+  line-height: 1;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+
+.language-nav a[aria-current="page"] {
+  color: var(--black);
+  background: var(--leaf-bright);
+}
+
 .nav-links a,
 .footer-links a,
 .back-link {
@@ -627,6 +652,13 @@ h3 {
   padding: 72px 0 54px;
 }
 
+.text-page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
 .text-page h1 {
   max-width: 820px;
   margin: 42px 0 28px;
@@ -748,9 +780,19 @@ h3 {
   }
 
   .nav-links {
-    max-width: 210px;
+    max-width: 250px;
     gap: 10px 14px;
     font-size: 0.9rem;
+  }
+
+  .language-nav {
+    flex-basis: 100%;
+    width: fit-content;
+  }
+
+  .text-page-nav {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   h1 {
