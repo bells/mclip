@@ -236,6 +236,67 @@ export const ui = {
     "flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[var(--mclip-radius-lg)] border border-[var(--mclip-line)] [background:var(--mclip-surface-bg)] text-[var(--mclip-ink)] shadow-[var(--mclip-shadow)]",
   aboutWindowFrame: "h-screen w-screen",
   preferencesWindowFrame: "h-screen w-screen",
+  preferencesSettingsCenter:
+    "grid min-h-0 flex-1 grid-cols-[220px_minmax(0,1fr)] overflow-hidden",
+  preferencesSidebar:
+    "flex min-h-0 flex-col border-r border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] px-2.5 py-3",
+  preferencesSearchArea: "shrink-0 px-0.5 pb-3",
+  preferencesSearch:
+    `${focusRing} h-8 w-full rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-surface)] px-2.5 text-[11px] font-medium text-[var(--mclip-ink)] outline-none placeholder:text-[var(--mclip-placeholder)]`,
+  preferencesNavigation: "mclip-scrollbar min-h-0 flex-1 overflow-y-auto",
+  preferencesNavigationGroup: "grid gap-0.5 pb-4",
+  preferencesNavigationLabel:
+    "px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mclip-meta)]",
+  preferencesNavigationItem: (isActive: boolean) =>
+    [
+      `${focusRing} relative min-h-8 rounded-[var(--mclip-radius-sm)] px-3 text-left text-[12px] font-semibold transition-colors duration-150`,
+      isActive
+        ? "bg-[var(--mclip-selected-bg)] text-[var(--mclip-ink)] shadow-[inset_2px_0_0_var(--mclip-accent-cool)]"
+        : "text-[var(--mclip-ink-dim)] hover:bg-[var(--mclip-control-bg-hover)] hover:text-[var(--mclip-ink)]",
+    ].join(" "),
+  preferencesSearchResults:
+    "mclip-scrollbar grid min-h-0 flex-1 content-start gap-1 overflow-y-auto",
+  preferencesSearchEmpty:
+    "px-2 py-4 text-center text-[11px] leading-4 text-[var(--mclip-ink-dim)]",
+  preferencesSearchResult:
+    `${focusRing} grid gap-0.5 rounded-[var(--mclip-radius-sm)] px-2 py-2 text-left hover:bg-[var(--mclip-row-hover-bg)]`,
+  preferencesSearchResultTitle:
+    "text-[11px] font-semibold text-[var(--mclip-ink)]",
+  preferencesSearchResultPath: "text-[10px] text-[var(--mclip-meta)]",
+  preferencesContent:
+    "mclip-scrollbar min-h-0 overflow-y-auto bg-[var(--mclip-surface)]",
+  preferencePage: "mx-auto grid w-full max-w-[680px] content-start gap-5 px-8 py-6",
+  preferencePageHeader: "grid gap-1 border-b border-[var(--mclip-line)] pb-4",
+  preferencePageTitle: "text-[19px] font-bold tracking-[-0.02em] text-[var(--mclip-ink)]",
+  preferencePageDescription:
+    "m-0 max-w-[62ch] text-[11px] leading-5 text-[var(--mclip-ink-dim)]",
+  preferencePageGroups: "grid gap-5 pb-3",
+  preferenceGroup: "grid gap-2",
+  preferenceGroupTitle:
+    "px-0.5 text-[11px] font-bold text-[var(--mclip-meta)]",
+  preferenceGroupBody:
+    "overflow-hidden rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)]",
+  preferenceRow:
+    "grid min-h-[66px] grid-cols-[minmax(0,1fr)_auto] items-center gap-5 border-b border-[var(--mclip-line)] px-4 py-3 last:border-b-0",
+  preferenceRowCopy: "grid min-w-0 gap-0.5",
+  preferenceRowLabel: "text-[12px] font-semibold text-[var(--mclip-ink)]",
+  preferenceRowDescription:
+    "max-w-[54ch] text-[11px] leading-4 text-[var(--mclip-ink-dim)]",
+  preferenceRowNote:
+    "mt-1 max-w-[58ch] break-words text-[10px] leading-4 text-[var(--mclip-meta)] [overflow-wrap:anywhere]",
+  preferenceRowControl: "flex shrink-0 items-center justify-end gap-2",
+  preferenceFeedback: "mt-1 text-[10px] font-semibold text-[var(--mclip-accent-cool)]",
+  preferenceFeedbackError: "mt-1 text-[10px] font-semibold text-[var(--mclip-danger)]",
+  preferenceSwitch: (isOn: boolean) =>
+    [
+      `${focusRing} relative h-[22px] w-[38px] rounded-full border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45`,
+      isOn
+        ? "border-[var(--mclip-accent-cool)] bg-[var(--mclip-accent-cool)]"
+        : "border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)]",
+      isOn ? "[&>span]:translate-x-4" : "",
+    ].join(" "),
+  preferenceSwitchThumb:
+    "absolute left-[2px] top-[2px] size-4 rounded-full bg-white shadow-sm transition-transform duration-150",
   dialogContent:
     "mclip-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 text-[12px] leading-5 text-[var(--mclip-ink-soft)]",
   dialogStatusBar: (controlSide: WindowControlSide) =>

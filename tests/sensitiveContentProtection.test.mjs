@@ -150,7 +150,7 @@ test("privacy preferences remain immediate-save and disclose plaintext storage",
     readFile("src/utils/settings.ts", "utf8"),
   ]);
 
-  assert.match(preferencesSource, /\["privacy", t\.privacyTab\]/);
+  assert.match(preferencesSource, /privacy: \(/);
   assert.match(preferencesSource, /applySettingsPatch/);
   assert.match(preferencesSource, /maskSensitiveContent/);
   assert.match(preferencesSource, /ignoredSourceAppIds/);

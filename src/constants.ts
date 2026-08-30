@@ -41,6 +41,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   appearanceTheme: "system",
   maskSensitiveContent: true,
   ignoredSourceAppIds: [],
+  textQuickActions: {
+    json: true,
+    base64: true,
+    urlComponent: true,
+  },
 };
 
 export function clampHistoryCount(value: number) {

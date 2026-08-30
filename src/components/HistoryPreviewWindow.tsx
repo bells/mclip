@@ -427,6 +427,7 @@ export function HistoryPreviewWindow() {
           language: requestedPreview.language,
           maskSensitiveContent: requestedPreview.maskSensitiveContent,
           performanceInteractionId,
+          textQuickActions: requestedPreview.textQuickActions,
         });
 
         if (hoveredItemIdRef.current !== requestedItem.id) {

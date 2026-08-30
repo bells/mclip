@@ -36,6 +36,11 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
         ),
     ),
   ).slice(0, MAX_IGNORED_SOURCE_APP_COUNT);
+  const textQuickActions = {
+    json: settings.textQuickActions?.json !== false,
+    base64: settings.textQuickActions?.base64 !== false,
+    urlComponent: settings.textQuickActions?.urlComponent !== false,
+  };
 
   return {
     ...DEFAULT_SETTINGS,
@@ -63,5 +68,6 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
         : "system",
     maskSensitiveContent: settings.maskSensitiveContent !== false,
     ignoredSourceAppIds,
+    textQuickActions,
   };
 }

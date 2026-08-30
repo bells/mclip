@@ -4,6 +4,7 @@ import type {
   AppearanceTheme,
   AppLanguage,
   TextHistoryEntry,
+  TextQuickActionSettings,
   TextTransformAction,
   TextTransformError,
 } from "../types";
@@ -11,12 +12,17 @@ import { getTranslations } from "../i18n";
 import { getApplicableTextTransformActions } from "../services/ipc/commands";
 import { openTextQuickAction } from "../services/quickActions";
 import { ui } from "../uiStyles";
+import {
+  filterEnabledTextQuickActions,
+  hasEnabledTextQuickActions,
+} from "../utils/textQuickActions";
 
 type TextQuickActionsProps = {
   appearanceTheme: AppearanceTheme;
   isContentAvailable: boolean;
   item: TextHistoryEntry;
   language: AppLanguage;
+  settings: TextQuickActionSettings;
 };
 
 export function TextQuickActions({
@@ -24,6 +30,7 @@ export function TextQuickActions({
   isContentAvailable,
   item,
   language,
+  settings,
 }: TextQuickActionsProps) {
   const t = getTranslations(language).quickAction;
   const [actions, setActions] = useState<TextTransformAction[]>([]);
@@ -38,14 +45,14 @@ export function TextQuickActions({
     setActions([]);
     setPendingAction(null);
     setErrorCode(null);
-    if (!isContentAvailable) {
+    if (!isContentAvailable || !hasEnabledTextQuickActions(settings)) {
       return;
     }
 
     void getApplicableTextTransformActions(item.text)
       .then((nextActions) => {
         if (revision === requestRevisionRef.current) {
-          setActions(nextActions);
+          setActions(filterEnabledTextQuickActions(nextActions, settings));
         }
       })
       .catch(() => {
@@ -56,7 +63,7 @@ export function TextQuickActions({
     return () => {
       requestRevisionRef.current += 1;
     };
-  }, [isContentAvailable, item.id, item.text]);
+  }, [isContentAvailable, item.id, item.text, settings]);
 
   const runAction = async (action: TextTransformAction) => {
     const revision = ++requestRevisionRef.current;
@@ -81,6 +88,10 @@ export function TextQuickActions({
 
   if (!isContentAvailable) {
     return <p className={ui.quickActionHint}>{t.revealRequired}</p>;
+  }
+
+  if (!hasEnabledTextQuickActions(settings)) {
+    return null;
   }
 
   return (

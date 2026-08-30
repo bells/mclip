@@ -803,12 +803,12 @@ mod tests {
     }
 
     #[test]
-    fn preferences_window_uses_compact_fixed_bounds() {
+    fn preferences_window_uses_settings_center_fixed_bounds() {
         let preferences = auxiliary_window_descriptor("preferences")
             .expect("preferences window should have a dynamic descriptor");
         let expected_size = LogicalWindowSize {
-            width: 600.0,
-            height: 480.0,
+            width: 820.0,
+            height: 600.0,
         };
 
         assert_eq!(preferences.size, expected_size);

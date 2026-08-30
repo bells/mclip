@@ -49,9 +49,6 @@ import type {
 } from "../types";
 import {
   historyTypeRow,
-  settingsTab,
-  settingsSwitchBox,
-  settingsSwitchRow,
   ui,
 } from "../uiStyles";
 import {
@@ -63,8 +60,25 @@ import { reportAuxiliaryListenerReady } from "../services/auxiliaryWindows";
 import { DialogStatusBar } from "./DialogStatusBar";
 import { DialogWindowFrame } from "./DialogWindowFrame";
 import { CheckIcon, ChevronRightIcon } from "./UiIcons";
+import {
+  PreferencePage,
+  PreferenceRow,
+  PreferenceSwitch,
+} from "./preferences/PreferenceControls";
+import {
+  createPreferenceSaveController,
+  type PreferenceFeedbackMap,
+  type PreferenceFeedbackState,
+  type PreferenceSaveController,
+} from "./preferences/preferenceSaveController";
+import { PreferencesSettingsCenter } from "./preferences/PreferencesSettingsCenter";
+import { PreferencesPages } from "./preferences/PreferencesPages";
+import {
+  createPreferencesDestinations,
+  preferenceFocusTargetId,
+  type PreferencesDestinationId,
+} from "./preferences/preferencesNavigation";
 
-type PreferencesTab = "general" | "storage" | "privacy" | "cli";
 type VisibleItemCountSetting = "mainWindowItemCount" | "historyGroupItemCount";
 
 type SettingsSelectFieldProps = {
@@ -72,23 +86,48 @@ type SettingsSelectFieldProps = {
   controlId: string;
   description: string;
   label: string;
+  feedback?: PreferenceFeedbackState;
+  feedbackLabels?: { error: string; pending: string; saved: string };
+  settingId?: string;
 };
 
 function SettingsSelectField({
   children,
   controlId,
   description,
+  feedback = "idle",
+  feedbackLabels,
   label,
+  settingId,
 }: SettingsSelectFieldProps) {
   return (
-    <div className={ui.settingsSelectField}>
-      <div className={ui.settingsCopy}>
-        <label className={ui.settingsLabel} htmlFor={controlId}>
+    <div
+      className={ui.preferenceRow}
+      id={settingId ? preferenceFocusTargetId(settingId) : undefined}
+    >
+      <div className={ui.preferenceRowCopy}>
+        <label className={ui.preferenceRowLabel} htmlFor={controlId}>
           {label}
         </label>
-        <div className={ui.settingsDescription}>{description}</div>
+        <div className={ui.preferenceRowDescription}>{description}</div>
+        {feedback !== "idle" && feedbackLabels ? (
+          <div
+            aria-live="polite"
+            className={
+              feedback === "error"
+                ? ui.preferenceFeedbackError
+                : ui.preferenceFeedback
+            }
+          >
+            {feedback === "pending"
+              ? feedbackLabels.pending
+              : feedback === "saved"
+                ? feedbackLabels.saved
+                : feedbackLabels.error}
+          </div>
+        ) : null}
       </div>
-      {children}
+      <div className={ui.preferenceRowControl}>{children}</div>
     </div>
   );
 }
@@ -100,9 +139,9 @@ type SettingsGroupProps = {
 
 function SettingsGroup({ children, label }: SettingsGroupProps) {
   return (
-    <section className={ui.settingsGroup}>
-      <h2 className={ui.settingsGroupLabel}>{label}</h2>
-      <div className={ui.settingsGroupBody}>{children}</div>
+    <section className={ui.preferenceGroup}>
+      <h2 className={ui.preferenceGroupTitle}>{label}</h2>
+      <div className={ui.preferenceGroupBody}>{children}</div>
     </section>
   );
 }
@@ -298,6 +337,9 @@ type SettingsSwitchItemProps = {
   disabled?: boolean;
   label: string;
   onClick: () => void;
+  feedback?: PreferenceFeedbackState;
+  feedbackLabels?: { error: string; pending: string; saved: string };
+  settingId?: string;
 };
 
 function SettingsSwitchItem({
@@ -305,33 +347,58 @@ function SettingsSwitchItem({
   children,
   description,
   disabled = false,
+  feedback = "idle",
+  feedbackLabels,
   label,
   onClick,
+  settingId,
 }: SettingsSwitchItemProps) {
   const labelId = useId();
   const descriptionId = useId();
 
   return (
-    <div className={settingsSwitchRow(disabled)}>
-      <button
-        aria-describedby={descriptionId}
-        aria-labelledby={labelId}
-        aria-pressed={checked}
-        className={settingsSwitchBox(checked)}
-        disabled={disabled}
-        onClick={onClick}
-        type="button"
-      >
-        {checked ? <CheckIcon className="size-3.5" /> : null}
-      </button>
-      <div className={ui.settingsCopy}>
-        <div className={ui.settingsLabel} id={labelId}>
+    <div
+      className={`${ui.preferenceRow} ${disabled ? "opacity-65" : ""}`}
+      id={settingId ? preferenceFocusTargetId(settingId) : undefined}
+    >
+      <div className={ui.preferenceRowCopy}>
+        <div className={ui.preferenceRowLabel} id={labelId}>
           {label}
         </div>
-        <div className={ui.settingsDescription} id={descriptionId}>
+        <div className={ui.preferenceRowDescription} id={descriptionId}>
           {description}
         </div>
-        {children}
+        {feedback !== "idle" && feedbackLabels ? (
+          <div
+            aria-live="polite"
+            className={
+              feedback === "error"
+                ? ui.preferenceFeedbackError
+                : ui.preferenceFeedback
+            }
+          >
+            {feedback === "pending"
+              ? feedbackLabels.pending
+              : feedback === "saved"
+                ? feedbackLabels.saved
+                : feedbackLabels.error}
+          </div>
+        ) : null}
+        {children ? <div className={ui.preferenceRowNote}>{children}</div> : null}
+      </div>
+      <div className={ui.preferenceRowControl}>
+        <button
+          aria-checked={checked}
+          aria-describedby={descriptionId}
+          aria-labelledby={labelId}
+          className={ui.preferenceSwitch(checked)}
+          disabled={disabled}
+          onClick={onClick}
+          role="switch"
+          type="button"
+        >
+          <span className={ui.preferenceSwitchThumb} />
+        </button>
       </div>
     </div>
   );
@@ -340,8 +407,11 @@ function SettingsSwitchItem({
 export function PreferencesWindow() {
   // settingsDraft 保留了旧命名，但现在每次控件变更都会立即写入后端。
   const [settingsDraft, setSettingsDraft] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [activeTab, setActiveTab] = useState<PreferencesTab>("general");
+  const [activeDestinationId, setActiveDestinationId] =
+    useState<PreferencesDestinationId>("general");
   const [settingsError, setSettingsError] = useState("");
+  const [preferenceFeedback, setPreferenceFeedback] =
+    useState<PreferenceFeedbackMap>({});
   const [autoPastePermissionStatus, setAutoPastePermissionStatus] =
     useState<AutoPastePermissionStatus | null>(null);
   const [sourceAppDetectionStatus, setSourceAppDetectionStatus] =
@@ -357,9 +427,8 @@ export function PreferencesWindow() {
   const [cliInstallMessage, setCliInstallMessage] = useState("");
   const [isInstallingCli, setIsInstallingCli] = useState(false);
   const latestSettingsRef = useRef<AppSettings>(DEFAULT_SETTINGS);
-  const pendingSettingsSaveCountRef = useRef(0);
-  const settingsSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const settingsSaveRevisionRef = useRef(0);
+  const preferenceSaveControllerRef =
+    useRef<PreferenceSaveController<AppSettings> | null>(null);
   const isMacOs = navigator.platform.toLowerCase().includes("mac");
   const languageSelectId = useId();
   const appearanceThemeSelectId = useId();
@@ -378,6 +447,10 @@ export function PreferencesWindow() {
   const translations = getTranslations(settingsDraft.language);
   useApplyAppTheme(settingsDraft.appearanceTheme);
   const t = translations.preferences;
+  const feedbackLabels = { error: t.error, pending: t.saving, saved: t.saved };
+  const destinations = createPreferencesDestinations(
+    (key) => t[key] as string,
+  );
   const menuBarIconOptions: MenuBarIconOption[] = [
     {
       iconUrl: appIconUrl,
@@ -441,6 +514,16 @@ export function PreferencesWindow() {
     });
   };
 
+  if (!preferenceSaveControllerRef.current) {
+    preferenceSaveControllerRef.current = createPreferenceSaveController({
+      initialSettings: DEFAULT_SETTINGS,
+      normalize: normalizeSettings,
+      onFeedback: setPreferenceFeedback,
+      onSettings: syncSettingsState,
+      save: saveSettings,
+    });
+  }
+
   useEffect(() => {
     let isActive = true;
     void getSourceAppDetectionStatus()
@@ -475,7 +558,7 @@ export function PreferencesWindow() {
           return;
         }
 
-        syncSettingsState(loadedSettings);
+        preferenceSaveControllerRef.current?.syncExternal(loadedSettings);
         setSettingsError("");
       } catch (error) {
         console.error("加载偏好设置失败:", error);
@@ -484,12 +567,8 @@ export function PreferencesWindow() {
 
     void loadSettings();
     void listenToSettingsUpdated((updatedSettings) => {
-      if (pendingSettingsSaveCountRef.current > 0) {
-        return;
-      }
-
       const normalizedSettings = normalizeSettings(updatedSettings);
-      syncSettingsState(normalizedSettings);
+      preferenceSaveControllerRef.current?.syncExternal(normalizedSettings);
       setSettingsError("");
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
@@ -578,48 +657,12 @@ export function PreferencesWindow() {
     };
   }, []);
 
-  const applySettings = (nextSettings: AppSettings) => {
-    const previousSettings = latestSettingsRef.current;
-    const normalizedSettings = normalizeSettings(nextSettings);
-    const saveRevision = settingsSaveRevisionRef.current + 1;
-
-    settingsSaveRevisionRef.current = saveRevision;
-    pendingSettingsSaveCountRef.current += 1;
-    syncSettingsState(normalizedSettings);
-    setSettingsError("");
-
-    const saveTask = settingsSaveQueueRef.current
-      .catch(() => undefined)
-      .then(async () => {
-        try {
-          const savedSettings = normalizeSettings(await saveSettings(normalizedSettings));
-
-          if (settingsSaveRevisionRef.current === saveRevision) {
-            syncSettingsState(savedSettings);
-            setSettingsError("");
-          }
-        } catch (error) {
-          console.error("保存设置失败:", error);
-
-          if (settingsSaveRevisionRef.current === saveRevision) {
-            syncSettingsState(previousSettings);
-            setSettingsError(t.error);
-          }
-        } finally {
-          pendingSettingsSaveCountRef.current = Math.max(
-            0,
-            pendingSettingsSaveCountRef.current - 1,
-          );
-        }
-      });
-
-    settingsSaveQueueRef.current = saveTask;
-  };
-
   const applySettingsPatch = (
     updater: (currentSettings: AppSettings) => AppSettings,
+    settingId = "settings",
   ) => {
-    void applySettings(updater(latestSettingsRef.current));
+    setSettingsError("");
+    void preferenceSaveControllerRef.current?.apply(settingId, updater);
   };
 
   const refreshAutoPastePermissionStatus = async () => {
@@ -646,7 +689,7 @@ export function PreferencesWindow() {
     applySettingsPatch((current) => ({
       ...current,
       launchAtLogin: !current.launchAtLogin,
-    }));
+    }), "general.launch-at-login");
   };
 
   const toggleAutoPaste = async () => {
@@ -656,7 +699,7 @@ export function PreferencesWindow() {
       applySettingsPatch((current) => ({
         ...current,
         autoPaste: false,
-      }));
+      }), "general.auto-paste");
       return;
     }
 
@@ -685,7 +728,7 @@ export function PreferencesWindow() {
     applySettingsPatch((current) => ({
       ...current,
       autoPaste: true,
-    }));
+    }), "general.auto-paste");
   };
 
   const openAutoPastePermission = async () => {
@@ -704,42 +747,42 @@ export function PreferencesWindow() {
     applySettingsPatch((current) => ({
       ...current,
       language,
-    }));
+    }), "general.language");
   };
 
   const updateMenuBarIconStyle = (menuBarIconStyle: MenuBarIconStyle) => {
     applySettingsPatch((current) => ({
       ...current,
       menuBarIconStyle,
-    }));
+    }), "appearance.menu-bar-icon");
   };
 
   const updateAppearanceTheme = (appearanceTheme: AppearanceTheme) => {
     applySettingsPatch((current) => ({
       ...current,
       appearanceTheme,
-    }));
+    }), "appearance.theme");
   };
 
   const toggleHistoryItemNumbers = () => {
     applySettingsPatch((current) => ({
       ...current,
       showHistoryItemNumbers: !current.showHistoryItemNumbers,
-    }));
+    }), "appearance.item-numbers");
   };
 
   const toggleMainWindowBrand = () => {
     applySettingsPatch((current) => ({
       ...current,
       showMainWindowBrand: !current.showMainWindowBrand,
-    }));
+    }), "appearance.brand");
   };
 
   const toggleSensitiveContentMasking = () => {
     applySettingsPatch((current) => ({
       ...current,
       maskSensitiveContent: !current.maskSensitiveContent,
-    }));
+    }), "privacy.masking");
   };
 
   const addIgnoredSourceApp = () => {
@@ -758,7 +801,7 @@ export function PreferencesWindow() {
       ignoredSourceAppIds: current.ignoredSourceAppIds.includes(identifier)
         ? current.ignoredSourceAppIds
         : [...current.ignoredSourceAppIds, identifier],
-    }));
+    }), "privacy.source-exclusion");
   };
 
   const removeIgnoredSourceApp = (identifier: string) => {
@@ -769,7 +812,7 @@ export function PreferencesWindow() {
       ignoredSourceAppIds: current.ignoredSourceAppIds.filter(
         (value) => value !== identifier,
       ),
-    }));
+    }), "privacy.source-exclusion");
   };
 
   const reclassifyLegacyHistory = async () => {
@@ -794,7 +837,7 @@ export function PreferencesWindow() {
         // 计算属性名：用变量 kind 的值作为对象 key，比如 "text" / "image" / "files"。
         [kind]: !current.enabledHistoryTypes[kind],
       },
-    }));
+    }), "history.types");
   };
 
   const updateMaxHistoryCount = (nextValue: number) => {
@@ -808,7 +851,7 @@ export function PreferencesWindow() {
         current.mainWindowItemCount,
         clampedValue,
       ),
-    }));
+    }), "history.maximum");
   };
 
   const commitMaxHistoryCountInput = () => {
@@ -845,7 +888,7 @@ export function PreferencesWindow() {
               current.mainWindowItemCount,
               nextValue,
             ),
-          }));
+          }), "history.maximum");
         }
       }
     }
@@ -880,7 +923,7 @@ export function PreferencesWindow() {
     applySettingsPatch((current) => ({
       ...current,
       [settingKey]: clampedValue,
-    }));
+    }), settingKey === "mainWindowItemCount" ? "history.main-count" : "history.group-count");
   };
 
   const commitVisibleItemCountInput = (settingKey: VisibleItemCountSetting) => {
@@ -925,7 +968,7 @@ export function PreferencesWindow() {
         applySettingsPatch((current) => ({
           ...current,
           [settingKey]: nextValue,
-        }));
+        }), settingKey === "mainWindowItemCount" ? "history.main-count" : "history.group-count");
       }
     }
   };
@@ -1006,35 +1049,28 @@ export function PreferencesWindow() {
           title={t.title}
         />
 
-        <div className={ui.dialogContent}>
-          <div className={ui.settingsContent}>
-            <div aria-label={t.tabsLabel} className={ui.settingsTabs} role="tablist">
-              {([
-                ["general", t.generalTab],
-                ["storage", t.historyTab],
-                ["privacy", t.privacyTab],
-                ["cli", t.cliTab],
-              ] as const).map(([tab, label]) => (
-                <button
-                  aria-selected={activeTab === tab}
-                  className={settingsTab(activeTab === tab)}
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  role="tab"
-                  type="button"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {activeTab === "general" ? (
-              <div className={ui.settingsTabPanel} role="tabpanel">
+        <PreferencesSettingsCenter
+          activeDestinationId={activeDestinationId}
+          destinations={destinations}
+          onDestinationChange={setActiveDestinationId}
+          translations={t}
+        >
+          <PreferencesPages
+            activeDestinationId={activeDestinationId}
+            pages={{
+              general: (
+              <PreferencePage
+                description={t.generalPageDescription}
+                title={t.generalTab}
+              >
                 <SettingsGroup label={t.interfaceGroupLabel}>
                   <SettingsSelectField
                     controlId={languageSelectId}
                     description={t.languageDescription}
+                    feedback={preferenceFeedback["general.language"]}
+                    feedbackLabels={feedbackLabels}
                     label={t.languageLabel}
+                    settingId="general.language"
                   >
                     <select
                       aria-label={t.languageLabel}
@@ -1049,55 +1085,28 @@ export function PreferencesWindow() {
                     </select>
                   </SettingsSelectField>
 
-                  <SettingsSelectField
-                    controlId={appearanceThemeSelectId}
-                    description={t.appearanceThemeDescription}
-                    label={t.appearanceThemeLabel}
-                  >
-                    <select
-                      aria-label={t.appearanceThemeLabel}
-                      className={ui.settingsSelect}
-                      id={appearanceThemeSelectId}
-                      onChange={(event) =>
-                        updateAppearanceTheme(event.target.value as AppearanceTheme)
-                      }
-                      value={settingsDraft.appearanceTheme}
-                    >
-                      <option value="system">{t.appearanceThemeSystem}</option>
-                      <option value="light">{t.appearanceThemeLight}</option>
-                      <option value="dark">{t.appearanceThemeDark}</option>
-                    </select>
-                  </SettingsSelectField>
-
-                  <SettingsSelectField
-                    controlId={menuBarIconStyleSelectId}
-                    description={t.menuBarIconStyleDescription}
-                    label={t.menuBarIconStyleLabel}
-                  >
-                    <MenuBarIconSelect
-                      controlId={menuBarIconStyleSelectId}
-                      label={t.menuBarIconStyleLabel}
-                      onChange={updateMenuBarIconStyle}
-                      options={menuBarIconOptions}
-                      value={settingsDraft.menuBarIconStyle}
-                    />
-                  </SettingsSelectField>
                 </SettingsGroup>
 
                 <SettingsGroup label={t.behaviorGroupLabel}>
                   <SettingsSwitchItem
                     checked={settingsDraft.launchAtLogin}
                     description={t.launchAtLoginDescription}
+                    feedback={preferenceFeedback["general.launch-at-login"]}
+                    feedbackLabels={feedbackLabels}
                     label={t.launchAtLoginLabel}
                     onClick={toggleLaunchAtLogin}
+                    settingId="general.launch-at-login"
                   />
 
                   <SettingsSwitchItem
                     checked={settingsDraft.autoPaste}
                     description={t.autoPasteDescription}
                     disabled={isCheckingAutoPastePermission}
+                    feedback={preferenceFeedback["general.auto-paste"]}
+                    feedbackLabels={feedbackLabels}
                     label={t.autoPasteLabel}
                     onClick={() => void toggleAutoPaste()}
+                    settingId="general.auto-paste"
                   >
                     {isMacOs ? (
                       <span className={ui.settingsNote}>
@@ -1141,27 +1150,88 @@ export function PreferencesWindow() {
                   ) : null}
                 </SettingsGroup>
 
+              </PreferencePage>
+              ),
+              appearance: (
+
+              <PreferencePage
+                description={t.appearancePageDescription}
+                title={t.appearanceTab}
+              >
+                <SettingsGroup label={t.interfaceGroupLabel}>
+                  <SettingsSelectField
+                    controlId={appearanceThemeSelectId}
+                    description={t.appearanceThemeDescription}
+                    feedback={preferenceFeedback["appearance.theme"]}
+                    feedbackLabels={feedbackLabels}
+                    label={t.appearanceThemeLabel}
+                    settingId="appearance.theme"
+                  >
+                    <select
+                      aria-label={t.appearanceThemeLabel}
+                      className={ui.settingsSelect}
+                      id={appearanceThemeSelectId}
+                      onChange={(event) =>
+                        updateAppearanceTheme(event.target.value as AppearanceTheme)
+                      }
+                      value={settingsDraft.appearanceTheme}
+                    >
+                      <option value="system">{t.appearanceThemeSystem}</option>
+                      <option value="light">{t.appearanceThemeLight}</option>
+                      <option value="dark">{t.appearanceThemeDark}</option>
+                    </select>
+                  </SettingsSelectField>
+
+                  <SettingsSelectField
+                    controlId={menuBarIconStyleSelectId}
+                    description={t.menuBarIconStyleDescription}
+                    feedback={preferenceFeedback["appearance.menu-bar-icon"]}
+                    feedbackLabels={feedbackLabels}
+                    label={t.menuBarIconStyleLabel}
+                    settingId="appearance.menu-bar-icon"
+                  >
+                    <MenuBarIconSelect
+                      controlId={menuBarIconStyleSelectId}
+                      label={t.menuBarIconStyleLabel}
+                      onChange={updateMenuBarIconStyle}
+                      options={menuBarIconOptions}
+                      value={settingsDraft.menuBarIconStyle}
+                    />
+                  </SettingsSelectField>
+                </SettingsGroup>
+
                 <SettingsGroup label={t.mainWindowGroupLabel}>
                   <SettingsSwitchItem
                     checked={settingsDraft.showMainWindowBrand}
                     description={t.showMainWindowBrandDescription}
+                    feedback={preferenceFeedback["appearance.brand"]}
+                    feedbackLabels={feedbackLabels}
                     label={t.showMainWindowBrandLabel}
                     onClick={toggleMainWindowBrand}
+                    settingId="appearance.brand"
                   />
-
                   <SettingsSwitchItem
                     checked={settingsDraft.showHistoryItemNumbers}
                     description={t.showHistoryItemNumbersDescription}
+                    feedback={preferenceFeedback["appearance.item-numbers"]}
+                    feedbackLabels={feedbackLabels}
                     label={t.showHistoryItemNumbersLabel}
                     onClick={toggleHistoryItemNumbers}
+                    settingId="appearance.item-numbers"
                   />
                 </SettingsGroup>
-              </div>
-            ) : null}
+              </PreferencePage>
+              ),
+              history: (
 
-            {activeTab === "storage" ? (
-              <div className={ui.settingsTabPanel} role="tabpanel">
-                <div className={`${ui.settingsSection} ${ui.historyTypesSection}`}>
+              <PreferencePage
+                description={t.historyPageDescription}
+                title={t.historyTab}
+              >
+                <div
+                  className={`${ui.settingsSection} ${ui.historyTypesSection}`}
+                  id={preferenceFocusTargetId("history.types")}
+                >
                   <div className={ui.settingsSectionHeading}>
                     <div className={ui.settingsLabel}>{t.typesLabel}</div>
                     <div className={ui.settingsDescription}>{t.typesDescription}</div>
@@ -1192,7 +1262,10 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
-                <div className={ui.settingsRow}>
+                <div
+                  className={ui.settingsRow}
+                  id={preferenceFocusTargetId("history.maximum")}
+                >
                   <div className={ui.settingsCopy}>
                     <div className={ui.settingsLabel}>{t.maxHistoryCountLabel}</div>
                     <div className={ui.settingsDescription}>
@@ -1223,7 +1296,10 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
-                <div className={ui.settingsRow}>
+                <div
+                  className={ui.settingsRow}
+                  id={preferenceFocusTargetId("history.main-count")}
+                >
                   <div className={ui.settingsCopy}>
                     <div className={ui.settingsLabel}>
                       {t.mainWindowItemCountLabel}
@@ -1263,7 +1339,10 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
-                <div className={ui.settingsRow}>
+                <div
+                  className={ui.settingsRow}
+                  id={preferenceFocusTargetId("history.group-count")}
+                >
                   <div className={ui.settingsCopy}>
                     <div className={ui.settingsLabel}>
                       {t.historyGroupItemCountLabel}
@@ -1306,24 +1385,33 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
-              </div>
-            ) : null}
+              </PreferencePage>
+              ),
+              privacy: (
 
-            {activeTab === "privacy" ? (
-              <div className={ui.settingsTabPanel} role="tabpanel">
+              <PreferencePage
+                description={t.privacyPageDescription}
+                title={t.privacyTab}
+              >
                 <SettingsGroup label={t.privacyProtectionGroupLabel}>
                   <SettingsSwitchItem
                     checked={settingsDraft.maskSensitiveContent}
                     description={t.maskSensitiveContentDescription}
+                    feedback={preferenceFeedback["privacy.masking"]}
+                    feedbackLabels={feedbackLabels}
                     label={t.maskSensitiveContentLabel}
                     onClick={toggleSensitiveContentMasking}
+                    settingId="privacy.masking"
                   >
                     <span className={ui.settingsNote}>
                       {t.privacyStorageDisclosure}
                     </span>
                   </SettingsSwitchItem>
 
-                  <div className={ui.settingsSwitchActions}>
+                  <div
+                    className={ui.settingsSwitchActions}
+                    id={preferenceFocusTargetId("privacy.reclassify")}
+                  >
                     <div className={ui.settingsCopy}>
                       <div className={ui.settingsDescription}>
                         {t.reclassifyLegacyDescription}
@@ -1353,7 +1441,10 @@ export function PreferencesWindow() {
                     </div>
                   </div>
 
-                  <div className={ui.privacySourceInputRow}>
+                  <div
+                    className={ui.privacySourceInputRow}
+                    id={preferenceFocusTargetId("privacy.source-exclusion")}
+                  >
                     <label
                       className={ui.srOnly}
                       htmlFor={ignoredSourceAppInputId}
@@ -1416,12 +1507,69 @@ export function PreferencesWindow() {
                     </div>
                   ) : null}
                 </SettingsGroup>
-              </div>
-            ) : null}
+              </PreferencePage>
+              ),
+              textActions: (
 
-            {activeTab === "cli" ? (
-              <div className={ui.settingsTabPanel} role="tabpanel">
-                <div className={`${ui.settingsSection} ${ui.cliInstallSection}`}>
+              <PreferencePage
+                description={t.textActionsPageDescription}
+                title={t.textActionsTab}
+              >
+                <SettingsGroup label={t.textActionsGroupLabel}>
+                  {([
+                    ["json", t.textActionJsonLabel, t.textActionJsonDescription],
+                    ["base64", t.textActionBase64Label, t.textActionBase64Description],
+                    ["urlComponent", t.textActionUrlLabel, t.textActionUrlDescription],
+                  ] as const).map(([group, label, description]) => (
+                    <PreferenceRow
+                      description={description}
+                      feedback={
+                        preferenceFeedback[
+                          `text-actions.${group === "urlComponent" ? "url" : group}`
+                        ]
+                      }
+                      feedbackLabels={{
+                        error: t.error,
+                        pending: t.saving,
+                        saved: t.saved,
+                      }}
+                      focusTargetId={preferenceFocusTargetId(
+                        `text-actions.${group === "urlComponent" ? "url" : group}`,
+                      )}
+                      key={group}
+                      label={label}
+                    >
+                      <PreferenceSwitch
+                        checked={settingsDraft.textQuickActions[group]}
+                        label={label}
+                        onChange={() =>
+                          applySettingsPatch((current) => ({
+                            ...current,
+                            textQuickActions: {
+                              ...current.textQuickActions,
+                              [group]: !current.textQuickActions[group],
+                            },
+                          }), `text-actions.${group === "urlComponent" ? "url" : group}`)
+                        }
+                      />
+                    </PreferenceRow>
+                  ))}
+                  <div className={ui.settingsSwitchActions}>
+                    <span className={ui.settingsNote}>{t.textActionsBoundaryNote}</span>
+                  </div>
+                </SettingsGroup>
+              </PreferencePage>
+              ),
+              cli: (
+
+              <PreferencePage
+                description={t.cliPageDescription}
+                title={t.cliTab}
+              >
+                <div
+                  className={`${ui.settingsSection} ${ui.cliInstallSection}`}
+                  id={preferenceFocusTargetId("cli.status")}
+                >
                   <div className={ui.settingsSectionHeading}>
                     <div className={ui.settingsLabel}>{t.cliSectionLabel}</div>
                     <div className={ui.settingsDescription}>
@@ -1507,14 +1655,15 @@ export function PreferencesWindow() {
                     </div>
                   ) : null}
                 </div>
-              </div>
-            ) : null}
+              </PreferencePage>
+              ),
+            }}
+          />
 
             {settingsError ? (
               <div className={ui.settingsError}>{settingsError}</div>
             ) : null}
-          </div>
-        </div>
+        </PreferencesSettingsCenter>
       </div>
     </DialogWindowFrame>
   );

@@ -171,16 +171,16 @@ pub const AUXILIARY_WINDOW_DESCRIPTORS: [AuxiliaryWindowDescriptor; 6] = [
         title: "mclip Preferences",
         url: "index.html",
         size: LogicalWindowSize {
-            width: 600.0,
-            height: 480.0,
+            width: 820.0,
+            height: 600.0,
         },
         min_size: Some(LogicalWindowSize {
-            width: 600.0,
-            height: 480.0,
+            width: 820.0,
+            height: 600.0,
         }),
         max_size: Some(LogicalWindowSize {
-            width: 600.0,
-            height: 480.0,
+            width: 820.0,
+            height: 600.0,
         }),
         transparent: true,
         focusable: true,
@@ -424,8 +424,8 @@ mod tests {
             (
                 "preferences",
                 LogicalWindowSize {
-                    width: 600.0,
-                    height: 480.0,
+                    width: 820.0,
+                    height: 600.0,
                 },
             ),
         ] {

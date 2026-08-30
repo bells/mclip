@@ -17,26 +17,27 @@ function sourceBetween(source, startMarker, endMarker) {
 }
 
 test("settings saves are queued in the background instead of disabling the page", async () => {
-  const source = await readPreferencesSource();
+  const [source, controllerSource] = await Promise.all([
+    readPreferencesSource(),
+    readFile("src/components/preferences/preferenceSaveController.ts", "utf8"),
+  ]);
 
-  assert.match(source, /settingsSaveQueueRef/);
-  assert.match(source, /settingsSaveRevisionRef/);
-  assert.match(
-    source,
-    /const saveTask = settingsSaveQueueRef\.current\s*\.catch\(\(\) => undefined\)\s*\.then\(async \(\) =>/s,
-  );
-  assert.match(source, /settingsSaveQueueRef\.current = saveTask/);
+  assert.match(source, /createPreferenceSaveController/);
+  assert.match(controllerSource, /let saveQueue = Promise\.resolve\(\)/);
+  assert.match(controllerSource, /const saveTask = saveQueue\.then\(async \(\) =>/);
+  assert.match(controllerSource, /saveQueue = saveTask/);
+  assert.match(controllerSource, /pendingCount \+= 1/);
   assert.doesNotMatch(source, /isSavingSettings/);
   assert.doesNotMatch(source, /setIsSavingSettings/);
-  assert.doesNotMatch(source, /t\.saving/);
+  assert.match(source, /feedbackLabels=\{\{/);
 });
 
 test("storage controls stay interactive while settings persist", async () => {
   const source = await readPreferencesSource();
   const storagePanel = sourceBetween(
     source,
-    '{activeTab === "storage" ?',
-    '{activeTab === "cli" ?',
+    "history: (",
+    "privacy: (",
   );
 
   assert.doesNotMatch(storagePanel, /disabled=\{isSavingSettings/);

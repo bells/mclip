@@ -54,6 +54,36 @@ test("stale action results are rejected after item or request changes", () => {
   );
 });
 
+test("desktop action groups filter independently without changing the action set", () => {
+  assert.equal(
+    quickActions.TEXT_QUICK_ACTION_GROUP_BY_ACTION.jsonPrettify,
+    "json",
+  );
+  assert.equal(
+    quickActions.TEXT_QUICK_ACTION_GROUP_BY_ACTION.base64Decode,
+    "base64",
+  );
+  assert.equal(
+    quickActions.TEXT_QUICK_ACTION_GROUP_BY_ACTION.urlComponentEncode,
+    "urlComponent",
+  );
+  assert.deepEqual(
+    quickActions.filterEnabledTextQuickActions(
+      quickActions.TEXT_TRANSFORM_ACTIONS,
+      { base64: false, json: true, urlComponent: false },
+    ),
+    ["jsonPrettify", "jsonMinify"],
+  );
+  assert.equal(
+    quickActions.hasEnabledTextQuickActions({
+      base64: false,
+      json: false,
+      urlComponent: false,
+    }),
+    false,
+  );
+});
+
 test("detail applicability is bounded and never runs from list or hover renderers", async () => {
   const [actionsSource, listSource, groupSource] = await Promise.all([
     readSource("src/components/TextQuickActions.tsx"),
@@ -61,6 +91,8 @@ test("detail applicability is bounded and never runs from list or hover renderer
     readSource("src/components/HistoryGroupPreviewWindow.tsx"),
   ]);
   assert.match(actionsSource, /getApplicableTextTransformActions/);
+  assert.match(actionsSource, /!hasEnabledTextQuickActions\(settings\)/);
+  assert.match(actionsSource, /filterEnabledTextQuickActions/);
   assert.match(actionsSource, /requestRevisionRef/);
   assert.doesNotMatch(listSource, /transformText|TextQuickActions/);
   assert.doesNotMatch(groupSource, /transformText|TextQuickActions/);

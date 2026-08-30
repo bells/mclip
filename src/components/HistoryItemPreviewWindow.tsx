@@ -65,6 +65,7 @@ export function HistoryItemPreviewWindow({
         onSensitiveItemStale={onSensitiveItemStale}
         performanceInteractionId={preview.performanceInteractionId}
         role="dialog"
+        textQuickActions={preview.textQuickActions}
         translations={translations}
       />
     </div>

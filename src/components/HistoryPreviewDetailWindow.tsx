@@ -187,6 +187,7 @@ export function HistoryPreviewDetailWindow() {
           void hideHistoryPreviewDetailWindow();
         }}
         performanceInteractionId={preview.performanceInteractionId}
+        textQuickActions={preview.textQuickActions}
         role="region"
         translations={translations}
       />

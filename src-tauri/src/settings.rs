@@ -57,6 +57,36 @@ pub enum AppearanceTheme {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct TextQuickActionSettings {
+    #[serde(
+        default = "default_enabled_text_quick_action",
+        deserialize_with = "deserialize_enabled_text_quick_action"
+    )]
+    pub json: bool,
+    #[serde(
+        default = "default_enabled_text_quick_action",
+        deserialize_with = "deserialize_enabled_text_quick_action"
+    )]
+    pub base64: bool,
+    #[serde(
+        default = "default_enabled_text_quick_action",
+        deserialize_with = "deserialize_enabled_text_quick_action"
+    )]
+    pub url_component: bool,
+}
+
+impl Default for TextQuickActionSettings {
+    fn default() -> Self {
+        Self {
+            json: true,
+            base64: true,
+            url_component: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     #[serde(default)]
@@ -83,6 +113,8 @@ pub struct AppSettings {
     pub mask_sensitive_content: bool,
     #[serde(default)]
     pub ignored_source_app_ids: Vec<String>,
+    #[serde(default)]
+    pub text_quick_actions: TextQuickActionSettings,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -129,6 +161,7 @@ impl Default for AppSettings {
             appearance_theme: AppearanceTheme::default(),
             mask_sensitive_content: true,
             ignored_source_app_ids: Vec::new(),
+            text_quick_actions: TextQuickActionSettings::default(),
         }
     }
 }
@@ -152,6 +185,20 @@ impl AppSettings {
 
 fn default_mask_sensitive_content() -> bool {
     true
+}
+
+fn default_enabled_text_quick_action() -> bool {
+    true
+}
+
+fn deserialize_enabled_text_quick_action<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = serde_json::Value::deserialize(deserializer)?;
+    Ok(value
+        .as_bool()
+        .unwrap_or_else(default_enabled_text_quick_action))
 }
 
 pub fn normalize_source_app_identifier(value: &str) -> Option<String> {
@@ -447,7 +494,7 @@ mod tests {
     use super::{
         normalize_ignored_source_app_ids, resolve_app_language, resolve_supported_language,
         AppLanguage, AppSettings, AppearanceTheme, HistoryTypes, ResolvedAppLanguage,
-        DEFAULT_HISTORY_GROUP_ITEM_COUNT, DEFAULT_MAIN_WINDOW_ITEM_COUNT,
+        TextQuickActionSettings, DEFAULT_HISTORY_GROUP_ITEM_COUNT, DEFAULT_MAIN_WINDOW_ITEM_COUNT,
         DEFAULT_MAX_HISTORY_COUNT, MAX_HISTORY_GROUP_ITEM_COUNT, MAX_MAX_HISTORY_COUNT,
         MIN_MAX_HISTORY_COUNT, MIN_VISIBLE_ITEM_COUNT,
     };
@@ -466,6 +513,41 @@ mod tests {
             serde_json::from_str(include_str!("../tests/fixtures/v0.1.1-settings.json")).unwrap();
         assert!(settings.mask_sensitive_content);
         assert!(settings.ignored_source_app_ids.is_empty());
+        assert_eq!(
+            settings.text_quick_actions,
+            TextQuickActionSettings::default()
+        );
+    }
+
+    #[test]
+    fn text_quick_actions_default_to_enabled_and_serialize_as_camel_case() {
+        let value = serde_json::to_value(AppSettings::default()).unwrap();
+
+        assert_eq!(value["textQuickActions"]["json"].as_bool(), Some(true));
+        assert_eq!(value["textQuickActions"]["base64"].as_bool(), Some(true));
+        assert_eq!(
+            value["textQuickActions"]["urlComponent"].as_bool(),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn text_quick_actions_merge_missing_and_invalid_nested_values() {
+        let settings: AppSettings = serde_json::from_str(
+            r#"{
+              "launchAtLogin": false,
+              "maxHistoryCount": 200,
+              "textQuickActions": {
+                "json": false,
+                "base64": "invalid"
+              }
+            }"#,
+        )
+        .unwrap();
+
+        assert!(!settings.text_quick_actions.json);
+        assert!(settings.text_quick_actions.base64);
+        assert!(settings.text_quick_actions.url_component);
     }
 
     #[test]

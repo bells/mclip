@@ -71,6 +71,12 @@ export type TextTransformAction =
   | "urlComponentEncode"
   | "urlComponentDecode";
 
+export type TextQuickActionSettings = {
+  json: boolean;
+  base64: boolean;
+  urlComponent: boolean;
+};
+
 export type TextTransformRequest = {
   action: TextTransformAction;
   input: string;
@@ -128,6 +134,7 @@ export type AppSettings = {
   appearanceTheme: AppearanceTheme;
   maskSensitiveContent: boolean;
   ignoredSourceAppIds: string[];
+  textQuickActions: TextQuickActionSettings;
 };
 
 export type CliInstallStatus = {
@@ -281,6 +288,7 @@ export type HistoryGroupPreviewPayload = {
   maskSensitiveContent: boolean;
   performanceInteractionId: string | null;
   showHistoryItemNumbers: boolean;
+  textQuickActions: TextQuickActionSettings;
 };
 
 export type HistoryItemPreviewPayload = {
@@ -292,6 +300,7 @@ export type HistoryItemPreviewPayload = {
   language: AppLanguage;
   maskSensitiveContent: boolean;
   performanceInteractionId: string | null;
+  textQuickActions: TextQuickActionSettings;
 };
 
 export type ImageViewerPayload = {

@@ -357,6 +357,7 @@ export function useHistoryPreviewController({
             language: settings.language,
             maskSensitiveContent: settings.maskSensitiveContent,
             performanceInteractionId,
+            textQuickActions: settings.textQuickActions,
           });
         })
         .then(async () => {
@@ -421,6 +422,7 @@ export function useHistoryPreviewController({
           maskSensitiveContent: settings.maskSensitiveContent,
           performanceInteractionId,
           showHistoryItemNumbers: settings.showHistoryItemNumbers,
+          textQuickActions: settings.textQuickActions,
         });
       })
       .then(async () => {
@@ -458,6 +460,7 @@ export function useHistoryPreviewController({
     settings.language,
     settings.maskSensitiveContent,
     settings.showHistoryItemNumbers,
+    settings.textQuickActions,
   ]);
 
   useEffect(() => {

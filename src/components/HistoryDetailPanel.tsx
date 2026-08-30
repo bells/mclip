@@ -8,6 +8,7 @@ import type {
   AppearanceTheme,
   HistoryListItem,
   SensitiveHistoryRevealErrorCode,
+  TextQuickActionSettings,
 } from "../types";
 import { ui } from "../uiStyles";
 import { resolveAppLanguage } from "../utils/language";
@@ -35,6 +36,7 @@ type HistoryDetailPanelProps = {
   performanceInteractionId?: string | null;
   presentation?: "compact" | "viewer";
   role?: "dialog" | "region";
+  textQuickActions?: TextQuickActionSettings;
 };
 
 function formatHistoryTimestamp(timestamp: number, language: AppLanguage) {
@@ -62,6 +64,7 @@ export function HistoryDetailPanel({
   performanceInteractionId = null,
   presentation = "compact",
   role = "dialog",
+  textQuickActions = { base64: true, json: true, urlComponent: true },
 }: HistoryDetailPanelProps) {
   const [revealedText, setRevealedText] = useState<{
     item: HistoryListItem;
@@ -174,6 +177,7 @@ export function HistoryDetailPanel({
               isContentAvailable={!isSensitiveTextMasked(displayItem)}
               item={displayItem}
               language={language}
+              settings={textQuickActions}
             />
           ) : null}
         </div>
