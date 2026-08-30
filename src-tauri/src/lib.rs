@@ -7,6 +7,7 @@ mod auxiliary_window_contract;
 pub mod auxiliary_windows;
 pub mod cli_install;
 mod clipboard;
+mod desktop_capabilities;
 mod desktop_state;
 mod diagnostics;
 mod history;
@@ -36,10 +37,13 @@ use crate::auto_paste::{remember_current_paste_target, AutoPasteTargetState};
 use crate::auxiliary_window_contract::AuxiliaryWindowRegistry;
 use crate::auxiliary_windows::{ensure_auxiliary_window, mark_auxiliary_window_ready};
 use crate::cli_install::{get_cli_install_status, install_cli};
+#[cfg(target_os = "linux")]
+use crate::clipboard::initialize_linux_clipboard_broker;
 use crate::clipboard::{
     copy_history_item, copy_text_to_clipboard, get_auto_paste_permission_status,
     open_auto_paste_permission_settings, paste_current_clipboard, spawn_clipboard_watcher,
 };
+use crate::desktop_capabilities::{get_desktop_capabilities, DesktopCapabilityState};
 use crate::desktop_state::DesktopStateRepository;
 use crate::diagnostics::{
     copy_diagnostic_report, initialize_diagnostics, log_error, log_info, open_issue_report,
@@ -376,11 +380,16 @@ fn register_global_shortcuts(app: &App, show_guard_until: Arc<Mutex<Option<Insta
     );
 
     if let Err(error) = result {
+        app.state::<DesktopCapabilityState>()
+            .record_global_shortcut_result(false);
         log_error(
             app.handle(),
             "shortcut",
             &format!("failed to register global shortcut {TOGGLE_WINDOW_SHORTCUT}: {error}"),
         );
+    } else {
+        app.state::<DesktopCapabilityState>()
+            .record_global_shortcut_result(true);
     }
 }
 
@@ -488,9 +497,10 @@ pub fn run() {
         PerformanceOutcome::Success,
     );
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .manage(AutoPasteTargetState::default())
         .manage(AuxiliaryWindowRegistry::default())
+        .manage(DesktopCapabilityState::detect())
         .manage(performance_recorder)
         .on_window_event({
             let show_guard_until = Arc::clone(&show_guard_until);
@@ -531,11 +541,16 @@ pub fn run() {
                     // focus away from the main window. Keep the main window
                     // alive while the pointer is over preview or the focused
                     // image viewer is presenting the same history detail.
-                    if should_hide_main_window_on_focus_loss(
-                        !remaining_guard.is_zero(),
-                        is_pointer_over_preview,
-                        image_viewer_visible,
-                    ) {
+                    let has_background_entrypoint = window
+                        .state::<DesktopCapabilityState>()
+                        .has_background_entrypoint();
+                    if has_background_entrypoint
+                        && should_hide_main_window_on_focus_loss(
+                            !remaining_guard.is_zero(),
+                            is_pointer_over_preview,
+                            image_viewer_visible,
+                        )
+                    {
                         let _ = hide_main_window(window.app_handle());
                     }
                 }
@@ -549,13 +564,22 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        .plugin(tauri_plugin_positioner::init())
+        .plugin(tauri_plugin_positioner::init());
+    #[cfg(target_os = "linux")]
+    let builder = builder.plugin(
+        tauri_plugin_autostart::Builder::new()
+            .app_name("mclip")
+            .build(),
+    );
+
+    builder
         .invoke_handler(tauri::generate_handler![
             copy_history_item,
             copy_text_to_clipboard,
             paste_current_clipboard,
             open_auto_paste_permission_settings,
             get_auto_paste_permission_status,
+            get_desktop_capabilities,
             get_source_app_detection_status,
             get_image_base64,
             get_image_cache_stats,
@@ -648,9 +672,33 @@ pub fn run() {
                 );
                 app.manage(repository);
 
+                #[cfg(target_os = "linux")]
+                if let Err(error) = initialize_linux_clipboard_broker(app.handle()) {
+                    log_error(
+                        app.handle(),
+                        "clipboard",
+                        &format!("Linux clipboard capability unavailable: {error}"),
+                    );
+                }
                 spawn_clipboard_watcher(app.handle().clone());
-                build_tray(app, show_guard_until, &startup_settings)?;
-                configure_tray_position_persistence(app.handle());
+                match build_tray(app, show_guard_until, &startup_settings) {
+                    Ok(()) => {
+                        app.state::<DesktopCapabilityState>()
+                            .record_tray_result(true);
+                        configure_tray_position_persistence(app.handle());
+                    }
+                    Err(error) => {
+                        app.state::<DesktopCapabilityState>()
+                            .record_tray_result(false);
+                        log_error(
+                            app.handle(),
+                            "tray",
+                            &format!("tray activation unavailable: {error}"),
+                        );
+                        show_main_window(app.handle(), WindowPlacement::Center)
+                            .map_err(std::io::Error::other)?;
+                    }
+                }
                 record_rust_milestone(
                     &app.state::<PerformanceRecorder>(),
                     PerformanceMilestoneName::TrayReady,

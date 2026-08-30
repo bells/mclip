@@ -85,6 +85,7 @@ detect_release_asset() {
 
   case "$os_name:$arch_name" in
     Darwin:arm64|Darwin:aarch64) printf 'mclip-cli-darwin-arm64' ;;
+    Linux:x86_64|Linux:amd64) printf 'mclip-cli-linux-x64' ;;
     *) printf '' ;;
   esac
 }
@@ -134,7 +135,12 @@ verify_checksum() {
 download_prebuilt_binary() {
   asset_name="$(detect_release_asset)"
 
-  [ -n "$asset_name" ] || return 1
+  if [ -z "$asset_name" ]; then
+    os_name="$(uname -s 2>/dev/null || printf unknown)"
+    arch_name="$(uname -m 2>/dev/null || printf unknown)"
+    log "No supported prebuilt mclip-cli asset for $os_name/$arch_name; falling back to local/source build."
+    return 1
+  fi
   command -v curl >/dev/null 2>&1 || return 1
 
   cleanup_dir="$(make_temp_dir)"

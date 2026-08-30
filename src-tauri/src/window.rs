@@ -2038,7 +2038,7 @@ mod tests {
     }
 
     #[test]
-    fn windows_taskbar_edges_select_the_clicked_monitor_before_work_area_clamping() {
+    fn linux_and_windows_panel_edges_select_clicked_monitor_before_work_area_clamping() {
         let fallback = ScreenPlacementBounds {
             full: super::ScreenBounds {
                 left: 0.0,

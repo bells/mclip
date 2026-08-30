@@ -28,6 +28,7 @@ import { getTranslations } from "../i18n";
 import {
   getCliInstallStatus,
   getAutoPastePermissionStatus,
+  getDesktopCapabilities,
   getSourceAppDetectionStatus,
   getSettings,
   hideCurrentWindow,
@@ -43,6 +44,8 @@ import type {
   AppearanceTheme,
   AutoPastePermissionStatus,
   CliInstallStatus,
+  DesktopCapabilities,
+  DesktopCapability,
   HistoryKind,
   MenuBarIconStyle,
   SourceAppDetectionStatus,
@@ -135,14 +138,47 @@ function SettingsSelectField({
 type SettingsGroupProps = {
   children: ReactNode;
   label: string;
+  settingId?: string;
 };
 
-function SettingsGroup({ children, label }: SettingsGroupProps) {
+function SettingsGroup({ children, label, settingId }: SettingsGroupProps) {
   return (
-    <section className={ui.preferenceGroup}>
+    <section
+      className={ui.preferenceGroup}
+      id={settingId ? preferenceFocusTargetId(settingId) : undefined}
+    >
       <h2 className={ui.preferenceGroupTitle}>{label}</h2>
       <div className={ui.preferenceGroupBody}>{children}</div>
     </section>
+  );
+}
+
+type DesktopCapabilityRowProps = {
+  capability: DesktopCapability;
+  description: string;
+  label: string;
+  note?: string;
+  statusLabels: Record<DesktopCapability["status"], string>;
+};
+
+function DesktopCapabilityRow({
+  capability,
+  description,
+  label,
+  note,
+  statusLabels,
+}: DesktopCapabilityRowProps) {
+  const statusClassName =
+    capability.status === "unavailable"
+      ? "text-[10px] font-semibold text-[var(--mclip-danger)]"
+      : capability.status === "degraded"
+        ? "text-[10px] font-semibold text-[var(--mclip-meta)]"
+        : "text-[10px] font-semibold text-[var(--mclip-accent-cool)]";
+
+  return (
+    <PreferenceRow description={description} label={label} note={note}>
+      <span className={statusClassName}>{statusLabels[capability.status]}</span>
+    </PreferenceRow>
   );
 }
 
@@ -416,6 +452,8 @@ export function PreferencesWindow() {
     useState<AutoPastePermissionStatus | null>(null);
   const [sourceAppDetectionStatus, setSourceAppDetectionStatus] =
     useState<SourceAppDetectionStatus | null>(null);
+  const [desktopCapabilities, setDesktopCapabilities] =
+    useState<DesktopCapabilities | null>(null);
   const [ignoredSourceAppInput, setIgnoredSourceAppInput] = useState("");
   const [privacyMessage, setPrivacyMessage] = useState("");
   const [privacyError, setPrivacyError] = useState("");
@@ -448,6 +486,11 @@ export function PreferencesWindow() {
   useApplyAppTheme(settingsDraft.appearanceTheme);
   const t = translations.preferences;
   const feedbackLabels = { error: t.error, pending: t.saving, saved: t.saved };
+  const desktopCapabilityStatusLabels = {
+    available: t.desktopCapabilityAvailable,
+    degraded: t.desktopCapabilityDegraded,
+    unavailable: t.desktopCapabilityUnavailable,
+  } as const;
   const destinations = createPreferencesDestinations(
     (key) => t[key] as string,
   );
@@ -523,6 +566,24 @@ export function PreferencesWindow() {
       save: saveSettings,
     });
   }
+
+  useEffect(() => {
+    let isActive = true;
+    void getDesktopCapabilities()
+      .then((capabilities) => {
+        if (isActive) {
+          setDesktopCapabilities(capabilities);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setDesktopCapabilities(null);
+        }
+      });
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -1101,7 +1162,10 @@ export function PreferencesWindow() {
                   <SettingsSwitchItem
                     checked={settingsDraft.autoPaste}
                     description={t.autoPasteDescription}
-                    disabled={isCheckingAutoPastePermission}
+                    disabled={
+                      isCheckingAutoPastePermission ||
+                      desktopCapabilities?.autoPaste.status === "unavailable"
+                    }
                     feedback={preferenceFeedback["general.auto-paste"]}
                     feedbackLabels={feedbackLabels}
                     label={t.autoPasteLabel}
@@ -1149,6 +1213,95 @@ export function PreferencesWindow() {
                     </div>
                   ) : null}
                 </SettingsGroup>
+
+                {desktopCapabilities?.platform === "linux" ? (
+                  <SettingsGroup
+                    label={t.desktopCapabilitiesGroupLabel}
+                    settingId="general.desktop-capabilities"
+                  >
+                    <DesktopCapabilityRow
+                      capability={desktopCapabilities.clipboardHistory}
+                      description={t.desktopClipboardHistoryDescription}
+                      label={t.desktopClipboardHistoryLabel}
+                      note={
+                        desktopCapabilities.clipboardHistory.status === "unavailable"
+                          ? t.linuxWaylandClipboardUnavailable
+                          : desktopCapabilities.clipboardHistory.status === "degraded"
+                            ? t.linuxClipboardFallbackDegraded
+                            : undefined
+                      }
+                      statusLabels={desktopCapabilityStatusLabels}
+                    />
+                    <DesktopCapabilityRow
+                      capability={desktopCapabilities.clipboardWrite}
+                      description={t.desktopClipboardWriteDescription}
+                      label={t.desktopClipboardWriteLabel}
+                      note={
+                        desktopCapabilities.clipboardWrite.status === "unavailable"
+                          ? t.linuxWaylandClipboardUnavailable
+                          : desktopCapabilities.clipboardWrite.status === "degraded"
+                            ? t.linuxClipboardFallbackDegraded
+                            : undefined
+                      }
+                      statusLabels={desktopCapabilityStatusLabels}
+                    />
+                    <DesktopCapabilityRow
+                      capability={desktopCapabilities.trayActivation}
+                      description={t.desktopTrayDescription}
+                      label={t.desktopTrayLabel}
+                      note={
+                        desktopCapabilities.trayActivation.status === "unavailable"
+                          ? t.linuxTrayUnavailable
+                          : undefined
+                      }
+                      statusLabels={desktopCapabilityStatusLabels}
+                    />
+                    <DesktopCapabilityRow
+                      capability={desktopCapabilities.globalShortcut}
+                      description={t.desktopShortcutDescription}
+                      label={t.desktopShortcutLabel}
+                      note={
+                        desktopCapabilities.globalShortcut.status === "unavailable"
+                          ? t.linuxShortcutUnavailable
+                          : undefined
+                      }
+                      statusLabels={desktopCapabilityStatusLabels}
+                    />
+                    <DesktopCapabilityRow
+                      capability={desktopCapabilities.sourceAppDetection}
+                      description={t.desktopSourceAppDescription}
+                      label={t.desktopSourceAppLabel}
+                      note={
+                        desktopCapabilities.sourceAppDetection.status === "unavailable"
+                          ? t.linuxSourceIdentityUnavailable
+                          : undefined
+                      }
+                      statusLabels={desktopCapabilityStatusLabels}
+                    />
+                    <DesktopCapabilityRow
+                      capability={desktopCapabilities.launchAtLogin}
+                      description={t.desktopAutostartDescription}
+                      label={t.desktopAutostartLabel}
+                      note={
+                        desktopCapabilities.launchAtLogin.status === "unavailable"
+                          ? t.linuxAutostartUnavailable
+                          : undefined
+                      }
+                      statusLabels={desktopCapabilityStatusLabels}
+                    />
+                    <DesktopCapabilityRow
+                      capability={desktopCapabilities.autoPaste}
+                      description={t.desktopAutoPasteDescription}
+                      label={t.desktopAutoPasteLabel}
+                      note={
+                        desktopCapabilities.autoPaste.status === "unavailable"
+                          ? t.linuxAutoPasteUnavailable
+                          : undefined
+                      }
+                      statusLabels={desktopCapabilityStatusLabels}
+                    />
+                  </SettingsGroup>
+                ) : null}
 
               </PreferencePage>
               ),

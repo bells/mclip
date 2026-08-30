@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager};
+#[cfg(target_os = "linux")]
+use tauri_plugin_autostart::ManagerExt;
 
 use crate::desktop_state::DesktopStateRepository;
 use crate::history::{trim_history_to_max, HistoryKind};
@@ -418,7 +420,15 @@ fn launch_agent_enabled(app_handle: &AppHandle) -> Result<bool, String> {
         Ok(windows_startup_script_path(app_handle)?.exists())
     }
 
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[cfg(target_os = "linux")]
+    {
+        app_handle
+            .autolaunch()
+            .is_enabled()
+            .map_err(|_| "xdgAutostartStatusUnavailable".to_string())
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
     {
         let _ = app_handle;
         Ok(false)
@@ -481,7 +491,23 @@ fn sync_launch_at_login(app_handle: &AppHandle, enabled: bool) -> Result<(), Str
         }
     }
 
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[cfg(target_os = "linux")]
+    {
+        let result = if enabled {
+            app_handle.autolaunch().enable()
+        } else {
+            app_handle.autolaunch().disable()
+        };
+        result.map_err(|_| {
+            if enabled {
+                "xdgAutostartEnableFailed".to_string()
+            } else {
+                "xdgAutostartDisableFailed".to_string()
+            }
+        })?;
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
     {
         let _ = (app_handle, enabled);
     }

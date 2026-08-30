@@ -94,6 +94,7 @@ const SETTING_DEFINITIONS: readonly SettingDefinition[] = [
   setting("general.language", "general", "languageLabel", "languageDescription", ["locale"]),
   setting("general.launch-at-login", "general", "launchAtLoginLabel", "launchAtLoginDescription", ["startup", "login"]),
   setting("general.auto-paste", "general", "autoPasteLabel", "autoPasteDescription", ["paste", "accessibility"]),
+  setting("general.desktop-capabilities", "general", "desktopCapabilitiesGroupLabel", "desktopCapabilitiesDescription", ["linux", "wayland", "x11", "tray", "shortcut"]),
   setting("appearance.theme", "appearance", "appearanceThemeLabel", "appearanceThemeDescription", ["light", "dark", "system"]),
   setting("appearance.menu-bar-icon", "appearance", "menuBarIconStyleLabel", "menuBarIconStyleDescription", ["tray", "status bar"]),
   setting("appearance.brand", "appearance", "showMainWindowBrandLabel", "showMainWindowBrandDescription", ["logo", "brand"]),

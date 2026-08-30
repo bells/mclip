@@ -23,6 +23,9 @@ async function createInstallerFixture({
   checksumMode = "valid",
   downloadMode = "success",
   existingBinary = null,
+  osName = "Darwin",
+  archName = "arm64",
+  sourceFallback = false,
   version = null,
 } = {}) {
   const fixtureDir = await mkdtemp(path.join(tmpdir(), "mclip-installer-"));
@@ -54,9 +57,9 @@ async function createInstallerFixture({
     path.join(fakeBinDir, "uname"),
     `#!/bin/sh
 if [ "\${1:-}" = "-s" ]; then
-  printf 'Darwin\\n'
+  printf '%s\\n' "$FAKE_UNAME_S"
 else
-  printf 'arm64\\n'
+  printf '%s\\n' "$FAKE_UNAME_M"
 fi
 `,
   );
@@ -127,7 +130,11 @@ cp "$FAKE_BINARY" "$FAKE_REPO_DIR/src-tauri/target/release/mclip-cli"
 `,
   );
 
-  if (downloadMode === "missing-binary" || downloadMode === "missing-binary-code56") {
+  if (
+    downloadMode === "missing-binary" ||
+    downloadMode === "missing-binary-code56" ||
+    sourceFallback
+  ) {
     await mkdir(path.join(fixtureDir, "src-tauri"));
     await writeFile(path.join(fixtureDir, "src-tauri", "Cargo.toml"), "[package]\n");
   }
@@ -143,6 +150,8 @@ cp "$FAKE_BINARY" "$FAKE_REPO_DIR/src-tauri/target/release/mclip-cli"
       FAKE_CURL_LOG: curlLogPath,
       FAKE_DOWNLOAD_MODE: downloadMode,
       FAKE_REPO_DIR: fixtureDir,
+      FAKE_UNAME_M: archName,
+      FAKE_UNAME_S: osName,
       MCLIP_INSTALL_DIR: installDir,
       MCLIP_RELEASE_BASE_URL: "https://releases.example.test",
       PATH: `${fakeBinDir}:${process.env.PATH}`,
@@ -172,6 +181,7 @@ test("public install scripts stay identical and publish checksum assets", async 
   assert.match(rootScript, /build_repo_binary/);
   assert.match(releaseWorkflow, /ASSET_NAME="mclip-cli-darwin-arm64"/);
   assert.match(releaseWorkflow, /ASSET_NAME="mclip-cli-windows-x64\.exe"/);
+  assert.match(releaseWorkflow, /ASSET_NAME="mclip-cli-linux-x64"/);
   assert.match(releaseWorkflow, /asset_name \}\}\.sha256/);
   assert.match(releaseWorkflow, /mclip-cli \$TAG_VERSION/);
   assert.match(releaseWorkflow, /fail_on_unmatched_files: true/);
@@ -185,6 +195,8 @@ test("public install scripts stay identical and publish checksum assets", async 
     "mclip-cli-darwin-arm64.sha256",
     "mclip-cli-windows-x64.exe",
     "mclip-cli-windows-x64.exe.sha256",
+    "mclip-cli-linux-x64",
+    "mclip-cli-linux-x64.sha256",
   ]) {
     assert.match(releaseWorkflow, new RegExp(`"${expectedAsset.replaceAll(".", "\\.")}"`));
   }
@@ -220,6 +232,39 @@ test("installer pins binary and checksum to the requested version", async () => 
   assert.match(
     fixture.curlLog,
     /\/download\/v0\.1\.1\/mclip-cli-darwin-arm64\.sha256\n/,
+  );
+});
+
+test("Linux x86_64 downloads the checksum-verified prebuilt asset", async () => {
+  const fixture = await createInstallerFixture({
+    osName: "Linux",
+    archName: "x86_64",
+  });
+
+  assert.equal(fixture.result.status, 0, fixture.result.stderr);
+  assert.match(fixture.curlLog, /\/latest\/download\/mclip-cli-linux-x64\n/);
+  assert.match(
+    fixture.curlLog,
+    /\/latest\/download\/mclip-cli-linux-x64\.sha256\n/,
+  );
+});
+
+test("Linux ARM64 reports unsupported prebuilt and uses source fallback", async () => {
+  const fixture = await createInstallerFixture({
+    osName: "Linux",
+    archName: "aarch64",
+    sourceFallback: true,
+  });
+
+  assert.equal(fixture.result.status, 0, fixture.result.stderr);
+  assert.equal(fixture.curlLog, "");
+  assert.match(
+    fixture.result.stdout,
+    /No supported prebuilt mclip-cli asset for Linux\/aarch64/,
+  );
+  assert.equal(
+    await readFile(fixture.installedPath, "utf8"),
+    "mclip-cli fixture 0.1.1\n",
   );
 });
 

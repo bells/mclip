@@ -5,6 +5,7 @@ import type {
   AuxiliaryWindowLabel,
   AutoPastePermissionStatus,
   CliInstallStatus,
+  DesktopCapabilities,
   HistoryChange,
   HistorySnapshot,
   ImageCacheStats,
@@ -149,6 +150,10 @@ export function getAutoPastePermissionStatus() {
 
 export function getSourceAppDetectionStatus() {
   return invoke<SourceAppDetectionStatus>("get_source_app_detection_status");
+}
+
+export function getDesktopCapabilities() {
+  return invoke<DesktopCapabilities>("get_desktop_capabilities");
 }
 
 export function getAssetUrl(path: string) {

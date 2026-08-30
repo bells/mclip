@@ -162,6 +162,36 @@ export type SourceAppDetectionStatus = {
   reasonCode: string;
 };
 
+export type DesktopCapabilityStatus =
+  | "available"
+  | "degraded"
+  | "unavailable";
+
+export type DesktopSessionKind =
+  | "macOs"
+  | "windows"
+  | "x11"
+  | "xWayland"
+  | "wayland"
+  | "unknown";
+
+export type DesktopCapability = {
+  reasonCode: string;
+  status: DesktopCapabilityStatus;
+};
+
+export type DesktopCapabilities = {
+  autoPaste: DesktopCapability;
+  clipboardHistory: DesktopCapability;
+  clipboardWrite: DesktopCapability;
+  globalShortcut: DesktopCapability;
+  launchAtLogin: DesktopCapability;
+  platform: string;
+  sessionKind: DesktopSessionKind;
+  sourceAppDetection: DesktopCapability;
+  trayActivation: DesktopCapability;
+};
+
 export type ImageCacheStats = {
   hits: number;
   misses: number;

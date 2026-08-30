@@ -6,6 +6,8 @@ use std::borrow::Cow;
 use std::path::PathBuf;
 #[cfg(target_os = "macos")]
 use std::process::Command;
+#[cfg(target_os = "linux")]
+use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::thread;
 use std::time::Duration;
 
@@ -17,6 +19,8 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 
 use crate::auto_paste::{activate_paste_target_on_main_thread, AutoPasteTargetState};
+#[cfg(target_os = "linux")]
+use crate::desktop_capabilities::DesktopCapabilityState;
 use crate::desktop_state::DesktopStateRepository;
 use crate::diagnostics::{log_error, log_info};
 use crate::history::{
@@ -32,6 +36,12 @@ const CLIPBOARD_CHANGE_SETTLE_DELAY_MS: u64 = 75;
 const AUTO_PASTE_DELAY_MS: u64 = 120;
 const AUTO_PASTE_AFTER_ACTIVATION_DELAY_MS: u64 = 80;
 const MAX_IMAGE_DIMENSION: u32 = 1200;
+#[cfg(any(target_os = "linux", test))]
+const LINUX_CLIPBOARD_REQUEST_CAPACITY: usize = 16;
+#[cfg(any(target_os = "linux", test))]
+const LINUX_CLIPBOARD_RESPONSE_TIMEOUT: Duration = Duration::from_secs(2);
+#[cfg(any(target_os = "linux", test))]
+const LINUX_CLI_OWNERSHIP_HANDOFF_TIMEOUT: Duration = Duration::from_secs(2);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -50,7 +60,7 @@ pub async fn copy_history_item(app_handle: AppHandle, id: String) -> Result<(), 
             return Err("history item not found".to_string());
         };
 
-        write_history_item_to_clipboard(history_item)
+        write_history_item_to_desktop_clipboard(&app_handle, history_item)
     })
     .await
     .map_err(|error| error.to_string())?
@@ -172,12 +182,20 @@ struct CapturedClipboardSnapshot {
     source_app: Option<String>,
 }
 
+#[cfg(not(target_os = "linux"))]
 fn read_current_clipboard_snapshot(
     app_handle: &AppHandle,
     history_types: &HistoryTypes,
 ) -> Option<CapturedClipboardSnapshot> {
+    read_current_clipboard_snapshot_with(app_handle, || read_clipboard_snapshot(history_types))
+}
+
+fn read_current_clipboard_snapshot_with(
+    app_handle: &AppHandle,
+    read_snapshot: impl FnOnce() -> Option<ClipboardSnapshot>,
+) -> Option<CapturedClipboardSnapshot> {
     let source = current_source_capture_decision(app_handle);
-    read_clipboard_snapshot_for_source(source, || read_clipboard_snapshot(history_types))
+    read_clipboard_snapshot_for_source(source, read_snapshot)
 }
 
 fn read_clipboard_snapshot_for_source(
@@ -204,11 +222,9 @@ fn process_clipboard_snapshot(
         snapshot,
         source_app,
     } = captured;
-    if snapshot.signature == *last_signature {
+    if !record_changed_clipboard_signature(last_signature, &snapshot.signature) {
         return;
     }
-
-    *last_signature = snapshot.signature;
 
     match process_new_history_item(app_handle, snapshot.item, source_app) {
         Ok(Some(change)) => {
@@ -231,9 +247,28 @@ fn process_clipboard_snapshot(
     }
 }
 
+fn record_changed_clipboard_signature(last_signature: &mut String, signature: &str) -> bool {
+    if signature == last_signature {
+        return false;
+    }
+    signature.clone_into(last_signature);
+    true
+}
+
 pub(crate) fn write_history_item_to_clipboard(history_item: HistoryEntry) -> Result<(), String> {
     let mut clipboard = Clipboard::new().map_err(|error| error.to_string())?;
 
+    #[cfg(target_os = "linux")]
+    return write_history_item_to_linux_cli_clipboard(&mut clipboard, history_item);
+
+    #[cfg(not(target_os = "linux"))]
+    write_history_item_with_clipboard(&mut clipboard, history_item)
+}
+
+fn write_history_item_with_clipboard(
+    clipboard: &mut Clipboard,
+    history_item: HistoryEntry,
+) -> Result<(), String> {
     match history_item {
         HistoryEntry::Text { text, .. } => {
             clipboard.set_text(text).map_err(|error| error.to_string())
@@ -263,6 +298,69 @@ pub(crate) fn write_history_item_to_clipboard(history_item: HistoryEntry) -> Res
     }
 }
 
+#[cfg(target_os = "linux")]
+fn write_history_item_to_linux_cli_clipboard(
+    clipboard: &mut Clipboard,
+    history_item: HistoryEntry,
+) -> Result<(), String> {
+    use arboard::SetExtLinux;
+
+    let ownership_deadline = std::time::Instant::now() + LINUX_CLI_OWNERSHIP_HANDOFF_TIMEOUT;
+
+    match history_item {
+        HistoryEntry::Text { text, .. } => clipboard
+            .set()
+            .wait_until(ownership_deadline)
+            .text(text)
+            .map_err(|error| error.to_string()),
+        HistoryEntry::Files { file_paths, .. } => {
+            let paths = clipboard_file_list_paths(file_paths);
+            clipboard
+                .set()
+                .wait_until(ownership_deadline)
+                .file_list(&paths)
+                .map_err(|error| error.to_string())
+        }
+        HistoryEntry::Image { image_path, .. } => {
+            let png_bytes = std::fs::read(image_path).map_err(|error| error.to_string())?;
+            let image = image::load_from_memory(&png_bytes)
+                .map_err(|error| error.to_string())?
+                .to_rgba8();
+            let (width, height) = image.dimensions();
+
+            clipboard
+                .set()
+                .wait_until(ownership_deadline)
+                .image(ImageData {
+                    width: width as usize,
+                    height: height as usize,
+                    bytes: Cow::Owned(image.into_raw()),
+                })
+                .map_err(|error| error.to_string())
+        }
+    }
+}
+
+fn write_history_item_to_desktop_clipboard(
+    app_handle: &AppHandle,
+    history_item: HistoryEntry,
+) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    {
+        let broker = app_handle
+            .try_state::<LinuxClipboardBroker>()
+            .ok_or_else(|| "linuxClipboardUnavailable".to_string())?;
+        return broker.write_history_item(history_item);
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = app_handle;
+        write_history_item_to_clipboard(history_item)
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
 pub(crate) fn write_text_to_clipboard(text: String) -> Result<(), String> {
     Clipboard::new()
         .map_err(|error| error.to_string())?
@@ -294,7 +392,7 @@ pub(crate) fn write_text_to_clipboard_for_cli(text: String) -> Result<(), String
         return Clipboard::new()
             .map_err(|error| error.to_string())?
             .set()
-            .wait()
+            .wait_until(std::time::Instant::now() + LINUX_CLI_OWNERSHIP_HANDOFF_TIMEOUT)
             .text(text)
             .map_err(|error| error.to_string());
     }
@@ -304,10 +402,24 @@ pub(crate) fn write_text_to_clipboard_for_cli(text: String) -> Result<(), String
 }
 
 #[tauri::command]
-pub async fn copy_text_to_clipboard(text: String) -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(move || write_text_to_clipboard(text))
-        .await
-        .map_err(|_| "clipboardTextWriteWorkerFailed".to_string())?
+pub async fn copy_text_to_clipboard(app_handle: AppHandle, text: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        {
+            let broker = app_handle
+                .try_state::<LinuxClipboardBroker>()
+                .ok_or_else(|| "linuxClipboardUnavailable".to_string())?;
+            broker.write_text(text)
+        }
+
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = app_handle;
+            write_text_to_clipboard(text)
+        }
+    })
+    .await
+    .map_err(|_| "clipboardTextWriteWorkerFailed".to_string())?
 }
 
 #[cfg(target_os = "macos")]
@@ -522,9 +634,18 @@ struct ClipboardSnapshot {
     item: NewHistoryItem,
 }
 
+#[cfg(not(target_os = "linux"))]
 fn read_clipboard_snapshot(enabled_types: &HistoryTypes) -> Option<ClipboardSnapshot> {
+    let mut clipboard = Clipboard::new().ok()?;
+    read_clipboard_snapshot_with(&mut clipboard, enabled_types)
+}
+
+fn read_clipboard_snapshot_with(
+    clipboard: &mut Clipboard,
+    enabled_types: &HistoryTypes,
+) -> Option<ClipboardSnapshot> {
     if enabled_types.files {
-        if let Ok(file_paths) = read_clipboard_files() {
+        if let Ok(file_paths) = read_clipboard_files_with(clipboard) {
             if !file_paths.is_empty() {
                 // Finder 拷贝单张图片时剪贴板上只有文件引用，没有像素数据。
                 // 检测到单张常见图片格式时直接读取文件内容生成 image 条目，
@@ -545,13 +666,13 @@ fn read_clipboard_snapshot(enabled_types: &HistoryTypes) -> Option<ClipboardSnap
     }
 
     if enabled_types.image {
-        if let Ok(item) = read_clipboard_image() {
+        if let Ok(item) = read_clipboard_image_with(clipboard) {
             return clipboard_snapshot_from_candidates(None, Some(item), None);
         }
     }
 
     if enabled_types.text || enabled_types.files {
-        if let Ok(text) = read_clipboard_text() {
+        if let Ok(text) = read_clipboard_text_with(clipboard) {
             if let Some(item) = text_to_history_item(text, enabled_types) {
                 return clipboard_snapshot_from_candidates(None, None, Some(item));
             }
@@ -575,6 +696,7 @@ fn clipboard_snapshot_from_candidates(
         })
 }
 
+#[cfg(not(target_os = "linux"))]
 fn read_clipboard_signature(enabled_types: &HistoryTypes) -> String {
     read_clipboard_snapshot(enabled_types)
         .map(|snapshot| snapshot.signature)
@@ -597,15 +719,14 @@ fn read_snapshot_after_change_token_update<T>(
     }
 }
 
-fn read_clipboard_text() -> Result<String, String> {
-    Clipboard::new()
-        .and_then(|mut clipboard| clipboard.get_text())
-        .map_err(|error| error.to_string())
+fn read_clipboard_text_with(clipboard: &mut Clipboard) -> Result<String, String> {
+    clipboard.get_text().map_err(|error| error.to_string())
 }
 
-fn read_clipboard_files() -> Result<Vec<String>, String> {
-    Clipboard::new()
-        .and_then(|mut clipboard| clipboard.get().file_list())
+fn read_clipboard_files_with(clipboard: &mut Clipboard) -> Result<Vec<String>, String> {
+    clipboard
+        .get()
+        .file_list()
         .map(|paths| {
             paths
                 .into_iter()
@@ -623,10 +744,8 @@ fn clipboard_file_list_paths(file_paths: Vec<String>) -> Vec<PathBuf> {
         .collect()
 }
 
-fn read_clipboard_image() -> Result<NewHistoryItem, String> {
-    let clipboard_image = Clipboard::new()
-        .and_then(|mut clipboard| clipboard.get_image())
-        .map_err(|error| error.to_string())?;
+fn read_clipboard_image_with(clipboard: &mut Clipboard) -> Result<NewHistoryItem, String> {
+    let clipboard_image = clipboard.get_image().map_err(|error| error.to_string())?;
 
     let mut rgba = RgbaImage::from_raw(
         clipboard_image.width as u32,
@@ -839,7 +958,192 @@ fn normalize_file_url_path(path: String) -> String {
     }
 }
 
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+#[cfg(target_os = "linux")]
+enum LinuxClipboardRequest {
+    ReadSnapshot {
+        history_types: HistoryTypes,
+        response: SyncSender<Result<Option<ClipboardSnapshot>, String>>,
+    },
+    WriteHistoryItem {
+        history_item: HistoryEntry,
+        response: SyncSender<Result<(), String>>,
+    },
+    WriteText {
+        text: String,
+        response: SyncSender<Result<(), String>>,
+    },
+    Shutdown,
+}
+
+#[cfg(target_os = "linux")]
+pub struct LinuxClipboardBroker {
+    sender: SyncSender<LinuxClipboardRequest>,
+}
+
+#[cfg(target_os = "linux")]
+impl LinuxClipboardBroker {
+    fn start() -> Result<Self, String> {
+        let (sender, receiver) = mpsc::sync_channel(LINUX_CLIPBOARD_REQUEST_CAPACITY);
+        let (ready_sender, ready_receiver) = mpsc::sync_channel(1);
+        thread::Builder::new()
+            .name("mclip-linux-clipboard".to_string())
+            .spawn(move || run_linux_clipboard_broker(receiver, ready_sender))
+            .map_err(|_| "linuxClipboardBrokerSpawnFailed".to_string())?;
+
+        ready_receiver
+            .recv_timeout(LINUX_CLIPBOARD_RESPONSE_TIMEOUT)
+            .map_err(|_| "linuxClipboardBrokerInitTimedOut".to_string())??;
+        Ok(Self { sender })
+    }
+
+    fn read_snapshot(
+        &self,
+        history_types: HistoryTypes,
+    ) -> Result<Option<ClipboardSnapshot>, String> {
+        let (response, receiver) = mpsc::sync_channel(1);
+        self.sender
+            .try_send(LinuxClipboardRequest::ReadSnapshot {
+                history_types,
+                response,
+            })
+            .map_err(|_| "linuxClipboardBrokerBusy".to_string())?;
+        receiver
+            .recv_timeout(LINUX_CLIPBOARD_RESPONSE_TIMEOUT)
+            .map_err(|_| "linuxClipboardReadTimedOut".to_string())?
+    }
+
+    fn write_history_item(&self, history_item: HistoryEntry) -> Result<(), String> {
+        let (response, receiver) = mpsc::sync_channel(1);
+        self.sender
+            .try_send(LinuxClipboardRequest::WriteHistoryItem {
+                history_item,
+                response,
+            })
+            .map_err(|_| "linuxClipboardBrokerBusy".to_string())?;
+        receiver
+            .recv_timeout(LINUX_CLIPBOARD_RESPONSE_TIMEOUT)
+            .map_err(|_| "linuxClipboardWriteTimedOut".to_string())?
+    }
+
+    fn write_text(&self, text: String) -> Result<(), String> {
+        let (response, receiver) = mpsc::sync_channel(1);
+        self.sender
+            .try_send(LinuxClipboardRequest::WriteText { text, response })
+            .map_err(|_| "linuxClipboardBrokerBusy".to_string())?;
+        receiver
+            .recv_timeout(LINUX_CLIPBOARD_RESPONSE_TIMEOUT)
+            .map_err(|_| "linuxClipboardWriteTimedOut".to_string())?
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl Drop for LinuxClipboardBroker {
+    fn drop(&mut self) {
+        let _ = self.sender.try_send(LinuxClipboardRequest::Shutdown);
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn run_linux_clipboard_broker(
+    receiver: Receiver<LinuxClipboardRequest>,
+    ready_sender: SyncSender<Result<(), String>>,
+) {
+    let mut clipboard = match Clipboard::new() {
+        Ok(clipboard) => {
+            let _ = ready_sender.send(Ok(()));
+            clipboard
+        }
+        Err(_) => {
+            let _ = ready_sender.send(Err("linuxClipboardBackendUnavailable".to_string()));
+            return;
+        }
+    };
+
+    while let Ok(request) = receiver.recv() {
+        match request {
+            LinuxClipboardRequest::ReadSnapshot {
+                history_types,
+                response,
+            } => {
+                let snapshot = read_clipboard_snapshot_with(&mut clipboard, &history_types);
+                let _ = response.send(Ok(snapshot));
+            }
+            LinuxClipboardRequest::WriteHistoryItem {
+                history_item,
+                response,
+            } => {
+                let _ = response.send(write_history_item_with_clipboard(
+                    &mut clipboard,
+                    history_item,
+                ));
+            }
+            LinuxClipboardRequest::WriteText { text, response } => {
+                let _ = response.send(
+                    clipboard
+                        .set_text(text)
+                        .map_err(|_| "linuxClipboardWriteFailed".to_string()),
+                );
+            }
+            LinuxClipboardRequest::Shutdown => break,
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+pub fn initialize_linux_clipboard_broker(app_handle: &AppHandle) -> Result<(), String> {
+    match LinuxClipboardBroker::start() {
+        Ok(broker) => {
+            if !app_handle.manage(broker) {
+                return Err("linuxClipboardBrokerAlreadyManaged".to_string());
+            }
+            app_handle
+                .state::<DesktopCapabilityState>()
+                .record_clipboard_ready();
+            Ok(())
+        }
+        Err(error) => {
+            app_handle
+                .state::<DesktopCapabilityState>()
+                .record_clipboard_unavailable();
+            Err(error)
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
+    thread::spawn(move || {
+        let mut last_signature = String::new();
+        if let (Ok(history_types), Some(broker)) = (
+            configured_history_types(&app_handle),
+            app_handle.try_state::<LinuxClipboardBroker>(),
+        ) {
+            last_signature = broker
+                .read_snapshot(history_types)
+                .ok()
+                .flatten()
+                .map(|snapshot| snapshot.signature)
+                .unwrap_or_default();
+        }
+
+        loop {
+            if let Ok(history_types) = configured_history_types(&app_handle) {
+                if let Some(broker) = app_handle.try_state::<LinuxClipboardBroker>() {
+                    let captured = read_current_clipboard_snapshot_with(&app_handle, || {
+                        broker.read_snapshot(history_types).ok().flatten()
+                    });
+                    if let Some(snapshot) = captured {
+                        process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
+                    }
+                }
+            }
+
+            thread::sleep(Duration::from_millis(CLIPBOARD_POLL_INTERVAL_MS));
+        }
+    });
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
 fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
     thread::spawn(move || {
         let mut last_signature = configured_history_types(&app_handle)
@@ -847,7 +1151,6 @@ fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
             .unwrap_or_default();
 
         loop {
-            // 其它平台保留完整轮询。每轮独立读取，避免长时间持有 Clipboard 导致后续读取不稳定。
             if let Ok(history_types) = configured_history_types(&app_handle) {
                 if let Some(snapshot) = read_current_clipboard_snapshot(&app_handle, &history_types)
                 {
@@ -1215,6 +1518,7 @@ fn spawn_platform_clipboard_watcher(app_handle: AppHandle) {
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
+    use std::time::Duration;
 
     use crate::settings::HistoryTypes;
 
@@ -1223,7 +1527,9 @@ mod tests {
         clipboard_snapshot_from_candidates, macos_auto_paste_access_result,
         macos_auto_paste_permission_settings_url, normalize_suspicious_clipboard_alpha,
         read_clipboard_snapshot_for_source, read_snapshot_after_change_token_update,
-        source_capture_decision, text_to_history_item, ClipboardSnapshot,
+        record_changed_clipboard_signature, source_capture_decision, text_to_history_item,
+        ClipboardSnapshot, LINUX_CLIPBOARD_REQUEST_CAPACITY, LINUX_CLIPBOARD_RESPONSE_TIMEOUT,
+        LINUX_CLI_OWNERSHIP_HANDOFF_TIMEOUT,
     };
     use crate::history::{HistoryKind, NewHistoryItem};
     use crate::source_app::SourceApplicationIdentity;
@@ -1434,6 +1740,37 @@ mod tests {
         .unwrap();
 
         assert_eq!(snapshot.item.kind(), HistoryKind::Files);
+    }
+
+    #[test]
+    fn linux_polling_only_accepts_a_changed_signature_for_history_processing() {
+        let mut last_signature = "same".to_string();
+
+        assert!(!record_changed_clipboard_signature(
+            &mut last_signature,
+            "same"
+        ));
+        assert!(record_changed_clipboard_signature(
+            &mut last_signature,
+            "changed"
+        ));
+        assert_eq!(last_signature, "changed");
+    }
+
+    #[test]
+    fn linux_broker_request_queue_and_response_wait_are_bounded() {
+        let (sender, _receiver) =
+            std::sync::mpsc::sync_channel::<()>(LINUX_CLIPBOARD_REQUEST_CAPACITY);
+        for _ in 0..LINUX_CLIPBOARD_REQUEST_CAPACITY {
+            sender.try_send(()).unwrap();
+        }
+
+        assert!(matches!(
+            sender.try_send(()),
+            Err(std::sync::mpsc::TrySendError::Full(()))
+        ));
+        assert_eq!(LINUX_CLIPBOARD_RESPONSE_TIMEOUT, Duration::from_secs(2));
+        assert_eq!(LINUX_CLI_OWNERSHIP_HANDOFF_TIMEOUT, Duration::from_secs(2));
     }
 
     #[test]

@@ -12,7 +12,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, windows-2022]
+        include:
+          - platform: macos-latest
+            tauri_args: ""
+          - platform: windows-2022
+            tauri_args: ""
+          - platform: ubuntu-24.04
+            tauri_args: "--bundles deb,appimage"
 
     runs-on: ${{ matrix.platform }}
 
@@ -27,6 +33,18 @@ jobs:
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libfuse2
 
       - name: Install frontend dependencies
         run: npm ci
@@ -74,6 +92,10 @@ jobs:
               ASSET_NAME="mclip-cli-windows-x64.exe"
               SOURCE_PATH="src-tauri/target/release/mclip-cli.exe"
               ;;
+            Linux:X64)
+              ASSET_NAME="mclip-cli-linux-x64"
+              SOURCE_PATH="src-tauri/target/release/mclip-cli"
+              ;;
             *)
               echo "No published mclip-cli asset mapping for $RUNNER_OS:$RUNNER_ARCH" >&2
               exit 1
@@ -99,12 +121,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          args: ${{ matrix.tauri_args }}
           tagName: v__VERSION__
           releaseName: "mclip v__VERSION__"
           releaseBody: |
-            mclip v__VERSION__ 已发布，提供 macOS 和 Windows 安装包。它是一个本地优先的剪贴板历史工具，适合从菜单栏/托盘快速找回最近复制过的文本、图片和文件。
+            mclip v__VERSION__ 已发布，提供 macOS 和 Windows 安装包，并生成待原生桌面验证的 Linux x86_64 预览包。它是一个本地优先的剪贴板历史工具，适合从菜单栏/托盘快速找回最近复制过的文本、图片和文件。
 
-            mclip v__VERSION__ is now available, with installers for macOS and Windows. It is a local-first clipboard history tool for quickly bringing back recently copied text, images, and files from the menu bar or system tray.
+            mclip v__VERSION__ is now available with macOS and Windows installers plus Linux x86_64 preview packages pending native desktop verification. It is a local-first clipboard history tool for quickly bringing back recently copied text, images, and files from the menu bar or system tray.
 
             ## 本版本包含
 
@@ -177,6 +200,10 @@ jobs:
             当前 Windows 安装包尚未代码签名。安装或首次启动时，Windows SmartScreen 可能提示“未知发布者”；请只在确认信任这个 Release 后继续。
 
             The Windows installer is not code-signed yet. Windows SmartScreen may warn about an unknown publisher during install or first launch; continue only if you trust this release.
+
+            ### Linux preview
+
+            Linux x86_64 `.deb` and AppImage assets are preview build artifacts until the published native X11/XWayland and named Wayland smoke matrix is complete. Wayland data-control, tray, global shortcut, source-app identity, auto-paste, and panel positioning can degrade independently. Linux ARM64 is not provided.
           releaseDraft: true
           prerelease: false
 
@@ -190,7 +217,7 @@ jobs:
             cli-dist/${{ steps.cli_asset.outputs.asset_name }}.sha256
 
   verify-cli-release-assets:
-    name: Verify CLI release assets
+    name: Verify Draft release assets
     needs: publish
     runs-on: ubuntu-latest
     # Draft releases are only visible to tokens with push-level repository access.
@@ -208,6 +235,8 @@ jobs:
             "mclip-cli-darwin-arm64.sha256"
             "mclip-cli-windows-x64.exe"
             "mclip-cli-windows-x64.exe.sha256"
+            "mclip-cli-linux-x64"
+            "mclip-cli-linux-x64.sha256"
           )
 
           mkdir -p cli-release-assets
@@ -216,6 +245,13 @@ jobs:
             --dir cli-release-assets \
             --pattern "mclip-cli-*"
 
+          mkdir -p linux-desktop-assets
+          gh release download "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir linux-desktop-assets \
+            --pattern "*.deb" \
+            --pattern "*.AppImage"
+
           for ASSET_NAME in "${EXPECTED_CLI_ASSETS[@]}"; do
             if [ ! -s "cli-release-assets/$ASSET_NAME" ]; then
               echo "Draft Release is missing required CLI asset: $ASSET_NAME" >&2
@@ -223,8 +259,18 @@ jobs:
             fi
           done
 
+          if ! find linux-desktop-assets -maxdepth 1 -type f -name '*.deb' -size +0c | grep -q .; then
+            echo "Draft Release is missing a non-empty Linux .deb artifact" >&2
+            exit 1
+          fi
+          if ! find linux-desktop-assets -maxdepth 1 -type f -name '*.AppImage' -size +0c | grep -q .; then
+            echo "Draft Release is missing a non-empty Linux AppImage artifact" >&2
+            exit 1
+          fi
+
           (
             cd cli-release-assets
             sha256sum -c mclip-cli-darwin-arm64.sha256
             sha256sum -c mclip-cli-windows-x64.exe.sha256
+            sha256sum -c mclip-cli-linux-x64.sha256
           )

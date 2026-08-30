@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "targets": ["deb", "appimage"],
+    "category": "Utility",
+    "shortDescription": "Local clipboard history for Linux desktops",
+    "longDescription": "A tray-first local clipboard history tool for supported X11, XWayland, and Wayland data-control sessions."
+  }
+}
