@@ -24,16 +24,26 @@ test("Node 24 and pnpm 10.33.0 are explicit for both workspace packages", async 
 });
 
 test("one pnpm workspace lock governs the application and website", async () => {
-  const [workspace, lockfile] = await Promise.all([
+  const [workspace, lockfile, sitePackageSource] = await Promise.all([
     readSource("pnpm-workspace.yaml"),
     readSource("pnpm-lock.yaml"),
+    readSource("site/package.json"),
   ]);
+  const sitePackage = JSON.parse(sitePackageSource);
+  const astroSpecifier = sitePackage.dependencies?.astro;
+  assert.equal(typeof astroSpecifier, "string");
+  const escapedAstroSpecifier = astroSpecifier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   assert.match(workspace, /packages:\s*\n\s+- site/);
   assert.match(workspace, /onlyBuiltDependencies:[\s\S]*\n\s+- esbuild[\s\S]*\n\s+- sharp/);
   assert.match(lockfile, /importers:\s*\n\s*\n\s+\.:/);
   assert.match(lockfile, /\n\s{2}site:\s*\n/);
-  assert.match(lockfile, /specifier: \^6\.4\.4\s*\n\s+version: 6\.4\.4/);
+  assert.match(
+    lockfile,
+    new RegExp(
+      `astro:\\s*\\n\\s+specifier: ${escapedAstroSpecifier}\\s*\\n\\s+version: \\d+\\.\\d+\\.\\d+`,
+    ),
+  );
   assert.equal(existsSync("package-lock.json"), false);
   assert.equal(existsSync("site/package-lock.json"), false);
   assert.equal(existsSync("site/pnpm-lock.yaml"), false);
