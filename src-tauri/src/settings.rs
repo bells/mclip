@@ -11,7 +11,9 @@ use tauri_plugin_autostart::ManagerExt;
 use crate::desktop_state::DesktopStateRepository;
 use crate::history::{trim_history_to_max, HistoryKind};
 use crate::performance::performance_config_dir_override;
-use crate::storage::{write_text_atomically, write_text_atomically_if_changed};
+use crate::storage::write_text_atomically;
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+use crate::storage::write_text_atomically_if_changed;
 
 pub const DEFAULT_MAX_HISTORY_COUNT: u32 = 200;
 pub const MIN_MAX_HISTORY_COUNT: u32 = 10;

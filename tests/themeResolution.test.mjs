@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import test from "node:test";
 import ts from "typescript";
 
@@ -22,7 +23,7 @@ async function importTypeScriptModule(sourcePath) {
 
   await writeFile(compiledPath, output.outputText, "utf8");
 
-  return import(compiledPath);
+  return import(pathToFileURL(compiledPath).href);
 }
 
 const { resolveAppTheme } = await importTypeScriptModule("src/utils/theme.ts");

@@ -5,6 +5,7 @@ use std::fs;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(any(target_os = "macos", target_os = "windows", test))]
 pub fn write_text_atomically_if_changed(path: &Path, content: &str) -> Result<bool, String> {
     match fs::read_to_string(path) {
         Ok(existing_content) if existing_content == content => Ok(false),

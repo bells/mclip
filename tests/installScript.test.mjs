@@ -154,6 +154,7 @@ cp "$FAKE_BINARY" "$FAKE_REPO_DIR/src-tauri/target/release/mclip-cli"
       FAKE_UNAME_S: osName,
       MCLIP_INSTALL_DIR: installDir,
       MCLIP_RELEASE_BASE_URL: "https://releases.example.test",
+      OS: "",
       PATH: `${fakeBinDir}:${process.env.PATH}`,
       ...(version ? { MCLIP_VERSION: version } : {}),
     },
@@ -188,7 +189,7 @@ test("public install scripts stay identical and publish checksum assets", async 
   assert.match(releaseWorkflow, /verify-cli-release-assets:/);
   assert.match(
     releaseWorkflow,
-    /verify-cli-release-assets:[\s\S]*?permissions:\n\s+contents: write/,
+    /verify-cli-release-assets:[\s\S]*?permissions:\r?\n\s+contents: write/,
   );
   for (const expectedAsset of [
     "mclip-cli-darwin-arm64",

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import test from "node:test";
 import ts from "typescript";
 
@@ -41,7 +42,7 @@ async function importTypeScriptModule(sourcePath) {
     writeFile(compiledPath, compiledSource, "utf8"),
     writeFile(sensitivePath, sensitiveOutput.outputText, "utf8"),
   ]);
-  return import(compiledPath);
+  return import(pathToFileURL(compiledPath).href);
 }
 
 const { reconcilePreviewWithInvalidation } = await importTypeScriptModule(

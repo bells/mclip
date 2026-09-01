@@ -60,7 +60,7 @@ test("main target backgrounds depend on active state instead of parallel hover s
     /export function menuItem[\s\S]*?\n\}/,
   )?.[0];
   const searchInput = stylesSource.match(
-    /search: \(isActive: boolean\) =>[\s\S]*?\n\n  historyGroup:/,
+    /search: \(isActive: boolean\) =>[\s\S]*?\r?\n\r?\n  historyGroup:/,
   )?.[0];
 
   assert.ok(historyRow);

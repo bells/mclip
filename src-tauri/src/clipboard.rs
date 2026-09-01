@@ -350,7 +350,7 @@ fn write_history_item_to_desktop_clipboard(
         let broker = app_handle
             .try_state::<LinuxClipboardBroker>()
             .ok_or_else(|| "linuxClipboardUnavailable".to_string())?;
-        return broker.write_history_item(history_item);
+        broker.write_history_item(history_item)
     }
 
     #[cfg(not(target_os = "linux"))]
@@ -389,12 +389,12 @@ pub(crate) fn write_text_to_clipboard_for_cli(text: String) -> Result<(), String
     {
         use arboard::SetExtLinux;
 
-        return Clipboard::new()
+        Clipboard::new()
             .map_err(|error| error.to_string())?
             .set()
             .wait_until(std::time::Instant::now() + LINUX_CLI_OWNERSHIP_HANDOFF_TIMEOUT)
             .text(text)
-            .map_err(|error| error.to_string());
+            .map_err(|error| error.to_string())
     }
 
     #[cfg(not(target_os = "linux"))]
