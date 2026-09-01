@@ -173,7 +173,7 @@ export const zhCnTranslations = {
       autoPastePermissionAction: "打开辅助功能设置",
       autoPastePermissionGranted: "当前运行的 mclip 已获得辅助功能权限。",
       autoPastePermissionNote:
-        "macOS 安装版需要在“系统设置 > 隐私与安全性 > 辅助功能”中允许 mclip；通过 npm run tauri:dev 启动的开发版需要单独授权。",
+        "macOS 安装版需要在“系统设置 > 隐私与安全性 > 辅助功能”中允许 mclip；通过 pnpm run tauri:dev 启动的开发版需要单独授权。",
       autoPastePermissionRequiredToEnable:
         "请先允许当前运行的 mclip 使用辅助功能权限，再开启自动粘贴。",
       autoPastePermissionStatus: (appPath: string | null) =>

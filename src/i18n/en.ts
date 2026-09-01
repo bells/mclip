@@ -175,7 +175,7 @@ export const enTranslations = {
       autoPastePermissionGranted:
         "The currently running mclip already has Accessibility permission.",
       autoPastePermissionNote:
-        "On macOS, the installed app needs Accessibility permission. The dev build launched by npm run tauri:dev and /Applications/mclip.app are authorized separately.",
+        "On macOS, the installed app needs Accessibility permission. The dev build launched by pnpm run tauri:dev and /Applications/mclip.app are authorized separately.",
       autoPastePermissionRequiredToEnable:
         "Allow the currently running mclip in Accessibility before enabling Auto Paste.",
       autoPastePermissionStatus: (appPath: string | null) =>

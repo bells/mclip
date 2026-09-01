@@ -25,11 +25,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: "24"
-          cache: npm
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -47,24 +51,20 @@ jobs:
             libfuse2
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Verify release tag version
         shell: bash
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           ROOT_PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          ROOT_LOCK_VERSION="$(node -p "require('./package-lock.json').packages[''].version")"
           SITE_PACKAGE_VERSION="$(node -p "require('./site/package.json').version")"
-          SITE_LOCK_VERSION="$(node -p "require('./site/package-lock.json').packages[''].version")"
           CARGO_PACKAGE_VERSION="$(cargo metadata --manifest-path src-tauri/Cargo.toml --no-deps --format-version 1 | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).packages.find((entry) => entry.name === 'mclip').version")"
           CARGO_LOCK_VERSION="$(awk '$0 == "name = \"mclip\"" { getline; gsub(/^version = \"|\"$/, ""); print; exit }' src-tauri/Cargo.lock)"
 
           for VERSION_SOURCE in \
             "package.json:$ROOT_PACKAGE_VERSION" \
-            "package-lock.json:$ROOT_LOCK_VERSION" \
             "site/package.json:$SITE_PACKAGE_VERSION" \
-            "site/package-lock.json:$SITE_LOCK_VERSION" \
             "src-tauri/Cargo.toml:$CARGO_PACKAGE_VERSION" \
             "src-tauri/Cargo.lock:$CARGO_LOCK_VERSION"
           do

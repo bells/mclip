@@ -8,6 +8,7 @@ session is supported.
 
 - Architecture: `x86_64-unknown-linux-gnu` on Ubuntu 24.04.
 - Node.js: 24, installed through `actions/setup-node`.
+- Package manager: pnpm 10.33.0, installed through `pnpm/action-setup` with a frozen workspace lockfile.
 - Rust: stable with `rustfmt`.
 - Native packages: `libwebkit2gtk-4.1-dev`, `libgtk-3-dev`,
   `libappindicator3-dev`, `librsvg2-dev`, `patchelf`, and `libfuse2`.

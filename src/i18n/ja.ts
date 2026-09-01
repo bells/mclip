@@ -174,7 +174,7 @@ export const jaTranslations = {
     autoPastePermissionAction: "アクセシビリティを開く",
     autoPastePermissionGranted: "現在実行中の mclip にはアクセシビリティ権限があります。",
     autoPastePermissionNote:
-      "macOS のインストール版にはアクセシビリティ権限が必要です。npm run tauri:dev で起動した開発版と /Applications/mclip.app は別々に許可してください。",
+      "macOS のインストール版にはアクセシビリティ権限が必要です。pnpm run tauri:dev で起動した開発版と /Applications/mclip.app は別々に許可してください。",
     autoPastePermissionRequiredToEnable:
       "自動貼り付けを有効にする前に、現在実行中の mclip をアクセシビリティで許可してください。",
     autoPastePermissionStatus: (appPath: string | null) =>

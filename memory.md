@@ -206,7 +206,7 @@ Known environment caveats:
 Full gate:
 
 ```bash
-npm run check
+pnpm run check
 ```
 
 This runs frontend build, Rust format check, Rust tests, Rust compile check, and clippy. Prefer it before commit.
@@ -214,16 +214,16 @@ This runs frontend build, Rust format check, Rust tests, Rust compile check, and
 Fast checks:
 
 ```bash
-npm run build
+pnpm run build
 node --test tests/*.test.mjs
 cargo check --manifest-path src-tauri/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
-npm run site:test
-npm run site:build
+pnpm run site:test
+pnpm run site:build
 git diff --check
 ```
 
-Use `npm run build` first for TSX/CSS-only UI edits. Use `git diff --check` after broad docs/config changes. Use targeted tests when tracing a specific bug, then run the full gate when feasible.
+Use `pnpm run build` first for TSX/CSS-only UI edits. Use `git diff --check` after broad docs/config changes. Use targeted tests when tracing a specific bug, then run the full gate when feasible.
 
 If a full check fails, separate baseline or environment failures from the files touched in the current task before blaming the new change.
 

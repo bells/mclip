@@ -38,20 +38,21 @@
 ## 常用命令
 
 ```bash
-npm ci
-npm run tauri:dev
-npm run check
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run tauri:dev
+pnpm run check
 node --test tests/*.test.mjs
-npm run tauri:build
-npm run cli -- list --limit 5 --json
-npm run cli:test
-npm run cli:build
-npm run cli:install
-npm run site:test
-npm run site:build
+pnpm run tauri:build
+pnpm run cli -- list --limit 5 --json
+pnpm run cli:test
+pnpm run cli:build
+pnpm run cli:install
+pnpm run site:test
+pnpm run site:build
 ```
 
-`npm run check` 会执行：
+`pnpm run check` 会执行：
 
 - 前端构建：`tsc && vite build`
 - Rust 格式检查：`cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`
@@ -59,9 +60,9 @@ npm run site:build
 - Rust 编译检查：`cargo check --manifest-path src-tauri/Cargo.toml`
 - Rust clippy：`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`
 
-`npm run check` 不包含根目录 `tests/*.test.mjs`，涉及前端契约、性能或窗口生命周期时还要单独跑 `node --test tests/*.test.mjs`。提交前优先跑这两道门禁。如果只改 TSX/CSS 文档化小界面，可以先跑 `npm run build` 快速确认，再跑完整检查。官网或发布文案有变化时还要跑 `npm run site:test`、`npm run site:build` 和 `git diff --check`。
+`pnpm run check` 不包含根目录 `tests/*.test.mjs`，涉及前端契约、性能或窗口生命周期时还要单独跑 `node --test tests/*.test.mjs`。提交前优先跑这两道门禁。如果只改 TSX/CSS 文档化小界面，可以先跑 `pnpm run build` 快速确认，再跑完整检查。官网或发布文案有变化时还要跑 `pnpm run site:test`、`pnpm run site:build` 和 `git diff --check`。
 
-CLI 是 AI Agent/终端入口。`npm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持 `--help`/`help`、`--version`/`-V`/`version`，Agent 聚合命令 `agent`、只读命令 `list/get/search/context`、本地纯变换命令 `transform`，以及操作命令 `add/copy/delete/pin/unpin/clear`。help/version/transform help 和 transform 执行不应读取历史文件；CLI 与桌面应用共用产品版本。`agent` 输出最近历史、命令能力表和安全边界，默认 Markdown，`--json` 输出结构化包；五个只读命令默认遮罩已分类的敏感文本，`--raw` 或 `--reveal-secrets` 只为当前调用显式显示原文；Agent 默认语义变更后 schema 为 2。`add` 只写历史不覆盖系统剪贴板；`copy --index|--id` 保留选择器语义，`copy --stdin` 或隐式管道只写系统剪贴板、不直接修改历史；所有 stdin/transform 输入最多 1 MiB，变换输出最多 4 MiB。`pin/unpin` 支持稳定 ID 或一位起始序号，read/Agent 命令支持 `--pinned`；`clear` 必须带 `--yes`，`--keep-pinned` 只清普通历史。`npm run cli:test` 是 CLI 的快速回归测试，`npm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
+CLI 是 AI Agent/终端入口。`pnpm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持 `--help`/`help`、`--version`/`-V`/`version`，Agent 聚合命令 `agent`、只读命令 `list/get/search/context`、本地纯变换命令 `transform`，以及操作命令 `add/copy/delete/pin/unpin/clear`。help/version/transform help 和 transform 执行不应读取历史文件；CLI 与桌面应用共用产品版本。`agent` 输出最近历史、命令能力表和安全边界，默认 Markdown，`--json` 输出结构化包；五个只读命令默认遮罩已分类的敏感文本，`--raw` 或 `--reveal-secrets` 只为当前调用显式显示原文；Agent 默认语义变更后 schema 为 2。`add` 只写历史不覆盖系统剪贴板；`copy --index|--id` 保留选择器语义，`copy --stdin` 或隐式管道只写系统剪贴板、不直接修改历史；所有 stdin/transform 输入最多 1 MiB，变换输出最多 4 MiB。`pin/unpin` 支持稳定 ID 或一位起始序号，read/Agent 命令支持 `--pinned`；`clear` 必须带 `--yes`，`--keep-pinned` 只清普通历史。`pnpm run cli:test` 是 CLI 的快速回归测试，`pnpm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
 
 ## 代码地图
 
@@ -373,7 +374,7 @@ Windows 特有实现：
 - 安装器：`bundle.windows.webviewInstallMode` 使用 `downloadBootstrapper`，缺少 WebView2 时会静默下载运行时。
 - 代码签名：当前未配置，用户可能看到 SmartScreen。
 
-无法在 macOS 本地完整替代 Windows 真机验证。改 Windows 专属代码时，至少跑本地 `npm run check` 和：
+无法在 macOS 本地完整替代 Windows 真机验证。改 Windows 专属代码时，至少跑本地 `pnpm run check` 和：
 
 ```bash
 cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
@@ -387,10 +388,10 @@ CI：
 
 - 文件：`.github/workflows/ci.yml`
 - 触发：PR 和 main push
-- 平台：`macos-latest`、`windows-2022`
-- Node：`actions/setup-node@v6`，Node 24
+- 平台：`macos-latest`、`windows-2022`、`ubuntu-24.04`
+- Node/包管理器：`actions/setup-node@v6`、Node 24、`pnpm/action-setup@v4`、pnpm 10.33.0
 - Rust：stable + rustfmt
-- 命令：`npm run check`
+- 命令：`pnpm run check`
 
 Release：
 
@@ -398,7 +399,7 @@ Release：
 - 触发：push `v*` tag
 - 使用 `tauri-apps/tauri-action@v0`
 - 生成 GitHub Release draft
-- macOS 和 Windows 都会打包
+- macOS、Windows 和 Linux 都会打包
 - 每个 runner 会构建并上传对应平台/架构的 `mclip-cli` 预构建资产
 - 发布前校验 tag 版本和 `package.json` 版本一致
 
@@ -412,7 +413,7 @@ git push origin v0.1.1
 发布注意：
 
 - Tauri 版本配置使用 `src-tauri/tauri.conf.json` 里的 `"version": "../package.json"`，安装包文件名会跟随 `package.json`。
-- 发版前同步根 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、`Cargo.lock`、`site/package.json`、`site/package-lock.json`、官网版本文案和 CLI 输出，再创建同版本 tag。例如产品版本是 `0.1.1`，tag 必须是 `v0.1.1`；Release workflow 会在上传前逐项校验并为每个 CLI 二进制生成同名 `.sha256` 资产。
+- 发版前同步根 `package.json`、`site/package.json`、`pnpm-lock.yaml`、`src-tauri/Cargo.toml`、`Cargo.lock`、官网版本文案和 CLI 输出，再创建同版本 tag。例如产品版本是 `0.1.1`，tag 必须是 `v0.1.1`；Release workflow 会校验两个 package manifest、Cargo manifest/lock 与 tag，并为每个 CLI 二进制生成同名 `.sha256` 资产。
 - Release workflow 的平台矩阵结束后必须从同一 Draft 下载并验证 macOS ARM64、Windows x64 的 CLI 二进制及两个 `.sha256`；发布 Draft、移动 tag 或替换远端资产必须由发布负责人显式执行。
 - `release.yml` 的 Release body 需要同时提示 macOS 未 notarize 和 Windows 未签名。
 
@@ -494,7 +495,7 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - 改 Tauri 命令或事件名时，要同步更新 `src/services/ipc/*`、`src/lib/tauri.ts` facade 和 Rust `generate_handler!`。
 - 新增 eager 主窗口时更新 `tauri.conf.json`；新增辅助窗口时更新 `AUXILIARY_WINDOW_DESCRIPTORS`、前后端 label/type/route、listener ready 协议、两个 capability 文件和 AGENTS 代码地图。
 - 新增 Tauri API 时，同步检查 `src-tauri/capabilities/default.json`。
-- 发布前至少跑 `npm run check`、`node --test tests/*.test.mjs`、Windows target check、`npm run site:test`、`npm run site:build` 和 `git diff --check`。
+- 发布前至少跑 `pnpm run check`、`node --test tests/*.test.mjs`、Windows target check、`pnpm run site:test`、`pnpm run site:build` 和 `git diff --check`。
 
 ## 当前已知限制
 

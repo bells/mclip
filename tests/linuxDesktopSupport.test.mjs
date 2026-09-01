@@ -90,7 +90,7 @@ test("Linux CI, bundles, Release assets, and installer mappings are explicit", a
   assert.match(ci, /ubuntu-24\.04/);
   assert.match(ci, /libwebkit2gtk-4\.1-dev/);
   assert.match(ci, /node --test tests\/\*\.test\.mjs/);
-  assert.match(ci, /npm run tauri:build -- --bundles deb,appimage/);
+  assert.match(ci, /pnpm run tauri:build -- --bundles deb,appimage/);
   assert.deepEqual(JSON.parse(config).bundle.targets, ["deb", "appimage"]);
   assert.match(release, /mclip-cli-linux-x64/);
   assert.match(release, /mclip-cli-linux-x64\.sha256/);

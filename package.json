@@ -3,12 +3,16 @@
   "private": true,
   "version": "0.1.1",
   "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "check:frontend": "tsc --noEmit",
     "check:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
-    "check": "npm run build && npm run check:rust",
+    "check": "pnpm run build && pnpm run check:rust",
     "cli": "cargo run --manifest-path src-tauri/Cargo.toml --bin mclip-cli --",
     "cli:build": "cargo build --manifest-path src-tauri/Cargo.toml --bin mclip-cli",
     "cli:install": "sh install.sh",
@@ -19,10 +23,10 @@
     "perf:interactions": "node scripts/performance/benchmark-interactions.mjs",
     "perf:startup": "node scripts/performance/benchmark-startup.mjs",
     "perf:summarize": "node scripts/performance/summarize-trace.mjs",
-    "site:dev": "npm --prefix site run dev",
-    "site:build": "npm --prefix site run build",
-    "site:preview": "npm --prefix site run preview --",
-    "site:test": "npm --prefix site run test",
+    "site:dev": "pnpm --dir site run dev",
+    "site:build": "pnpm --dir site run build",
+    "site:preview": "pnpm --dir site run preview --",
+    "site:test": "pnpm --dir site run test",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"

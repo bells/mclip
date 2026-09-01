@@ -55,7 +55,7 @@ macOS 上，系统支持时可以按住 `Command` 拖动菜单栏里的 mclip �
 
 ### macOS 自动粘贴权限
 
-自动粘贴会向系统发送 `Command+V`，macOS 会把它归到“辅助功能”权限。通过 GitHub Release 安装到“应用程序”的 `mclip.app`，和 `npm run tauri:dev` 启动的开发版是两个不同的授权对象；开发版可用不代表安装版已经被授权。
+自动粘贴会向系统发送 `Command+V`，macOS 会把它归到“辅助功能”权限。通过 GitHub Release 安装到“应用程序”的 `mclip.app`，和 `pnpm run tauri:dev` 启动的开发版是两个不同的授权对象；开发版可用不代表安装版已经被授权。
 
 如果自动粘贴没有反应，请打开 mclip 的“偏好设置 > 通用”，点击“打开辅助功能设置”，然后在“系统设置 > 隐私与安全性 > 辅助功能”中允许 `mclip.app`。
 
@@ -64,30 +64,30 @@ macOS 上，系统支持时可以按住 `Command` 拖动菜单栏里的 mclip �
 CLI 提供本地历史访问、Agent 模式和受控操作能力，方便 Codex、Claude Code、Cursor、Cline 等工具通过命令读取最近剪贴板上下文，或把重要输出写入 mclip 历史。开发环境中可以这样调用：
 
 ```bash
-npm run cli -- agent --last 5 --json
-npm run cli -- --version
-npm run cli -- list --limit 5 --json
-npm run cli -- get --index 1 --raw
-npm run cli -- get --index 1 --json --reveal-secrets
-npm run cli -- search "panic" --json
-npm run cli -- context --last 3 --format markdown
-npm run cli -- add "note from agent"
-npm run cli -- copy --index 1
-printf '%s' 'pipeline clipboard text' | npm run cli -- copy
-printf '%s' '{"ok":true}' | npm run cli -- transform json-prettify
-npm run cli -- transform url-component-encode --text "docs/mclip quick actions"
-npm run cli -- delete --id h_xxx
-npm run cli -- pin --id h_xxx
-npm run cli -- list --pinned --json
-npm run cli -- unpin --index 1
-npm run cli -- clear --yes --keep-pinned
-npm run cli -- clear --yes
+pnpm run cli -- agent --last 5 --json
+pnpm run cli -- --version
+pnpm run cli -- list --limit 5 --json
+pnpm run cli -- get --index 1 --raw
+pnpm run cli -- get --index 1 --json --reveal-secrets
+pnpm run cli -- search "panic" --json
+pnpm run cli -- context --last 3 --format markdown
+pnpm run cli -- add "note from agent"
+pnpm run cli -- copy --index 1
+printf '%s' 'pipeline clipboard text' | pnpm run cli -- copy
+printf '%s' '{"ok":true}' | pnpm run cli -- transform json-prettify
+pnpm run cli -- transform url-component-encode --text "docs/mclip quick actions"
+pnpm run cli -- delete --id h_xxx
+pnpm run cli -- pin --id h_xxx
+pnpm run cli -- list --pinned --json
+pnpm run cli -- unpin --index 1
+pnpm run cli -- clear --yes --keep-pinned
+pnpm run cli -- clear --yes
 ```
 
 CLI 默认读取本机 mclip 配置目录中的 `history.json`。排查或测试时可以显式指定路径：
 
 ```bash
-npm run cli -- --history-path /path/to/history.json list --json
+pnpm run cli -- --history-path /path/to/history.json list --json
 ```
 
 偏好设置的“Agent CLI”页会运行固定安装路径下的 `mclip-cli --version`，显示已安装版本和当前桌面版对应的目标版本，并区分未安装、可升级、版本未知、当前版本和较新版本。未安装时可以安装，旧版或无法识别版本的 legacy CLI 可以升级，当前版本可以重新安装；较新版本不会被自动降级。macOS 默认安装到 `~/.local/bin/mclip-cli`，Windows 默认安装到 `%LOCALAPPDATA%\mclip\bin\mclip-cli.exe`（缺少 `LOCALAPPDATA` 时回退到用户目录）；不会使用 `sudo`、修改 shell profile 或写系统级安装目录。
@@ -142,7 +142,8 @@ v0.2.0 开发版新增本地敏感内容分类、默认遮罩和可配置的来�
 
 环境要求：
 
-- Node.js 24 或兼容版本
+- Node.js 24.x
+- Corepack（Node.js 24 内置）
 - Rust stable
 - macOS：Xcode Command Line Tools
 - Windows：Visual Studio Build Tools 和 WebView2 Runtime
@@ -150,20 +151,21 @@ v0.2.0 开发版新增本地敏感内容分类、默认遮罩和可配置的来�
 常用命令：
 
 ```bash
-npm ci
-npm run tauri:dev
-npm run check
-npm run tauri:build
-npm run cli -- list --limit 5 --json
-npm run cli:test
-npm run cli:build
-npm run cli:install
-npm run site:dev
-npm run site:test
-npm run site:build
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run tauri:dev
+pnpm run check
+pnpm run tauri:build
+pnpm run cli -- list --limit 5 --json
+pnpm run cli:test
+pnpm run cli:build
+pnpm run cli:install
+pnpm run site:dev
+pnpm run site:test
+pnpm run site:build
 ```
 
-`npm run check` 会执行前端构建、Rust 格式检查、Rust 单元测试、Rust 编译检查和 clippy。发布前还应运行 `npm run site:test`、`npm run site:build` 和 `git diff --check`。
+`pnpm run check` 会执行前端构建、Rust 格式检查、Rust 单元测试、Rust 编译检查和 clippy。发布前还应运行 `pnpm run site:test`、`pnpm run site:build` 和 `git diff --check`。
 
 在 macOS 上可以额外运行下面的 Windows 目标编译检查；它能发现条件编译、Windows API 和依赖层面的错误，但不能替代 Windows 真机交互与安装测试：
 
@@ -171,7 +173,7 @@ npm run site:build
 cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
 ```
 
-官网位于 `site/`，使用 Astro 生成静态页面。`npm run site:dev` 用于本地预览官网，`npm run site:build` 会输出到 `site/dist/`。
+官网位于 `site/`，使用 Astro 生成静态页面。`pnpm run site:dev` 用于本地预览官网，`pnpm run site:build` 会输出到 `site/dist/`。
 
 Vercel 部署时，根路径 `/` 由 `site/vercel.json` 在边缘层重定向到 `/en/`，默认进入英文官网，避免先渲染临时中转页面再跳转。
 
@@ -252,7 +254,7 @@ On macOS, when the system allows it, hold `Command` and drag the mclip menu bar 
 
 ### macOS Auto Paste Permission
 
-Auto Paste sends `Command+V` through the system, so macOS protects it with Accessibility permission. The `mclip.app` installed from a GitHub Release and the dev app launched by `npm run tauri:dev` are authorized separately; a working dev build does not mean the installed app is already trusted.
+Auto Paste sends `Command+V` through the system, so macOS protects it with Accessibility permission. The `mclip.app` installed from a GitHub Release and the dev app launched by `pnpm run tauri:dev` are authorized separately; a working dev build does not mean the installed app is already trusted.
 
 If Auto Paste does not react, open `Preferences > General` in mclip, click `Open Accessibility`, then allow `mclip.app` in `System Settings > Privacy & Security > Accessibility`.
 
@@ -261,30 +263,30 @@ If Auto Paste does not react, open `Preferences > General` in mclip, click `Open
 The CLI provides local history access, Agent Mode, and controlled actions so tools such as Codex, Claude Code, Cursor, and Cline can read recent clipboard context or write important output back into mclip history. In development, run:
 
 ```bash
-npm run cli -- agent --last 5 --json
-npm run cli -- --version
-npm run cli -- list --limit 5 --json
-npm run cli -- get --index 1 --raw
-npm run cli -- get --index 1 --json --reveal-secrets
-npm run cli -- search "panic" --json
-npm run cli -- context --last 3 --format markdown
-npm run cli -- add "note from agent"
-npm run cli -- copy --index 1
-printf '%s' 'pipeline clipboard text' | npm run cli -- copy
-printf '%s' '{"ok":true}' | npm run cli -- transform json-prettify
-npm run cli -- transform url-component-encode --text "docs/mclip quick actions"
-npm run cli -- delete --id h_xxx
-npm run cli -- pin --id h_xxx
-npm run cli -- list --pinned --json
-npm run cli -- unpin --index 1
-npm run cli -- clear --yes --keep-pinned
-npm run cli -- clear --yes
+pnpm run cli -- agent --last 5 --json
+pnpm run cli -- --version
+pnpm run cli -- list --limit 5 --json
+pnpm run cli -- get --index 1 --raw
+pnpm run cli -- get --index 1 --json --reveal-secrets
+pnpm run cli -- search "panic" --json
+pnpm run cli -- context --last 3 --format markdown
+pnpm run cli -- add "note from agent"
+pnpm run cli -- copy --index 1
+printf '%s' 'pipeline clipboard text' | pnpm run cli -- copy
+printf '%s' '{"ok":true}' | pnpm run cli -- transform json-prettify
+pnpm run cli -- transform url-component-encode --text "docs/mclip quick actions"
+pnpm run cli -- delete --id h_xxx
+pnpm run cli -- pin --id h_xxx
+pnpm run cli -- list --pinned --json
+pnpm run cli -- unpin --index 1
+pnpm run cli -- clear --yes --keep-pinned
+pnpm run cli -- clear --yes
 ```
 
 By default, the CLI reads `history.json` from the local mclip app configuration directory. For troubleshooting or tests, pass an explicit path:
 
 ```bash
-npm run cli -- --history-path /path/to/history.json list --json
+pnpm run cli -- --history-path /path/to/history.json list --json
 ```
 
 The Agent CLI tab in Preferences probes `mclip-cli --version` at the fixed user-level install path, shows the installed and desktop-target versions, and distinguishes missing, outdated, unknown legacy, current, and newer CLIs. It offers Install, Upgrade, or Reinstall as appropriate and never downgrades a newer CLI automatically. The default path is `~/.local/bin/mclip-cli` on macOS and `%LOCALAPPDATA%\mclip\bin\mclip-cli.exe` on Windows (falling back to the user profile when `LOCALAPPDATA` is unavailable). It does not use `sudo`, edit shell profiles, or write to system-wide directories.
@@ -337,7 +339,8 @@ The in-development v0.2.0 privacy controls add local sensitive-text classificati
 
 Requirements:
 
-- Node.js 24 or compatible
+- Node.js 24.x
+- Corepack (bundled with Node.js 24)
 - Rust stable
 - macOS: Xcode Command Line Tools
 - Windows: Visual Studio Build Tools and WebView2 Runtime
@@ -345,20 +348,21 @@ Requirements:
 Common commands:
 
 ```bash
-npm ci
-npm run tauri:dev
-npm run check
-npm run tauri:build
-npm run cli -- list --limit 5 --json
-npm run cli:test
-npm run cli:build
-npm run cli:install
-npm run site:dev
-npm run site:test
-npm run site:build
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run tauri:dev
+pnpm run check
+pnpm run tauri:build
+pnpm run cli -- list --limit 5 --json
+pnpm run cli:test
+pnpm run cli:build
+pnpm run cli:install
+pnpm run site:dev
+pnpm run site:test
+pnpm run site:build
 ```
 
-`npm run check` runs the frontend build, Rust formatting check, Rust tests, Rust compile check, and clippy. Before release, also run `npm run site:test`, `npm run site:build`, and `git diff --check`.
+`pnpm run check` runs the frontend build, Rust formatting check, Rust tests, Rust compile check, and clippy. Before release, also run `pnpm run site:test`, `pnpm run site:build`, and `git diff --check`.
 
 On macOS, the following Windows-target compile is an additional check for conditional compilation, Windows APIs, and dependency compatibility. It does not replace interaction and installer testing on a real Windows machine:
 
@@ -366,7 +370,7 @@ On macOS, the following Windows-target compile is an additional check for condit
 cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
 ```
 
-The product site lives in `site/` and uses Astro to generate static pages. Use `npm run site:dev` to preview it locally and `npm run site:build` to write `site/dist/`.
+The product site lives in `site/` and uses Astro to generate static pages. Use `pnpm run site:dev` to preview it locally and `pnpm run site:build` to write `site/dist/`.
 
 On Vercel, the root path `/` is redirected to `/en/` by `site/vercel.json` at the edge layer, making the English site the default and avoiding a temporary redirect page flash.
 

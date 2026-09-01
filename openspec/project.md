@@ -176,18 +176,19 @@ Use repository-native checks before claiming a change is complete.
 Common commands:
 
 ```bash
-npm ci
-npm run check:frontend
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run check:frontend
 node --test tests/*.test.mjs
-npm run cli:test
-npm run site:build
-npm --prefix site run test
-npm run check
-npm run tauri:build
+pnpm run cli:test
+pnpm run site:build
+pnpm --dir site run test
+pnpm run check
+pnpm run tauri:build
 git diff --check
 ```
 
-`npm run check` is the full local gate. It runs:
+`pnpm run check` is the full local gate. It runs:
 
 - `tsc && vite build`
 - `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`
@@ -195,8 +196,8 @@ git diff --check
 - `cargo check --manifest-path src-tauri/Cargo.toml`
 - `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`
 
-For CLI changes, run `npm run cli:test`. For website/content changes, run
-`npm --prefix site run test` and usually `npm run site:build`. For formatting
+For CLI changes, run `pnpm run cli:test`. For website/content changes, run
+`pnpm --dir site run test` and usually `pnpm run site:build`. For formatting
 or whitespace-sensitive changes, run `git diff --check`.
 
 macOS local checks cannot fully prove Windows runtime behavior. Windows-specific
@@ -205,8 +206,8 @@ code clippy-clean and confirm the `windows-2022` CI job when available.
 
 ## GitHub Actions And Release
 
-- CI runs on `macos-latest` and `windows-2022`.
-- CI uses Node 24, Rust stable with rustfmt, `npm ci`, and `npm run check`.
+- CI runs on `macos-latest`, `windows-2022`, and `ubuntu-24.04`.
+- CI uses Node 24, pnpm 10.33.0, Rust stable with rustfmt, `pnpm install --frozen-lockfile`, and `pnpm run check`.
 - Release is triggered by `v*` tags.
 - Release validates that the tag version matches `package.json`.
 - Tauri package version follows `src-tauri/tauri.conf.json` `"version":
@@ -228,7 +229,7 @@ code clippy-clean and confirm the `windows-2022` CI job when available.
 - Users may need to remove quarantine from downloaded releases with:
   `xattr -dr com.apple.quarantine /Applications/mclip.app`.
 - Auto paste requires Accessibility permission. Installed releases and
-  `npm run tauri:dev` are separate macOS authorization identities.
+  `pnpm run tauri:dev` are separate macOS authorization identities.
 - The menu bar icon uses a stable autosave name so macOS can restore a user-moved
   status item position; do not claim the app can force the rightmost position.
 
