@@ -217,6 +217,7 @@ impl NativeScreenGeometry {
         }
     }
 
+    #[cfg(target_os = "macos")]
     fn physical_work_area_bounds(self) -> ScreenBounds {
         ScreenBounds {
             left: (self.display_origin_x + self.visible_left_from_screen_left) * self.scale_factor,

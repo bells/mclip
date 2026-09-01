@@ -59,7 +59,15 @@ fn spawn_release_server(
     Some((format!("http://{address}"), server))
 }
 
-fn current_cli_binary() -> Vec<u8> {
+fn installable_cli_fixture() -> Vec<u8> {
+    #[cfg(unix)]
+    return format!(
+        "#!/bin/sh\nprintf 'mclip-cli {}\\n'\n",
+        env!("CARGO_PKG_VERSION")
+    )
+    .into_bytes();
+
+    #[cfg(windows)]
     fs::read(env!("CARGO_BIN_EXE_mclip-cli")).expect("built CLI fixture should be readable")
 }
 
@@ -143,7 +151,7 @@ fn release_install_upgrades_legacy_binary_and_refreshes_to_current() {
     let install_path = executable_path(&install_dir);
     fs::write(&install_path, b"legacy cli without version support")
         .expect("legacy fixture should be written");
-    let binary = current_cli_binary();
+    let binary = installable_cli_fixture();
     let Some((base_url, server)) =
         spawn_release_server(vec![(200, binary.clone()), (200, checksum_for(&binary))])
     else {
@@ -174,7 +182,7 @@ fn release_install_preserves_existing_binary_on_checksum_failure() {
     let install_dir = unique_temp_dir("release-checksum");
     let install_path = executable_path(&install_dir);
     fs::write(&install_path, b"old cli").expect("old fixture should be written");
-    let binary = current_cli_binary();
+    let binary = installable_cli_fixture();
     let Some((base_url, server)) = spawn_release_server(vec![
         (200, binary),
         (200, format!("{:064x}\n", 0).into_bytes()),
@@ -266,7 +274,7 @@ fn release_install_verifies_candidate_version_before_replacing_existing_cli() {
     let install_dir = unique_temp_dir("release-post-verify");
     let install_path = executable_path(&install_dir);
     fs::write(&install_path, b"old cli").expect("old fixture should be written");
-    let binary = current_cli_binary();
+    let binary = installable_cli_fixture();
     let Some((base_url, server)) =
         spawn_release_server(vec![(200, binary.clone()), (200, checksum_for(&binary))])
     else {

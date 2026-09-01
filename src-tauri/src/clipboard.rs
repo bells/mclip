@@ -779,11 +779,7 @@ fn normalize_suspicious_clipboard_alpha(image: &mut RgbaImage) -> bool {
     let mut transparent_pixels = 0usize;
     let mut visible_rgb_pixels = 0usize;
 
-    for pixel in raw.chunks_exact(4) {
-        let [red, green, blue, alpha] = pixel else {
-            continue;
-        };
-
+    for [red, green, blue, alpha] in raw.as_chunks::<4>().0 {
         if *alpha == 0 {
             transparent_pixels += 1;
         }
