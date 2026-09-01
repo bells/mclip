@@ -280,7 +280,7 @@ export const zhCnTranslations = {
       menuBarIconStyleLight: "浅色叶子",
       menuBarIconStyleLightDescription: "白色叶子和透明 m 镂空。",
       menuBarIconStyleM: "M 字母",
-      menuBarIconStyleMDescription: "可由 macOS 自动着色的 m 字母模板图标。",
+      menuBarIconStyleMDescription: "带小写 m 的记事本模板图标，可由 macOS 自动着色。",
       mainWindowItemCountAriaLabel: "主界面展示条数",
       mainWindowItemCountDescription: "控制主界面直接展示多少条最新复制记录。",
       mainWindowItemCountLabel: "主界面展示条数",

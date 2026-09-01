@@ -282,7 +282,7 @@ export const enTranslations = {
       menuBarIconStyleLight: "Light Leaf",
       menuBarIconStyleLightDescription: "White leaf with a transparent m cutout.",
       menuBarIconStyleM: "M Monogram",
-      menuBarIconStyleMDescription: "An m-shaped template icon that macOS can tint automatically.",
+      menuBarIconStyleMDescription: "A notebook with a lowercase m that macOS can tint as a template icon.",
       mainWindowItemCountAriaLabel: "Main window item count",
       mainWindowItemCountDescription: "Control how many recent copied records appear directly in the main window.",
       mainWindowItemCountLabel: "Main Window Items",

@@ -289,7 +289,7 @@ export const jaTranslations = {
     menuBarIconStyleLight: "ライトリーフ",
     menuBarIconStyleLightDescription: "白い葉と透明な m の切り抜きを使用します。",
     menuBarIconStyleM: "M モノグラム",
-    menuBarIconStyleMDescription: "macOS が自動着色できる m 字型のテンプレートアイコンです。",
+    menuBarIconStyleMDescription: "小文字の m を配したノート型のテンプレートアイコンで、macOS が自動着色します。",
     mainWindowItemCountAriaLabel: "メインウィンドウの表示件数",
     mainWindowItemCountDescription: "メインウィンドウに直接表示する最新のコピー履歴件数を設定します。",
     mainWindowItemCountLabel: "メインウィンドウの件数",
