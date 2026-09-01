@@ -57,4 +57,4 @@ jobs:
 
       - name: Build Linux desktop packages
         if: runner.os == 'Linux'
-        run: pnpm run tauri:build -- --bundles deb,appimage
+        run: pnpm run tauri:build --bundles deb,appimage

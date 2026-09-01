@@ -75,7 +75,8 @@ test("CI and release use Node 24 with frozen pnpm installs", async () => {
   }
 
   assert.match(ci, /pnpm run check/);
-  assert.match(ci, /pnpm run tauri:build -- --bundles deb,appimage/);
+  assert.match(ci, /pnpm run tauri:build --bundles deb,appimage/);
+  assert.doesNotMatch(ci, /pnpm run tauri:build -- --bundles/);
   assert.match(release, /ROOT_PACKAGE_VERSION/);
   assert.match(release, /SITE_PACKAGE_VERSION/);
   assert.match(release, /CARGO_PACKAGE_VERSION/);
