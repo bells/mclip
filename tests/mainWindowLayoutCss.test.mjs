@@ -51,8 +51,8 @@ test("main footer and archive groups keep the compact one-row-per-action contrac
   const stylesSource = await readSource("src/uiStyles.ts");
 
   assert.match(stylesSource, /footer:[\s\S]*grid-cols-1/);
-  assert.match(stylesSource, /menuItem[\s\S]*min-h-\[26px\]/);
-  assert.match(stylesSource, /menuItem[\s\S]*grid-cols-\[minmax\(112px,1fr\)_minmax\(0,1fr\)\]/);
+  assert.match(stylesSource, /menuItem[\s\S]*min-h-\[28px\]/);
+  assert.match(stylesSource, /menuItem[\s\S]*grid-cols-\[minmax\(0,1fr\)_auto\]/);
   const archiveListMatch = stylesSource.match(/archiveList:\s*"([^"]+)"/);
   assert.ok(archiveListMatch);
   assert.doesNotMatch(archiveListMatch[1], /mclip-scrollbar/);

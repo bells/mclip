@@ -6,7 +6,23 @@ import {
   type FooterKeyboardAction,
   serializeMainKeyboardNavigationTarget,
 } from "../utils/keyboardNavigation";
-import { InfoIcon, PowerIcon, SlidersIcon, TrashIcon } from "./UiIcons";
+import {
+  type MainWindowShortcutAction,
+  getMainWindowShortcutAriaKeys,
+  getMainWindowShortcutKeys,
+} from "../utils/mainWindowShortcuts";
+
+function ShortcutKeys({ action }: { action: MainWindowShortcutAction }) {
+  return (
+    <kbd aria-hidden="true" className={ui.menuShortcut}>
+      {getMainWindowShortcutKeys(action).map((key, index) => (
+        <span className={ui.menuShortcutKey} key={`${key}-${index}`}>
+          {key}
+        </span>
+      ))}
+    </kbd>
+  );
+}
 
 // 这里把“能做什么”交给父组件实现，Footer 只负责触发对应的回调。
 type AppFooterProps = {
@@ -58,6 +74,7 @@ export function AppFooter({
           action: "clearHistory",
           kind: "footer-action",
         })}
+        aria-keyshortcuts={getMainWindowShortcutAriaKeys("clearHistory")}
         // disabled 会同时禁用点击行为和键盘触发，适合空历史时避免误操作。
         disabled={!canClearHistory}
         onClick={onClearHistory}
@@ -65,11 +82,8 @@ export function AppFooter({
         onPointerMove={(event) => activateTarget(event.currentTarget, "pointer")}
         type="button"
       >
-        <span className={ui.menuAction}>
-          <TrashIcon className={ui.menuIcon} />
-          <span className={ui.menuLabel}>{translations.clearLabel}</span>
-        </span>
-        <span className={ui.menuHint}>{translations.clearHint}</span>
+        <span className={ui.menuLabel}>{translations.clearLabel}</span>
+        <ShortcutKeys action="clearHistory" />
       </button>
 
       <button
@@ -78,16 +92,14 @@ export function AppFooter({
           action: "preferences",
           kind: "footer-action",
         })}
+        aria-keyshortcuts={getMainWindowShortcutAriaKeys("preferences")}
         onClick={onOpenPreferences}
         onFocus={(event) => activateTarget(event.currentTarget, "focus")}
         onPointerMove={(event) => activateTarget(event.currentTarget, "pointer")}
         type="button"
       >
-        <span className={ui.menuAction}>
-          <SlidersIcon className={ui.menuIcon} />
-          <span className={ui.menuLabel}>{translations.preferencesLabel}</span>
-        </span>
-        <span className={ui.menuHint}>{translations.preferencesHint}</span>
+        <span className={ui.menuLabel}>{translations.preferencesLabel}</span>
+        <ShortcutKeys action="preferences" />
       </button>
 
       <button
@@ -101,11 +113,7 @@ export function AppFooter({
         onPointerMove={(event) => activateTarget(event.currentTarget, "pointer")}
         type="button"
       >
-        <span className={ui.menuAction}>
-          <InfoIcon className={ui.menuIcon} />
-          <span className={ui.menuLabel}>{translations.aboutLabel}</span>
-        </span>
-        <span className={ui.menuHint}>{translations.aboutHint}</span>
+        <span className={ui.menuLabel}>{translations.aboutLabel}</span>
       </button>
 
       <button
@@ -114,16 +122,14 @@ export function AppFooter({
           action: "quit",
           kind: "footer-action",
         })}
+        aria-keyshortcuts={getMainWindowShortcutAriaKeys("quit")}
         onClick={onQuit}
         onFocus={(event) => activateTarget(event.currentTarget, "focus")}
         onPointerMove={(event) => activateTarget(event.currentTarget, "pointer")}
         type="button"
       >
-        <span className={ui.menuAction}>
-          <PowerIcon className={ui.menuIcon} />
-          <span className={ui.menuLabel}>{translations.quitLabel}</span>
-        </span>
-        <span className={ui.menuHint}>{translations.quitHint}</span>
+        <span className={ui.menuLabel}>{translations.quitLabel}</span>
+        <ShortcutKeys action="quit" />
       </button>
     </footer>
   );

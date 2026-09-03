@@ -101,13 +101,12 @@ export const ui = {
   archiveChevron: "size-3.5 shrink-0 text-[var(--mclip-ink-dim)]",
 
   footer:
-    "relative z-[1] grid shrink-0 grid-cols-1 gap-[3px] border-t border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] px-[6px] pb-[10px] pt-[5px]",
-  menuAction: "flex min-w-0 items-center gap-2",
-  menuIcon: "size-3.5 shrink-0 text-[var(--mclip-ink-dim)] transition-colors duration-150",
+    "relative z-[1] grid shrink-0 grid-cols-1 gap-0 border-t border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] px-[6px] pb-[8px] pt-[4px]",
   menuLabel:
     "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-semibold text-[var(--mclip-ink-soft)]",
-  menuHint:
-    "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-right text-[11px] font-semibold leading-[1.25] tabular-nums text-[var(--mclip-ink-dim)]",
+  menuShortcut:
+    "flex shrink-0 items-center justify-end gap-[3px] whitespace-nowrap text-[12px] font-semibold leading-none text-[var(--mclip-ink-dim)]",
+  menuShortcutKey: "inline-flex min-w-[9px] items-center justify-center",
 
   modalOverlay:
     "fixed inset-0 z-30 flex items-center justify-center bg-black/55 p-4",
@@ -473,7 +472,7 @@ export function archiveRow(isActive: boolean) {
 
 export function menuItem(isSelected: boolean, isDanger: boolean, isDisabled = false) {
   return [
-    "grid min-h-[26px] w-full grid-cols-[minmax(112px,1fr)_minmax(0,1fr)] items-center gap-2 rounded-[var(--mclip-radius-sm)] pl-1.5 pr-2 text-left transition-colors duration-150",
+    "grid min-h-[28px] w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[var(--mclip-radius-sm)] pl-1.5 pr-2 text-left transition-colors duration-150",
     isSelected
       ? "[background:var(--mclip-selected-bg)]"
       : "",

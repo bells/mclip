@@ -36,13 +36,9 @@ export const jaTranslations = {
     title: "すべての履歴を消去しますか？",
   },
   footer: {
-    aboutHint: "バージョン情報を表示",
     aboutLabel: `${APP_NAME} について`,
-    clearHint: "ローカルに保存した履歴を削除",
     clearLabel: "履歴を消去",
-    preferencesHint: "起動、言語、履歴件数を設定",
     preferencesLabel: "環境設定",
-    quitHint: "トレイアプリを終了",
     quitLabel: "終了",
   },
   header: {

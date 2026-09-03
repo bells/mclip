@@ -35,13 +35,9 @@ export const zhCnTranslations = {
       title: "清除所有历史？",
     },
     footer: {
-      aboutHint: "查看版本信息",
       aboutLabel: `关于${APP_NAME}`,
-      clearHint: "删除本地保存的记录",
       clearLabel: "清除历史",
-      preferencesHint: "启动方式、语言与历史条数",
       preferencesLabel: "偏好设置",
-      quitHint: "关闭托盘应用",
       quitLabel: "退出",
     },
     header: {

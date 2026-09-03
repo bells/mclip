@@ -45,6 +45,25 @@ test("pointer activation is movement-driven and skips disabled footer actions", 
   assert.doesNotMatch(groupSource, /onMouseEnter=/);
 });
 
+test("main footer uses compact shortcut labels instead of explanatory copy", async () => {
+  const [footerSource, stylesSource] = await Promise.all([
+    readSource("src/components/AppFooter.tsx"),
+    readSource("src/uiStyles.ts"),
+  ]);
+
+  assert.match(footerSource, /<ShortcutKeys action="clearHistory" \/>/);
+  assert.match(footerSource, /<ShortcutKeys action="preferences" \/>/);
+  assert.match(footerSource, /<ShortcutKeys action="quit" \/>/);
+  assert.match(footerSource, /aria-keyshortcuts/);
+  assert.doesNotMatch(footerSource, /translations\.(clear|preferences|about|quit)Hint/);
+  assert.doesNotMatch(footerSource, /(Trash|Sliders|Info|Power)Icon/);
+  assert.match(stylesSource, /menuShortcut:/);
+  assert.match(stylesSource, /menuShortcutKey:/);
+  assert.match(stylesSource, /menuShortcut:[\s\S]*gap-\[3px\]/);
+  assert.match(stylesSource, /menuShortcut:[\s\S]*text-\[12px\]/);
+  assert.doesNotMatch(stylesSource, /menuHint:/);
+});
+
 test("main target backgrounds depend on active state instead of parallel hover styling", async () => {
   const stylesSource = await readSource("src/uiStyles.ts");
   const historyRow = stylesSource.match(

@@ -34,13 +34,9 @@ export const enTranslations = {
       title: "Clear all history?",
     },
     footer: {
-      aboutHint: "View version info",
       aboutLabel: `About ${APP_NAME}`,
-      clearHint: "Delete locally saved records",
       clearLabel: "Clear History",
-      preferencesHint: "Startup, language, and history size",
       preferencesLabel: "Preferences",
-      quitHint: "Close tray app",
       quitLabel: "Quit",
     },
     header: {

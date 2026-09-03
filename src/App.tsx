@@ -37,6 +37,7 @@ import {
   serializeMainKeyboardNavigationTarget,
   shouldClearPreviewForMainKeyboardTarget,
 } from "./utils/keyboardNavigation";
+import { getMainWindowShortcutAction } from "./utils/mainWindowShortcuts";
 import { ui } from "./uiStyles";
 
 const MAIN_SCROLL_CONSTRAINT_EPSILON = 1;
@@ -319,6 +320,16 @@ function App() {
     ],
   );
 
+  const openClearHistoryConfirm = useCallback(() => {
+    if (!hasHistory) {
+      return;
+    }
+
+    closeHistoryGroupPreview();
+    // 打开模态框前先关闭右侧 preview，避免两个浮层同时响应鼠标事件。
+    setIsClearConfirmOpen(true);
+  }, [closeHistoryGroupPreview, hasHistory]);
+
   useEffect(() => {
     // 第二个参数是空数组，表示这个 effect 只在组件首次挂载后执行一次。
     updateActiveMainTarget(MAIN_SEARCH_TARGET_ID);
@@ -401,6 +412,7 @@ function App() {
       const hasAnyModifier =
         event.metaKey || event.ctrlKey || event.altKey || event.shiftKey;
       const normalizedKey = event.key.toLowerCase();
+      const shortcutAction = getMainWindowShortcutAction(event);
       const activeTarget = parseMainKeyboardNavigationTarget(
         activeMainTargetIdRef.current,
       );
@@ -424,17 +436,29 @@ function App() {
         return;
       }
 
+      if (shortcutAction === "clearHistory") {
+        event.preventDefault();
+        openClearHistoryConfirm();
+        return;
+      }
+
+      if (shortcutAction === "preferences") {
+        event.preventDefault();
+        openPreferencesDialog();
+        return;
+      }
+
+      if (shortcutAction === "quit") {
+        event.preventDefault();
+        void quit();
+        return;
+      }
+
       if (hasMetaModifier && normalizedKey === "f") {
         event.preventDefault();
         handleSearchTargetActivate(MAIN_SEARCH_TARGET_ID, "focus");
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
-        return;
-      }
-
-      if (hasMetaModifier && event.key === ",") {
-        event.preventDefault();
-        openPreferencesDialog();
         return;
       }
 
@@ -541,22 +565,14 @@ function App() {
     keyboardPreviewGroupIndex,
     moveKeyboardPreviewGroupItem,
     moveKeyboardNavigationFocus,
+    openClearHistoryConfirm,
     openPreferencesDialog,
     previewHistoryGroupIndex,
+    quit,
     selectKeyboardPreviewGroupItem,
     selectHighlightedHistoryItem,
     visibleHistory,
   ]);
-
-  const openClearHistoryConfirm = () => {
-    if (!hasHistory) {
-      return;
-    }
-
-    closeHistoryGroupPreview();
-    // 打开模态框前先关闭右侧 preview，避免两个浮层同时响应鼠标事件。
-    setIsClearConfirmOpen(true);
-  };
 
   const confirmClearHistory = (keepPinned = false) => {
     setIsClearConfirmOpen(false);
