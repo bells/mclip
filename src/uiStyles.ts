@@ -291,11 +291,11 @@ export const ui = {
       `${focusRing} relative h-[22px] w-[38px] rounded-full border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45`,
       isOn
         ? "border-[var(--mclip-accent-cool)] bg-[var(--mclip-accent-cool)]"
-        : "border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)]",
-      isOn ? "[&>span]:translate-x-4" : "",
+        : "border-[var(--mclip-line-strong)] bg-[var(--mclip-line)] hover:bg-[var(--mclip-line-strong)]",
+      isOn ? "[&>span]:translate-x-[18px]" : "",
     ].join(" "),
   preferenceSwitchThumb:
-    "absolute left-[2px] top-[2px] size-4 rounded-full bg-white shadow-sm transition-transform duration-150",
+    "absolute left-px top-px size-[18px] rounded-full bg-white shadow-sm transition-transform duration-150",
   dialogContent:
     "mclip-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 text-[12px] leading-5 text-[var(--mclip-ink-soft)]",
   dialogStatusBar: (controlSide: WindowControlSide) =>

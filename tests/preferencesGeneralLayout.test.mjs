@@ -45,6 +45,12 @@ test("settings rows expose accessible right-aligned switches", async () => {
   assert.match(windowSource, /role="switch"/);
   assert.match(stylesSource, /preferenceRowControl: "flex shrink-0 items-center justify-end/);
   assert.match(stylesSource, /preferenceSwitch: \(isOn: boolean\)/);
+  assert.match(stylesSource, /preferenceSwitch:[\s\S]*h-\[22px\] w-\[38px\]/);
+  assert.match(stylesSource, /preferenceSwitch:[\s\S]*translate-x-\[18px\]/);
+  assert.match(
+    stylesSource,
+    /preferenceSwitchThumb:[\s\S]*left-px top-px size-\[18px\]/,
+  );
 });
 
 test("appearance and history keep their established controls and bounds", async () => {
