@@ -10,6 +10,7 @@ import type {
   HistorySnapshot,
   ImageCacheStats,
   SourceAppDetectionStatus,
+  SourceApplicationOption,
   TextTransformAction,
   TextTransformRequest,
   TextTransformResult,
@@ -46,6 +47,14 @@ export type WindowPointerPosition = {
 
 export function getSettings() {
   return invoke<AppSettings>("get_settings");
+}
+
+export function pickIgnoredSourceApps() {
+  return invoke<SourceApplicationOption[]>("pick_ignored_source_apps");
+}
+
+export function resolveIgnoredSourceApps(identifiers: string[]) {
+  return invoke<SourceApplicationOption[]>("resolve_ignored_source_apps", { identifiers });
 }
 
 export function saveSettings(settings: AppSettings) {

@@ -274,7 +274,7 @@ export const ui = {
   preferenceGroupTitle:
     "px-0.5 text-[11px] font-bold text-[var(--mclip-meta)]",
   preferenceGroupBody:
-    "overflow-hidden rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)]",
+    "rounded-[var(--mclip-radius-md)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)]",
   preferenceRow:
     "grid min-h-[66px] grid-cols-[minmax(0,1fr)_auto] items-center gap-5 border-b border-[var(--mclip-line)] px-4 py-3 last:border-b-0",
   preferenceRowCopy: "grid min-w-0 gap-0.5",
@@ -305,10 +305,12 @@ export const ui = {
       controlSide === "right" ? "flex-row-reverse" : "",
     ].filter(Boolean).join(" "),
   dialogCenteredTitle:
-    "pointer-events-none absolute left-1/2 max-w-[calc(100%-120px)] -translate-x-1/2 overflow-hidden text-ellipsis whitespace-nowrap text-center",
-  windowControls: "flex items-center gap-2",
+    "pointer-events-none absolute left-1/2 max-w-[calc(100%-176px)] -translate-x-1/2 overflow-hidden text-ellipsis whitespace-nowrap text-center",
+  windowControls: "group/window-controls flex items-center gap-[8px]",
   windowControl:
-    `size-3 rounded-full border border-black/15 transition-transform duration-150 disabled:opacity-45 ${focusRing}`,
+    `relative grid size-[16px] shrink-0 place-items-center rounded-full border border-black/15 text-black/65 after:absolute after:-inset-[4px] after:content-[''] disabled:opacity-45 ${focusRing}`,
+  windowControlSymbol:
+    "size-[10px] opacity-0 group-hover/window-controls:opacity-100 group-focus-within/window-controls:opacity-100",
   windowControlClose: "bg-[#ff5f57] hover:brightness-110",
   windowControlMinimize: "bg-[#ffbd2e]",
   windowControlMaximize: "bg-[#28c840]",
@@ -420,14 +422,18 @@ export const ui = {
     `${focusRing} h-6 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] px-2 text-[10px] font-bold text-[var(--mclip-ink-soft)] hover:bg-[var(--mclip-control-bg-hover)]`,
   historySensitiveError:
     "border-t border-[var(--mclip-line)] px-3 py-1.5 text-[10px] text-[var(--mclip-danger)]",
-  privacySourceInputRow: "grid grid-cols-[minmax(0,1fr)_auto] gap-2",
-  privacySourceInput:
-    `${focusRing} h-8 min-w-0 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-2 font-mono text-[11px] text-[var(--mclip-ink)] outline-none placeholder:font-sans placeholder:text-[var(--mclip-placeholder)]`,
-  privacyIgnoredList: "grid max-h-[112px] gap-1 overflow-y-auto",
-  privacyIgnoredRow:
-    "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-surface)] px-2 py-1",
-  privacyIgnoredIdentifier:
-    "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10px] text-[var(--mclip-ink-soft)]",
+  ignoredApplications: "px-4 pb-3 pt-2",
+  ignoredApplicationsHeading: "rounded-t-[7px] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] px-3 py-2 text-[11px] font-semibold text-[var(--mclip-ink)]",
+  ignoredApplicationsList: "mclip-scrollbar min-h-[120px] max-h-[180px] overflow-y-auto border-x border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)]",
+  ignoredApplicationRow: (selected: boolean) => `${focusRing} flex min-h-[40px] w-full items-center gap-3 px-3 py-1.5 text-left text-[12px] text-[var(--mclip-ink)] ${selected ? "bg-[var(--mclip-selection)]" : "hover:bg-[var(--mclip-row-hover-bg)]"}`,
+  ignoredApplicationIcon: "size-[26px] shrink-0 object-contain",
+  ignoredApplicationFallback: "size-[26px] shrink-0 text-[var(--mclip-ink-dim)]",
+  ignoredApplicationName: "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
+  ignoredApplicationsEmpty: "m-0 px-4 py-9 text-center text-[11px] leading-5 text-[var(--mclip-ink-dim)]",
+  ignoredApplicationsToolbar: "flex items-center rounded-b-[7px] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)]",
+  ignoredApplicationsAction: `${focusRing} grid h-[30px] w-[36px] place-items-center border-r border-[var(--mclip-line-strong)] text-[21px] leading-none text-[var(--mclip-ink)] first:rounded-bl-[7px] hover:bg-[var(--mclip-control-bg-hover)] disabled:opacity-35 disabled:cursor-not-allowed`,
+  ignoredApplicationsStatus: "ml-auto px-3 text-[10px]",
+  ignoredApplicationsDescription: "mb-0 mt-2 text-[10px] leading-4 text-[var(--mclip-ink-dim)]",
 };
 
 export function appFrame(isKeyboardNavigating: boolean) {

@@ -1,6 +1,23 @@
 import { hideCurrentWindow } from "../lib/tauri";
 import { ui, windowControls } from "../uiStyles";
 
+function WindowControlSymbol({ path }: { path: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={ui.windowControlSymbol}
+      fill="none"
+      focusable="false"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth="1.8"
+      viewBox="0 0 12 12"
+    >
+      <path d={path} />
+    </svg>
+  );
+}
+
 export type DialogWindowControlLabels = {
   close: string;
   maximizeUnavailable: string;
@@ -37,7 +54,9 @@ export function DialogWindowControls({ labels, onClose }: DialogWindowControlsPr
         }}
         title={labels.close}
         type="button"
-      />
+      >
+        <WindowControlSymbol path="M3 3l6 6M9 3l-6 6" />
+      </button>
     ),
     maximize: (
       <button
@@ -47,7 +66,9 @@ export function DialogWindowControls({ labels, onClose }: DialogWindowControlsPr
         key="maximize"
         title={labels.maximizeUnavailable}
         type="button"
-      />
+      >
+        <WindowControlSymbol path="M2.5 6h7M6 2.5v7" />
+      </button>
     ),
     minimize: (
       <button
@@ -57,7 +78,9 @@ export function DialogWindowControls({ labels, onClose }: DialogWindowControlsPr
         key="minimize"
         title={labels.minimizeUnavailable}
         type="button"
-      />
+      >
+        <WindowControlSymbol path="M2.5 6h7" />
+      </button>
     ),
   };
 

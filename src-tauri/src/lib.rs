@@ -11,6 +11,7 @@ mod desktop_capabilities;
 mod desktop_state;
 mod diagnostics;
 mod history;
+mod ignored_apps;
 mod image_cache;
 pub mod performance;
 pub mod sensitive_content;
@@ -499,6 +500,7 @@ pub fn run() {
     );
 
     let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .manage(AutoPasteTargetState::default())
         .manage(AuxiliaryWindowRegistry::default())
         .manage(DesktopCapabilityState::detect())
@@ -582,6 +584,8 @@ pub fn run() {
             get_auto_paste_permission_status,
             get_desktop_capabilities,
             get_source_app_detection_status,
+            ignored_apps::pick_ignored_source_apps,
+            ignored_apps::resolve_ignored_source_apps,
             get_image_base64,
             get_image_cache_stats,
             quit_app,

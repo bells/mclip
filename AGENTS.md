@@ -151,6 +151,7 @@ src-tauri/
   src/sensitive_content.rs            64 KiB 有界、版本化的本地敏感文本分类与固定遮罩
   src/settings.rs                     设置持久化、登录启动、系统语言默认值
   src/source_app.rs                   macOS/Windows/X11 稳定来源标识 best-effort 识别与 Wayland 能力状态
+  src/ignored_apps.rs                 Preferences 原生应用选择、平台标识解析与本地名称/图标展示
   src/storage.rs                      原子写文件工具
 
 .github/workflows/
@@ -300,6 +301,7 @@ Windows 监听注意：
 - 原始文本仍是持久化与复制真相；遮罩固定为 `••••••••`，只用于桌面和 CLI 默认展示，不得保留原文前后缀，也不得描述为静态加密。
 - 旧历史只在用户从 Privacy Preferences 显式触发时重新分类；单纯读取 v0.1.1 文件不得改写。
 - 来源排除匹配稳定、规范化后的精确标识：macOS bundle ID、Windows 可执行文件名、X11 `WM_CLASS`；纯 Wayland 必须报告 unavailable，不得声称已执行排除。
+- 忽略应用通过 Preferences 列表的 + / − 管理，使用官方 Tauri dialog 原生选择器：macOS 选 `.app`，Windows 选 `.exe`，Linux 选含 `StartupWMClass` 的 `.desktop`。Rust 自动解析标识，不执行应用或启动器；仍仅持久化 `ignoredSourceAppIds`。名称和 macOS 图标按需本地读取，失效记录保留标识并可移除。两个专用 command 限 Preferences 调用，不向前端开放通用文件读取权限。
 - 新增日志、错误、性能记录和能力诊断只能包含稳定 reason code 与有界元数据，不能包含剪贴板内容、匹配片段、私有路径、来源名称或忽略标识。
 
 语言规则：
@@ -377,8 +379,10 @@ Windows 特有实现：
 无法在 macOS 本地完整替代 Windows 真机验证。改 Windows 专属代码时，至少跑本地 `pnpm run check` 和：
 
 ```bash
-cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
+XWIN_ARCH=x86_64 cargo xwin check --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --all-targets
 ```
+
+macOS 交叉编译需要 LLVM、Rust Windows target 和 `cargo-xwin`（可用 `uv tool install cargo-xwin` 或 `cargo install --locked cargo-xwin` 安装）。cargo-xwin 自动提供 Windows SDK/UCRT；不要把普通 `cargo check --target` 缺少 `assert.h` 当作项目源码错误，也不要单独复制头文件绕过工具链。首次运行需要下载 SDK，网络受限时使用本地代理。
 
 该命令只验证条件编译、Windows API 和依赖兼容；发布结论仍要以 GitHub Actions `windows-2022` 与 Windows 真机 smoke 为准。
 

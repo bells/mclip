@@ -162,6 +162,12 @@ export type SourceAppDetectionStatus = {
   reasonCode: string;
 };
 
+export interface SourceApplicationOption {
+  id: string;
+  displayName: string;
+  iconDataUrl: string | null;
+}
+
 export type DesktopCapabilityStatus =
   | "available"
   | "degraded"

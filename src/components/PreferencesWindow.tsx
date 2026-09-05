@@ -60,6 +60,7 @@ import {
 } from "../utils/cliInstall";
 import { normalizeSettings } from "../utils/settings";
 import { reportAuxiliaryListenerReady } from "../services/auxiliaryWindows";
+import { IgnoredApplicationsList } from "./preferences/IgnoredApplicationsList";
 import { DialogStatusBar } from "./DialogStatusBar";
 import { DialogWindowFrame } from "./DialogWindowFrame";
 import { CheckIcon, ChevronRightIcon } from "./UiIcons";
@@ -454,7 +455,6 @@ export function PreferencesWindow() {
     useState<SourceAppDetectionStatus | null>(null);
   const [desktopCapabilities, setDesktopCapabilities] =
     useState<DesktopCapabilities | null>(null);
-  const [ignoredSourceAppInput, setIgnoredSourceAppInput] = useState("");
   const [privacyMessage, setPrivacyMessage] = useState("");
   const [privacyError, setPrivacyError] = useState("");
   const [isReclassifyingHistory, setIsReclassifyingHistory] = useState(false);
@@ -471,7 +471,6 @@ export function PreferencesWindow() {
   const languageSelectId = useId();
   const appearanceThemeSelectId = useId();
   const menuBarIconStyleSelectId = useId();
-  const ignoredSourceAppInputId = useId();
   // 数字输入框单独保存字符串，允许用户编辑中间态，比如暂时清空输入框。
   const [maxHistoryCountInput, setMaxHistoryCountInput] = useState(
     String(DEFAULT_SETTINGS.maxHistoryCount),
@@ -844,36 +843,6 @@ export function PreferencesWindow() {
       ...current,
       maskSensitiveContent: !current.maskSensitiveContent,
     }), "privacy.masking");
-  };
-
-  const addIgnoredSourceApp = () => {
-    const identifier = ignoredSourceAppInput.trim().toLowerCase();
-    if (!/^[a-z0-9_-]+:[a-z0-9._:/\\-]+$/.test(identifier)) {
-      setPrivacyError(t.ignoredSourceAppInvalid);
-      setPrivacyMessage("");
-      return;
-    }
-
-    setPrivacyError("");
-    setPrivacyMessage("");
-    setIgnoredSourceAppInput("");
-    applySettingsPatch((current) => ({
-      ...current,
-      ignoredSourceAppIds: current.ignoredSourceAppIds.includes(identifier)
-        ? current.ignoredSourceAppIds
-        : [...current.ignoredSourceAppIds, identifier],
-    }), "privacy.source-exclusion");
-  };
-
-  const removeIgnoredSourceApp = (identifier: string) => {
-    setPrivacyError("");
-    setPrivacyMessage("");
-    applySettingsPatch((current) => ({
-      ...current,
-      ignoredSourceAppIds: current.ignoredSourceAppIds.filter(
-        (value) => value !== identifier,
-      ),
-    }), "privacy.source-exclusion");
   };
 
   const reclassifyLegacyHistory = async () => {
@@ -1585,7 +1554,7 @@ export function PreferencesWindow() {
                 </SettingsGroup>
 
                 <SettingsGroup label={t.sourceExclusionGroupLabel}>
-                  <div className={ui.settingsSectionHeading}>
+                  <div className={`${ui.settingsSectionHeading} px-4 pt-3`}>
                     <div className={ui.settingsDescription}>
                       {sourceAppDetectionStatus?.capability === "available"
                         ? t.sourceDetectionAvailable
@@ -1595,63 +1564,18 @@ export function PreferencesWindow() {
                     </div>
                   </div>
 
-                  <div
-                    className={ui.privacySourceInputRow}
-                    id={preferenceFocusTargetId("privacy.source-exclusion")}
-                  >
-                    <label
-                      className={ui.srOnly}
-                      htmlFor={ignoredSourceAppInputId}
-                    >
-                      {t.ignoredSourceAppInputLabel}
-                    </label>
-                    <input
-                      className={ui.privacySourceInput}
-                      id={ignoredSourceAppInputId}
-                      onChange={(event) =>
-                        setIgnoredSourceAppInput(event.target.value)
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          addIgnoredSourceApp();
-                        }
-                      }}
-                      placeholder={t.ignoredSourceAppInputPlaceholder}
-                      spellCheck={false}
-                      value={ignoredSourceAppInput}
+                  <div id={preferenceFocusTargetId("privacy.source-exclusion")}>
+                    <IgnoredApplicationsList
+                      canAdd={sourceAppDetectionStatus?.capability === "available" || sourceAppDetectionStatus?.capability === "degraded"}
+                      feedback={preferenceFeedback["privacy.source-exclusion"]}
+                      identifiers={settingsDraft.ignoredSourceAppIds}
+                      onChange={(ignoredSourceAppIds) => applySettingsPatch((current) => ({
+                        ...current,
+                        ignoredSourceAppIds,
+                      }), "privacy.source-exclusion")}
+                      translations={t}
                     />
-                    <button
-                      className={ui.settingsActionButton}
-                      onClick={addIgnoredSourceApp}
-                      type="button"
-                    >
-                      {t.ignoredSourceAppAdd}
-                    </button>
                   </div>
-
-                  {settingsDraft.ignoredSourceAppIds.length === 0 ? (
-                    <div className={ui.settingsNote}>
-                      {t.ignoredSourceAppEmpty}
-                    </div>
-                  ) : (
-                    <div className={ui.privacyIgnoredList}>
-                      {settingsDraft.ignoredSourceAppIds.map((identifier) => (
-                        <div className={ui.privacyIgnoredRow} key={identifier}>
-                          <code className={ui.privacyIgnoredIdentifier}>
-                            {identifier}
-                          </code>
-                          <button
-                            className={ui.settingsActionButton}
-                            onClick={() => removeIgnoredSourceApp(identifier)}
-                            type="button"
-                          >
-                            {t.ignoredSourceAppRemove}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
 
                   {privacyError ? (
                     <div className={ui.settingsError}>{privacyError}</div>

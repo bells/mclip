@@ -167,10 +167,20 @@ pnpm run site:build
 
 `pnpm run check` 会执行前端构建、Rust 格式检查、Rust 单元测试、Rust 编译检查和 clippy。发布前还应运行 `pnpm run site:test`、`pnpm run site:build` 和 `git diff --check`。
 
-在 macOS 上可以额外运行下面的 Windows 目标编译检查；它能发现条件编译、Windows API 和依赖层面的错误，但不能替代 Windows 真机交互与安装测试：
+在 macOS 上使用 [cargo-xwin](https://github.com/rust-cross/cargo-xwin) 配置 Windows SDK/UCRT 后再做交叉编译检查，避免普通 `cargo check --target` 因缺少 `assert.h` 等 Windows 头文件而失败。首次准备：
 
 ```bash
-cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
+brew install llvm
+uv tool install cargo-xwin
+rustup target add x86_64-pc-windows-msvc
+```
+
+没有 uv 时，可改用 `cargo install --locked cargo-xwin`。确保 LLVM 的 `bin` 目录在当前 PATH 中，例如 `export PATH="$(brew --prefix llvm)/bin:$PATH"`。cargo-xwin 首次运行会按微软许可下载并缓存 SDK/UCRT；需要时可使用本地代理。
+
+然后运行 Windows x64 全目标检查；它验证条件编译、Windows API 和依赖兼容性，不能替代 Windows 运行和安装测试：
+
+```bash
+XWIN_ARCH=x86_64 cargo xwin check --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --all-targets
 ```
 
 官网位于 `site/`，使用 Astro 生成静态页面。`pnpm run site:dev` 用于本地预览官网，`pnpm run site:build` 会输出到 `site/dist/`。
@@ -364,10 +374,20 @@ pnpm run site:build
 
 `pnpm run check` runs the frontend build, Rust formatting check, Rust tests, Rust compile check, and clippy. Before release, also run `pnpm run site:test`, `pnpm run site:build`, and `git diff --check`.
 
-On macOS, the following Windows-target compile is an additional check for conditional compilation, Windows APIs, and dependency compatibility. It does not replace interaction and installer testing on a real Windows machine:
+On macOS, use [cargo-xwin](https://github.com/rust-cross/cargo-xwin) to supply the Windows SDK/UCRT. Plain `cargo check --target` can otherwise fail on missing Windows headers such as `assert.h`. One-time setup:
 
 ```bash
-cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
+brew install llvm
+uv tool install cargo-xwin
+rustup target add x86_64-pc-windows-msvc
+```
+
+Without uv, use `cargo install --locked cargo-xwin` instead. Ensure LLVM binaries are on the current PATH, for example with `export PATH="$(brew --prefix llvm)/bin:$PATH"`. On first use, cargo-xwin downloads and caches the SDK/UCRT under Microsoft's license; configure your network proxy if needed.
+
+Then check all Windows x64 targets. This verifies conditional compilation, Windows APIs and dependency compatibility; it does not replace Windows runtime and installer testing:
+
+```bash
+XWIN_ARCH=x86_64 cargo xwin check --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --all-targets
 ```
 
 The product site lives in `site/` and uses Astro to generate static pages. Use `pnpm run site:dev` to preview it locally and `pnpm run site:build` to write `site/dist/`.
