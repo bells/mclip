@@ -12,11 +12,11 @@ session is supported.
 - Rust: stable with `rustfmt`.
 - Native packages: `libwebkit2gtk-4.1-dev`, `libgtk-3-dev`,
   `libappindicator3-dev`, `librsvg2-dev`, `patchelf`, and `libfuse2`.
-- Planned desktop bundles: Debian package (`.deb`) and AppImage.
-- Planned CLI assets: `mclip-cli-linux-x64` and
+- Configured desktop bundles: Debian package (`.deb`) and AppImage, built with `pnpm run tauri:build --bundles deb,appimage`.
+- Configured CLI assets: `mclip-cli-linux-x64` and
   `mclip-cli-linux-x64.sha256`.
 
-CI proves source compatibility and package production only. It does not prove
+A successful CI run can establish source compatibility and package production only; workflow configuration alone establishes neither. It does not prove
 clipboard ownership, tray activation, global shortcuts, transparent window
 behavior, panel anchoring, or launch-at-login in a real desktop session.
 
@@ -39,6 +39,12 @@ bounded, serialized clipboard broker so desktop writes remain serviceable under
 Linux selection ownership rules. Short-lived CLI writes use arboard's bounded
 two-second ownership handoff; a real-session paste-after-exit smoke remains
 required because clipboard-manager behavior differs between desktops.
+
+As reviewed on 2026-09-06, polling still requests full snapshots through the
+broker every 500ms. Signature-first reads that skip full payload processing on
+unchanged intervals remain an open implementation task in
+[`add-linux-desktop-support`](../openspec/changes/add-linux-desktop-support/tasks.md).
+The presence of a macOS change-token helper is not Linux implementation evidence.
 
 ## Launch at login
 
@@ -70,7 +76,10 @@ release-mode package and verify each item independently:
    Preferences Settings Center.
 7. XDG launch-at-login enable, relaunch, disable, and write-failure rollback.
 
-Unverified or failed cells remain unavailable/degraded. Results from X11,
+Record unverified cells as unverified, and failed cells with the observed failure.
+Runtime capability states (`available`, `degraded`, `unavailable`) are separate
+from evidence status: an untested session is not automatically a runtime failure.
+Results from X11,
 XWayland, or one Wayland compositor must not be generalized to another.
 
 ## v0.2.0 exclusions

@@ -1,23 +1,25 @@
 # mclip Project Memory
 
-Last refreshed: 2026-08-09
+Last refreshed: 2026-09-06 (documentation alignment; historical measurements retain their original scope)
 
 This file records working memory for future maintainers and agents. It is not a replacement for `AGENTS.md` or `README.md`: use those for the live project map, commands, and release-facing docs. Use this file to remember prior decisions, accepted behavior, repeated failure modes, and the user's preferences.
 
-If this file conflicts with live code, trust the live code first, then update this memory.
+For current behavior, verify live code/configuration and dated evidence before using an older memory. Update this project document when documentation maintenance is requested; do not rewrite dated historical results as new verification. [OpenSpec status](openspec/README.md) distinguishes implemented source, task completion, spec synchronization, native evidence, and release state.
+
+维护摘要：当前源码仍标记 `0.1.1`，但已经包含多项面向 `0.2.0` 的功能。以七个窗口、中英日三语、Node 24/pnpm 10.33.0、Linux x64 预览实现为当前上下文；历史测试与性能数字只证明记录时的范围。
 
 ## Product Shape
 
-`mclip` is a tray-first clipboard history utility for macOS and Windows. It should feel like a compact desktop tool, not a normal always-open app and not a marketing page.
+`mclip` is a tray-first clipboard history utility for macOS and Windows, with Linux x86_64 preview code and packaging configuration pending native session verification. It should feel like a compact desktop tool, not a normal always-open app and not a marketing page.
 
-The current stack is React 19, TypeScript, Vite, Tailwind CSS 4, Tauri 2, and Rust. The public site is an Astro app under `site/`. The desktop app is versioned from `package.json`; current version is `0.1.1`.
+The current stack is React 19, TypeScript, Vite, Tailwind CSS 4, Tauri 2, and Rust. The public site is Astro 6 under `site/`, with Chinese, English, and Japanese routes. Node is `>=24 <25`, pnpm is `10.33.0`, and root `pnpm-lock.yaml` is the shared workspace lockfile. The source version comes from `package.json` and remains `0.1.1`; do not infer published Release contents from that version alone.
 
 ## v0.1.1 Decisions
 
 - Tailwind CSS owns component styling through utility strings collected in `src/uiStyles.ts`; `src/styles.css` remains the thin global/theme entrypoint. `src/App.css` was deleted.
-- All six Tauri windows resolve the same `system | light | dark` appearance setting, including `image-viewer`.
-- `mainWindowItemCount` can grow up to sanitized `maxHistoryCount`; `historyGroupItemCount` stays in the compact `5..=20` range.
-- New settings keep 200 history entries by default; Rust and TypeScript both clamp `maxHistoryCount` to `10..=500`.
+- All seven Tauri windows resolve the same `system | light | dark` appearance setting, including `image-viewer` and `quick-action`.
+- `mainWindowItemCount` defaults to 10 and accepts `5..=maxHistoryCount`; `historyGroupItemCount` defaults to 50 and accepts `5..=100`. The earlier `5..=20` note was stale.
+- New settings keep 200 ordinary history entries by default; Rust and TypeScript both clamp `maxHistoryCount` to `10..=500`, with pinned entries counted separately.
 - Large main-window counts scroll only the middle history/archive region. Search and footer actions remain fixed, and Rust caps native height to the monitor work area.
 - Text and file rows use the compact 28px list rhythm. Image rows keep the taller 64px rhythm and thumbnail padding; changing shared list classes must not collapse images back to text height.
 - `showHistoryItemNumbers` and `showMainWindowBrand` affect presentation only. They do not change stored history or keyboard item positions.
@@ -26,10 +28,19 @@ The current stack is React 19, TypeScript, Vite, Tailwind CSS 4, Tauri 2, and Ru
 - Color-code and emoji affordances are frontend-only; copy-back always uses the original text.
 - Search, keyboard, and pointer navigation share one canonical active target in the main window; pointer activation must update logical selection without stealing focus or drawing a second row highlight.
 - Image history can open `image-viewer`, which reuses complete detail rendering, opens maximized, restores to 720×520, and supports maximize/restore, deletion, and Escape. Preview-family windows remain non-focusable; the viewer is intentionally focusable.
-- Only `main` is declared eagerly in `tauri.conf.json`. The preview family warms after tray readiness; About, Preferences, and the image viewer are created on demand through `src-tauri/src/auxiliary_windows.rs` and retained after hide.
+- Only `main` is declared eagerly in `tauri.conf.json`. The preview family warms after tray readiness; About, Preferences, the image viewer, and quick actions are created on demand through `src-tauri/src/auxiliary_windows.rs` and retained after hide. Descriptors and the ready registry live in `src-tauri/src/auxiliary_window_contract.rs`.
 - Main history state starts from a revisioned snapshot and normally applies targeted `upsert/remove/clear` deltas. Full `replace` is reserved for reconciliation; hidden low-frequency windows must not receive global full-history arrays.
 - Image data uses a Rust single-flight cache bounded to 32 MiB total and 8 MiB per entry. History deletion, clear, trim, replacement, and unused-asset cleanup invalidate affected entries.
 - `mclip-cli` help/version commands do not read history. The public shell installer prefers matching GitHub Release binaries and falls back to local/source builds.
+
+## Subsequent Implemented Decisions
+
+- Pins are ordered by most recent pin time before ordinary history, with a separate limit of 100. They do not consume ordinary retention/main/archive counts; dedupe preserves pin time. CLI supports `pin/unpin`, `--pinned`, and `clear --yes --keep-pinned`.
+- Sensitive detector v1 scans at most 64 KiB for the specific supported private-key/JWT/AWS/OpenAI patterns. Display masking is fixed `••••••••`; persistence and explicit copy retain original content. Legacy entries are reclassified only by explicit action, never by read alone. Agent schema is 2; default read output masks classified text and explicit `--raw`/`--reveal-secrets` reveals for that call.
+- Ignored source applications use a native picker and a removable list, persisting only normalized `ignoredSourceAppIds`. macOS uses bundle IDs, Windows executable names, and X11 `WM_CLASS`; pure Wayland source identity remains unavailable. Picker/metadata commands are restricted to Preferences and do not grant generic frontend file access.
+- JSON/Base64/URL-component transforms are bounded pure Rust operations shared by desktop and CLI. `quick-action` results stay in memory until copied or confirmed for replacement. `copy --stdin` and implicit pipelines write the system clipboard without directly adding history. Input is capped at 1 MiB, transformed output at 4 MiB.
+- Linux uses a long-lived serialized in-process `arboard` broker, capability reporting, and user-level XDG autostart. CLI ownership handoff is bounded to two seconds. Signature-first polling and native package/session evidence remain open in `add-linux-desktop-support`.
+- The accepted footer uses concise action labels and visible platform keycaps from `src/utils/mainWindowShortcuts.ts`. Clearing still confirms. Preserve the approved compact Preferences switch and immediate saving.
 
 The GitHub project URL is:
 
@@ -51,10 +62,10 @@ https://github.com/bells/mclip
 
 - Keep the main window fixed width and tray-popover sized. Do not make it resizable.
 - Keep preview surfaces in independent transparent Tauri windows. Do not put the right-side preview back into the main window DOM.
-- Current window labels are `main`, `preview`, `preview-detail`, `image-viewer`, `about`, and `preferences`. `tauri.conf.json` owns only eager `main`; auxiliary labels are owned by `AUXILIARY_WINDOW_DESCRIPTORS`. If this changes, update routes/types, descriptor/ready plumbing, both capability files, and maintainer docs together.
+- Current window labels are `main`, `preview`, `preview-detail`, `image-viewer`, `about`, `quick-action`, and `preferences`. `src/main.tsx` bootstraps the selected route via `src/windowRoutes.ts`; `src/App.tsx` is the main shell. `tauri.conf.json` owns only eager `main`; auxiliary labels are owned by `AUXILIARY_WINDOW_DESCRIPTORS`. If this changes, update routes/types, descriptor/ready plumbing, both capability files, and maintainer docs together.
 - `preview` and `preview-detail` must stay non-focusable. If they take focus, the main window can hide itself during hover or selection flows.
 - `PREVIEW_WINDOW_GAP` is intentionally `0.0` so the pointer can cross between the main popover and preview without a dead hover gap.
-- Language changes must update both Chinese and English strings.
+- Language changes must update Chinese, English, and Japanese catalogs under `src/i18n/`. Follow System maps `zh` and `ja` locales to their catalogs and all other locales to English. Website routes and public copy must keep the same three-language coverage; CLI remains English-first.
 - History data sent to the frontend must keep camelCase fields such as `filePaths`, `imagePath`, `byteSize`, and `contentHash`.
 
 ## Preview Window Memory
@@ -103,7 +114,7 @@ Clipboard handling lives mainly in `src-tauri/src/clipboard.rs`; persistence liv
 
 For copied files, especially Finder files on macOS, file-list data must be preferred before image-like data. Otherwise a copied `.txt` file can be missed or misclassified. Keep the single-image-file special case after file-list detection so a copied image file can still become an image history item.
 
-History entries are persisted locally and deduplicated. Repeated content moves to the front and updates count/time. When max history count changes or items are deleted, unused image assets should be cleaned up.
+History entries are persisted locally and deduplicated. Repeated ordinary content moves to the front and updates count/time; pinned entries retain pin ordering. When the ordinary history limit changes or items are deleted, unused image assets should be cleaned up and cache entries invalidated.
 
 High-value checks:
 
@@ -122,7 +133,7 @@ The accepted v0.1.1 performance evidence lives in `performance/final-v0.1.1-runt
 - The formal image trace recorded 27 hits and 3 misses. Production limits, not the tiny fixture bytes, define cache safety.
 - The main interactive median regressed slightly from an already small baseline; preserve the report’s honest boundary instead of describing every metric as faster.
 - Performance mode is opt-in and privacy constrained. Never add clipboard text, search queries, file paths, source-app names, or image bytes to milestones.
-- These measurements do not prove Windows behavior. The current post-optimization macOS cross-target attempt stops in `ring` because the MSVC C header `assert.h` is unavailable; Windows CI/artifact and device smoke remain authoritative.
+- These measurements do not prove Windows behavior. The historical plain cross-target attempt stopped in `ring` because `assert.h` was unavailable. A later 2026-09-05 `cargo xwin check --all-targets` passed with the Windows SDK/UCRT; see the dated follow-up below. That source check does not replace Windows benchmarks or native smoke.
 
 High-value implementation anchors are `src/services/performance.ts`, `src-tauri/src/performance.rs`, `src-tauri/src/desktop_state.rs`, `src-tauri/src/auxiliary_windows.rs`, `src-tauri/src/image_cache.rs`, `src/utils/historyChanges.ts`, and the performance scripts/tests.
 
@@ -157,10 +168,12 @@ For About:
 - Keep GitHub and homepage as explicit buttons; raw URL text is intentionally not shown.
 - Keep `APP_NAME` and app version on one line.
 - Prefer the real app icon from `src-tauri/icons/128x128.png` for the About identity mark.
-- Keep top and bottom spacing comfortable; tiny dialog polish can require adjusting `src-tauri/tauri.conf.json` window height as well as CSS.
+- Keep top and bottom spacing comfortable; tiny dialog polish can require adjusting the About descriptor in `src-tauri/src/auxiliary_window_contract.rs` as well as CSS.
 - Keep manual update checking explicit. Network access to GitHub Releases should happen only after the user clicks the check action.
 
-For localized About or Preferences copy, update `src/i18n.ts` in both languages.
+Preferences now uses `PreferencesSettingsCenter` with General, Appearance, History, Privacy, Text Actions, and Agent CLI destinations, searchable settings, and focusable results. `PreferencesWindow.tsx` still owns much of the orchestration; `preferenceSaveController.ts` serializes immediate saves and handles feedback/rollback. Preserve this behavior when extracting smaller components or hooks.
+
+For localized About or Preferences copy, keep the `src/i18n.ts` type contract and all three catalogs (`zhCn.ts`, `en.ts`, `ja.ts`) aligned. About/Preferences dimensions belong to lazy window descriptors, not new entries in `tauri.conf.json`.
 
 ## Release And Windows Parity Memory
 
@@ -176,7 +189,7 @@ Windows coverage should include:
 - Maximized/restored image viewer, deletion, Escape close, and main-window layering recovery.
 - About and Preferences windows.
 - Launch at login.
-- Chinese/English UI and system-language default.
+- Chinese/English/Japanese UI, all seven windows, quick actions, pins, privacy/source exclusion, and system-language default.
 
 2026-07-26 v0.1.1 Windows audit notes:
 
@@ -188,12 +201,20 @@ Windows coverage should include:
 - The public shell installer handles the Windows `.exe` name correctly, but its `curl ... | sh` entrypoint requires Git Bash or another POSIX-compatible shell; normal desktop installation continues through the `.msi`/`.exe` assets.
 - Windows installability remains unsigned/SmartScreen-limited, with WebView2 `downloadBootstrapper` configured for missing runtime installs.
 
+2026-09-05 Windows toolchain and ignored-app verification follow-up:
+
+- [The verification record](openspec/changes/select-ignored-source-apps/verification.md) reports a passing `XWIN_ARCH=x86_64 cargo xwin check --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --all-targets`, including `ring`, the native dialog dependency, and application/test targets.
+- The recorded local setup used user-level cargo-xwin, Homebrew LLVM, the Rust Windows target, and downloaded Microsoft SDK/UCRT. Plain `cargo check --target` does not automatically activate that SDK.
+- The owner reported macOS manual behavior was generally successful. This is owner-reported smoke without a per-scenario matrix. Windows validation in Parallels and Linux native chooser/session validation remain pending in that record.
+- The same record's test counts are dated results, not a claim that a later commit was fully tested. Its no-commit statement describes the validation session; the subsequent implementation commit is `908b738`.
+
 Current release constraints:
 
 - macOS builds use ad-hoc signing and are not notarized. Users may need to remove quarantine after downloading from GitHub.
 - Windows builds are unsigned and may trigger SmartScreen.
 - Windows installer uses WebView2 `downloadBootstrapper` in silent mode, so first install may need network access if WebView2 is missing.
-- GitHub Actions uses `macos-latest` and `windows-2022`; the Windows CI lane is the real Windows bundling check.
+- CI uses `macos-latest`, `windows-2022`, and `ubuntu-24.04`, runs full project checks plus root Node tests, and builds Linux `.deb`/AppImage packages. Release has the same platform matrix and maps macOS ARM64, Windows x64, and Linux x64 CLI assets with SHA-256 companions. Configured jobs alone do not prove a current run passed.
+- `prepare-v0-2-0-release` requires prerequisite completion or an explicit scoped owner waiver, migration/downgrade evidence, version alignment, packaged native checks, and same-Draft asset verification. Do not change task checkboxes merely because docs were synchronized or strict validation passed.
 
 Known environment caveats:
 
@@ -217,7 +238,7 @@ Fast checks:
 pnpm run build
 node --test tests/*.test.mjs
 cargo check --manifest-path src-tauri/Cargo.toml
-cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
+XWIN_ARCH=x86_64 cargo xwin check --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --all-targets
 pnpm run site:test
 pnpm run site:build
 git diff --check
@@ -232,14 +253,15 @@ If a full check fails, separate baseline or environment failures from the files 
 - Preview bugs: `src/hooks/useHistoryPreviewController.ts`, `src/services/ipc/commands.ts`, `src/services/ipc/events.ts`, `src/utils/preview.ts`, `src/utils/previewDismissal.ts`, `src/utils/previewHistory.ts`, `src/components/HistoryGroupPreviewWindow.tsx`, `src/components/HistoryPreviewWindow.tsx`, `src/components/HistoryPreviewDetailWindow.tsx`, `src-tauri/src/window.rs`, and the preview/group sizing tests.
 - Clipboard/history bugs: `src-tauri/src/clipboard.rs`, `src-tauri/src/history.rs`, `src/types.ts`, `src/components/HistoryPreviewDetailContent.tsx`.
 - Diagnostics bugs: `src-tauri/src/diagnostics.rs`, `src/utils/diagnostics.ts`, `src/main.tsx`, `src/components/AboutWindow.tsx`.
-- Settings bugs: `src-tauri/src/settings.rs`, `src/utils/settings.ts`, `src/components/PreferencesWindow.tsx`, `src/constants.ts`.
-- Window/config/capability drift: `src/App.tsx`, `src/windowRoutes.ts`, `src/services/auxiliaryWindows.ts`, `src-tauri/tauri.conf.json`, `src-tauri/src/auxiliary_windows.rs`, both capability files, `src-tauri/src/lib.rs`, and `src-tauri/src/window.rs`.
+- Settings bugs: `src-tauri/src/settings.rs`, `src/utils/settings.ts`, `src/components/PreferencesWindow.tsx`, `src/components/preferences/`, `src/hooks/useIgnoredSourceApps.ts`, `src-tauri/src/ignored_apps.rs`, `src/constants.ts`.
+- Window/config/capability drift: `src/main.tsx`, `src/windowRoutes.ts`, `src/services/auxiliaryWindows.ts`, `src-tauri/tauri.conf.json`, `src-tauri/src/auxiliary_window_contract.rs`, `src-tauri/src/auxiliary_windows.rs`, both capability files, `src-tauri/src/lib.rs`, and `src-tauri/src/window.rs`.
 - Release docs: `README.md`, `AGENTS.md`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`.
 
 ## Do Not Forget
 
 - Preserve user worktree changes that are unrelated to the task.
 - Prefer `rg` for searching.
+- Use the configured CodeGraph for symbol/call-path context before broad source reads. Missing graph test links are not proof of missing tests; use actual test files and execution for validation. Fall back to live files when the index is unavailable or flagged stale.
 - Use `apply_patch` for manual edits.
 - Update command names/events in `src/services/ipc/*`, the `src/lib/tauri.ts` compatibility facade, and Rust `generate_handler!` together.
 - When adding Tauri API calls or windows, update capabilities and window label routing. Add eager windows to `tauri.conf.json`; add lazy auxiliary windows to `AUXILIARY_WINDOW_DESCRIPTORS` and the ready-token contract.

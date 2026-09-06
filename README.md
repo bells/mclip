@@ -1,6 +1,6 @@
 # mclip
 
-`mclip` is a lightweight clipboard history app for macOS and Windows, built with Tauri 2, React 19, TypeScript, and Rust.
+`mclip` is a lightweight clipboard history app for macOS and Windows, with Linux x86_64 preview support pending native desktop verification, built with Tauri 2, React 19, TypeScript, and Rust.
 
 [中文](#中文) | [English](#english)
 
@@ -10,7 +10,7 @@
 
 `mclip` 是一个常驻托盘的剪贴板历史工具。它专注于桌面日常复制场景：快速唤起、搜索、回填历史内容，并在不打断当前工作的前提下查看更早的记录。
 
-当前版本：`0.1.1`
+当前源码版本：`0.1.1`。源码已包含多项面向 `0.2.0` 的功能；下文功能说明不代表所有功能已进入当前公开安装包。产品现状见 [PRODUCT.md](PRODUCT.md)，开发约定见 [AGENTS.md](AGENTS.md)，规格与待验收事项见 [OpenSpec 索引](openspec/README.md)。
 
 ### v0.1.1 更新重点
 
@@ -165,7 +165,7 @@ pnpm run site:test
 pnpm run site:build
 ```
 
-`pnpm run check` 会执行前端构建、Rust 格式检查、Rust 单元测试、Rust 编译检查和 clippy。发布前还应运行 `pnpm run site:test`、`pnpm run site:build` 和 `git diff --check`。
+`pnpm run check` 会执行前端构建、Rust 格式检查、Rust 单元测试、Rust 编译检查和 clippy。根目录前端契约测试需另跑 `node --test tests/*.test.mjs`；发布前还应运行 `pnpm run site:test`、`pnpm run site:build` 和 `git diff --check`，并按 OpenSpec 清单完成原生及资产验收。
 
 在 macOS 上使用 [cargo-xwin](https://github.com/rust-cross/cargo-xwin) 配置 Windows SDK/UCRT 后再做交叉编译检查，避免普通 `cargo check --target` 因缺少 `assert.h` 等 Windows 头文件而失败。首次准备：
 
@@ -219,7 +219,7 @@ gh release view v0.1.1 --repo bells/mclip --json isDraft,assets --jq '{isDraft, 
 
 `mclip` is a tray-first clipboard history app for everyday desktop copying. It is designed to open quickly, stay compact, search local history, and restore previous clipboard items without taking over the screen.
 
-Current version: `0.1.1`
+Current source version: `0.1.1`. The source also includes features tracked toward `0.2.0`; the feature descriptions below do not establish that all of them are in the current public installer. See [PRODUCT.md](PRODUCT.md) for current behavior, [AGENTS.md](AGENTS.md) for development rules, and the [OpenSpec index](openspec/README.md) for specs and pending verification.
 
 ### v0.1.1 Highlights
 
@@ -372,7 +372,7 @@ pnpm run site:test
 pnpm run site:build
 ```
 
-`pnpm run check` runs the frontend build, Rust formatting check, Rust tests, Rust compile check, and clippy. Before release, also run `pnpm run site:test`, `pnpm run site:build`, and `git diff --check`.
+`pnpm run check` runs the frontend build, Rust formatting check, Rust tests, Rust compile check, and clippy. Run root frontend contract tests separately with `node --test tests/*.test.mjs`. Before release, also run `pnpm run site:test`, `pnpm run site:build`, and `git diff --check`, and complete the native and asset verification in the OpenSpec checklist.
 
 On macOS, use [cargo-xwin](https://github.com/rust-cross/cargo-xwin) to supply the Windows SDK/UCRT. Plain `cargo check --target` can otherwise fail on missing Windows headers such as `assert.h`. One-time setup:
 

@@ -2,7 +2,7 @@
 
 ## 项目定位
 
-`mclip` 是一个跨平台剪贴板历史工具，目标平台是 macOS 和 Windows。它是托盘优先的桌面小工具，不是常驻大窗口应用。
+`mclip` 是一个跨平台剪贴板历史工具，面向 macOS 和 Windows，并已有待原生桌面验证的 Linux x86_64 预览实现。它是托盘优先的桌面小工具，不是常驻大窗口应用。Linux 的实现范围、会话能力和验收边界见 `docs/linux-support.md`。
 
 技术栈：
 
@@ -12,7 +12,15 @@
 - 官网：Astro 6，目录 `site/`
 - 打包发布：GitHub Actions + `tauri-apps/tauri-action`
 
-当前版本：`0.1.1`。应用版本以根目录 `package.json` 为发布真相，Tauri 通过 `src-tauri/tauri.conf.json` 的 `"version": "../package.json"` 读取；Cargo 和官网 package 版本也要同步。
+当前源码版本：`0.1.1`，已包含面向 `0.2.0` 的功能；源码存在不代表对应 Release 已发布或原生验收完成。应用版本以根目录 `package.json` 为真相，Tauri 通过 `src-tauri/tauri.conf.json` 的 `"version": "../package.json"` 读取；Cargo、官网 package 和前端版本回退值也要同步。
+
+## 文档与代码上下文
+
+- `PRODUCT.md` 描述当前产品行为与支持边界，`README.md` 提供中英文使用和开发说明，本文维护实现约束与代码地图。
+- `memory.md` 保存决策理由、用户偏好和历史故障。记忆中的日期和证据范围必须保留；当前事实冲突时先核实代码、配置和验证记录，再修正文档。
+- `openspec/project.md` 提供架构上下文，`openspec/config.yaml` 向新产物注入项目约定；规格、change 和验收状态入口见 `openspec/README.md`。
+- `openspec/specs/` 是已同步的规格基线，并非当前全部实现目录。未归档 change 可能已经实现，也可能仍缺实现或原生证据；严格校验、清单完成、规格同步、归档和发布是不同状态。
+- 已配置 CodeGraph 时，优先用 `codegraph_explore` 理解相关调用链，用 `codegraph_node` 查看具体符号或结构。图中的调用和测试关联是辅助证据；缺少关联不等于没有测试，结构查询不能替代编译或原生验证。索引缺失或标记过期时回到相关文件核实。
 
 适用 skill：
 
@@ -28,12 +36,15 @@
 - 保存文本、图片、文件三类剪贴板历史；文件历史选择后应回填系统文件列表，而不是普通路径文本。
 - 去重后最新内容在最前，同一内容重复复制会更新次数和时间。
 - 常用历史可置顶，按最近置顶时间排列在普通历史之前；置顶不占普通历史上限或主界面/分组条数，最多 100 条，重复复制保留置顶时间。
-- 主窗口默认显示最新 10 条，更多历史默认按每 50 条分组；主界面条数和历史分组条数都可在偏好设置里调整。
+- 主窗口默认显示最新 10 条普通历史，可设置为 `5..=maxHistoryCount`；更多普通历史默认按每 50 条分组，分组条数范围 `5..=100`。置顶记录另计。
 - 文本和文件列表使用紧凑行高，图片条目保留更高的缩略图行；不要为了统一高度压缩图片。
 - 历史分组和单条详情都使用独立透明 preview 窗口，不把预览塞回主窗口 DOM。
 - 图片详情可打开独立 `image-viewer`，默认最大化，支持恢复、删除和 `Escape` 关闭。
 - 支持偏好设置：登录时启动、语言、外观主题、菜单栏图标样式、自动粘贴、最大历史条数、主界面/历史分组展示条数、复制项序号显示、主界面 Logo 显示、保存类型。
 - 支持 About 独立窗口，展示版本、GitHub 地址和真实应用图标。
+- Preferences 使用可搜索的设置中心，包含通用、外观、历史、隐私、文本操作和 Agent CLI 六个页面。控件立即保存，串行提交并处理失败回滚；保留紧凑开关、键盘焦点和禁用态。
+- 文本 JSON/Base64/URL-component 快速操作在独立 `quick-action` 窗口展示；复制写系统剪贴板，替换历史必须确认。
+- 主窗口 footer 使用简短动作与平台快捷键 keycap，显示和触发逻辑共用 `src/utils/mainWindowShortcuts.ts`；清空历史仍确认。
 
 ## 常用命令
 
@@ -70,8 +81,9 @@ CLI 是 AI Agent/终端入口。`pnpm run cli -- ...` 会运行 `mclip-cli`，�
 install.sh                             mclip-cli 的 curl | sh 安装脚本，默认安装到用户目录
 site/public/install.sh                 Vercel 官网公开的安装脚本副本，必须和根目录 install.sh 保持一致
 site/vercel.json                       官网 Vercel 配置，根路径 / 直接 307 跳转到 /en/
-site/src/pages/{zh,en}/index.astro     双语官网首页
-site/src/pages/{zh,en}/changelog.astro 双语版本更新日志
+site/src/pages/{zh,en,ja}/index.astro     中英日官网首页
+site/src/pages/{zh,en,ja}/changelog.astro 中英日版本更新日志
+site/src/i18n/locales.ts                官网语言路由与 locale 元数据
 site/public/llms.txt                   AI/搜索可读取的公开产品事实
 site/public/videos/                    官网 Hero 视频及 poster
 site/scripts/render-hero-video.m       使用 macOS AVFoundation 生成可复现 Hero MP4/poster
@@ -79,7 +91,9 @@ performance/final-v0.1.1-runtime-performance.md
                                         v0.1.1 性能协议、结果与验证边界
 
 src/
-  App.tsx                             根据七个 Tauri window label 分流，并渲染对应窗口 shell
+  main.tsx                            前端启动、诊断、ready 上报与当前窗口加载
+  windowRoutes.ts                     按七个 window label 动态导入窗口组件
+  App.tsx                             main 窗口 shell、键盘与主列表交互
   styles.css                          Tailwind 入口、全局 reset、语义主题 token
   uiStyles.ts                         组件 Tailwind class 映射；样式迁移后不再使用 App.css
   constants.ts                        app 名称、GitHub URL、preview 宽度、默认设置
@@ -97,6 +111,7 @@ src/
   services/performance.ts             默认关闭的前端性能里程碑
   lib/tauri.ts                        对组件保留的 IPC 兼容 facade
   components/AppHeader.tsx            搜索栏
+  components/AppFooter.tsx            紧凑动作与平台快捷键 keycap
   components/HistoryList.tsx          最新历史列表，文件名列表展示使用中间省略以保留扩展名
   components/HistoryGroupNav.tsx      历史分组按钮
   components/HistoryPreviewWindow.tsx 独立 preview 容器，按 payload kind 分发
@@ -117,7 +132,14 @@ src/
                                       文本/图片/文件详情内容渲染
   components/ImageThumb.tsx           通过 Rust command 读取图片 base64 后渲染
   components/AboutWindow.tsx          关于窗口
-  components/PreferencesWindow.tsx    偏好设置窗口
+  components/PreferencesWindow.tsx    偏好设置状态、系统操作与页面组装
+  components/preferences/PreferencesSettingsCenter.tsx
+                                      设置中心导航、搜索与结果聚焦
+  components/preferences/preferenceSaveController.ts
+                                      即时保存串行队列、反馈与失败回滚
+  components/preferences/IgnoredApplicationsList.tsx
+                                      原生选择结果、忽略应用列表与移除交互
+  hooks/useIgnoredSourceApps.ts       原生应用选择、元数据与错误状态
   components/Modal.tsx                主窗口内确认弹窗
   utils/history.ts                    历史过滤、分组、分页和文件名列表展示纯函数
   utils/historyAffordance.ts          颜色代码与 Emoji 的前端展示识别
@@ -125,6 +147,7 @@ src/
   utils/previewHistory.ts             preview payload 历史 reconciliation
   utils/selectionBehavior.ts          历史选择后的附加行为判断
   utils/settings.ts                   前端设置 normalize
+  utils/mainWindowShortcuts.ts        footer 快捷键显示与触发契约
   utils/sensitiveContent.ts           敏感文本展示判断与固定遮罩辅助
   utils/historyChanges.ts             revision snapshot/delta reducer
   utils/imageDataUrl.ts                图片读取与失败处理辅助
@@ -140,7 +163,7 @@ src-tauri/
   src/lib.rs                          Tauri 应用入口、托盘、快捷键、命令注册
   src/agent_cli.rs                    CLI 参数解析、Agent 模式、历史筛选、操作命令和 text/json/raw/markdown 输出
   src/cli_install.rs                  mclip-cli 版本状态、Release 下载、SHA-256 校验和可回滚安装
-  src/auxiliary_window_contract.rs    六个辅助窗口纯描述符与 ready generation 状态机
+  src/auxiliary_window_contract.rs    六个辅助窗口描述符、ready generation 状态机与并发 registry
   src/auxiliary_windows.rs            辅助窗口按需创建与前端 listener ready 协议
   src/window.rs                       主窗口与辅助窗口的尺寸、定位、显示隐藏
   src/clipboard.rs                    剪贴板读写、文件列表回填、图片处理、Windows 事件监听、macOS changeCount 轮询
@@ -152,11 +175,14 @@ src-tauri/
   src/settings.rs                     设置持久化、登录启动、系统语言默认值
   src/source_app.rs                   macOS/Windows/X11 稳定来源标识 best-effort 识别与 Wayland 能力状态
   src/ignored_apps.rs                 Preferences 原生应用选择、平台标识解析与本地名称/图标展示
+  src/ignored_apps/{macos,linux}.rs    原生应用元数据与 Linux desktop 文件解析
+  src/desktop_capabilities.rs         Linux 会话与桌面能力状态
+  src/text_transform.rs               桌面和 CLI 共用的有界文本变换
   src/storage.rs                      原子写文件工具
 
 .github/workflows/
-  ci.yml                              macOS 和 Windows 检查
-  release.yml                         tag 发布打包，生成 draft release 和 mclip-cli 资产
+  ci.yml                              macOS、Windows、Linux 检查及 Linux 打包
+  release.yml                         三平台 tag 打包、Draft 与 CLI/checksum 资产
 
 src-tauri/tests/
   agent_cli.rs                        CLI 真实二进制集成测试，覆盖 agent/list/get/search/context/add/delete/clear
@@ -191,7 +217,7 @@ src-tauri/tests/
 
 ## 窗口模型
 
-运行时共有七个窗口，但 `tauri.conf.json` 只预创建 `main`。其余六个窗口由 `src-tauri/src/auxiliary_windows.rs` 的描述符按需创建；托盘 ready 后只预热 `preview` 和 `preview-detail`，About、Preferences、图片查看器和 `quick-action` 首次使用时创建并在 hide 后保留。
+运行时共有七个窗口，但 `tauri.conf.json` 只预创建 `main`。其余六个窗口的描述符位于 `src-tauri/src/auxiliary_window_contract.rs`，由 `src-tauri/src/auxiliary_windows.rs` 按需创建；托盘 ready 后只预热 `preview` 和 `preview-detail`，About、Preferences、图片查看器和 `quick-action` 首次使用时创建并在 hide 后保留。
 
 - `main`：主界面，宽度固定 `320`，不可由用户手动 resize。
 - `preview`：独立透明预览窗口，用于单条详情和历史分组列表，默认隐藏。
@@ -253,7 +279,8 @@ preview 必须保持独立窗口：
 
 - Windows：使用 Win32 `AddClipboardFormatListener` 和 message-only window 监听 `WM_CLIPBOARDUPDATE`。
 - macOS：每 500ms 轻量读取 `NSPasteboard.changeCount`，只有计数变化后才读取完整剪贴板。
-- 其它非 Windows：使用轮询，每 500ms 读取一次剪贴板。
+- Linux：每 500ms 通过常驻、串行、有界的 `arboard` broker 读取剪贴板；先判断签名变化、未变时跳过完整 payload 的优化仍是 `add-linux-desktop-support` 的待办，不得描述为已完成。
+- 其它非 macOS/Windows/Linux 平台保留轮询代码路径，不代表已承诺产品支持。
 
 内容策略：
 
@@ -282,7 +309,7 @@ Windows 监听注意：
 - Preferences 的 Agent CLI 页直接探测固定安装路径的 `mclip-cli --version`，状态为 `notInstalled/current/outdated/newer/unknown`；旧版和 unknown 可以升级，current 可以重装，newer 不自动降级。生产安装必须下载与当前桌面版本完全一致的受支持 Release 资产及其 `.sha256`，校验成功后才能可回滚地替换旧 CLI，不依赖 Cargo/Git。
 - 公开安装命令使用 `curl -fsSL https://www.mclip.cn/install.sh | sh`；Windows 用户需要在 Git Bash 或兼容 POSIX shell 中运行。脚本默认下载最新公开 Release，可用 `MCLIP_VERSION` 固定版本；预构建资产必须同时下载和验证 `.sha256`，校验失败不得覆盖旧 CLI。只有二进制资产不存在时才回退到本地/源码构建。`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
 - 新内容先生成稳定 id，再与已有历史合并。
-- 新安装默认最多保存 200 条历史，可配置范围为 10..=500；超过最大条数会截断。
+- 新安装默认最多保存 200 条普通历史，可配置范围为 10..=500；超过最大条数会裁剪普通历史，置顶历史另计且不被该上限裁剪。
 - 删除和裁剪历史后要清理未使用图片资源。
 - Rust 序列化字段必须保持前端需要的 camelCase，例如 `filePaths`、`imagePath`、`byteSize`、`contentHash`。
 - 文件历史详情必须显示完整绝对路径和完整文件名；主列表和分组 preview 列表可以对长文件名做中间省略，但要保留扩展名。
@@ -291,7 +318,7 @@ Windows 监听注意：
 
 - 由 `src-tauri/src/settings.rs` 管理。
 - 存在系统 app config 目录的 `settings.json`。
-- 字段包括 `launchAtLogin`、`language`、`menuBarIconStyle`、`autoPaste`、`maxHistoryCount`、`enabledHistoryTypes`、`mainWindowItemCount`、`historyGroupItemCount`、`showHistoryItemNumbers`、`showMainWindowBrand`、`appearanceTheme`、`maskSensitiveContent`、`ignoredSourceAppIds`。
+- 字段包括 `launchAtLogin`、`language`、`menuBarIconStyle`、`autoPaste`、`maxHistoryCount`、`enabledHistoryTypes`、`mainWindowItemCount`、`historyGroupItemCount`、`showHistoryItemNumbers`、`showMainWindowBrand`、`appearanceTheme`、`maskSensitiveContent`、`ignoredSourceAppIds`、`textQuickActions`。后者包含 `json`、`base64`、`urlComponent` 三个开关。
 - 每条 `HistoryEntryCommon` 还包含 `isPinned` 与 `pinnedAt`；旧文件缺省为未置顶，read-only load 只在内存修复非法组合，不单独改写文件。
 - 前端有 `normalizeSettings`，后端有 `AppSettings::sanitize`，改边界时两边都要同步考虑。
 
@@ -315,6 +342,7 @@ Windows 监听注意：
 
 - macOS：写 `~/Library/LaunchAgents/<bundle-id>.plist`。
 - Windows：写 `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\<bundle-id>.cmd`。
+- Linux：Rust 侧通过官方 `tauri-plugin-autostart` 管理用户级 XDG autostart `.desktop`，不安装 systemd 服务，也不向前端开放插件或 shell 权限。
 
 写文件：
 
@@ -336,15 +364,17 @@ Tauri capability 文件：
 - `preview-detail`
 - `image-viewer`
 - `about`
+- `quick-action`
 - `preferences`
 
 必要权限：
 
 - `core:default`
 - `core:window:allow-hide`
+- `core:window:allow-start-dragging`
 - `positioner:default`
 
-如果新增 Tauri API 调用，优先检查 capability 是否需要补权限。新增窗口时也要同步更新两个 capability 文件和 `src/App.tsx` 的窗口 label 分流。
+如果新增 Tauri API 调用，优先检查 capability 是否需要补权限。新增窗口时同步更新两个 capability 文件、`src/windowRoutes.ts`、辅助窗口描述符和 ready 契约；`src/App.tsx` 仅负责 main 窗口。
 
 透明与圆角：
 
@@ -395,7 +425,7 @@ CI：
 - 平台：`macos-latest`、`windows-2022`、`ubuntu-24.04`
 - Node/包管理器：`actions/setup-node@v6`、Node 24、`pnpm/action-setup@v4`、pnpm 10.33.0
 - Rust：stable + rustfmt
-- 命令：`pnpm run check`
+- 命令：`pnpm run check`、`node --test tests/*.test.mjs`；Linux 另执行 `pnpm run tauri:build --bundles deb,appimage`。
 
 Release：
 
@@ -417,8 +447,9 @@ git push origin v0.1.1
 发布注意：
 
 - Tauri 版本配置使用 `src-tauri/tauri.conf.json` 里的 `"version": "../package.json"`，安装包文件名会跟随 `package.json`。
-- 发版前同步根 `package.json`、`site/package.json`、`pnpm-lock.yaml`、`src-tauri/Cargo.toml`、`Cargo.lock`、官网版本文案和 CLI 输出，再创建同版本 tag。例如产品版本是 `0.1.1`，tag 必须是 `v0.1.1`；Release workflow 会校验两个 package manifest、Cargo manifest/lock 与 tag，并为每个 CLI 二进制生成同名 `.sha256` 资产。
-- Release workflow 的平台矩阵结束后必须从同一 Draft 下载并验证 macOS ARM64、Windows x64 的 CLI 二进制及两个 `.sha256`；发布 Draft、移动 tag 或替换远端资产必须由发布负责人显式执行。
+- 发版前同步根 `package.json`、`site/package.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock`、`src/constants.ts` 的版本回退值、官网版本文案和 CLI 输出，再创建同版本 tag。依赖变动时同步根工作区唯一的 `pnpm-lock.yaml`；它不存储应用自身版本，不创建根或 site 的 `package-lock.json`。Release workflow 校验两个 package manifest、Cargo manifest/lock、CLI 输出与 tag，并为每个 CLI 二进制生成同名 `.sha256`。
+- Release workflow 的平台矩阵结束后必须从同一 Draft 下载并验证 macOS ARM64、Windows x64、Linux x64 的 CLI 二进制及各自 `.sha256`。当前 workflow 校验的是 runner 本地生成资产，不等于已执行跨平台同一 Draft 下载验证；发布 Draft、移动 tag 或替换远端资产必须由发布负责人显式执行。
+- `prepare-v0-2-0-release` 仍有前置实现、迁移、原生验收和资产验证任务。文档更新、严格校验或某个 change 清单完成不能代替这些门禁；具体状态见 `openspec/README.md`。
 - `release.yml` 的 Release body 需要同时提示 macOS 未 notarize 和 Windows 未签名。
 
 ## macOS 发布
@@ -486,7 +517,7 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - 不要移除 Rust 侧 `is_pointer_over_preview_window` 命中判断。
 - 不要让 preview 或 `preview-detail` 窗口 focusable。
 - 不要把主窗口 `resizable` 改回 `true`。
-- 不要把六个辅助窗口重新写回 `tauri.conf.json` 作为 eager WebView；描述符以 `src-tauri/src/auxiliary_windows.rs` 为真相。
+- 不要把六个辅助窗口重新写回 `tauri.conf.json` 作为 eager WebView；描述符以 `src-tauri/src/auxiliary_window_contract.rs` 为真相，创建逻辑位于 `src-tauri/src/auxiliary_windows.rs`。
 - 不要把 revisioned history delta 改回全窗口全量广播，也不要绕过 `src-tauri/src/image_cache.rs` 直接反复读取同一图片。
 - 改 preview 尺寸时，同步检查 `src/constants.ts`、`src/utils/preview.ts`、`src-tauri/src/window.rs` 和 Rust 单元测试。
 - 改分组实测高度时同步检查 `src/utils/previewHistory.ts`、`HistoryGroupPreviewWindow.tsx`、`useHistoryPreviewController.ts` 和 `resize_history_preview_window`，后者必须保留 X。
@@ -506,4 +537,5 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 - macOS 剪贴板监听仍是轮询，但只轮询 `NSPasteboard.changeCount`，变化后才读取完整内容。
 - macOS 未 notarize，GitHub 下载后可能需要手动解除 quarantine。
 - Windows 未签名，可能触发 SmartScreen。
+- Linux x86_64 为预览实现，X11/XWayland/具体 Wayland compositor 的原生验收仍待完成；纯 Wayland 不支持来源应用排除。
 - 当前没有云同步，历史只保存在本机。

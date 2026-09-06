@@ -1,20 +1,44 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
-
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+context: |
+  mclip is a local-first, tray-first clipboard utility for macOS and Windows,
+  with Linux x86_64 preview support pending native session verification.
+  Read AGENTS.md, PRODUCT.md, openspec/project.md, and openspec/README.md for
+  implementation constraints, current behavior, and evidence boundaries.
+  Stack: React 19, TypeScript (no any), Vite, Tailwind CSS 4, Tauri 2, Rust;
+  Astro 6 website; Node >=24 <25 and pnpm 10.33.0 with one root workspace lock.
+  Root package.json owns the product version; a version number is not proof
+  that current source features have shipped. Check manifests and release evidence.
+  Rust owns native integration, persistence, computation, and privacy-sensitive
+  logic; React owns rendering/interaction through hooks and typed IPC services.
+  IPC uses symmetric Rust/TS contracts with camelCase serialization.
+  Seven window labels: main, preview, preview-detail, image-viewer, about,
+  quick-action, preferences. Only main is eager. Auxiliary descriptors and ready
+  generations live in auxiliary_window_contract.rs; windowRoutes.ts loads UI.
+  Keep previews independent and non-focusable, main fixed at 320px, native
+  pointer hit testing, request-revision guards, targeted history deltas, and
+  bounded single-flight image caching. Preferences saves immediately.
+  Preserve pins, original copy semantics, bounded local sensitive masking,
+  and explicit confirmation for history replacement/clear. No clipboard uploads.
+  Desktop and website copy covers Chinese, English, and Japanese; CLI remains
+  English-first. Linux capabilities and native evidence are session-specific.
+  Gates: pnpm run check; node --test tests/*.test.mjs; site:test/site:build for
+  public docs; git diff --check; openspec validate --all --strict --no-interactive.
+  On macOS, Windows source checking uses cargo xwin with LLVM and Microsoft SDK/UCRT.
+  Compilation, mocked browser tests, native smoke, spec sync, archive, and release
+  are separate evidence. Read active task lists before claiming completion.
+rules:
+  proposal:
+    - State the user problem, scope, impact, non-goals, and relevant existing changes.
+    - Distinguish implemented behavior, planned behavior, and platform evidence gaps.
+  design:
+    - Identify Rust/TS contracts, window lifecycle effects, data migration, and privacy boundaries when relevant.
+    - Prefer existing modules and maintained libraries; preserve immediate saving and preview invariants.
+    - Explain automated and native verification separately, including unsupported or degraded platform behavior.
+  specs:
+    - Write observable requirements with concrete scenarios; preserve existing behavior outside the scope.
+    - State platform and failure behavior without inventing guarantees from source or CI alone.
+  tasks:
+    - Use checkable tasks with current pnpm commands and include relevant tests and documentation.
+    - Separate implementation, automated verification, native evidence, and release steps; never tick a native task from a build result.
+    - Release tasks must preserve prerequisite gates and explicit owner authorization for tag pushes, publication, or asset replacement.
