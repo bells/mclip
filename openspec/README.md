@@ -1,6 +1,6 @@
 # OpenSpec 项目索引 / Project Index
 
-核对日期 / Reviewed: 2026-09-06。当前源码版本为 `0.1.1`，多个面向 `0.2.0` 的功能已经进入实现。本文提供规格与验收入口，不证明某个 Release 已发布，也不替代各 change 的任务和验证记录。
+核对日期 / Reviewed: 2026-09-07。当前源码版本为 `0.1.1`，多个面向 `0.2.0` 的功能已经进入实现。本文提供规格与验收入口，不证明某个 Release 已发布，也不替代各 change 的任务和验证记录。
 
 The source version is still `0.1.1`, with subsequent features already implemented. This index separates specification, implementation, and delivery evidence; it does not certify a published release.
 
@@ -79,3 +79,5 @@ XWIN_ARCH=x86_64 cargo xwin check --locked --manifest-path src-tauri/Cargo.toml 
 Linux 安装包与会话协议见 [Linux support](../docs/linux-support.md)。发布前还需实际验证迁移、安装包、各平台运行和同一 Draft 的资产、checksum 与版本。当前 Release workflow 会校验各 runner 本地产生的 CLI，不等于已经实现或执行完整的同一 Draft 下载矩阵。
 
 Release readiness additionally requires migration, packaged native behavior, and same-Draft asset/checksum/version verification. Preserve explicit release-owner authorization for tag pushes, Draft publication, and remote asset replacement.
+
+本轮界面调整见 [refine-v0-2-0-interface](changes/refine-v0-2-0-interface/verification.md)：托盘偏好设置入口、外观归类、转换布局与主题状态。实施和验证记录独立于原生验收；旧 delta 的归类冲突按该 change 的 design 协调表在后续显式 sync 时处理。

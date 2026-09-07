@@ -154,9 +154,9 @@ export const ui = {
     "text-[12px] font-semibold tabular-nums text-[var(--mclip-ink)]",
   historyDetailPreview:
     "flex h-full min-h-0 w-full flex-col",
-  historyDetailBody: "grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto]",
+  historyDetailBody: "flex min-h-0 flex-1 flex-col",
   historyDetailContentRegion:
-    "mclip-scrollbar min-h-0 overflow-y-auto border-b border-[var(--mclip-line)] p-3",
+    "mclip-scrollbar min-h-0 flex-1 overflow-y-auto border-b border-[var(--mclip-line)] p-3",
   historyDetailContent:
     "whitespace-pre-wrap break-words rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line)] bg-[var(--mclip-control-bg)] p-3 text-[12px] leading-5 text-[var(--mclip-ink)] [overflow-wrap:anywhere]",
   historyDetailAffordance:
@@ -193,10 +193,12 @@ export const ui = {
   quickActionSection:
     "mt-2 grid gap-1.5 border-t border-[var(--mclip-line)] pt-2",
   quickActionSectionLabel:
-    "text-[10px] font-bold uppercase text-[var(--mclip-kicker)]",
-  quickActionGrid: "flex flex-wrap gap-1.5",
+    "text-[11px] font-semibold text-[var(--mclip-ink-dim)]",
+  quickActionGrid: "grid gap-[6px]",
+  quickActionRow: "grid grid-cols-[minmax(78px,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-[6px]",
+  quickActionGroupLabel: "text-[11px] leading-4 text-[var(--mclip-ink-dim)]",
   quickActionChip:
-    `${compactButton} min-h-7 px-2.5 text-[10px]`,
+    `${compactButton} min-h-[24px] px-2 text-[11px]`,
   quickActionHint:
     "mt-2 border-t border-[var(--mclip-line)] pt-2 text-[10px] font-medium leading-4 text-[var(--mclip-ink-dim)]",
   quickActionError:
@@ -217,7 +219,7 @@ export const ui = {
   imageViewerWindowFrame: "rounded-none [clip-path:none]",
   imageViewerDetail:
     "!rounded-none !border-0 !shadow-none [clip-path:none]",
-  quickActionWindowFrame: "rounded-[var(--mclip-radius-lg)]",
+  quickActionWindowFrame: "flex flex-col rounded-[var(--mclip-radius-lg)] [background:var(--mclip-surface-bg)]",
   quickActionWindowBody:
     "flex min-h-0 flex-1 flex-col [background:var(--mclip-surface-bg)] text-[var(--mclip-ink)]",
   quickActionStatusBar:
@@ -291,7 +293,7 @@ export const ui = {
       `${focusRing} relative h-[22px] w-[38px] rounded-full border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45`,
       isOn
         ? "border-[var(--mclip-accent-cool)] bg-[var(--mclip-accent-cool)]"
-        : "border-[var(--mclip-line-strong)] bg-[var(--mclip-line)] hover:bg-[var(--mclip-line-strong)]",
+        : "border-[var(--mclip-line-strong)] bg-[var(--mclip-line)]",
       isOn ? "[&>span]:translate-x-[18px]" : "",
     ].join(" "),
   preferenceSwitchThumb:
@@ -351,7 +353,7 @@ export const ui = {
     `${fieldSurface} grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-3 py-2`,
   settingsRow,
   settingsSwitchGroup: "grid gap-2",
-  settingsSwitchActions: "flex flex-wrap items-center gap-2 pl-8",
+  settingsSwitchActions: "flex flex-wrap items-center gap-2 px-4 py-2",
   settingsSwitchRow:
     "grid w-full grid-cols-[auto_minmax(0,1fr)] items-start gap-3 px-3 py-1.5 text-left",
   settingsSwitchRowDisabled: "opacity-65",
@@ -370,7 +372,7 @@ export const ui = {
   settingsRowActions: "flex shrink-0 flex-wrap items-center justify-end gap-2",
   settingsLabel: "text-[12px] font-semibold text-[var(--mclip-ink)]",
   settingsDescription: "text-[11px] leading-4 text-[var(--mclip-ink-dim)]",
-  settingsNote: "text-[11px] leading-4 text-[var(--mclip-meta)]",
+  settingsNote: "text-[11px] leading-4 text-[var(--mclip-ink-dim)]",
   settingsNoteOk: "text-[var(--mclip-accent-cool)]",
   settingsNoteWarning: "text-[var(--mclip-meta)]",
   settingsError:
@@ -407,8 +409,10 @@ export const ui = {
   cliStatusRow: "grid grid-cols-[1fr_auto] items-center gap-3",
   cliStatusCopy: "grid min-w-0 gap-1",
   cliStatusBadge:
-    "w-fit rounded-full border border-[var(--mclip-line)] px-2 py-0.5 text-[10px] font-semibold text-[var(--mclip-danger)]",
+    "w-fit rounded-full border border-[var(--mclip-line)] px-2 py-0.5 text-[11px] font-semibold",
   cliStatusBadgeInstalled: "text-[var(--mclip-accent-cool)]",
+  cliStatusBadgeAttention: "text-[var(--mclip-meta)]",
+  cliStatusBadgeNeutral: "text-[var(--mclip-ink-dim)]",
   cliCommandRow: "grid grid-cols-[1fr_auto] items-center gap-2",
   cliCommand:
     "mclip-scrollbar overflow-x-auto whitespace-nowrap rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-2 py-1.5 text-[11px] text-[var(--mclip-ink)]",
@@ -417,7 +421,7 @@ export const ui = {
   cliCopyButton: compactButton,
   historySensitiveText: "flex min-w-0 items-center gap-1.5",
   historySensitiveBadge:
-    "shrink-0 rounded-[4px] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-1 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.08em] text-[var(--mclip-ink-faint)]",
+    "shrink-0 rounded-[4px] border border-[var(--mclip-line-strong)] bg-[var(--mclip-surface)] px-1 py-0.5 font-mono text-[10px] font-semibold text-[var(--mclip-ink-dim)]",
   historySensitiveAction:
     `${focusRing} h-6 rounded-[var(--mclip-radius-sm)] border border-[var(--mclip-line-strong)] bg-[var(--mclip-control-bg)] px-2 text-[10px] font-bold text-[var(--mclip-ink-soft)] hover:bg-[var(--mclip-control-bg-hover)]`,
   historySensitiveError:

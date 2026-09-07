@@ -1,4 +1,4 @@
-import type { HistoryListItem } from "../types";
+import type { HistoryListItem, TextQuickActionSettings } from "../types";
 
 const GROUP_PREVIEW_BASE_HEIGHT = 48;
 const GROUP_PREVIEW_TEXT_ROW_HEIGHT = 28;
@@ -51,7 +51,10 @@ export function shouldApplyMeasuredPreviewHeight(
   );
 }
 
-export function getItemPreviewHeight(item: HistoryListItem) {
+export function getItemPreviewHeight(
+  item: HistoryListItem,
+  actions: TextQuickActionSettings = { json: true, base64: true, urlComponent: true },
+) {
   const bodyHeight = (() => {
     if (item.kind === "image") {
       return ITEM_PREVIEW_BODY_MAX_HEIGHT;
@@ -64,14 +67,28 @@ export function getItemPreviewHeight(item: HistoryListItem) {
       );
     }
 
-    const lineCount = Math.ceil(item.text.length / ITEM_PREVIEW_TEXT_CHARS_PER_LINE);
+    const lineCount = item.text.split("\n").reduce((total, line) =>
+      total + Math.max(1, Math.ceil(line.length / ITEM_PREVIEW_TEXT_CHARS_PER_LINE)), 0);
     return Math.min(
       ITEM_PREVIEW_BODY_MAX_HEIGHT,
       Math.max(ITEM_PREVIEW_BODY_MIN_HEIGHT, lineCount * ITEM_PREVIEW_TEXT_LINE_HEIGHT),
     );
   })();
 
-  return ITEM_PREVIEW_BASE_HEIGHT + bodyHeight + ITEM_PREVIEW_META_HEIGHT;
+  const actionRows = item.kind === "text" ? Object.values(actions).filter(Boolean).length : 0;
+  const actionsHeight = actionRows ? 30 + actionRows * 34 : 0;
+  return ITEM_PREVIEW_BASE_HEIGHT + bodyHeight + ITEM_PREVIEW_META_HEIGHT + actionsHeight;
+}
+
+export function getItemPreviewNaturalHeight(
+  headerHeight: number,
+  contentHeight: number,
+  footerHeight: number,
+  chromeHeight: number,
+) {
+  return normalizeMeasuredPreviewHeight(
+    headerHeight + Math.min(contentHeight, 360) + footerHeight + chromeHeight,
+  );
 }
 
 export function getItemPreviewAnchorTop(rowTop: number) {

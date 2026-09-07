@@ -57,7 +57,7 @@ macOS 上，系统支持时可以按住 `Command` 拖动菜单栏里的 mclip �
 
 自动粘贴会向系统发送 `Command+V`，macOS 会把它归到“辅助功能”权限。通过 GitHub Release 安装到“应用程序”的 `mclip.app`，和 `pnpm run tauri:dev` 启动的开发版是两个不同的授权对象；开发版可用不代表安装版已经被授权。
 
-如果自动粘贴没有反应，请打开 mclip 的“偏好设置 > 通用”，点击“打开辅助功能设置”，然后在“系统设置 > 隐私与安全性 > 辅助功能”中允许 `mclip.app`。
+如果自动粘贴没有反应，请打开 mclip 的“偏好设置 > 行为”，点击“打开辅助功能设置”，然后在“系统设置 > 隐私与安全性 > 辅助功能”中允许 `mclip.app`。
 
 ### AI Agent 与 CLI
 
@@ -266,7 +266,7 @@ On macOS, when the system allows it, hold `Command` and drag the mclip menu bar 
 
 Auto Paste sends `Command+V` through the system, so macOS protects it with Accessibility permission. The `mclip.app` installed from a GitHub Release and the dev app launched by `pnpm run tauri:dev` are authorized separately; a working dev build does not mean the installed app is already trusted.
 
-If Auto Paste does not react, open `Preferences > General` in mclip, click `Open Accessibility`, then allow `mclip.app` in `System Settings > Privacy & Security > Accessibility`.
+If Auto Paste does not react, open `Preferences > Behavior` in mclip, click `Open Accessibility`, then allow `mclip.app` in `System Settings > Privacy & Security > Accessibility`.
 
 ### AI Agent And CLI
 

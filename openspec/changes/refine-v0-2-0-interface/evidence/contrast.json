@@ -1,0 +1,169 @@
+{
+  "method": "CSS token alpha composition over white/black; states use actual semantic roles. Decorative separators and disabled controls are excluded from WCAG thresholds. Native wallpaper sampling remains pending.",
+  "result": [
+    {
+      "theme": "dark",
+      "minima": [
+        {
+          "role": "ink",
+          "ratio": 8.56,
+          "minimum": 4.5,
+          "context": "surface-raised/selection/255",
+          "pass": true
+        },
+        {
+          "role": "ink-soft",
+          "ratio": 6.54,
+          "minimum": 4.5,
+          "context": "surface-raised/selection/255",
+          "pass": true
+        },
+        {
+          "role": "ink-dim",
+          "ratio": 4.86,
+          "minimum": 4.5,
+          "context": "surface-raised/selection/255",
+          "pass": true
+        },
+        {
+          "role": "focus",
+          "ratio": 4.94,
+          "minimum": 3,
+          "context": "surface-raised/selection/255",
+          "pass": true
+        },
+        {
+          "role": "line-strong",
+          "ratio": 3.08,
+          "minimum": 3,
+          "context": "surface-raised/selection/255",
+          "pass": true
+        },
+        {
+          "role": "accent-cool",
+          "ratio": 5.81,
+          "minimum": 4.5,
+          "context": "surface-raised/control-bg-hover/255",
+          "pass": true
+        },
+        {
+          "role": "meta",
+          "ratio": 6.24,
+          "minimum": 4.5,
+          "context": "surface-raised/control-bg-hover/255",
+          "pass": true
+        },
+        {
+          "role": "danger",
+          "ratio": 4.92,
+          "minimum": 4.5,
+          "context": "surface-raised/control-bg-hover/255",
+          "pass": true
+        },
+        {
+          "role": "error text",
+          "ratio": 5.42,
+          "minimum": 4.5,
+          "context": "surface-raised/error/255",
+          "pass": true
+        },
+        {
+          "role": "on-control-active",
+          "ratio": 10.44,
+          "minimum": 4.5,
+          "context": "control-active",
+          "pass": true
+        },
+        {
+          "role": "on-danger-action",
+          "ratio": 8.71,
+          "minimum": 4.5,
+          "context": "danger",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "minima": [
+        {
+          "role": "ink",
+          "ratio": 12.47,
+          "minimum": 4.5,
+          "context": "surface-raised/control-bg-hover/0",
+          "pass": true
+        },
+        {
+          "role": "ink-soft",
+          "ratio": 9.21,
+          "minimum": 4.5,
+          "context": "surface-raised/control-bg-hover/0",
+          "pass": true
+        },
+        {
+          "role": "ink-dim",
+          "ratio": 5.5,
+          "minimum": 4.5,
+          "context": "surface-raised/control-bg-hover/0",
+          "pass": true
+        },
+        {
+          "role": "focus",
+          "ratio": 4.41,
+          "minimum": 3,
+          "context": "surface-raised/control-bg-hover/0",
+          "pass": true
+        },
+        {
+          "role": "line-strong",
+          "ratio": 3.85,
+          "minimum": 3,
+          "context": "surface-raised/control-bg-hover/0",
+          "pass": true
+        },
+        {
+          "role": "accent-cool",
+          "ratio": 4.93,
+          "minimum": 4.5,
+          "context": "surface-raised/control-bg-hover/0",
+          "pass": true
+        },
+        {
+          "role": "meta",
+          "ratio": 6.65,
+          "minimum": 4.5,
+          "context": "surface-raised/control-bg-hover/0",
+          "pass": true
+        },
+        {
+          "role": "danger",
+          "ratio": 4.81,
+          "minimum": 4.5,
+          "context": "surface-raised/control-bg-hover/0",
+          "pass": true
+        },
+        {
+          "role": "error text",
+          "ratio": 5.08,
+          "minimum": 4.5,
+          "context": "surface-raised/error/0",
+          "pass": true
+        },
+        {
+          "role": "on-control-active",
+          "ratio": 5.94,
+          "minimum": 4.5,
+          "context": "control-active",
+          "pass": true
+        },
+        {
+          "role": "on-danger-action",
+          "ratio": 6.27,
+          "minimum": 4.5,
+          "context": "danger",
+          "pass": true
+        }
+      ]
+    }
+  ]
+}

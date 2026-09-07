@@ -1,0 +1,254 @@
+[
+  {
+    "window": "preview-detail",
+    "button": "Fixture OS dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "preview-detail",
+    "button": "Fixture OS light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "preview-detail",
+    "button": "Fixture app dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "preview-detail",
+    "button": "Fixture OS light",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "preview-detail",
+    "button": "Fixture app light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "preview-detail",
+    "button": "Fixture OS dark",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "main",
+    "button": "Fixture OS dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "main",
+    "button": "Fixture OS light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "main",
+    "button": "Fixture app dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "main",
+    "button": "Fixture OS light",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "main",
+    "button": "Fixture app light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "main",
+    "button": "Fixture OS dark",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "preferences",
+    "button": "Fixture OS dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "preferences",
+    "button": "Fixture OS light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "preferences",
+    "button": "Fixture app dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "preferences",
+    "button": "Fixture OS light",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "preferences",
+    "button": "Fixture app light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "preferences",
+    "button": "Fixture OS dark",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "quick-action",
+    "button": "Fixture OS dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "quick-action",
+    "button": "Fixture OS light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "quick-action",
+    "button": "Fixture app dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "quick-action",
+    "button": "Fixture OS light",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "quick-action",
+    "button": "Fixture app light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "quick-action",
+    "button": "Fixture OS dark",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "about",
+    "button": "Fixture OS dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "about",
+    "button": "Fixture OS light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "about",
+    "button": "Fixture app dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "about",
+    "button": "Fixture OS light",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "about",
+    "button": "Fixture app light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "about",
+    "button": "Fixture OS dark",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "image-viewer",
+    "button": "Fixture OS dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "image-viewer",
+    "button": "Fixture OS light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "image-viewer",
+    "button": "Fixture app dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "image-viewer",
+    "button": "Fixture OS light",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "image-viewer",
+    "button": "Fixture app light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "image-viewer",
+    "button": "Fixture OS dark",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "preview",
+    "button": "Fixture OS dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "preview",
+    "button": "Fixture OS light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "preview",
+    "button": "Fixture app dark",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "preview",
+    "button": "Fixture OS light",
+    "expected": "dark",
+    "actual": "dark"
+  },
+  {
+    "window": "preview",
+    "button": "Fixture app light",
+    "expected": "light",
+    "actual": "light"
+  },
+  {
+    "window": "preview",
+    "button": "Fixture OS dark",
+    "expected": "light",
+    "actual": "light"
+  }
+]

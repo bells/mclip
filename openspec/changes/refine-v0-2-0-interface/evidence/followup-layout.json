@@ -1,0 +1,38 @@
+{
+  "shortDark": {
+    "height": 268,
+    "gap": 10,
+    "footerBottom": 267
+  },
+  "jsonLight": {
+    "height": 343,
+    "gap": 10,
+    "footerBottom": 342
+  },
+  "switches": [
+    {
+      "color": "rgba(15, 31, 26, 0.16)",
+      "hover": true,
+      "state": "false",
+      "theme": "light"
+    },
+    {
+      "color": "rgba(15, 31, 26, 0.16)",
+      "hover": false,
+      "state": "false",
+      "theme": "light"
+    },
+    {
+      "color": "rgba(226, 232, 240, 0.12)",
+      "hover": true,
+      "state": "false",
+      "theme": "dark"
+    },
+    {
+      "color": "rgba(226, 232, 240, 0.12)",
+      "hover": false,
+      "state": "false",
+      "theme": "dark"
+    }
+  ]
+}

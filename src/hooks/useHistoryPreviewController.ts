@@ -21,6 +21,7 @@ import {
   listenToHistoryPreviewSelectionCancelled,
   listenToHistoryPreviewSelectionStarted,
   listenToMainWindowShown,
+  listenToPreferencesOpening,
   updateHistoryPreviewWindow,
 } from "../services/ipc/events";
 import type { AppSettings, HistoryGroupInfo, HistoryListItem } from "../types";
@@ -223,6 +224,16 @@ export function useHistoryPreviewController({
   }, [onMainWindowShown]);
 
   useEffect(() => {
+    let active = true;
+    let unlisten: UnlistenFn | undefined;
+    void listenToPreferencesOpening(() => clearPreviewState()).then((unsubscribe) => {
+      if (active) unlisten = unsubscribe;
+      else unsubscribe();
+    });
+    return () => { active = false; unlisten?.(); };
+  }, []);
+
+  useEffect(() => {
     let unlistenCloseRequested: UnlistenFn | undefined;
     let unlistenPointerEntered: UnlistenFn | undefined;
     let unlistenSelectionStarted: UnlistenFn | undefined;
@@ -367,7 +378,7 @@ export function useHistoryPreviewController({
 
           const placement = await showHistoryPreviewWindow(
             getItemPreviewAnchorTop(previewAnchorTop),
-            getItemPreviewHeight(previewHistoryItem),
+            getItemPreviewHeight(previewHistoryItem, settings.textQuickActions),
             ITEM_PREVIEW_WIDTH,
             ITEM_PREVIEW_WIDTH,
             performanceInteractionId,

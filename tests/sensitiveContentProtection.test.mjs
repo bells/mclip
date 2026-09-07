@@ -159,8 +159,8 @@ test("privacy preferences remain immediate-save and disclose plaintext storage",
   assert.match(preferencesSource, /getSourceAppDetectionStatus/);
   assert.match(preferencesSource, /reclassifySensitiveHistory/);
   assert.doesNotMatch(preferencesSource, /t\.(?:save|cancel)\b/);
-  assert.match(i18nSource, /仍在本机以明文保存历史/);
-  assert.match(i18nSource, /still stores history as local plaintext/);
+  assert.match(i18nSource, /历史以明文保存在本机/);
+  assert.match(i18nSource, /History is stored locally as plaintext/);
   assert.match(settingsSource, /MAX_IGNORED_SOURCE_APP_COUNT/);
 });
 

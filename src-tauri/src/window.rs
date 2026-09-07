@@ -1,7 +1,7 @@
 //! 主窗口与 preview 窗口的尺寸、定位和显示隐藏规则。
 //! 主窗口只承载左侧列表；分组预览拆到独立透明窗口，避免撑大主窗口。
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 #[cfg(target_os = "macos")]
 use std::{thread, time::Duration};
@@ -45,6 +45,7 @@ const IMAGE_VIEWER_DEFAULT_WIDTH: f64 = 720.0;
 const IMAGE_VIEWER_DEFAULT_HEIGHT: f64 = 520.0;
 static IMAGE_VIEWER_CLOSE_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
 const ABOUT_WINDOW_LABEL: &str = "about";
+static PREVIEW_DISMISSAL_GENERATION: AtomicU64 = AtomicU64::new(0);
 const PREFERENCES_WINDOW_LABEL: &str = "preferences";
 const QUICK_ACTION_WINDOW_LABEL: &str = "quick-action";
 
@@ -494,7 +495,11 @@ pub async fn show_history_preview_window(
         interaction_id.clone(),
         PerformanceOutcome::Success,
     );
+    let generation = PREVIEW_DISMISSAL_GENERATION.load(Ordering::SeqCst);
     ensure_auxiliary_window_ready(&app_handle, PREVIEW_WINDOW_LABEL).await?;
+    if generation != PREVIEW_DISMISSAL_GENERATION.load(Ordering::SeqCst) {
+        return Ok(default_preview_window_position());
+    }
     let Some(main_window) = app_handle.get_webview_window("main") else {
         return Ok(default_preview_window_position());
     };
@@ -552,9 +557,6 @@ pub async fn show_history_preview_window(
             y: position.y,
         }))
         .map_err(|error| error.to_string())?;
-    preview_window
-        .emit(HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT, position)
-        .map_err(|error| error.to_string())?;
 
     if !main_window
         .is_visible()
@@ -565,6 +567,9 @@ pub async fn show_history_preview_window(
     }
 
     preview_window.show().map_err(|error| error.to_string())?;
+    preview_window
+        .emit(HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT, position)
+        .map_err(|error| error.to_string())?;
     record_rust_milestone(
         &app_handle.state::<PerformanceRecorder>(),
         PerformanceMilestoneName::PreviewNativeVisible,
@@ -581,10 +586,36 @@ pub fn resize_history_preview_window(
     app_handle: AppHandle,
     preview_height: f64,
 ) -> Result<PreviewWindowPosition, String> {
+    resize_preview_window_height(app_handle, PREVIEW_WINDOW_LABEL, preview_height)
+}
+
+#[tauri::command]
+pub fn resize_history_detail_window(
+    app_handle: AppHandle,
+    window: WebviewWindow,
+    preview_height: f64,
+) -> Result<PreviewWindowPosition, String> {
+    if !matches!(
+        window.label(),
+        PREVIEW_WINDOW_LABEL | PREVIEW_DETAIL_WINDOW_LABEL
+    ) {
+        return Err("unsupported_preview_window".into());
+    }
+    resize_preview_window_height(app_handle, window.label(), preview_height)
+}
+
+fn resize_preview_window_height(
+    app_handle: AppHandle,
+    window_label: &str,
+    preview_height: f64,
+) -> Result<PreviewWindowPosition, String> {
+    if !preview_height.is_finite() {
+        return Err("invalid_preview_height".into());
+    }
     let Some(main_window) = app_handle.get_webview_window("main") else {
         return Ok(default_preview_window_position());
     };
-    let Some(preview_window) = app_handle.get_webview_window(PREVIEW_WINDOW_LABEL) else {
+    let Some(preview_window) = app_handle.get_webview_window(window_label) else {
         return Ok(default_preview_window_position());
     };
 
@@ -665,6 +696,7 @@ pub fn resize_history_preview_window(
 
 #[tauri::command]
 pub fn hide_history_preview_window(app_handle: AppHandle) -> Result<(), String> {
+    PREVIEW_DISMISSAL_GENERATION.fetch_add(1, Ordering::SeqCst);
     if let Some(preview_window) = app_handle.get_webview_window(PREVIEW_WINDOW_LABEL) {
         let _ = preview_window.emit(SENSITIVE_REVEAL_RESET_EVENT, ());
         preview_window.hide().map_err(|error| error.to_string())?;
@@ -701,7 +733,11 @@ pub async fn show_history_preview_detail_window(
         interaction_id.clone(),
         PerformanceOutcome::Success,
     );
+    let generation = PREVIEW_DISMISSAL_GENERATION.load(Ordering::SeqCst);
     ensure_auxiliary_window_ready(&app_handle, PREVIEW_DETAIL_WINDOW_LABEL).await?;
+    if generation != PREVIEW_DISMISSAL_GENERATION.load(Ordering::SeqCst) {
+        return Ok(default_preview_family_position());
+    }
     let Some(main_window) = app_handle.get_webview_window("main") else {
         return Ok(default_preview_family_position());
     };
@@ -795,9 +831,6 @@ pub async fn show_history_preview_detail_window(
             position.detail.y.round() as i32,
         )))
         .map_err(|error| error.to_string())?;
-    preview_detail_window
-        .emit(HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT, position.detail)
-        .map_err(|error| error.to_string())?;
 
     if !main_window
         .is_visible()
@@ -812,6 +845,9 @@ pub async fn show_history_preview_detail_window(
 
     preview_detail_window
         .show()
+        .map_err(|error| error.to_string())?;
+    preview_detail_window
+        .emit(HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT, position.detail)
         .map_err(|error| error.to_string())?;
     record_rust_milestone(
         &app_handle.state::<PerformanceRecorder>(),
@@ -832,6 +868,10 @@ pub async fn show_about_window(app_handle: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn show_preferences_window(app_handle: AppHandle) -> Result<(), String> {
+    app_handle
+        .emit_to("main", "preferences-opening", ())
+        .map_err(|error| error.to_string())?;
+    hide_main_window(&app_handle)?;
     ensure_auxiliary_window_ready(&app_handle, PREFERENCES_WINDOW_LABEL).await?;
     show_centered_dialog_window(&app_handle, PREFERENCES_WINDOW_LABEL)
 }

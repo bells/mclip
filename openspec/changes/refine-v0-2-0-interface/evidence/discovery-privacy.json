@@ -1,0 +1,17 @@
+[
+  {
+    "state": "masked",
+    "dom": "- dialog \"剪贴板历史详情\":\n  - generic: 历史详情\n  - button \"临时显示敏感内容\": 显示\n  - button \"置顶这条历史\":\n  - button \"删除这条历史\":\n  - generic: \"文本 #1\"\n  - generic: ••••••••\n  - paragraph: 显示敏感原文后才能使用文本转换。\n  - term: 应用\n  - definition: 未知应用\n  - term: 首次复制时间\n  - definition: 9月6日 09:00:00\n  - term: 上次复制时间\n  - definition: 9月6日 10:00:00\n  - term: 复制次数\n  - definition: \"3\"",
+    "calls": "0"
+  },
+  {
+    "state": "masked=1&off=1",
+    "dom": "- dialog \"剪贴板历史详情\":\n  - generic: 历史详情\n  - button \"临时显示敏感内容\": 显示\n  - button \"置顶这条历史\":\n  - button \"删除这条历史\":\n  - generic: \"文本 #1\"\n  - generic: ••••••••\n  - term: 应用\n  - definition: 未知应用\n  - term: 首次复制时间\n  - definition: 9月6日 09:00:00\n  - term: 上次复制时间\n  - definition: 9月6日 10:00:00\n  - term: 复制次数\n  - definition: \"3\"",
+    "calls": "0"
+  },
+  {
+    "state": "off=1",
+    "dom": "- dialog \"剪贴板历史详情\":\n  - generic: 历史详情\n  - button \"置顶这条历史\":\n  - button \"删除这条历史\":\n  - generic: \"文本 #1\"\n  - generic: \"{ \\\"message\\\": \\\"Synthetic · 合成文本 · サンプル\\\", \\\"ready\\\": true }\"\n  - term: 应用\n  - definition: 未知应用\n  - term: 首次复制时间\n  - definition: 9月6日 09:00:00\n  - term: 上次复制时间\n  - definition: 9月6日 10:00:00\n  - term: 复制次数\n  - definition: \"3\"",
+    "calls": "0"
+  }
+]

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
 import { useApplyAppTheme } from "../hooks/useApplyAppTheme";
@@ -11,6 +11,7 @@ import {
 import { listenToQuickActionUpdated } from "../services/ipc/events";
 import { hideCurrentWindow } from "../services/ipc/windows";
 import type { QuickActionPayload } from "../types";
+import { createPayloadOperationGuard } from "../utils/payloadOperationGuard";
 import { ui } from "../uiStyles";
 import { DialogStatusBar } from "./DialogStatusBar";
 import { DialogWindowFrame } from "./DialogWindowFrame";
@@ -18,6 +19,8 @@ import { Modal } from "./Modal";
 
 export function QuickActionWindow() {
   const [payload, setPayload] = useState<QuickActionPayload | null>(null);
+  const guard = useRef(createPayloadOperationGuard()).current;
+  const [isOperating, setIsOperating] = useState(false);
   const [isReplacing, setIsReplacing] = useState(false);
   const [isConfirmingReplace, setIsConfirmingReplace] = useState(false);
   const [error, setError] = useState<"copy" | "replace" | null>(null);
@@ -26,25 +29,29 @@ export function QuickActionWindow() {
   const t = translations.quickAction;
 
   const discardAndHide = useCallback(async () => {
+    guard.invalidate();
     setPayload(null);
     setError(null);
     setIsConfirmingReplace(false);
     await hideCurrentWindow();
-  }, []);
+  }, [guard]);
 
   useEffect(() => {
+    let active = true;
     let unlisten: UnlistenFn | undefined;
     void listenToQuickActionUpdated((nextPayload) => {
+      guard.invalidate();
       setPayload(nextPayload);
       setError(null);
       setIsConfirmingReplace(false);
       setIsReplacing(false);
     }).then((unsubscribe) => {
+      if (!active) { unsubscribe(); return; }
       unlisten = unsubscribe;
       reportAuxiliaryListenerReady("quickActionUpdated");
     });
-    return () => unlisten?.();
-  }, []);
+    return () => { active = false; guard.invalidate(); unlisten?.(); };
+  }, [guard]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -66,26 +73,24 @@ export function QuickActionWindow() {
     return null;
   }
 
-  const copyResult = async () => {
+  const performOperation = async (kind: "copy" | "replace") => {
+    const token = guard.begin();
+    if (token === null) return;
+    setIsOperating(true);
+    setIsReplacing(kind === "replace");
     setError(null);
     try {
-      await copyTextToClipboard(payload.output);
-      await discardAndHide();
+      if (kind === "copy") await copyTextToClipboard(payload.output);
+      else await replaceHistoryText(payload.targetId, payload.output);
+      if (guard.isCurrent(token)) await discardAndHide();
     } catch {
-      setError("copy");
-    }
-  };
-
-  const replaceResult = async () => {
-    setError(null);
-    setIsReplacing(true);
-    try {
-      await replaceHistoryText(payload.targetId, payload.output);
-      await discardAndHide();
-    } catch {
-      setError("replace");
-      setIsConfirmingReplace(false);
+      if (guard.isCurrent(token)) {
+        setError(kind);
+        setIsConfirmingReplace(false);
+      }
     } finally {
+      guard.finish();
+      setIsOperating(false);
       setIsReplacing(false);
     }
   };
@@ -118,25 +123,17 @@ export function QuickActionWindow() {
         <div className={ui.quickActionWindowFooter}>
           <button
             className={ui.modalSecondaryButton + " " + ui.modalButton}
-            onClick={() => void discardAndHide()}
-            type="button"
-          >
-            {t.cancel}
-          </button>
-          <button
-            className={ui.modalSecondaryButton + " " + ui.modalButton}
-            onClick={() => void copyResult()}
-            type="button"
-          >
-            {t.copy}
-          </button>
-          <button
-            className={ui.modalPrimaryButton + " " + ui.modalButton}
+            disabled={isOperating}
             onClick={() => setIsConfirmingReplace(true)}
             type="button"
-          >
-            {t.replace}
-          </button>
+          >{t.replace}</button>
+          <button
+            className={ui.modalPrimaryButton + " " + ui.modalButton}
+            disabled={isOperating}
+            aria-busy={isOperating && !isReplacing}
+            onClick={() => void performOperation("copy")}
+            type="button"
+          >{t.copy}</button>
         </div>
       </main>
 
@@ -155,7 +152,7 @@ export function QuickActionWindow() {
               <button
                 className={ui.modalDangerButton + " " + ui.modalButton}
                 disabled={isReplacing}
-                onClick={() => void replaceResult()}
+                onClick={() => void performOperation("replace")}
                 type="button"
               >
                 {isReplacing ? t.replacing : t.confirmReplace}

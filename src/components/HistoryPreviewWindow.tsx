@@ -441,7 +441,7 @@ export function HistoryPreviewWindow() {
 
         const placement = await showHistoryPreviewDetailWindow(
           detailAnchorTop,
-          getItemPreviewHeight(requestedItem),
+          getItemPreviewHeight(requestedItem, requestedPreview.textQuickActions),
           GROUP_PREVIEW_DETAIL_WINDOW_WIDTH,
           performanceInteractionId,
         );

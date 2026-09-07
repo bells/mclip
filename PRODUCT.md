@@ -31,11 +31,12 @@ The desktop shell provides:
 - A startup tier that creates only `main` eagerly, warms the preview family, and creates About, Preferences, the image viewer, and quick actions on demand.
 - Revisioned snapshot/delta history updates and a bounded 32 MiB single-flight image cache, reducing work in hidden windows without changing the local-only data boundary.
 - A local `mclip-cli` Agent Mode plus version-aware, SHA-256-verified, recoverable desktop and public installation.
-- A searchable Preferences Settings Center with General, Appearance, History, Privacy, Text Actions, and Agent CLI destinations. Controls save immediately, serialize pending changes, and show failures with rollback.
+- A searchable Preferences Settings Center with Behavior, Appearance, History, Privacy, Text Actions, and Agent CLI destinations. Language, theme, tray icon, branding and row numbers live in Appearance; History contains save types, retention limits and main/group display counts. Controls save immediately, serialize pending changes, and show failures with rollback.
 - Local sensitive-text classification and fixed display masking, explicit reveal/copy of originals, and capture exclusion by stable source identity. Ignored applications are managed with a native picker and removable list; pure Wayland source exclusion remains unavailable. Masking is not encryption at rest.
 - Bounded JSON, Base64, and URL-component transformations in an independent quick-action window and CLI pipelines. Desktop results stay in memory until explicitly copied or confirmed for replacement; CLI transforms emit their result for pipeline use.
 - Chinese, English, and Japanese desktop and website copy. Follow System resolves Chinese and Japanese locales accordingly, and otherwise falls back to English; CLI commands/help/output remain English-first.
-- Compact footer actions with visible platform-specific shortcut keycaps; clearing history still requires confirmation.
+- Compact footer actions with visible platform-specific shortcut keycaps; clearing history still requires confirmation. The native tray context menu also opens Preferences.
+- Text detail actions use compact JSON / Base64 / URL-component rows; result windows prioritize Copy and confirm Replace. Light/dark/system settings update open windows.
 
 The recorded [v0.1.1 performance protocol](performance/final-v0.1.1-runtime-performance.md) on an Apple M2 macOS release build measured tray-ready median improving from 449.12 ms to 218.51 ms (51.3%) and repeated image-viewer shell median improving from 384.62 ms to 49.37 ms (87.2%). These are historical macOS measurements, not benchmarks of every later commit. Windows artifact/device benchmarks and complete native smoke remain separate evidence requirements.
 

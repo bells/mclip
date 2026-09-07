@@ -292,3 +292,7 @@ export function listenToHistoryPreviewSelectionCancelled(
     handler();
   });
 }
+
+export function listenToPreferencesOpening(handler: () => void) {
+  return listen<void>("preferences-opening", handler);
+}

@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { getTranslations } from "../i18n";
+import { useHistoryDetailHeight } from "../hooks/useHistoryDetailHeight";
 import type {
   AppLanguage,
   AppearanceTheme,
@@ -64,6 +65,7 @@ export function HistoryDetailPanel({
   role = "dialog",
   textQuickActions = { base64: true, json: true, urlComponent: true },
 }: HistoryDetailPanelProps) {
+  const panelRef = useHistoryDetailHeight(presentation === "compact", item);
   const [revealedText, setRevealedText] = useState<{
     item: HistoryListItem;
     text: string;
@@ -129,8 +131,9 @@ export function HistoryDetailPanel({
     .join(" ");
 
   return (
-    <div aria-label={ariaLabel} className={panelClassName} role={role}>
+    <div aria-label={ariaLabel} className={panelClassName} ref={panelRef} role={role}>
       <div
+        data-detail-header
         className={ui.historyPreviewHeader}
         data-dialog-drag-region={draggableHeader ? true : undefined}
       >
@@ -162,54 +165,58 @@ export function HistoryDetailPanel({
       </div>
 
       <div className={ui.historyDetailBody}>
-        <div className={ui.historyDetailContentRegion}>
-          <HistoryPreviewDetailContent
-            item={displayItem}
-            performanceInteractionId={performanceInteractionId}
-            presentation={presentation}
-            translations={translations}
-          />
-          {displayItem.kind === "text" ? (
-            <TextQuickActions
-              appearanceTheme={appearanceTheme}
-              isContentAvailable={!isSensitiveTextMasked(displayItem)}
+        <div className={ui.historyDetailContentRegion} data-detail-content-region>
+          <div data-detail-natural-content className={presentation === "viewer" ? "h-full" : "flow-root"}>
+            <HistoryPreviewDetailContent
               item={displayItem}
-              language={language}
-              settings={textQuickActions}
+              performanceInteractionId={performanceInteractionId}
+              presentation={presentation}
+              translations={translations}
             />
-          ) : null}
+            {displayItem.kind === "text" ? (
+              <TextQuickActions
+                appearanceTheme={appearanceTheme}
+                isContentAvailable={!isSensitiveTextMasked(displayItem)}
+                item={displayItem}
+                language={language}
+                settings={textQuickActions}
+              />
+            ) : null}
+          </div>
         </div>
 
-        {revealError ? (
-          <div className={ui.historySensitiveError} role="status">
-            {revealErrorMessage}
-          </div>
-        ) : null}
+        <div className="shrink-0" data-detail-footer>
+          {revealError ? (
+            <div className={ui.historySensitiveError} role="status">
+              {revealErrorMessage}
+            </div>
+          ) : null}
 
-        <dl className={ui.historyDetailMeta}>
-          <div className={ui.historyDetailMetaItem}>
-            <dt className={ui.historyDetailMetaLabel}>{translations.sourceAppLabel}</dt>
-            <dd className={ui.historyDetailMetaValue}>
-              {item.sourceApp ?? translations.sourceAppFallback}
-            </dd>
-          </div>
-          <div className={ui.historyDetailMetaItem}>
-            <dt className={ui.historyDetailMetaLabel}>{translations.firstCopiedTimeLabel}</dt>
-            <dd className={ui.historyDetailMetaValue}>
-              {formatHistoryTimestamp(item.firstCopiedAt, language)}
-            </dd>
-          </div>
-          <div className={ui.historyDetailMetaItem}>
-            <dt className={ui.historyDetailMetaLabel}>{translations.lastCopiedTimeLabel}</dt>
-            <dd className={ui.historyDetailMetaValue}>
-              {formatHistoryTimestamp(item.lastCopiedAt, language)}
-            </dd>
-          </div>
-          <div className={ui.historyDetailMetaItem}>
-            <dt className={ui.historyDetailMetaLabel}>{translations.copyCountLabel}</dt>
-            <dd className={ui.historyDetailMetaValue}>{item.copyCount}</dd>
-          </div>
-        </dl>
+          <dl className={ui.historyDetailMeta}>
+            <div className={ui.historyDetailMetaItem}>
+              <dt className={ui.historyDetailMetaLabel}>{translations.sourceAppLabel}</dt>
+              <dd className={ui.historyDetailMetaValue}>
+                {item.sourceApp ?? translations.sourceAppFallback}
+              </dd>
+            </div>
+            <div className={ui.historyDetailMetaItem}>
+              <dt className={ui.historyDetailMetaLabel}>{translations.firstCopiedTimeLabel}</dt>
+              <dd className={ui.historyDetailMetaValue}>
+                {formatHistoryTimestamp(item.firstCopiedAt, language)}
+              </dd>
+            </div>
+            <div className={ui.historyDetailMetaItem}>
+              <dt className={ui.historyDetailMetaLabel}>{translations.lastCopiedTimeLabel}</dt>
+              <dd className={ui.historyDetailMetaValue}>
+                {formatHistoryTimestamp(item.lastCopiedAt, language)}
+              </dd>
+            </div>
+            <div className={ui.historyDetailMetaItem}>
+              <dt className={ui.historyDetailMetaLabel}>{translations.copyCountLabel}</dt>
+              <dd className={ui.historyDetailMetaValue}>{item.copyCount}</dd>
+            </div>
+          </dl>
+        </div>
       </div>
     </div>
   );

@@ -42,7 +42,7 @@ test("independent history detail keeps metadata visible near the screen bottom",
   ]);
 
   assert.match(stylesSource, /historyPreviewDetailWindow:[\s\S]*h-screen/);
-  assert.match(stylesSource, /historyDetailBody:[\s\S]*grid-rows-\[minmax\(0,1fr\)_auto\]/);
+  assert.match(stylesSource, /historyDetailBody:[\s\S]*flex min-h-0 flex-1 flex-col/);
   assert.match(stylesSource, /historyDetailContentRegion:[\s\S]*overflow-y-auto/);
   assert.match(stylesSource, /historyDetailMeta:[\s\S]*shrink-0/);
   assert.match(detailWindowSource, /<HistoryDetailPanel/);

@@ -1093,31 +1093,6 @@ export function PreferencesWindow() {
                 description={t.generalPageDescription}
                 title={t.generalTab}
               >
-                <SettingsGroup label={t.interfaceGroupLabel}>
-                  <SettingsSelectField
-                    controlId={languageSelectId}
-                    description={t.languageDescription}
-                    feedback={preferenceFeedback["general.language"]}
-                    feedbackLabels={feedbackLabels}
-                    label={t.languageLabel}
-                    settingId="general.language"
-                  >
-                    <select
-                      aria-label={t.languageLabel}
-                      className={ui.settingsSelect}
-                      id={languageSelectId}
-                      onChange={(event) => updateLanguage(event.target.value as AppLanguage)}
-                      value={settingsDraft.language}
-                    >
-                      <option value="system">{t.languageSystem}</option>
-                      <option value="zhCn">{t.languageChinese}</option>
-                      <option value="en">{t.languageEnglish}</option>
-                      <option value="ja">{t.languageJapanese}</option>
-                    </select>
-                  </SettingsSelectField>
-
-                </SettingsGroup>
-
                 <SettingsGroup label={t.behaviorGroupLabel}>
                   <SettingsSwitchItem
                     checked={settingsDraft.launchAtLogin}
@@ -1142,7 +1117,7 @@ export function PreferencesWindow() {
                     onClick={() => void toggleAutoPaste()}
                     settingId="general.auto-paste"
                   >
-                    {isMacOs ? (
+                    {isMacOs && !autoPastePermissionStatus?.isGranted ? (
                       <span className={ui.settingsNote}>
                         {t.autoPastePermissionNote}
                       </span>
@@ -1283,6 +1258,28 @@ export function PreferencesWindow() {
               >
                 <SettingsGroup label={t.interfaceGroupLabel}>
                   <SettingsSelectField
+                    controlId={languageSelectId}
+                    description={t.languageDescription}
+                    feedback={preferenceFeedback["general.language"]}
+                    feedbackLabels={feedbackLabels}
+                    label={t.languageLabel}
+                    settingId="general.language"
+                  >
+                    <select
+                      aria-label={t.languageLabel}
+                      className={ui.settingsSelect}
+                      id={languageSelectId}
+                      onChange={(event) => updateLanguage(event.target.value as AppLanguage)}
+                      value={settingsDraft.language}
+                    >
+                      <option value="system">{t.languageSystem}</option>
+                      <option value="zhCn">{t.languageChinese}</option>
+                      <option value="en">{t.languageEnglish}</option>
+                      <option value="ja">{t.languageJapanese}</option>
+                    </select>
+                  </SettingsSelectField>
+
+                  <SettingsSelectField
                     controlId={appearanceThemeSelectId}
                     description={t.appearanceThemeDescription}
                     feedback={preferenceFeedback["appearance.theme"]}
@@ -1305,6 +1302,9 @@ export function PreferencesWindow() {
                     </select>
                   </SettingsSelectField>
 
+                </SettingsGroup>
+
+                <SettingsGroup label={t.menuBarIconStyleLabel}>
                   <SettingsSelectField
                     controlId={menuBarIconStyleSelectId}
                     description={t.menuBarIconStyleDescription}
@@ -1323,7 +1323,7 @@ export function PreferencesWindow() {
                   </SettingsSelectField>
                 </SettingsGroup>
 
-                <SettingsGroup label={t.mainWindowGroupLabel}>
+                <SettingsGroup label={t.displayGroupLabel}>
                   <SettingsSwitchItem
                     checked={settingsDraft.showMainWindowBrand}
                     description={t.showMainWindowBrandDescription}
@@ -1419,8 +1419,9 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
+                <SettingsGroup label={t.displayGroupLabel}>
                 <div
-                  className={ui.settingsRow}
+                  className={ui.preferenceRow}
                   id={preferenceFocusTargetId("history.main-count")}
                 >
                   <div className={ui.settingsCopy}>
@@ -1463,7 +1464,7 @@ export function PreferencesWindow() {
                 </div>
 
                 <div
-                  className={ui.settingsRow}
+                  className={ui.preferenceRow}
                   id={preferenceFocusTargetId("history.group-count")}
                 >
                   <div className={ui.settingsCopy}>
@@ -1507,6 +1508,7 @@ export function PreferencesWindow() {
                     />
                   </div>
                 </div>
+                </SettingsGroup>
 
               </PreferencePage>
               ),
@@ -1662,7 +1664,9 @@ export function PreferencesWindow() {
                           cliStatus?.state === "current" ||
                           cliStatus?.state === "newer"
                             ? ui.cliStatusBadgeInstalled
-                            : ""
+                            : cliStatus?.state === "outdated" || cliStatus?.state === "unknown"
+                              ? ui.cliStatusBadgeAttention
+                              : ui.cliStatusBadgeNeutral
                         }`}
                       >
                         {cliStateLabel}

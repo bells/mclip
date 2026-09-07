@@ -193,6 +193,10 @@ export function showHistoryPreviewWindow(
   });
 }
 
+export function resizeHistoryDetailWindow(previewHeight: number) {
+  return invoke<PreviewWindowPosition>("resize_history_detail_window", { previewHeight });
+}
+
 export function resizeHistoryPreviewWindow(previewHeight: number) {
   return invoke<PreviewWindowPosition>("resize_history_preview_window", {
     previewHeight,

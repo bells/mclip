@@ -17,7 +17,7 @@
 
   --mclip-ink: #f8fafc;
   --mclip-ink-soft: #d5dde8;
-  --mclip-ink-dim: #9aa7b6;
+  --mclip-ink-dim: #b5c0cd;
   --mclip-placeholder: #a9b4c2;
   --mclip-base: rgba(5, 6, 7, 0.98);
   --mclip-base-deep: rgba(0, 0, 0, 0.97);
@@ -26,11 +26,11 @@
   --mclip-surface-raised: rgba(27, 31, 36, 0.94);
   --mclip-surface-translucent: rgba(15, 18, 21, 0.98);
   --mclip-line: rgba(226, 232, 240, 0.12);
-  --mclip-line-strong: rgba(226, 232, 240, 0.24);
+  --mclip-line-strong: #8b99a8;
   --mclip-accent: #e5a84b;
   --mclip-accent-cool: #73d0c8;
   --mclip-control-active: #73d0c8;
-  --mclip-danger: #ff756d;
+  --mclip-danger: #ff938c;
   --mclip-index: #efc06f;
   --mclip-meta: #efc06f;
   --mclip-kicker: #efc06f;
@@ -86,7 +86,7 @@
   --mclip-line: rgba(15, 31, 26, 0.16);
   --mclip-line-strong: #5d7068;
   --mclip-accent: #7a4b06;
-  --mclip-accent-cool: #0b6f67;
+  --mclip-accent-cool: #09675f;
   --mclip-control-active: #0b6f67;
   --mclip-danger: #b42318;
   --mclip-index: #7a4b06;

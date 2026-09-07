@@ -27,7 +27,7 @@ use std::time::{Duration, Instant};
 
 use tauri::{
     image::Image,
-    menu::{Menu, MenuItem},
+    menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     App, AppHandle, Emitter, Manager, WindowEvent,
 };
@@ -76,9 +76,9 @@ use crate::window::{
     configure_main_window, get_history_preview_pointer_position,
     hide_history_preview_detail_window, hide_history_preview_window, hide_main_window,
     is_image_viewer_visible, is_pointer_over_history_preview_window,
-    is_pointer_over_preview_window, resize_history_preview_window, show_about_window,
-    show_history_preview_detail_window, show_history_preview_window, show_image_viewer,
-    show_main_window, show_preferences_window, show_quick_action_window,
+    is_pointer_over_preview_window, resize_history_detail_window, resize_history_preview_window,
+    show_about_window, show_history_preview_detail_window, show_history_preview_window,
+    show_image_viewer, show_main_window, show_preferences_window, show_quick_action_window,
     toggle_image_viewer_maximize, toggle_main_window, TrayWindowAnchor, WindowPlacement,
     IMAGE_VIEWER_WINDOW_LABEL,
 };
@@ -91,6 +91,28 @@ const LIGHT_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/menu-bar-icon-
 const M_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/menu-bar-icon-m.png");
 #[cfg(any(target_os = "macos", test))]
 const TRAY_POSITION_AUTOSAVE_NAME: &str = "com.watson.mclip.tray.main";
+
+struct TrayMenuItems {
+    preferences: MenuItem<tauri::Wry>,
+    quit: MenuItem<tauri::Wry>,
+}
+
+fn tray_menu_labels(language: &AppLanguage) -> (&'static str, &'static str) {
+    match resolve_app_language(language) {
+        ResolvedAppLanguage::ZhCn => ("偏好设置…", "退出 mclip"),
+        ResolvedAppLanguage::En => ("Preferences…", "Quit mclip"),
+        ResolvedAppLanguage::Ja => ("環境設定…", "mclip を終了"),
+    }
+}
+
+fn configure_tray_menu(app: &AppHandle, language: &AppLanguage) {
+    if let Some(items) = app.try_state::<TrayMenuItems>() {
+        let (preferences, quit) = tray_menu_labels(language);
+        if items.preferences.set_text(preferences).is_err() || items.quit.set_text(quit).is_err() {
+            log_error(app, "tray", "menu_labels_update_failed");
+        }
+    }
+}
 
 fn tray_tooltip(language: &AppLanguage) -> &'static str {
     match resolve_app_language(language) {
@@ -118,6 +140,7 @@ async fn save_settings(
     .await
     .map_err(|error| error.to_string())??;
     configure_tray_tooltip(&app_handle, &saved_settings.language);
+    configure_tray_menu(&app_handle, &saved_settings.language);
     configure_tray_icon(&app_handle, &saved_settings.menu_bar_icon_style);
     Ok(saved_settings)
 }
@@ -143,8 +166,16 @@ fn build_tray(
     show_guard_until: Arc<Mutex<Option<Instant>>>,
     startup_settings: &AppSettings,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let quit_item = MenuItem::with_id(app, "quit", "退出 mclip", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&quit_item])?;
+    let (preferences_label, quit_label) = tray_menu_labels(&startup_settings.language);
+    let preferences_item =
+        MenuItem::with_id(app, "preferences", preferences_label, true, None::<&str>)?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    let quit_item = MenuItem::with_id(app, "quit", quit_label, true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&preferences_item, &separator, &quit_item])?;
+    app.manage(TrayMenuItems {
+        preferences: preferences_item,
+        quit: quit_item,
+    });
 
     let default_icon = app
         .default_window_icon()
@@ -217,6 +248,13 @@ fn build_tray(
         .on_menu_event(|app, event| {
             if event.id == "quit" {
                 app.exit(0);
+            } else if event.id == "preferences" {
+                let handle = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    if show_preferences_window(handle.clone()).await.is_err() {
+                        log_error(&handle, "tray", "preferences_open_failed");
+                    }
+                });
             }
         })
         .build(app)?;
@@ -608,6 +646,7 @@ pub fn run() {
             adjust_window_height_to_content,
             show_history_preview_window,
             resize_history_preview_window,
+            resize_history_detail_window,
             show_history_preview_detail_window,
             hide_history_preview_window,
             hide_history_preview_detail_window,
@@ -751,7 +790,7 @@ mod tests {
 
     use super::{
         menu_bar_icon, menu_bar_icon_is_template, should_hide_main_window_on_focus_loss,
-        single_instance_launch_action, tray_tooltip, SingleInstanceLaunchAction,
+        single_instance_launch_action, tray_menu_labels, tray_tooltip, SingleInstanceLaunchAction,
         TOGGLE_WINDOW_SHORTCUT, TRAY_POSITION_AUTOSAVE_NAME,
     };
     use crate::auxiliary_window_contract::{auxiliary_window_descriptor, LogicalWindowSize};
@@ -759,6 +798,26 @@ mod tests {
         PerformanceAutomationAction, PERFORMANCE_CLOSE_VIEWER_ARGUMENT,
         PERFORMANCE_OPEN_VIEWER_ARGUMENT, PERFORMANCE_QUIT_ARGUMENT,
     };
+
+    #[test]
+    fn tray_preferences_and_quit_labels_follow_app_language() {
+        assert_eq!(
+            tray_menu_labels(&AppLanguage::ZhCn),
+            ("偏好设置…", "退出 mclip")
+        );
+        assert_eq!(
+            tray_menu_labels(&AppLanguage::En),
+            ("Preferences…", "Quit mclip")
+        );
+        assert_eq!(
+            tray_menu_labels(&AppLanguage::Ja),
+            ("環境設定…", "mclip を終了")
+        );
+        let system = tray_menu_labels(&AppLanguage::System);
+        assert!([AppLanguage::ZhCn, AppLanguage::En, AppLanguage::Ja]
+            .iter()
+            .any(|language| tray_menu_labels(language) == system));
+    }
 
     #[test]
     fn toggle_window_shortcut_can_be_parsed() {

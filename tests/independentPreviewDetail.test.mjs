@@ -17,7 +17,7 @@ test("group items update and show the independent preview-detail window", async 
   assert.match(previewSource, /updateHistoryPreviewDetailWindow/);
   assert.match(previewSource, /showHistoryPreviewDetailWindow/);
   assert.match(previewSource, /notifyHistoryPreviewPlacementUpdated\(placement\.group\)/);
-  assert.match(previewSource, /getItemPreviewHeight\(requestedItem\)/);
+  assert.match(previewSource, /getItemPreviewHeight\(requestedItem, requestedPreview\.textQuickActions\)/);
   assert.match(previewSource, /getGroupPreviewItemAnchorTop\(requestedItem\.id\)/);
   assert.match(previewSource, /getBoundingClientRect\(\)\.top/);
   assert.match(

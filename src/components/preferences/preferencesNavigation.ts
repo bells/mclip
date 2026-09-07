@@ -91,18 +91,18 @@ const DESTINATION_DEFINITIONS: readonly DestinationDefinition[] = [
 ];
 
 const SETTING_DEFINITIONS: readonly SettingDefinition[] = [
-  setting("general.language", "general", "languageLabel", "languageDescription", ["locale"]),
+  setting("general.language", "appearance", "languageLabel", "languageDescription", ["locale", "语言", "language", "言語"]),
   setting("general.launch-at-login", "general", "launchAtLoginLabel", "launchAtLoginDescription", ["startup", "login"]),
   setting("general.auto-paste", "general", "autoPasteLabel", "autoPasteDescription", ["paste", "accessibility"]),
   setting("general.desktop-capabilities", "general", "desktopCapabilitiesGroupLabel", "desktopCapabilitiesDescription", ["linux", "wayland", "x11", "tray", "shortcut"]),
-  setting("appearance.theme", "appearance", "appearanceThemeLabel", "appearanceThemeDescription", ["light", "dark", "system"]),
+  setting("appearance.theme", "appearance", "appearanceThemeLabel", "appearanceThemeDescription", ["light", "dark", "system", "主题", "theme", "テーマ"]),
   setting("appearance.menu-bar-icon", "appearance", "menuBarIconStyleLabel", "menuBarIconStyleDescription", ["tray", "status bar"]),
   setting("appearance.brand", "appearance", "showMainWindowBrandLabel", "showMainWindowBrandDescription", ["logo", "brand"]),
   setting("appearance.item-numbers", "appearance", "showHistoryItemNumbersLabel", "showHistoryItemNumbersDescription", ["number", "index"]),
   setting("history.types", "history", "typesLabel", "typesDescription", ["text", "image", "files"]),
-  setting("history.maximum", "history", "maxHistoryCountLabel", "maxHistoryCountDescription", ["limit", "retention"]),
-  setting("history.main-count", "history", "mainWindowItemCountLabel", "mainWindowItemCountDescription", ["visible", "main"]),
-  setting("history.group-count", "history", "historyGroupItemCountLabel", "historyGroupItemCountDescription", ["archive", "group"]),
+  setting("history.maximum", "history", "maxHistoryCountLabel", "maxHistoryCountDescription", ["limit", "retention", "保留", "保持"]),
+  setting("history.main-count", "history", "mainWindowItemCountLabel", "mainWindowItemCountDescription", ["visible", "main", "列表", "list", "表示"]),
+  setting("history.group-count", "history", "historyGroupItemCountLabel", "historyGroupItemCountDescription", ["archive", "group", "列表", "list", "表示"]),
   setting("privacy.masking", "privacy", "maskSensitiveContentLabel", "maskSensitiveContentDescription", ["secret", "mask"]),
   setting("privacy.reclassify", "privacy", "reclassifyLegacyAction", "reclassifyLegacyDescription", ["scan", "detector"]),
   setting("privacy.source-exclusion", "privacy", "sourceExclusionGroupLabel", "sourceExclusionDescription", ["ignore", "app"]),

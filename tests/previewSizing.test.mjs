@@ -31,6 +31,7 @@ const {
   getGroupPreviewHeight,
   getItemPreviewAnchorTop,
   getItemPreviewHeight,
+  getItemPreviewNaturalHeight,
   normalizeMeasuredPreviewHeight,
   shouldApplyMeasuredPreviewHeight,
 } = await importTypeScriptModule("src/utils/preview.ts");
@@ -64,7 +65,24 @@ test("item detail preview sizing follows the compact preview chrome", () => {
       kind: "text",
       text: "short copied text",
     }),
-    204,
+    336,
   );
   assert.equal(getItemPreviewAnchorTop(100), 54);
+});
+
+test("text tool height respects disabled groups and preserves non-text sizing", () => {
+  const item = {kind:"text",text:"short"};
+  assert.equal(getItemPreviewHeight(item,{json:false,base64:false,urlComponent:false}),204);
+  assert.equal(getItemPreviewHeight(item,{json:true,base64:false,urlComponent:false}),268);
+  assert.equal(getItemPreviewHeight({kind:"image"}),276);
+  assert.ok(getItemPreviewHeight({...item,text:"a\nb\nc\nd\ne"}) > getItemPreviewHeight(item));
+});
+
+
+test("detail height tracks actual rows without reserving disabled or inapplicable actions", () => {
+  assert.equal(getItemPreviewNaturalHeight(45, 130, 84, 27), 286);
+  assert.equal(getItemPreviewNaturalHeight(45, 160, 84, 27), 316);
+  assert.equal(getItemPreviewNaturalHeight(45, 46, 84, 27), 202);
+  assert.equal(getItemPreviewNaturalHeight(45, 5000, 84, 27), 516);
+  assert.equal(getItemPreviewNaturalHeight(45, NaN, 84, 27), null);
 });
