@@ -9,6 +9,8 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   build: {
     manifest: true,
+    minify: "esbuild",
+    sourcemap: false,
   },
   plugins: [react(), tailwindcss()],
 

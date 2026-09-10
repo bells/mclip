@@ -52,6 +52,10 @@ The following is a dated snapshot. Refresh it from the CLI and source task lists
 
 ## 证据沿用 / Reusing Evidence
 
+2026-09-10 新增 [optimize-v0-2-0-performance-and-size](changes/optimize-v0-2-0-performance-and-size/tasks.md)：第二轮性能、代码结构与体积优化，按四阶段推进；第一阶段证据见 [体积报告](../performance/v0.2.0-size-phase-1.md)。此条为上表快照之后的增量，实时进度以 tasks 为准。保持行为的重构声明 `skip_specs: true`；原生性能验收和发布状态独立记录。
+
+Added on 2026-09-10: the second performance/size pass tracks build profiles, Rust internals, frontend resources, and native evidence separately. See its task list and first-phase size report for current results.
+
 - [2026-09-05 ignored-app verification](changes/select-ignored-source-apps/verification.md) 记录了 macOS 全套自动化、mock IPC 浏览器验证、本地 AppKit 元数据检查，以及 cargo-xwin Windows x64 all-target 检查通过。Windows SDK 缺少 `assert.h` 是更早的普通交叉检查障碍，已由该工具链解决；Windows 原生行为仍未因此得到证明。
 - 同一记录中，macOS smoke 来自负责人的整体反馈，没有逐场景矩阵；Windows Parallels 与 Linux 原生验证仍待完成。不能把该记录直接换算为所有旧 change 的验收通过。
 - [v0.1.1 performance report](../performance/final-v0.1.1-runtime-performance.md) 的数值是记录时 Apple M2/macOS 协议的结果，不是后来每个提交或其它平台的性能保证。

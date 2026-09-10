@@ -1,0 +1,553 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "7d6f383a4262087f80d59a1ecf1d2c4626db0e85",
+  "target": "aarch64-apple-darwin",
+  "macOS": "26.6.2 (25G83)",
+  "rustc": "1.95.0 (59807616e), LLVM 22.1.2",
+  "node": "24.20.0",
+  "pnpm": "10.33.0",
+  "tauriCli": "2.10.1",
+  "selectedProfile": {
+    "optLevel": "z",
+    "lto": true,
+    "codegenUnits": 1,
+    "panic": "abort",
+    "strip": true
+  },
+  "samples": [
+    {
+      "label": "baseline",
+      "recordedAt": "2026-09-10T13:39:35.442Z",
+      "cargoLockSha256": "e9ce111f52601c512a1b1902ffebc521f34ab600211b7c08f2d40f4fb81bca77",
+      "appBytes": 24814858,
+      "appFiles": [
+        {
+          "path": "Contents/Info.plist",
+          "bytes": 986,
+          "sha256": "17252f3a054274702b155320ded3d74902aef80d1cd059a4d533c872faf54209"
+        },
+        {
+          "path": "Contents/MacOS/mclip",
+          "bytes": 19641200,
+          "sha256": "c8a7c900eea4f8b69af5bb3e720d6ad1178f0da0dba8e3f21ee20a74afba8ce5"
+        },
+        {
+          "path": "Contents/MacOS/mclip-cli",
+          "bytes": 3546032,
+          "sha256": "17a02d40f7c1a08b7a1016421dc84e91bc2a7e338aa0a84ec8ebea2c456b1e4c"
+        },
+        {
+          "path": "Contents/Resources/icon.icns",
+          "bytes": 1623981,
+          "sha256": "a774171a5f3dfdffa19efe7aa87c09de079088601351e460fe8dfb198840bb70"
+        },
+        {
+          "path": "Contents/_CodeSignature/CodeResources",
+          "bytes": 2659,
+          "sha256": "43d9c069825294efd61194fe91a9f49b121f88a587cffab8683e34b9dfb8ed09"
+        }
+      ],
+      "artifacts": [
+        {
+          "path": "mclip-cli",
+          "bytes": 3548544,
+          "sha256": "82cdc550b0356785a34b4040d9f57adca800d8322998d5ad963da80fbb5c6d58"
+        },
+        {
+          "path": "mclip.dmg",
+          "bytes": 12865668,
+          "sha256": "d304874bb468aca844a6677fa6c2ffe84e57e433dd4716ca2946d52291e6be1d"
+        }
+      ],
+      "distBytes": 1444812,
+      "distFiles": [
+        {
+          "path": ".vite/manifest.json",
+          "bytes": 6230,
+          "sha256": "bc067fdb9ff69b0ed7640af8799baa0c31eac0b5699885d12557fd31387327da"
+        },
+        {
+          "path": "assets/128x128-CiflHCdp.png",
+          "bytes": 20739,
+          "sha256": "bc20ea28f83c7a34d72943269bf18dbffa01442cc2c2083fc6cfd5138fa74de7"
+        },
+        {
+          "path": "assets/AboutWindow-D6xK18kQ.js",
+          "bytes": 4983,
+          "sha256": "9948e2e1c0522cac6809b18954a39003410491b2f5237c1dc1f05b45f4c76365"
+        },
+        {
+          "path": "assets/App-Rhomkfhn.js",
+          "bytes": 25536,
+          "sha256": "88c875e52a3b5bc75f2698a4e0a6032083d10c732f4623b6681fa72dd9d64470"
+        },
+        {
+          "path": "assets/DialogStatusBar-B-1u3UOx.js",
+          "bytes": 1841,
+          "sha256": "f028f3f09cdc96bd84de027176752f775be71f919da625efad63b250bd9adeed"
+        },
+        {
+          "path": "assets/DialogWindowFrame-D1LXN9PQ.js",
+          "bytes": 568,
+          "sha256": "1b6feccd9e299013382bda97d42145343d963af352c67f2f120f79104267072e"
+        },
+        {
+          "path": "assets/FullscreenImageViewer-C_xTysrv.js",
+          "bytes": 3156,
+          "sha256": "847d2ff17b4ce3466609f1e6b8ebd3f4eb3ecd8c19c2d80374de9d928ae54c75"
+        },
+        {
+          "path": "assets/HistoryDetailFullscreenButton-B8i0dKDN.js",
+          "bytes": 478,
+          "sha256": "d79e87e5388edd23878a429493dd8c505dfa8a8797392ebd8b83c96842f031f3"
+        },
+        {
+          "path": "assets/HistoryPinButton-DGwRKecG.js",
+          "bytes": 10449,
+          "sha256": "849845085165abf82eab768f2c62b530cd04f9f74f1184e039c07cde4c69012e"
+        },
+        {
+          "path": "assets/HistoryPreviewDetailWindow-6qcRUHPK.js",
+          "bytes": 2284,
+          "sha256": "0370fa88c226100cd0b78292244385255d8a3078d156952f11d1db3e5b6b989b"
+        },
+        {
+          "path": "assets/HistoryPreviewWindow-C0gVs_26.js",
+          "bytes": 10281,
+          "sha256": "531070e343d647d66e800942d121b10b955ba31938f2390cae57b69cf84d46e4"
+        },
+        {
+          "path": "assets/ImageThumb-B0P2Uut8.js",
+          "bytes": 3883,
+          "sha256": "371d3eaa21c937a75dbcac175173bda8bf701e3c58619bf7c0b053d962698eae"
+        },
+        {
+          "path": "assets/Modal-DNFXLapG.js",
+          "bytes": 546,
+          "sha256": "a7b2ecc5462c53e0e8ca0098fedfea994e609333cb37ee5e3a67d5d8c45dc3ab"
+        },
+        {
+          "path": "assets/PinToastHost-Cz4z7RIk.js",
+          "bytes": 35602,
+          "sha256": "c4f3f157b636e3c7b28ce6c82eeeb7b2430858e296a66ad6154578653ec02654"
+        },
+        {
+          "path": "assets/PreferencesWindow-CB8bYoiT.js",
+          "bytes": 39362,
+          "sha256": "136994f438447180b3fcdc5c087db9bc1dcf0f4366209ebd988e07c2b10be1cb"
+        },
+        {
+          "path": "assets/QuickActionWindow-HDzcNc7x.js",
+          "bytes": 2741,
+          "sha256": "781f8440f96bd8f7812d61a8b6b393dc6f743c107eacb4d1dd6bde8933c19fc8"
+        },
+        {
+          "path": "assets/UiIcons-CtOtDVKV.js",
+          "bytes": 1873,
+          "sha256": "ed960333d2c14bcdf0b876cde5790f4a3861bad0466db815d61ae3f1938ee9db"
+        },
+        {
+          "path": "assets/app-icon-D6JNedmk.js",
+          "bytes": 56,
+          "sha256": "0dfc83fe800df6bf9103316d5e1bdc84f3317e3c21941548a7e9b96a2f3f59d1"
+        },
+        {
+          "path": "assets/app-icon-DVLk_D5H.png",
+          "bytes": 912547,
+          "sha256": "8acdc0fc0379a9efa3eb57f54ce5d401ac21cd11e55bcb7d3b3b77cd5bbff723"
+        },
+        {
+          "path": "assets/i18n-BimEJKlj.js",
+          "bytes": 59717,
+          "sha256": "0664e44517d327426effa401835827203bc73a51765327bbab8e12f77a4e2333"
+        },
+        {
+          "path": "assets/index-BZ6VQbn6.js",
+          "bytes": 247856,
+          "sha256": "bc60bdf668475b30f7740ce83de1fea2378e100f0a5e6796b6599fd7adbd14f4"
+        },
+        {
+          "path": "assets/index-v7GOn7n2.css",
+          "bytes": 37980,
+          "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+        },
+        {
+          "path": "assets/menu-bar-icon-light-128-ky9ZDsCy.png",
+          "bytes": 9855,
+          "sha256": "4ad2f83b9ebcf06890e3074c5afff59c5fe202d67ce59cda708e8da186c04383"
+        },
+        {
+          "path": "assets/selectionBehavior-tu_itJi3.js",
+          "bytes": 4514,
+          "sha256": "80d5ca0dac600d1e868fec992db0252dd33ce2fa15f7de08b52612a5bb0761d9"
+        },
+        {
+          "path": "assets/settings-BbSzMokm.js",
+          "bytes": 1225,
+          "sha256": "1476c43985f1f6612a79b418f4673e4d45244598e603e230fd184dd984418305"
+        },
+        {
+          "path": "index.html",
+          "bytes": 510,
+          "sha256": "1f966d4084bb85bea0b19bda742b020999ac955d00bcad82abff5cee392f2360"
+        }
+      ]
+    },
+    {
+      "label": "size-s",
+      "recordedAt": "2026-09-10T13:44:53.136Z",
+      "cargoLockSha256": "e9ce111f52601c512a1b1902ffebc521f34ab600211b7c08f2d40f4fb81bca77",
+      "appBytes": 12081898,
+      "appFiles": [
+        {
+          "path": "Contents/Info.plist",
+          "bytes": 986,
+          "sha256": "17252f3a054274702b155320ded3d74902aef80d1cd059a4d533c872faf54209"
+        },
+        {
+          "path": "Contents/MacOS/mclip",
+          "bytes": 8602464,
+          "sha256": "978facdfd036e3d40b97eb262d7b8c28ad700c32f5499e2274b91b86a997c1c7"
+        },
+        {
+          "path": "Contents/MacOS/mclip-cli",
+          "bytes": 1851808,
+          "sha256": "def50961b127efa6bf474633ea3449a1bb664955f763a0334e8522f451a091ef"
+        },
+        {
+          "path": "Contents/Resources/icon.icns",
+          "bytes": 1623981,
+          "sha256": "a774171a5f3dfdffa19efe7aa87c09de079088601351e460fe8dfb198840bb70"
+        },
+        {
+          "path": "Contents/_CodeSignature/CodeResources",
+          "bytes": 2659,
+          "sha256": "447face4fb5e68879c398cc2ae354d4bd0f3abcecd0abec447e3fa7387b0db58"
+        }
+      ],
+      "artifacts": [
+        {
+          "path": "mclip-cli",
+          "bytes": 1844400,
+          "sha256": "5fb815e2d308838bc8a5be1292cddbc5b5ca8d07069a192b6e9f7445f2f8ff06"
+        },
+        {
+          "path": "mclip.dmg",
+          "bytes": 9258208,
+          "sha256": "9701a0bb4b34301c4f9d211eb79d670d4327945a74bef8d5fb3ede1b30d9879c"
+        }
+      ],
+      "distBytes": 1444812,
+      "distFiles": [
+        {
+          "path": ".vite/manifest.json",
+          "bytes": 6230,
+          "sha256": "bc067fdb9ff69b0ed7640af8799baa0c31eac0b5699885d12557fd31387327da"
+        },
+        {
+          "path": "assets/128x128-CiflHCdp.png",
+          "bytes": 20739,
+          "sha256": "bc20ea28f83c7a34d72943269bf18dbffa01442cc2c2083fc6cfd5138fa74de7"
+        },
+        {
+          "path": "assets/AboutWindow-D6xK18kQ.js",
+          "bytes": 4983,
+          "sha256": "9948e2e1c0522cac6809b18954a39003410491b2f5237c1dc1f05b45f4c76365"
+        },
+        {
+          "path": "assets/App-Rhomkfhn.js",
+          "bytes": 25536,
+          "sha256": "88c875e52a3b5bc75f2698a4e0a6032083d10c732f4623b6681fa72dd9d64470"
+        },
+        {
+          "path": "assets/DialogStatusBar-B-1u3UOx.js",
+          "bytes": 1841,
+          "sha256": "f028f3f09cdc96bd84de027176752f775be71f919da625efad63b250bd9adeed"
+        },
+        {
+          "path": "assets/DialogWindowFrame-D1LXN9PQ.js",
+          "bytes": 568,
+          "sha256": "1b6feccd9e299013382bda97d42145343d963af352c67f2f120f79104267072e"
+        },
+        {
+          "path": "assets/FullscreenImageViewer-C_xTysrv.js",
+          "bytes": 3156,
+          "sha256": "847d2ff17b4ce3466609f1e6b8ebd3f4eb3ecd8c19c2d80374de9d928ae54c75"
+        },
+        {
+          "path": "assets/HistoryDetailFullscreenButton-B8i0dKDN.js",
+          "bytes": 478,
+          "sha256": "d79e87e5388edd23878a429493dd8c505dfa8a8797392ebd8b83c96842f031f3"
+        },
+        {
+          "path": "assets/HistoryPinButton-DGwRKecG.js",
+          "bytes": 10449,
+          "sha256": "849845085165abf82eab768f2c62b530cd04f9f74f1184e039c07cde4c69012e"
+        },
+        {
+          "path": "assets/HistoryPreviewDetailWindow-6qcRUHPK.js",
+          "bytes": 2284,
+          "sha256": "0370fa88c226100cd0b78292244385255d8a3078d156952f11d1db3e5b6b989b"
+        },
+        {
+          "path": "assets/HistoryPreviewWindow-C0gVs_26.js",
+          "bytes": 10281,
+          "sha256": "531070e343d647d66e800942d121b10b955ba31938f2390cae57b69cf84d46e4"
+        },
+        {
+          "path": "assets/ImageThumb-B0P2Uut8.js",
+          "bytes": 3883,
+          "sha256": "371d3eaa21c937a75dbcac175173bda8bf701e3c58619bf7c0b053d962698eae"
+        },
+        {
+          "path": "assets/Modal-DNFXLapG.js",
+          "bytes": 546,
+          "sha256": "a7b2ecc5462c53e0e8ca0098fedfea994e609333cb37ee5e3a67d5d8c45dc3ab"
+        },
+        {
+          "path": "assets/PinToastHost-Cz4z7RIk.js",
+          "bytes": 35602,
+          "sha256": "c4f3f157b636e3c7b28ce6c82eeeb7b2430858e296a66ad6154578653ec02654"
+        },
+        {
+          "path": "assets/PreferencesWindow-CB8bYoiT.js",
+          "bytes": 39362,
+          "sha256": "136994f438447180b3fcdc5c087db9bc1dcf0f4366209ebd988e07c2b10be1cb"
+        },
+        {
+          "path": "assets/QuickActionWindow-HDzcNc7x.js",
+          "bytes": 2741,
+          "sha256": "781f8440f96bd8f7812d61a8b6b393dc6f743c107eacb4d1dd6bde8933c19fc8"
+        },
+        {
+          "path": "assets/UiIcons-CtOtDVKV.js",
+          "bytes": 1873,
+          "sha256": "ed960333d2c14bcdf0b876cde5790f4a3861bad0466db815d61ae3f1938ee9db"
+        },
+        {
+          "path": "assets/app-icon-D6JNedmk.js",
+          "bytes": 56,
+          "sha256": "0dfc83fe800df6bf9103316d5e1bdc84f3317e3c21941548a7e9b96a2f3f59d1"
+        },
+        {
+          "path": "assets/app-icon-DVLk_D5H.png",
+          "bytes": 912547,
+          "sha256": "8acdc0fc0379a9efa3eb57f54ce5d401ac21cd11e55bcb7d3b3b77cd5bbff723"
+        },
+        {
+          "path": "assets/i18n-BimEJKlj.js",
+          "bytes": 59717,
+          "sha256": "0664e44517d327426effa401835827203bc73a51765327bbab8e12f77a4e2333"
+        },
+        {
+          "path": "assets/index-BZ6VQbn6.js",
+          "bytes": 247856,
+          "sha256": "bc60bdf668475b30f7740ce83de1fea2378e100f0a5e6796b6599fd7adbd14f4"
+        },
+        {
+          "path": "assets/index-v7GOn7n2.css",
+          "bytes": 37980,
+          "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+        },
+        {
+          "path": "assets/menu-bar-icon-light-128-ky9ZDsCy.png",
+          "bytes": 9855,
+          "sha256": "4ad2f83b9ebcf06890e3074c5afff59c5fe202d67ce59cda708e8da186c04383"
+        },
+        {
+          "path": "assets/selectionBehavior-tu_itJi3.js",
+          "bytes": 4514,
+          "sha256": "80d5ca0dac600d1e868fec992db0252dd33ce2fa15f7de08b52612a5bb0761d9"
+        },
+        {
+          "path": "assets/settings-BbSzMokm.js",
+          "bytes": 1225,
+          "sha256": "1476c43985f1f6612a79b418f4673e4d45244598e603e230fd184dd984418305"
+        },
+        {
+          "path": "index.html",
+          "bytes": 510,
+          "sha256": "1f966d4084bb85bea0b19bda742b020999ac955d00bcad82abff5cee392f2360"
+        }
+      ]
+    },
+    {
+      "label": "size-z",
+      "recordedAt": "2026-09-10T13:49:08.446Z",
+      "cargoLockSha256": "e9ce111f52601c512a1b1902ffebc521f34ab600211b7c08f2d40f4fb81bca77",
+      "appBytes": 10361498,
+      "appFiles": [
+        {
+          "path": "Contents/Info.plist",
+          "bytes": 986,
+          "sha256": "17252f3a054274702b155320ded3d74902aef80d1cd059a4d533c872faf54209"
+        },
+        {
+          "path": "Contents/MacOS/mclip",
+          "bytes": 7058192,
+          "sha256": "d9efd7822f5af44a9a8a7bcd2ed0dad79e9bda900fef3b4e2f71e409685a938c"
+        },
+        {
+          "path": "Contents/MacOS/mclip-cli",
+          "bytes": 1675680,
+          "sha256": "12d49e8c323f69c42ffeaaba6d176342a192d68e95511d5d5b76edd2bb2e42e5"
+        },
+        {
+          "path": "Contents/Resources/icon.icns",
+          "bytes": 1623981,
+          "sha256": "a774171a5f3dfdffa19efe7aa87c09de079088601351e460fe8dfb198840bb70"
+        },
+        {
+          "path": "Contents/_CodeSignature/CodeResources",
+          "bytes": 2659,
+          "sha256": "0114bfa1fdf3575400bdb8499de25fb29030ac82f9878900e27687e9e315f3fd"
+        }
+      ],
+      "artifacts": [
+        {
+          "path": "mclip-cli",
+          "bytes": 1667248,
+          "sha256": "f66296cbc75fdf3d5ee9a6781bc6f69346f83429ce22dae5f3dc3b0f622d8931"
+        },
+        {
+          "path": "mclip.dmg",
+          "bytes": 8906629,
+          "sha256": "7bd37399080752268b98c94577478cbb1fd7b792775937c97c112c9fa8d2dd84"
+        }
+      ],
+      "distBytes": 1444812,
+      "distFiles": [
+        {
+          "path": ".vite/manifest.json",
+          "bytes": 6230,
+          "sha256": "bc067fdb9ff69b0ed7640af8799baa0c31eac0b5699885d12557fd31387327da"
+        },
+        {
+          "path": "assets/128x128-CiflHCdp.png",
+          "bytes": 20739,
+          "sha256": "bc20ea28f83c7a34d72943269bf18dbffa01442cc2c2083fc6cfd5138fa74de7"
+        },
+        {
+          "path": "assets/AboutWindow-D6xK18kQ.js",
+          "bytes": 4983,
+          "sha256": "9948e2e1c0522cac6809b18954a39003410491b2f5237c1dc1f05b45f4c76365"
+        },
+        {
+          "path": "assets/App-Rhomkfhn.js",
+          "bytes": 25536,
+          "sha256": "88c875e52a3b5bc75f2698a4e0a6032083d10c732f4623b6681fa72dd9d64470"
+        },
+        {
+          "path": "assets/DialogStatusBar-B-1u3UOx.js",
+          "bytes": 1841,
+          "sha256": "f028f3f09cdc96bd84de027176752f775be71f919da625efad63b250bd9adeed"
+        },
+        {
+          "path": "assets/DialogWindowFrame-D1LXN9PQ.js",
+          "bytes": 568,
+          "sha256": "1b6feccd9e299013382bda97d42145343d963af352c67f2f120f79104267072e"
+        },
+        {
+          "path": "assets/FullscreenImageViewer-C_xTysrv.js",
+          "bytes": 3156,
+          "sha256": "847d2ff17b4ce3466609f1e6b8ebd3f4eb3ecd8c19c2d80374de9d928ae54c75"
+        },
+        {
+          "path": "assets/HistoryDetailFullscreenButton-B8i0dKDN.js",
+          "bytes": 478,
+          "sha256": "d79e87e5388edd23878a429493dd8c505dfa8a8797392ebd8b83c96842f031f3"
+        },
+        {
+          "path": "assets/HistoryPinButton-DGwRKecG.js",
+          "bytes": 10449,
+          "sha256": "849845085165abf82eab768f2c62b530cd04f9f74f1184e039c07cde4c69012e"
+        },
+        {
+          "path": "assets/HistoryPreviewDetailWindow-6qcRUHPK.js",
+          "bytes": 2284,
+          "sha256": "0370fa88c226100cd0b78292244385255d8a3078d156952f11d1db3e5b6b989b"
+        },
+        {
+          "path": "assets/HistoryPreviewWindow-C0gVs_26.js",
+          "bytes": 10281,
+          "sha256": "531070e343d647d66e800942d121b10b955ba31938f2390cae57b69cf84d46e4"
+        },
+        {
+          "path": "assets/ImageThumb-B0P2Uut8.js",
+          "bytes": 3883,
+          "sha256": "371d3eaa21c937a75dbcac175173bda8bf701e3c58619bf7c0b053d962698eae"
+        },
+        {
+          "path": "assets/Modal-DNFXLapG.js",
+          "bytes": 546,
+          "sha256": "a7b2ecc5462c53e0e8ca0098fedfea994e609333cb37ee5e3a67d5d8c45dc3ab"
+        },
+        {
+          "path": "assets/PinToastHost-Cz4z7RIk.js",
+          "bytes": 35602,
+          "sha256": "c4f3f157b636e3c7b28ce6c82eeeb7b2430858e296a66ad6154578653ec02654"
+        },
+        {
+          "path": "assets/PreferencesWindow-CB8bYoiT.js",
+          "bytes": 39362,
+          "sha256": "136994f438447180b3fcdc5c087db9bc1dcf0f4366209ebd988e07c2b10be1cb"
+        },
+        {
+          "path": "assets/QuickActionWindow-HDzcNc7x.js",
+          "bytes": 2741,
+          "sha256": "781f8440f96bd8f7812d61a8b6b393dc6f743c107eacb4d1dd6bde8933c19fc8"
+        },
+        {
+          "path": "assets/UiIcons-CtOtDVKV.js",
+          "bytes": 1873,
+          "sha256": "ed960333d2c14bcdf0b876cde5790f4a3861bad0466db815d61ae3f1938ee9db"
+        },
+        {
+          "path": "assets/app-icon-D6JNedmk.js",
+          "bytes": 56,
+          "sha256": "0dfc83fe800df6bf9103316d5e1bdc84f3317e3c21941548a7e9b96a2f3f59d1"
+        },
+        {
+          "path": "assets/app-icon-DVLk_D5H.png",
+          "bytes": 912547,
+          "sha256": "8acdc0fc0379a9efa3eb57f54ce5d401ac21cd11e55bcb7d3b3b77cd5bbff723"
+        },
+        {
+          "path": "assets/i18n-BimEJKlj.js",
+          "bytes": 59717,
+          "sha256": "0664e44517d327426effa401835827203bc73a51765327bbab8e12f77a4e2333"
+        },
+        {
+          "path": "assets/index-BZ6VQbn6.js",
+          "bytes": 247856,
+          "sha256": "bc60bdf668475b30f7740ce83de1fea2378e100f0a5e6796b6599fd7adbd14f4"
+        },
+        {
+          "path": "assets/index-v7GOn7n2.css",
+          "bytes": 37980,
+          "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+        },
+        {
+          "path": "assets/menu-bar-icon-light-128-ky9ZDsCy.png",
+          "bytes": 9855,
+          "sha256": "4ad2f83b9ebcf06890e3074c5afff59c5fe202d67ce59cda708e8da186c04383"
+        },
+        {
+          "path": "assets/selectionBehavior-tu_itJi3.js",
+          "bytes": 4514,
+          "sha256": "80d5ca0dac600d1e868fec992db0252dd33ce2fa15f7de08b52612a5bb0761d9"
+        },
+        {
+          "path": "assets/settings-BbSzMokm.js",
+          "bytes": 1225,
+          "sha256": "1476c43985f1f6612a79b418f4673e4d45244598e603e230fd184dd984418305"
+        },
+        {
+          "path": "index.html",
+          "bytes": 510,
+          "sha256": "1f966d4084bb85bea0b19bda742b020999ac955d00bcad82abff5cee392f2360"
+        }
+      ]
+    }
+  ]
+}

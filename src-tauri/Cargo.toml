@@ -45,3 +45,10 @@ windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_UI_Inpu
 [target.'cfg(target_os = "linux")'.dependencies]
 tauri-plugin-autostart = "2"
 x11rb = "0.13"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
