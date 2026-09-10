@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager};
 #[cfg(target_os = "linux")]
 use tauri_plugin_autostart::ManagerExt;
@@ -14,6 +14,10 @@ use crate::performance::performance_config_dir_override;
 use crate::storage::write_text_atomically;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use crate::storage::write_text_atomically_if_changed;
+
+pub const DEFAULT_MAX_PINNED_ITEMS: usize = 10;
+pub const MIN_MAX_PINNED_ITEMS: usize = 5;
+pub const MAX_MAX_PINNED_ITEMS: usize = 20;
 
 pub const DEFAULT_MAX_HISTORY_COUNT: u32 = 200;
 pub const MIN_MAX_HISTORY_COUNT: u32 = 10;
@@ -102,6 +106,8 @@ pub struct AppSettings {
     #[serde(default = "default_language")]
     pub language: AppLanguage,
     pub max_history_count: u32,
+    #[serde(default = "default_max_pinned_items")]
+    pub max_pinned_items: usize,
     #[serde(default)]
     pub enabled_history_types: HistoryTypes,
     #[serde(default)]
@@ -159,6 +165,7 @@ impl Default for AppSettings {
             launch_at_login: false,
             language: default_language(),
             max_history_count: DEFAULT_MAX_HISTORY_COUNT,
+            max_pinned_items: DEFAULT_MAX_PINNED_ITEMS,
             enabled_history_types: HistoryTypes::default(),
             menu_bar_icon_style: MenuBarIconStyle::default(),
             main_window_item_count: DEFAULT_MAIN_WINDOW_ITEM_COUNT,
@@ -175,6 +182,9 @@ impl Default for AppSettings {
 
 impl AppSettings {
     pub fn sanitize(mut self) -> Self {
+        self.max_pinned_items = self
+            .max_pinned_items
+            .clamp(MIN_MAX_PINNED_ITEMS, MAX_MAX_PINNED_ITEMS);
         self.max_history_count = self
             .max_history_count
             .clamp(MIN_MAX_HISTORY_COUNT, MAX_MAX_HISTORY_COUNT);
@@ -187,6 +197,20 @@ impl AppSettings {
         self.ignored_source_app_ids =
             normalize_ignored_source_app_ids(std::mem::take(&mut self.ignored_source_app_ids));
         self
+    }
+}
+
+fn default_max_pinned_items() -> usize {
+    DEFAULT_MAX_PINNED_ITEMS
+}
+
+pub fn load_settings_from_path(path: &Path) -> Result<AppSettings, String> {
+    match fs::read_to_string(path) {
+        Ok(content) => serde_json::from_str::<AppSettings>(&content)
+            .map(AppSettings::sanitize)
+            .map_err(|_| "settingsInvalid".to_string()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(AppSettings::default()),
+        Err(_) => Err("settingsUnavailable".to_string()),
     }
 }
 
@@ -533,6 +557,43 @@ mod tests {
         MIN_MAX_HISTORY_COUNT, MIN_VISIBLE_ITEM_COUNT,
     };
     use crate::history::HistoryKind;
+
+    #[test]
+    fn pin_limit_defaults_and_clamps_without_rewriting_settings() {
+        let legacy: AppSettings =
+            serde_json::from_str(include_str!("../tests/fixtures/v0.1.1-settings.json")).unwrap();
+        assert_eq!(legacy.max_pinned_items, 10);
+        for (input, expected) in [
+            (0, 5),
+            (4, 5),
+            (5, 5),
+            (10, 10),
+            (20, 20),
+            (21, 20),
+            (usize::MAX, 20),
+        ] {
+            let settings = AppSettings {
+                max_pinned_items: input,
+                ..AppSettings::default()
+            }
+            .sanitize();
+            assert_eq!(settings.max_pinned_items, expected);
+            assert_eq!(
+                serde_json::to_value(settings).unwrap()["maxPinnedItems"],
+                expected
+            );
+        }
+        for invalid in [
+            serde_json::json!(-1),
+            serde_json::json!(5.5),
+            serde_json::json!("10"),
+            serde_json::Value::Null,
+        ] {
+            let mut value = serde_json::to_value(AppSettings::default()).unwrap();
+            value["maxPinnedItems"] = invalid;
+            assert!(serde_json::from_value::<AppSettings>(value).is_err());
+        }
+    }
 
     #[test]
     fn history_count_defaults_to_200_with_a_500_entry_upper_bound() {

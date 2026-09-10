@@ -13,7 +13,7 @@ use crate::history::{
     merge_history_result, persist_history_to_path, remove_history_item_result,
     replace_text_history_item_result, set_history_item_pinned_result,
     toggle_history_item_pinned_result, trim_history_result, HistoryEntry, HistoryFileFingerprint,
-    HistoryMutationResult, LoadedHistoryFile,
+    HistoryMutationResult, LoadedHistoryFile, PinMutationError,
 };
 use crate::image_cache::ImageDataCache;
 use crate::settings::AppSettings;
@@ -156,10 +156,17 @@ impl DesktopStateRepository {
         id: &str,
         is_pinned: bool,
         pinned_at: u64,
-    ) -> Result<DesktopHistoryMutation, String> {
-        let max_history_count = self.settings()?.max_history_count as usize;
-        self.mutate_history_fallible(|history| {
-            set_history_item_pinned_result(history, id, is_pinned, pinned_at, max_history_count)
+    ) -> Result<DesktopHistoryMutation, PinMutationError> {
+        let settings = self.settings()?;
+        self.mutate_history_with_error(|history| {
+            set_history_item_pinned_result(
+                history,
+                id,
+                is_pinned,
+                pinned_at,
+                settings.max_history_count as usize,
+                settings.max_pinned_items,
+            )
         })
     }
 
@@ -167,10 +174,16 @@ impl DesktopStateRepository {
         &self,
         id: &str,
         pinned_at: u64,
-    ) -> Result<DesktopHistoryMutation, String> {
-        let max_history_count = self.settings()?.max_history_count as usize;
-        self.mutate_history_fallible(|history| {
-            toggle_history_item_pinned_result(history, id, pinned_at, max_history_count)
+    ) -> Result<DesktopHistoryMutation, PinMutationError> {
+        let settings = self.settings()?;
+        self.mutate_history_with_error(|history| {
+            toggle_history_item_pinned_result(
+                history,
+                id,
+                pinned_at,
+                settings.max_history_count as usize,
+                settings.max_pinned_items,
+            )
         })
     }
 
@@ -200,6 +213,13 @@ impl DesktopStateRepository {
         &self,
         mutation: impl FnOnce(Vec<HistoryEntry>) -> Result<HistoryMutationResult, String>,
     ) -> Result<DesktopHistoryMutation, String> {
+        self.mutate_history_with_error(mutation)
+    }
+
+    fn mutate_history_with_error<E: From<String>>(
+        &self,
+        mutation: impl FnOnce(Vec<HistoryEntry>) -> Result<HistoryMutationResult, E>,
+    ) -> Result<DesktopHistoryMutation, E> {
         let mut state = self.lock_history()?;
         self.ensure_history_loaded(&mut state)?;
         let external_reloaded = self.reload_external_change(&mut state)?;
@@ -372,6 +392,139 @@ mod tests {
             byte_size: 4,
             content_hash: label.to_string(),
         }
+    }
+
+    #[test]
+    fn pin_limit_serializes_concurrent_mutations_and_uses_committed_settings() {
+        use crate::history::PinMutationError;
+        let path = unique_path("pin-race");
+        let entries = (0..13)
+            .map(|i| text_entry(&format!("entry-{i}")))
+            .collect::<Vec<_>>();
+        let ids = entries
+            .iter()
+            .map(|entry| entry.id().to_string())
+            .collect::<Vec<_>>();
+        persist_history_to_path(&path, &entries).unwrap();
+        let repository = DesktopStateRepository::new(path.clone(), AppSettings::default());
+        for id in &ids[..9] {
+            repository.set_history_item_pinned(id, true, 100).unwrap();
+        }
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+        let results = std::thread::scope(|scope| {
+            let handles = ids[9..11]
+                .iter()
+                .map(|id| {
+                    let repository = repository.clone();
+                    let barrier = barrier.clone();
+                    scope.spawn(move || {
+                        barrier.wait();
+                        repository.set_history_item_pinned(id, true, 200)
+                    })
+                })
+                .collect::<Vec<_>>();
+            handles
+                .into_iter()
+                .map(|handle| handle.join().unwrap())
+                .collect::<Vec<_>>()
+        });
+        assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+        assert!(results.iter().any(|result| matches!(
+            result,
+            Err(PinMutationError::PinLimitReached {
+                current: 10,
+                max: 10
+            })
+        )));
+        repository
+            .commit_settings(AppSettings {
+                max_pinned_items: 5,
+                ..AppSettings::default()
+            })
+            .unwrap();
+        let before = repository.history_snapshot().unwrap();
+        let bytes = fs::read(&path).unwrap();
+        assert!(matches!(
+            repository.set_history_item_pinned(&ids[12], true, 300),
+            Err(PinMutationError::PinLimitReached {
+                current: 10,
+                max: 5
+            })
+        ));
+        assert_eq!(repository.history_snapshot().unwrap(), before);
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+        assert!(
+            !repository
+                .set_history_item_pinned(&ids[0], true, 400)
+                .unwrap()
+                .changed
+        );
+        repository
+            .set_history_item_pinned(&ids[0], false, 500)
+            .unwrap();
+        repository
+            .commit_settings(AppSettings {
+                max_pinned_items: 20,
+                ..AppSettings::default()
+            })
+            .unwrap();
+        assert!(
+            repository
+                .set_history_item_pinned(&ids[12], true, 600)
+                .unwrap()
+                .changed
+        );
+        fs::remove_dir_all(path.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn legacy_pins_and_image_assets_survive_lower_admission_limit() {
+        let path = unique_path("legacy-pins");
+        let asset = path
+            .parent()
+            .unwrap()
+            .join("history-assets/images/kept.png");
+        fs::create_dir_all(asset.parent().unwrap()).unwrap();
+        fs::write(&asset, b"fixture-image").unwrap();
+        let mut entries = (0..99)
+            .map(|i| text_entry(&format!("legacy-{i}")))
+            .collect::<Vec<_>>();
+        entries.push(image_entry(&asset, "legacy"));
+        for entry in &mut entries {
+            entry.common_mut().is_pinned = true;
+            entry.common_mut().pinned_at = Some(1);
+        }
+        crate::history::sanitize_and_sort_history(&mut entries);
+        persist_history_to_path(&path, &entries).unwrap();
+        let bytes = fs::read(&path).unwrap();
+        let repository = DesktopStateRepository::new(
+            path.clone(),
+            AppSettings {
+                max_pinned_items: 5,
+                ..AppSettings::default()
+            },
+        );
+        assert_eq!(repository.history_snapshot().unwrap().history, entries);
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+        repository
+            .merge_history_entry(text_entry("ordinary"), 10)
+            .unwrap();
+        repository
+            .merge_history_entry(text_entry("legacy-0"), 10)
+            .unwrap();
+        repository.trim_history(10).unwrap();
+        assert_eq!(
+            repository
+                .history_snapshot()
+                .unwrap()
+                .history
+                .iter()
+                .filter(|e| e.is_pinned())
+                .count(),
+            100
+        );
+        assert_eq!(fs::read(&asset).unwrap(), b"fixture-image");
+        fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
 
     #[test]

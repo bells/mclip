@@ -23,7 +23,7 @@ pub const HISTORY_PREVIEW_INVALIDATED_EVENT: &str = "history-preview-invalidated
 pub const SENSITIVE_HISTORY_REVEAL_FAILED_EVENT: &str = "sensitive-history-reveal-failed";
 const MAIN_WINDOW_LABEL: &str = "main";
 const PREVIEW_WINDOW_LABEL: &str = "preview";
-pub const MAX_PINNED_HISTORY_COUNT: usize = 100;
+pub const LEGACY_MAX_PINNED_HISTORY_COUNT: usize = 100;
 pub const MAX_PERSISTED_HISTORY_COUNT: usize = 600;
 pub const PIN_LIMIT_ERROR_CODE: &str = "pinnedHistoryLimitReached";
 
@@ -122,30 +122,64 @@ pub struct HistorySnapshot {
 pub struct HistoryCommandError {
     pub code: String,
     pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max: Option<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PinMutationError {
+    PinLimitReached { current: usize, max: usize },
+    MutationFailed,
+}
+
+impl From<String> for PinMutationError {
+    fn from(_: String) -> Self {
+        Self::MutationFailed
+    }
+}
+
+impl std::fmt::Display for PinMutationError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PinLimitReached { current, max } => {
+                let advice = if *max < crate::settings::MAX_MAX_PINNED_ITEMS {
+                    "Unpin an item first or update settings."
+                } else {
+                    "Unpin an item first."
+                };
+                write!(formatter, "Pin limit reached ({current}/{max}). {advice}")
+            }
+            Self::MutationFailed => write!(formatter, "Unable to update pin state."),
+        }
+    }
 }
 
 impl HistoryCommandError {
-    fn from_message(message: String, language: &AppLanguage) -> Self {
-        if message.starts_with(PIN_LIMIT_ERROR_CODE) {
-            let localized = match resolve_app_language(language) {
-                ResolvedAppLanguage::ZhCn => {
-                    format!("最多可置顶 {MAX_PINNED_HISTORY_COUNT} 条历史记录。")
-                }
-                ResolvedAppLanguage::En => {
-                    format!("You can pin up to {MAX_PINNED_HISTORY_COUNT} history items.")
-                }
-                ResolvedAppLanguage::Ja => {
-                    format!("履歴項目は最大 {MAX_PINNED_HISTORY_COUNT} 件までピン留めできます。")
-                }
-            };
-            return Self {
+    fn from_pin(error: PinMutationError, language: &AppLanguage) -> Self {
+        match error {
+            PinMutationError::PinLimitReached { current, max } => Self {
                 code: PIN_LIMIT_ERROR_CODE.to_string(),
-                message: localized,
-            };
+                message: error.to_string(),
+                current: Some(current),
+                max: Some(max),
+            },
+            PinMutationError::MutationFailed => Self::from_message(String::new(), language),
         }
+    }
+
+    fn from_message(_message: String, language: &AppLanguage) -> Self {
+        let message = match resolve_app_language(language) {
+            ResolvedAppLanguage::ZhCn => "无法更新历史记录，请重试。",
+            ResolvedAppLanguage::En => "Unable to update history. Please try again.",
+            ResolvedAppLanguage::Ja => "履歴を更新できません。もう一度お試しください。",
+        };
         Self {
             code: "historyMutationFailed".to_string(),
-            message,
+            message: message.to_string(),
+            current: None,
+            max: None,
         }
     }
 }
@@ -490,7 +524,7 @@ pub async fn set_history_item_pinned(
     })
     .await
     .map_err(|error| HistoryCommandError::from_message(error.to_string(), &language))?
-    .map_err(|message| HistoryCommandError::from_message(message, &language))?;
+    .map_err(|error| HistoryCommandError::from_pin(error, &language))?;
     let change = history_change_for_upsert_id(&mutation, &id);
     let change = change.or_else(|| history_change_for_remove(&mutation));
     if let Some(change) = &change {
@@ -516,7 +550,7 @@ pub async fn toggle_history_item_pinned(
     })
     .await
     .map_err(|error| HistoryCommandError::from_message(error.to_string(), &language))?
-    .map_err(|message| HistoryCommandError::from_message(message, &language))?;
+    .map_err(|error| HistoryCommandError::from_pin(error, &language))?;
     let change = history_change_for_upsert_id(&mutation, &id);
     let change = change.or_else(|| history_change_for_remove(&mutation));
     if let Some(change) = &change {
@@ -982,7 +1016,8 @@ pub fn set_history_item_pinned_from_path(
     id: &str,
     is_pinned: bool,
     max_history_count: usize,
-) -> Result<(Vec<HistoryEntry>, bool), String> {
+    max_pinned_items: usize,
+) -> Result<(Vec<HistoryEntry>, bool), PinMutationError> {
     let history = load_history_from_path(path)?;
     let result = set_history_item_pinned_result(
         history,
@@ -990,26 +1025,13 @@ pub fn set_history_item_pinned_from_path(
         is_pinned,
         current_timestamp_millis(),
         max_history_count,
+        max_pinned_items,
     )?;
     if !result.changed {
         return Ok((result.history, is_pinned));
     }
     persist_history_transaction_for_path(path, &result.history)?;
     Ok((result.history, is_pinned))
-}
-
-pub fn toggle_history_item_pinned_from_path(
-    path: &Path,
-    id: &str,
-    max_history_count: usize,
-) -> Result<(Vec<HistoryEntry>, bool), String> {
-    let history = load_history_from_path(path)?;
-    let is_pinned = history
-        .iter()
-        .find(|entry| entry.id() == id)
-        .ok_or_else(|| format!("history item {id} was not found"))?
-        .is_pinned();
-    set_history_item_pinned_from_path(path, id, !is_pinned, max_history_count)
 }
 
 pub fn clear_history_keep_pinned_from_path(path: &Path) -> Result<Vec<HistoryEntry>, String> {
@@ -1288,7 +1310,9 @@ fn trim_unpinned_in_place(history: &mut Vec<HistoryEntry>, max_history_count: us
             unpinned_seen <= max_history_count
         }
     });
-    debug_assert!(history.len() <= max_history_count.saturating_add(MAX_PINNED_HISTORY_COUNT));
+    debug_assert!(
+        history.len() <= max_history_count.saturating_add(LEGACY_MAX_PINNED_HISTORY_COUNT)
+    );
     if max_history_count == 500 {
         debug_assert!(history.len() <= MAX_PERSISTED_HISTORY_COUNT);
     }
@@ -1301,9 +1325,10 @@ pub fn set_history_item_pinned_result(
     is_pinned: bool,
     pinned_at: u64,
     max_history_count: usize,
-) -> Result<HistoryMutationResult, String> {
+    max_pinned_items: usize,
+) -> Result<HistoryMutationResult, PinMutationError> {
     let Some(index) = history.iter().position(|entry| entry.id() == id) else {
-        return Err(format!("history item {id} was not found"));
+        return Err(PinMutationError::MutationFailed);
     };
     if history[index].is_pinned() == is_pinned {
         return Ok(HistoryMutationResult {
@@ -1311,12 +1336,13 @@ pub fn set_history_item_pinned_result(
             changed: false,
         });
     }
-    if is_pinned
-        && history.iter().filter(|entry| entry.is_pinned()).count() >= MAX_PINNED_HISTORY_COUNT
-    {
-        return Err(format!(
-            "{PIN_LIMIT_ERROR_CODE}: at most {MAX_PINNED_HISTORY_COUNT} history items can be pinned"
-        ));
+    let current = history.iter().filter(|entry| entry.is_pinned()).count();
+    let max = max_pinned_items.clamp(
+        crate::settings::MIN_MAX_PINNED_ITEMS,
+        crate::settings::MAX_MAX_PINNED_ITEMS,
+    );
+    if is_pinned && current >= max {
+        return Err(PinMutationError::PinLimitReached { current, max });
     }
     let common = history[index].common_mut();
     common.is_pinned = is_pinned;
@@ -1336,13 +1362,21 @@ pub fn toggle_history_item_pinned_result(
     id: &str,
     pinned_at: u64,
     max_history_count: usize,
-) -> Result<HistoryMutationResult, String> {
+    max_pinned_items: usize,
+) -> Result<HistoryMutationResult, PinMutationError> {
     let is_pinned = history
         .iter()
         .find(|entry| entry.id() == id)
         .ok_or_else(|| format!("history item {id} was not found"))?
         .is_pinned();
-    set_history_item_pinned_result(history, id, !is_pinned, pinned_at, max_history_count)
+    set_history_item_pinned_result(
+        history,
+        id,
+        !is_pinned,
+        pinned_at,
+        max_history_count,
+        max_pinned_items,
+    )
 }
 
 pub fn clear_history_keep_pinned_result(history: Vec<HistoryEntry>) -> HistoryMutationResult {
@@ -1464,7 +1498,8 @@ mod tests {
         reveal_sensitive_history_entry, set_history_item_pinned_result, trim_history_result,
         HistoryChange, HistoryEntry, HistoryKind, HistoryPreviewInvalidation, HistorySnapshot,
         LegacyTextHistoryEntry, NewHistoryItem, SensitiveHistoryRevealError,
-        SensitiveHistoryRevealErrorCode, MAX_PERSISTED_HISTORY_COUNT, MAX_PINNED_HISTORY_COUNT,
+        SensitiveHistoryRevealErrorCode, LEGACY_MAX_PINNED_HISTORY_COUNT,
+        MAX_PERSISTED_HISTORY_COUNT,
     };
 
     fn text_entry(text: &str, copied_at: u64, source_app: Option<&str>) -> HistoryEntry {
@@ -2142,8 +2177,47 @@ mod tests {
     }
 
     #[test]
+    fn configurable_pin_cap_unpin_and_idempotence() {
+        use super::PinMutationError;
+        for max in [5, 10, 20] {
+            let mut history = (0..=max)
+                .map(|i| text_entry(&format!("entry-{i}"), i as u64, None))
+                .collect::<Vec<_>>();
+            let ids = history
+                .iter()
+                .map(|entry| entry.id().to_string())
+                .collect::<Vec<_>>();
+            for id in &ids[..max] {
+                history = set_history_item_pinned_result(history, id, true, 100, 500, max)
+                    .unwrap()
+                    .history;
+            }
+            let before = history.clone();
+            assert_eq!(
+                set_history_item_pinned_result(history.clone(), &ids[max], true, 200, 500, max)
+                    .unwrap_err(),
+                PinMutationError::PinLimitReached { current: max, max }
+            );
+            let no_op =
+                set_history_item_pinned_result(history, &ids[0], true, 999, 500, max).unwrap();
+            assert!(!no_op.changed);
+            assert_eq!(no_op.history, before);
+            history = set_history_item_pinned_result(no_op.history, &ids[0], false, 300, 500, max)
+                .unwrap()
+                .history;
+            history = set_history_item_pinned_result(history, &ids[max], true, 400, 500, max)
+                .unwrap()
+                .history;
+            assert_eq!(
+                history.iter().filter(|entry| entry.is_pinned()).count(),
+                max
+            );
+        }
+    }
+
+    #[test]
     fn pin_cap_and_total_persisted_bound_are_enforced() {
-        let mut history = (0..MAX_PINNED_HISTORY_COUNT)
+        let mut history = (0..LEGACY_MAX_PINNED_HISTORY_COUNT)
             .map(|index| {
                 let mut entry = text_entry(&format!("pin-{index}"), index as u64, None);
                 entry.common_mut().is_pinned = true;
@@ -2154,26 +2228,24 @@ mod tests {
         let candidate = text_entry("candidate", 1000, None);
         let candidate_id = candidate.id().to_string();
         history.push(candidate);
-        let error =
-            set_history_item_pinned_result(history, &candidate_id, true, 2000, 500).unwrap_err();
-        assert!(error.contains(super::PIN_LIMIT_ERROR_CODE));
-        assert_eq!(MAX_PERSISTED_HISTORY_COUNT, 500 + MAX_PINNED_HISTORY_COUNT);
-        let zh = super::HistoryCommandError::from_message(
-            format!("{}: limit", super::PIN_LIMIT_ERROR_CODE),
-            &crate::settings::AppLanguage::ZhCn,
+        let error = set_history_item_pinned_result(history, &candidate_id, true, 2000, 500, 10)
+            .unwrap_err();
+        assert_eq!(
+            error,
+            super::PinMutationError::PinLimitReached {
+                current: 100,
+                max: 10
+            }
         );
-        let en = super::HistoryCommandError::from_message(
-            format!("{}: limit", super::PIN_LIMIT_ERROR_CODE),
-            &crate::settings::AppLanguage::En,
+        assert_eq!(
+            MAX_PERSISTED_HISTORY_COUNT,
+            500 + LEGACY_MAX_PINNED_HISTORY_COUNT
         );
-        let ja = super::HistoryCommandError::from_message(
-            format!("{}: limit", super::PIN_LIMIT_ERROR_CODE),
-            &crate::settings::AppLanguage::Ja,
-        );
-        assert_eq!(zh.code, super::PIN_LIMIT_ERROR_CODE);
-        assert!(zh.message.contains("最多"));
-        assert!(en.message.contains("up to 100"));
-        assert!(ja.message.contains("最大 100 件"));
+        let wire = super::HistoryCommandError::from_pin(error, &crate::settings::AppLanguage::En);
+        let json = serde_json::to_value(wire).unwrap();
+        assert_eq!(json["code"], super::PIN_LIMIT_ERROR_CODE);
+        assert_eq!(json["current"], 100);
+        assert_eq!(json["max"], 10);
     }
 
     #[test]
@@ -2184,7 +2256,7 @@ mod tests {
         pinned.common_mut().pinned_at = Some(10);
         let history = vec![pinned, text_entry("new", 100, None)];
         let unpinned =
-            set_history_item_pinned_result(history.clone(), &pinned_id, false, 20, 1).unwrap();
+            set_history_item_pinned_result(history.clone(), &pinned_id, false, 20, 1, 10).unwrap();
         assert_eq!(unpinned.history.len(), 1);
         assert_eq!(unpinned.history[0].common().display_text, "new");
 

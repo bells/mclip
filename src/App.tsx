@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 
+import { PinToastHost } from "./components/PinToastHost";
+import { getNumericHistoryTargetId } from "./utils/pinHistory";
 import { AppFooter } from "./components/AppFooter";
 import { AppHeader } from "./components/AppHeader";
 import { HistoryGroupNav } from "./components/HistoryGroupNav";
@@ -462,6 +464,20 @@ function App() {
         return;
       }
 
+      const numericTargetId = getNumericHistoryTargetId(visibleHistory, {
+        key: event.key,
+        hasModifier: hasAnyModifier,
+        isEditing: isTextEditingTarget(event.target),
+        isComposing: event.isComposing,
+        repeat: event.repeat,
+        blocked: isClearConfirmOpen || keyboardPreviewGroupIndex !== null,
+      });
+      if (numericTargetId !== null) {
+        event.preventDefault();
+        void selectHistoryItem(numericTargetId);
+        return;
+      }
+
       const deleteTargetId = getMainHistoryDeleteTargetId({
         activeTarget,
         hasModifier: hasAnyModifier,
@@ -553,6 +569,9 @@ function App() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [
+    visibleHistory,
+    selectHistoryItem,
+    isClearConfirmOpen,
     closeHistoryGroupPreview,
     clearKeyboardPreviewGroup,
     activePreviewSide,
@@ -637,6 +656,7 @@ function App() {
       className={ui.appFrame}
       onPointerMove={() => setIsKeyboardNavigating(false)}
     >
+      <PinToastHost language={settings.language} />
       <div className={ui.appPanel}>
         <div className={ui.mainHeaderMeasure} ref={headerMeasureRef}>
           <AppHeader

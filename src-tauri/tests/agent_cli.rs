@@ -828,6 +828,145 @@ fn cli_rejects_the_one_hundred_and_first_pin_without_mutating_history() {
         "--json",
     ]);
     assert_eq!(output.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&output.stderr).contains("pinnedHistoryLimitReached"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Pin limit reached (100/10)"));
     assert_eq!(fs::read(&history_path).unwrap(), before);
+}
+
+#[test]
+fn pin_settings_and_metadata_are_scoped_compatible_and_masked() {
+    let history_path = missing_history_fixture("pin-settings");
+    fs::create_dir_all(history_path.parent().unwrap()).unwrap();
+    let settings_path = history_path.with_file_name("settings.json");
+    let entries = (0..22)
+        .map(|i| {
+            serde_json::json!({
+                "kind":"text", "id":format!("pin-{i}"), "displayText":format!("text-{i}"),
+                "text":format!("text-{i}"), "firstCopiedAt":i, "lastCopiedAt":i, "copyCount":1,
+                "isPinned":false, "pinnedAt":null
+            })
+        })
+        .collect::<Vec<_>>();
+    let path = history_path.to_str().unwrap();
+    for cap in [5, 10, 20] {
+        fs::write(&history_path, serde_json::to_vec(&entries).unwrap()).unwrap();
+        fs::write(
+            &settings_path,
+            format!(r#"{{"launchAtLogin":false,"maxHistoryCount":200,"maxPinnedItems":{cap}}}"#),
+        )
+        .unwrap();
+        for i in 0..cap {
+            assert!(
+                run_cli(&["--history-path", path, "pin", "--id", &format!("pin-{i}")])
+                    .status
+                    .success()
+            );
+        }
+        let before = fs::read(&history_path).unwrap();
+        let rejected = run_cli(&["--history-path", path, "pin", "--id", "pin-21"]);
+        assert_eq!(rejected.status.code(), Some(1));
+        assert!(rejected.stdout.is_empty());
+        let advice = if cap < 20 {
+            "Unpin an item first or update settings."
+        } else {
+            "Unpin an item first."
+        };
+        assert_eq!(
+            String::from_utf8(rejected.stderr).unwrap(),
+            format!("mclip-cli: Pin limit reached ({cap}/{cap}). {advice}\n")
+        );
+        assert_eq!(fs::read(&history_path).unwrap(), before);
+        assert!(run_cli(&["--history-path", path, "pin", "--id", "pin-0"])
+            .status
+            .success());
+        assert_eq!(fs::read(&history_path).unwrap(), before);
+        let meta = run_cli(&[
+            "--history-path",
+            path,
+            "list",
+            "--format",
+            "json",
+            "--with-meta",
+            "--limit",
+            "1",
+            "--pinned",
+        ]);
+        let value: serde_json::Value = serde_json::from_slice(&meta.stdout).unwrap();
+        assert_eq!(value["meta"]["pinnedCount"], cap);
+        assert_eq!(value["meta"]["maxPinnedItems"], cap);
+        assert_eq!(value["data"].as_array().unwrap().len(), 1);
+        assert!(run_cli(&["--history-path", path, "unpin", "--id", "pin-0"])
+            .status
+            .success());
+        assert!(run_cli(&["--history-path", path, "pin", "--id", "pin-21"])
+            .status
+            .success());
+    }
+    fs::write(&settings_path, b"invalid").unwrap();
+    for args in [
+        vec!["pin", "--id", "pin-0"],
+        vec!["unpin", "--id", "pin-0"],
+        vec!["list", "--json", "--with-meta"],
+    ] {
+        let output = run_cli(&[vec!["--history-path", path], args].concat());
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty());
+        assert!(!String::from_utf8_lossy(&output.stderr).contains(path));
+    }
+    let old = run_cli(&["--history-path", path, "list", "--json"]);
+    assert!(serde_json::from_slice::<serde_json::Value>(&old.stdout)
+        .unwrap()
+        .is_array());
+    for args in [
+        vec!["list", "--with-meta"],
+        vec!["search", "text", "--with-meta"],
+    ] {
+        assert_eq!(
+            run_cli(&[vec!["--history-path", path], args].concat())
+                .status
+                .code(),
+            Some(2)
+        );
+    }
+    fs::remove_file(&settings_path).unwrap();
+    let meta = run_cli(&[
+        "--history-path",
+        path,
+        "list",
+        "--json",
+        "--with-meta",
+        "--kind",
+        "image",
+    ]);
+    let value: serde_json::Value = serde_json::from_slice(&meta.stdout).unwrap();
+    assert_eq!(
+        value["meta"],
+        serde_json::json!({"pinnedCount":20,"maxPinnedItems":10})
+    );
+    assert_eq!(value["data"], serde_json::json!([]));
+    fs::create_dir(&settings_path).unwrap();
+    assert_eq!(
+        run_cli(&["--history-path", path, "pin", "--id", "pin-0"])
+            .status
+            .code(),
+        Some(1)
+    );
+    fs::remove_dir(&settings_path).unwrap();
+    let mut secret = entries[0].clone();
+    secret["text"] = serde_json::json!("-----BEGIN PRIVATE KEY----- fixture");
+    secret["displayText"] = secret["text"].clone();
+    secret["secretType"] = serde_json::json!("privateKey");
+    secret["secretDetectorVersion"] = serde_json::json!(1);
+    fs::write(&history_path, serde_json::to_vec(&vec![secret]).unwrap()).unwrap();
+    let masked = run_cli(&["--history-path", path, "list", "--json", "--with-meta"]);
+    assert!(!String::from_utf8_lossy(&masked.stdout).contains("BEGIN PRIVATE KEY"));
+    let revealed = run_cli(&[
+        "--history-path",
+        path,
+        "list",
+        "--json",
+        "--with-meta",
+        "--reveal-secrets",
+    ]);
+    assert!(String::from_utf8_lossy(&revealed.stdout).contains("BEGIN PRIVATE KEY"));
+    fs::remove_dir_all(history_path.parent().unwrap()).unwrap();
 }

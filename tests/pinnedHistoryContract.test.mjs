@@ -27,7 +27,7 @@ test("desktop pin commands stay typed across Rust, IPC wrappers, and handler reg
   assert.match(facade, /export \* from "\.\.\/services\/ipc\/commands"/);
 });
 
-test("pin affordances stay in detail action bars and out of compact list rows", async () => {
+test("pin actions stay in detail action bars and out of compact list rows", async () => {
   const [mainList, groupList, detailPanel, itemDetail, groupDetail, viewer, windowSource] =
     await Promise.all([
       read("src/components/HistoryList.tsx"),
@@ -50,7 +50,7 @@ test("pin affordances stay in detail action bars and out of compact list rows", 
   assert.match(windowSource, /set_focusable\(false\)/);
 });
 
-test("the main list separates mixed pin results without section labels or row markers", async () => {
+test("the main list separates mixed pin results without section labels", async () => {
   const [mainList, styles, i18n] = await Promise.all([
     read("src/components/HistoryList.tsx"),
     read("src/uiStyles.ts"),

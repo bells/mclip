@@ -14,7 +14,7 @@ const features = [
   },
   {
     title: "文本、图片、文件都能找回",
-    body: "保存文字、截图和 Finder 或资源管理器里的文件。最多可将 100 条常用记录置顶在普通历史之前，不占主界面或分组条数；选择文件历史时仍会回填系统文件列表，详情仍会显示完整绝对路径和文件名。",
+    body: "保存文字、截图和 Finder 或资源管理器里的文件。置顶上限默认为 10 条，可在历史设置中调整为 5–20，降低上限保留已有置顶。常用记录置顶在普通历史之前，不占主界面或分组条数；选择文件历史时仍会回填系统文件列表，详情仍会显示完整绝对路径和文件名。",
   },
   {
     title: "紧凑的独立预览",
@@ -135,6 +135,7 @@ const faqItems = [
       "printf '%s' 'pipeline clipboard text' | mclip-cli copy",
       "mclip-cli pin --id h_xxx",
       "mclip-cli list --pinned --json",
+      "mclip-cli list --json --with-meta",
     ]}
     points={agentCliPoints}
     note="安装脚本会下载同一 GitHub Release 的预构建 mclip-cli 与 SHA-256 校验资产，验证成功后才替换旧 CLI；可用 MCLIP_VERSION 固定版本。只有二进制资产不存在时才回退到源码构建。Windows CLI 用户请在 Git Bash 或兼容 POSIX shell 中运行。"

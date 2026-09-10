@@ -82,7 +82,7 @@ test("history row density compacts text and files without shrinking images", asy
     /archiveDivider:\s*\n\s*"[^"]*-mb-px[^"]*h-px/,
   );
   assert.match(listSource, /historyItemRow\(\s*item\.kind/);
-  assert.match(listSource, /historyItem\(item\.kind, showItemNumbers\)/);
+  assert.match(listSource, /historyItem\(item\.kind, showItemNumbers \|\| item\.isPinned\)/);
   assert.match(groupPreviewSource, /previewItemRow\(\s*item\.kind/);
   assert.match(
     groupPreviewSource,

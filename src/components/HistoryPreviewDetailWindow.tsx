@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { usePinHistory } from "../hooks/usePinHistory";
 import { useApplyAppTheme } from "../hooks/useApplyAppTheme";
 import { getTranslations } from "../i18n";
 import {
@@ -12,7 +13,6 @@ import {
   listenToHistoryPreviewPlacementUpdated,
   notifyHistoryPreviewPointerEntered,
   openImageViewer,
-  toggleHistoryItemPinned,
   requestHistoryPreviewClose,
   type PreviewWindowSide,
 } from "../lib/tauri";
@@ -31,6 +31,7 @@ export function HistoryPreviewDetailWindow() {
   const [previewSide, setPreviewSide] = useState<PreviewWindowSide>("right");
   const [isDeleting, setIsDeleting] = useState(false);
   const lastPointerNotifyAtRef = useRef(0);
+  const { isPinPending, togglePin } = usePinHistory(preview);
   useApplyAppTheme(preview?.appearanceTheme ?? "system");
 
   useEffect(() => {
@@ -151,11 +152,11 @@ export function HistoryPreviewDetailWindow() {
         headerAction={
           <>
             <HistoryPinButton
-              disabled={isDeleting}
+              disabled={isDeleting || isPinPending}
               isPinned={preview.item.isPinned}
               label={preview.item.isPinned ? translations.unpinItemAriaLabel : translations.pinItemAriaLabel}
               onToggle={() => {
-                void toggleHistoryItemPinned(preview.item.id);
+                void togglePin(preview.item.id);
               }}
             />
             {imageItem ? (

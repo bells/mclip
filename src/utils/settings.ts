@@ -3,6 +3,7 @@
 import {
   clampHistoryGroupItemCount,
   clampHistoryCount,
+  clampMaxPinnedItems,
   clampMainWindowItemCount,
   DEFAULT_SETTINGS,
   MAX_IGNORED_SOURCE_APP_COUNT,
@@ -50,6 +51,7 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
       ? settings.language
       : DEFAULT_SETTINGS.language,
     maxHistoryCount,
+    maxPinnedItems: clampMaxPinnedItems(settings.maxPinnedItems),
     menuBarIconStyle: MENU_BAR_ICON_STYLES.includes(settings.menuBarIconStyle)
       ? settings.menuBarIconStyle
       : DEFAULT_SETTINGS.menuBarIconStyle,

@@ -43,7 +43,7 @@ test("site publishes the v0.1.1 release and current product capabilities", async
   assert.match(enChangelog, /tray-ready median improved 51\.3%/);
   assert.match(ja, /現在の公開バージョンは 0\.1\.1/);
   assert.match(ja, /Windows では Git Bash/);
-  assert.match(ja, /最大 100 件/);
+  assert.match(ja, /既定で 10 件、履歴設定で 5〜20 件/);
   assert.match(jaChangelog, /0\.1\.1/);
   assert.match(jaChangelog, /Tailwind CSS 4/);
   assert.match(jaChangelog, /SHA-256/);
@@ -57,10 +57,12 @@ test("site publishes the v0.1.1 release and current product capabilities", async
   assert.match(en, /SHA-256 companion/);
   assert.match(llms, /On Windows, run the shell installer from Git Bash/);
   assert.match(llms, /preserves an existing CLI on verification failure/);
-  assert.match(zh, /最多可将 100 条常用记录置顶/);
-  assert.match(en, /Pin up to 100 frequently reused items/);
+  assert.match(zh, /置顶上限默认为 10 条.*5–20/);
+  assert.match(en, /pin limit defaults to 10, adjustable from 5 to 20/);
   assert.match(llms, /mclip-cli list --pinned --json/);
   assert.match(llms, /--keep-pinned/);
+  for (const page of [zh, en, ja]) assert.match(page, /list --json --with-meta/);
+  assert.match(llms, /pinnedCount, maxPinnedItems/);
 });
 
 test("site includes trust, installation, and FAQ content", async () => {

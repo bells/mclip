@@ -42,7 +42,7 @@ return to their current work with minimal interruption.
 - File history must be restored as a system file list, not as plain path text.
 - History is local only. `history.json`, `settings.json`, and image assets live
   in the local app config directory.
-- Duplicate ordinary clipboard content is moved back to the top. Pins are ordered by most recent pin time before ordinary history; duplicate copying preserves pin time. Up to 100 pins are retained independently of ordinary limits.
+- Duplicate ordinary clipboard content is moved back to the top. Pins are ordered by most recent pin time before ordinary history; duplicate copying preserves pin time. The pin admission limit defaults to 10 and is configurable from 5 to 20; lowering it preserves existing pins, independently of ordinary limits.
 - Main-window and archive-group visible item counts default to `10` and `50`
   respectively. Main count accepts `5..=maxHistoryCount`; group count accepts `5..=100`. Ordinary retention defaults to 200 and accepts `10..=500`.
 - Preferences include launch at login, language, appearance theme, menu bar icon

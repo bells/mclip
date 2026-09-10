@@ -8,10 +8,10 @@ use crate::clipboard::{write_history_item_to_clipboard, write_text_to_clipboard_
 use crate::history::{
     cleanup_unused_image_assets_for_history_path, clear_history_from_path,
     clear_history_keep_pinned_from_path, load_history_from_path, merge_text_history_item,
-    persist_history_to_path, remove_history_item_by_id, toggle_history_item_pinned_from_path,
+    persist_history_to_path, remove_history_item_by_id, set_history_item_pinned_from_path,
     HistoryEntry, HistoryKind,
 };
-use crate::settings::MAX_MAX_HISTORY_COUNT;
+use crate::settings::{load_settings_from_path, MAX_MAX_HISTORY_COUNT};
 use crate::text_transform::{
     perform_text_transform, TextTransformAction, TextTransformRequest,
     MAX_TEXT_TRANSFORM_INPUT_BYTES,
@@ -54,6 +54,19 @@ impl CliInput for StandardInput {
             .map_err(|error| CliError::Runtime(error.to_string()))?;
         Ok(bytes)
     }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PinMetadata {
+    pinned_count: usize,
+    max_pinned_items: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct ListWithMeta {
+    meta: PinMetadata,
+    data: Vec<HistoryEntry>,
 }
 
 #[derive(Debug, Serialize)]
@@ -155,7 +168,7 @@ fn run<I: CliInput>(args: Vec<String>, input: &mut I) -> Result<String, CliError
     let history = load_history_from_path(&path).map_err(CliError::Runtime)?;
 
     match command.as_str() {
-        "list" => run_list(&history, command_args),
+        "list" => run_list(&path, &history, command_args),
         "get" => run_get(&history, command_args),
         "search" => run_search(&history, command_args),
         "context" => run_context(&history, command_args),
@@ -197,7 +210,8 @@ fn extract_global_options(args: Vec<String>) -> Result<(Option<PathBuf>, Vec<Str
     Ok((history_path, rest))
 }
 
-fn run_list(history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
+fn run_list(path: &Path, history: &[HistoryEntry], args: &[String]) -> Result<String, CliError> {
+    let mut with_meta = false;
     let mut limit = 10;
     let mut format = OutputFormat::Text;
     let mut kind = None;
@@ -207,6 +221,10 @@ fn run_list(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErro
 
     while index < args.len() {
         match args[index].as_str() {
+            "--with-meta" => {
+                with_meta = true;
+                index += 1;
+            }
             "--limit" => {
                 limit = parse_usize_option(args, index, "--limit")?;
                 index += 2;
@@ -241,6 +259,25 @@ fn run_list(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErro
     }
 
     let entries = select_recent(history, limit, kind, pinned_only);
+    if with_meta {
+        if format != OutputFormat::Json {
+            return Err(CliError::Usage(
+                "--with-meta requires list JSON output".to_string(),
+            ));
+        }
+        let settings = load_settings_from_path(&path.with_file_name("settings.json"))
+            .map_err(CliError::Runtime)?;
+        let output = ListWithMeta {
+            meta: PinMetadata {
+                pinned_count: history.iter().filter(|entry| entry.is_pinned()).count(),
+                max_pinned_items: settings.max_pinned_items,
+            },
+            data: presentation_entries(&entries, reveal_secrets),
+        };
+        return serde_json::to_string(&output)
+            .map(|json| format!("{json}\n"))
+            .map_err(|_| CliError::Runtime("Unable to serialize history.".to_string()));
+    }
     format_entries(&entries, format, reveal_secrets)
 }
 
@@ -715,12 +752,16 @@ fn run_pin(
     let (selector, json) = parse_selector_action_args(args, command)?;
     let selected = find_entry(history, selector)?;
     let id = selected.id().to_string();
-    let (next_history, final_is_pinned) = if selected.is_pinned() == is_pinned {
-        (history.to_vec(), is_pinned)
-    } else {
-        toggle_history_item_pinned_from_path(path, &id, MAX_MAX_HISTORY_COUNT as usize)
-            .map_err(CliError::Runtime)?
-    };
+    let settings = load_settings_from_path(&path.with_file_name("settings.json"))
+        .map_err(CliError::Runtime)?;
+    let (next_history, final_is_pinned) = set_history_item_pinned_from_path(
+        path,
+        &id,
+        is_pinned,
+        MAX_MAX_HISTORY_COUNT as usize,
+        settings.max_pinned_items,
+    )
+    .map_err(|error| CliError::Runtime(error.to_string()))?;
 
     format_action_result(
         ActionResult {
@@ -1110,7 +1151,8 @@ fn agent_safety_contract() -> Vec<&'static str> {
         "copy writes one selected history item back to the system clipboard.",
         "copy stdin mode writes only the supplied UTF-8 text to the system clipboard and does not mutate history.",
         "transform reads no history, writes no clipboard, executes no shell or network action, and prints content-only stdout on success.",
-        "pin and unpin mutate one stable entry; --pinned filters supported read commands.",
+        "list --json --with-meta includes global pinnedCount and maxPinnedItems; plain list --json remains an array.",
+        "pin and unpin set one stable entry idempotently using settings.json beside history; --pinned filters supported reads.",
         "delete removes one selected item; clear requires --yes, and --keep-pinned preserves pins.",
         "mclip-cli does not start the desktop UI and all history data stays local.",
     ]
@@ -1436,7 +1478,7 @@ fn default_config_dir() -> Option<PathBuf> {
 
 fn usage() -> &'static str {
     r#"Usage:
-  mclip-cli [--history-path PATH] list [--limit N] [--kind text|image|files] [--pinned] [--reveal-secrets] [--json|--format text|json|raw|markdown]
+  mclip-cli [--history-path PATH] list [--with-meta] [--limit N] [--kind text|image|files] [--pinned] [--reveal-secrets] [--json|--format text|json|raw|markdown]
   mclip-cli [--history-path PATH] get (--index N|--id ID) [--reveal-secrets] [--raw|--json|--format text|json|raw|markdown]
   mclip-cli [--history-path PATH] search QUERY [--limit N] [--kind text|image|files] [--pinned] [--reveal-secrets] [--json|--format text|json|raw|markdown]
   mclip-cli [--history-path PATH] context [--last N] [--kind text|image|files] [--pinned] [--reveal-secrets] [--json|--format text|json|raw|markdown]

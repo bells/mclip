@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { usePinHistory } from "../hooks/usePinHistory";
 import { useApplyAppTheme } from "../hooks/useApplyAppTheme";
 import { getTranslations } from "../i18n";
 import {
@@ -7,7 +8,6 @@ import {
   deleteHistoryItem,
   listenToImageViewerUpdated,
   listenToHistoryPreviewInvalidated,
-  toggleHistoryItemPinned,
   toggleImageViewerMaximize,
 } from "../lib/tauri";
 import type { ImageViewerPayload } from "../types";
@@ -17,6 +17,7 @@ import { reportAuxiliaryListenerReady } from "../services/auxiliaryWindows";
 import { DialogWindowFrame } from "./DialogWindowFrame";
 import { HistoryDetailDeleteButton } from "./HistoryDetailDeleteButton";
 import { HistoryDetailPanel } from "./HistoryDetailPanel";
+import { PinToastHost } from "./PinToastHost";
 import { HistoryPinButton } from "./HistoryPinButton";
 import { CloseIcon, ExpandIcon, RestoreIcon } from "./UiIcons";
 
@@ -28,6 +29,7 @@ export function FullscreenImageViewer() {
   const [isMaximized, setIsMaximized] = useState(false);
   const isClosingRef = useRef(false);
   const translations = getTranslations(payload?.language ?? "system");
+  const { isPinPending, togglePin } = usePinHistory(payload);
   useApplyAppTheme(payload?.appearanceTheme ?? "system");
 
   useEffect(() => {
@@ -169,6 +171,7 @@ export function FullscreenImageViewer() {
 
   return (
     <DialogWindowFrame className={ui.imageViewerWindowFrame}>
+      <PinToastHost language={payload.language} />
       <HistoryDetailPanel
         ariaLabel={translations.imageViewer.ariaLabel}
         appearanceTheme={payload.appearanceTheme}
@@ -177,11 +180,11 @@ export function FullscreenImageViewer() {
         headerAction={
           <>
             <HistoryPinButton
-              disabled={isClosing || isDeleting}
+              disabled={isClosing || isDeleting || isPinPending}
               isPinned={payload.item.isPinned}
               label={payload.item.isPinned ? translations.history.unpinItemAriaLabel : translations.history.pinItemAriaLabel}
               onToggle={() => {
-                void toggleHistoryItemPinned(payload.item.id);
+                void togglePin(payload.item.id);
               }}
             />
             <button

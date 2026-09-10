@@ -91,6 +91,7 @@ const DESTINATION_DEFINITIONS: readonly DestinationDefinition[] = [
 ];
 
 const SETTING_DEFINITIONS: readonly SettingDefinition[] = [
+  setting("history.pin-limit", "history", "maxPinnedItemsLabel", "maxPinnedItemsDescription", ["pin", "置顶", "ピン留め"]),
   setting("general.language", "appearance", "languageLabel", "languageDescription", ["locale", "语言", "language", "言語"]),
   setting("general.launch-at-login", "general", "launchAtLoginLabel", "launchAtLoginDescription", ["startup", "login"]),
   setting("general.auto-paste", "general", "autoPasteLabel", "autoPasteDescription", ["paste", "accessibility"]),

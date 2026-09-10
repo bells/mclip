@@ -126,6 +126,7 @@ export type AppSettings = {
   language: AppLanguage;
   launchAtLogin: boolean;
   maxHistoryCount: number;
+  maxPinnedItems: number;
   menuBarIconStyle: MenuBarIconStyle;
   mainWindowItemCount: number;
   historyGroupItemCount: number;
@@ -247,10 +248,20 @@ export type HistorySnapshot = {
   revision: number;
 };
 
-export type HistoryCommandError = {
-  code: "pinnedHistoryLimitReached" | "historyMutationFailed";
+export interface PinLimitError {
+  code: "pinnedHistoryLimitReached";
   message: string;
-};
+  current: number;
+  max: number;
+}
+export interface HistoryMutationError {
+  code: "historyMutationFailed";
+  message: string;
+}
+export type HistoryCommandError = PinLimitError | HistoryMutationError;
+export type PinFailureNotice =
+  | Omit<PinLimitError, "message">
+  | { code: "historyMutationFailed" };
 
 export type SensitiveHistoryRevealErrorCode =
   | "itemNotFound"

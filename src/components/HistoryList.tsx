@@ -6,6 +6,7 @@ import { historyItem, historyItemRow, ui } from "../uiStyles";
 import { getHistoryListDisplayText } from "../utils/history";
 import { serializeMainKeyboardNavigationTarget } from "../utils/keyboardNavigation";
 import { isSensitiveTextEntry } from "../utils/sensitiveContent";
+import { PinIcon } from "./UiIcons";
 import { ImageThumb } from "./ImageThumb";
 import { HistoryListText } from "./HistoryListText";
 
@@ -73,7 +74,7 @@ export function HistoryList({
               onMouseLeave={onScheduleClosePreview}
             >
               <button
-                className={historyItem(item.kind, showItemNumbers)}
+                className={historyItem(item.kind, showItemNumbers || item.isPinned)}
                 aria-label={
                   isSensitiveTextEntry(item)
                     ? translations.copySensitiveItemAriaLabel
@@ -99,7 +100,11 @@ export function HistoryList({
                 }}
                 type="button"
               >
-                {showItemNumbers ? (
+                {item.isPinned ? (
+                  <span className={ui.itemIndex} aria-label={translations.pinnedStatus} role="img">
+                    <PinIcon className="size-3 opacity-75" />
+                  </span>
+                ) : showItemNumbers ? (
                   <span className={ui.itemIndex}>{item.position}.</span>
                 ) : null}
                 {item.kind === "image" ? (

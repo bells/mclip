@@ -12,6 +12,7 @@ type HistoryTranslations = ReturnType<typeof getTranslations>["history"];
 
 type HistoryItemPreviewWindowProps = {
   preview: HistoryItemPreviewPayload;
+  isPinPending: boolean;
   translations: HistoryTranslations;
   onDeleteItem: (id: string) => void;
   onViewFullscreen: () => Promise<void>;
@@ -23,6 +24,7 @@ type HistoryItemPreviewWindowProps = {
 
 export function HistoryItemPreviewWindow({
   preview,
+  isPinPending,
   translations,
   onDeleteItem,
   onViewFullscreen,
@@ -44,6 +46,7 @@ export function HistoryItemPreviewWindow({
         headerAction={
           <>
             <HistoryPinButton
+              disabled={isPinPending}
               isPinned={preview.item.isPinned}
               label={preview.item.isPinned ? translations.unpinItemAriaLabel : translations.pinItemAriaLabel}
               onToggle={() => onTogglePinned(preview.item.id)}

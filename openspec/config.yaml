@@ -18,6 +18,9 @@ context: |
   Keep previews independent and non-focusable, main fixed at 320px, native
   pointer hit testing, request-revision guards, targeted history deltas, and
   bounded single-flight image caching. Preferences saves immediately.
+  Pin admission defaults to 10 and clamps 5..=20; lowering it retains existing pins.
+  GUI ordinary numbers exclude pins; CLI indices include them. list --with-meta
+  opts into JSON metadata without changing the default array contract.
   Preserve pins, original copy semantics, bounded local sensitive masking,
   and explicit confirmation for history replacement/clear. No clipboard uploads.
   Desktop and website copy covers Chinese, English, and Japanese; CLI remains

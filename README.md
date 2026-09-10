@@ -32,7 +32,7 @@
 - 全局快捷键 `CommandOrControl+Shift+V` 唤起或隐藏主窗口。
 - 支持文本、图片、文件三类剪贴板历史；文件历史可回填为系统文件列表，方便继续粘贴文件本身。
 - 历史记录本地保存，重复内容会合并并移动到最前。
-- 支持将常用文本、图片和文件置顶；置顶记录固定显示在普通历史之前，不占用主窗口或历史分组条数，并且不会被自动历史裁剪删除。最多可置顶 100 条。
+- 支持将常用文本、图片和文件置顶；置顶记录固定显示在普通历史之前，不占用主窗口或历史分组条数，并且不会被自动历史裁剪删除。置顶上限默认 10 条，可在历史设置中调整为 5–20；降低上限保留已有置顶。主列表置顶显示图标，普通项从 1 编号。非输入状态下数字键 1–9/0 选择前十条普通项。
 - 主窗口默认展示最新 10 条，更多记录默认按每 50 条分组；两个展示条数都可在偏好设置中调整。
 - 历史分组使用独立透明 preview 窗口，不会撑宽主窗口。
 - 支持单条历史详情、分组 hover 详情、独立大图查看器、图片缩略图、颜色代码 swatch、常用表情放大展示和文件详情。
@@ -79,6 +79,7 @@ pnpm run cli -- transform url-component-encode --text "docs/mclip quick actions"
 pnpm run cli -- delete --id h_xxx
 pnpm run cli -- pin --id h_xxx
 pnpm run cli -- list --pinned --json
+pnpm run cli -- list --json --with-meta
 pnpm run cli -- unpin --index 1
 pnpm run cli -- clear --yes --keep-pinned
 pnpm run cli -- clear --yes
@@ -99,6 +100,8 @@ curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
 Windows CLI 用户请在 Git Bash（或兼容的 POSIX shell）中执行该命令；桌面应用仍应使用 GitHub Releases 提供的 `.msi` 或 `.exe` 安装包。
+
+`list --json --with-meta` 输出 `{ meta: { pinnedCount, maxPinnedItems }, data }`，计数基于筛选前完整历史；不加 `--with-meta` 仍返回数组。`--index` 指完整 CLI 列表（包含置顶），与 GUI 普通项序号不同。pin/unpin 读取所选历史同目录的 `settings.json`，缺失用默认上限，损坏时报错。
 
 当前 CLI 不启动桌面 UI。`--help`/`help` 输出帮助，`--version`、`-V` 和 `version` 输出与 mclip 产品 Release 一致的版本号，且这些信息命令不会读取历史文件。`agent` 会输出一个面向 AI Agent 的聚合包，包含最近历史、可用命令能力表和安全边界，默认 Markdown，也支持 `--json`；`list/search/context/agent --pinned` 只返回置顶记录；`pin` 和 `unpin` 使用稳定 ID 或当前快照的一位起始序号；`clear --yes` 仍清除全部历史并报告其中的置顶条数，`clear --yes --keep-pinned` 只清除普通历史。`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy --index|--id` 保留原有选择语义，`copy --stdin` 或隐式管道会把唯一的 UTF-8 输入写入系统剪贴板但不直接修改历史。`transform <action>` 支持 JSON 格式化/压缩、RFC 4648 Base64 和 URL component 编解码，成功 stdout 只包含结果，不读历史也不写剪贴板。桌面文本详情使用相同 Rust 变换服务，在独立结果窗口中预览；复制结果走普通剪贴板监听，替换原记录则必须确认并保留稳定 ID 与置顶状态。输入上限为 1 MiB，输出上限为 4 MiB。偏好设置会下载与当前桌面版本完全一致的 GitHub Release 资产；公开安装脚本默认下载最新公开 Release，也可通过 `MCLIP_VERSION` 固定版本。两条预构建安装路径都会先验证同 Release 的 SHA-256 资产，校验失败时保留旧 CLI。只有预构建二进制不存在时，公开脚本才回退到本地或源码构建并要求 Rust/Cargo 和 Git。
 
@@ -241,7 +244,7 @@ These performance results come from an Apple M2 macOS release build with an anon
 - Toggle the main window with `CommandOrControl+Shift+V`.
 - Saves text, image, and file clipboard history. File history is restored as a system file list, so files can be pasted again as files.
 - Keeps history locally, deduplicates repeated content, and moves reused items to the top.
-- Pins frequently reused text, images, or files ahead of ordinary history. Pins do not consume main/archive counts and are protected from automatic retention; up to 100 items can be pinned.
+- Pins frequently reused text, images, or files ahead of ordinary history. Pins do not consume main/archive counts and are protected from automatic retention; the admission limit defaults to 10 and is configurable from 5 to 20. Lowering it preserves existing pins. Pin icons replace pinned row numbers; ordinary rows start at 1. Outside text input, digits 1–9/0 select the first ten ordinary rows.
 - Shows the latest 10 items in the main window by default, with older items grouped by 10 by default; both display counts are configurable in Preferences.
 - Uses a separate transparent preview window for grouped history, so the main window stays compact.
 - Supports item details, grouped hover details, a dedicated image viewer, image thumbnails, color-code swatches, common emoji display, and file details.
@@ -288,6 +291,7 @@ pnpm run cli -- transform url-component-encode --text "docs/mclip quick actions"
 pnpm run cli -- delete --id h_xxx
 pnpm run cli -- pin --id h_xxx
 pnpm run cli -- list --pinned --json
+pnpm run cli -- list --json --with-meta
 pnpm run cli -- unpin --index 1
 pnpm run cli -- clear --yes --keep-pinned
 pnpm run cli -- clear --yes
@@ -308,6 +312,8 @@ curl -fsSL https://www.mclip.cn/install.sh | sh
 ```
 
 Windows CLI users should run this command from Git Bash or another POSIX-compatible shell. The desktop app should still be installed from the `.msi` or `.exe` asset on GitHub Releases.
+
+`list --json --with-meta` returns `{ meta: { pinnedCount, maxPinnedItems }, data }`, counting pins before filtering. Without `--with-meta`, JSON remains an array. CLI `--index` includes pins, unlike ordinary GUI row numbers. Pin/unpin read `settings.json` beside the selected history file, use defaults when missing, and fail safely when it is invalid.
 
 The current CLI does not start the desktop UI. `--help`/`help` prints help, and `--version`, `-V`, and `version` print the shared mclip product Release version without reading the history file. `agent` emits an AI-agent-ready bundle with recent history, command capabilities, and safety boundaries; it defaults to Markdown and supports `--json`. `list/search/context/agent --pinned` returns only pins; `pin` and `unpin` use a stable ID or a one-based index from the current snapshot. `clear --yes` still clears everything and reports the pinned count, while `clear --yes --keep-pinned` removes only ordinary history. `add` writes text into history without replacing the current system clipboard. `copy --index|--id` preserves selector behavior, while `copy --stdin` or implicit piped stdin writes the sole UTF-8 input to the system clipboard without directly mutating history. `transform <action>` provides JSON prettify/minify, RFC 4648 Base64, and URL-component encode/decode; successful stdout is content-only, and the command reads no history and writes no clipboard. Desktop text details use the same Rust service in an independent result window: Copy follows the normal watcher, while Replace requires confirmation and preserves the stable ID and pin state. Input is limited to 1 MiB and output to 4 MiB. Preferences downloads the GitHub Release asset for the exact desktop version; the public installer defaults to the latest published Release and accepts `MCLIP_VERSION` for a pinned install. Both prebuilt paths verify the companion SHA-256 asset before replacement and preserve the previous CLI on failure. The public script falls back to local/source builds only when a prebuilt binary is missing, so Rust/Cargo and Git are not required for the normal path.
 

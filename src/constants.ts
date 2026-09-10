@@ -14,6 +14,10 @@ export const GROUP_PREVIEW_DETAIL_WINDOW_WIDTH = ITEM_PREVIEW_WIDTH;
 export const GROUP_PREVIEW_WITH_DETAIL_WIDTH =
   GROUP_PREVIEW_WIDTH + GROUP_PREVIEW_DETAIL_WINDOW_WIDTH;
 
+export const MIN_MAX_PINNED_ITEMS = 5;
+export const MAX_MAX_PINNED_ITEMS = 20;
+export const DEFAULT_MAX_PINNED_ITEMS = 10;
+
 export const MIN_MAX_HISTORY_COUNT = 10;
 export const MAX_MAX_HISTORY_COUNT = 500;
 export const DEFAULT_MAIN_WINDOW_ITEM_COUNT = 10;
@@ -33,6 +37,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   language: "system",
   launchAtLogin: false,
   maxHistoryCount: 200,
+  maxPinnedItems: DEFAULT_MAX_PINNED_ITEMS,
   menuBarIconStyle: "light",
   mainWindowItemCount: DEFAULT_MAIN_WINDOW_ITEM_COUNT,
   historyGroupItemCount: DEFAULT_HISTORY_GROUP_ITEM_COUNT,
@@ -65,4 +70,10 @@ export function clampHistoryGroupItemCount(value: number) {
     MAX_HISTORY_GROUP_ITEM_COUNT,
     Math.max(MIN_VISIBLE_ITEM_COUNT, value),
   );
+}
+
+export function clampMaxPinnedItems(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value)
+    ? Math.min(MAX_MAX_PINNED_ITEMS, Math.max(MIN_MAX_PINNED_ITEMS, value))
+    : DEFAULT_MAX_PINNED_ITEMS;
 }

@@ -102,7 +102,10 @@ export function getVisibleHistoryItems(
   mainWindowItemCount: number,
 ) {
   const { pinned, unpinned } = splitPinnedHistoryItems(items);
-  return [...pinned, ...unpinned.slice(0, mainWindowItemCount)];
+  return [...pinned, ...unpinned.slice(0, mainWindowItemCount).map((item, index) => ({
+    ...item,
+    position: index + 1,
+  }))];
 }
 
 export function getHistoryGroups(

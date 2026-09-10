@@ -16,6 +16,9 @@ import mMenuBarIconUrl from "../../src-tauri/icons/menu-bar-icon-m-128.png";
 import {
   clampHistoryGroupItemCount,
   clampHistoryCount,
+  clampMaxPinnedItems,
+  MIN_MAX_PINNED_ITEMS,
+  MAX_MAX_PINNED_ITEMS,
   clampMainWindowItemCount,
   DEFAULT_SETTINGS,
   MAX_MAX_HISTORY_COUNT,
@@ -472,6 +475,7 @@ export function PreferencesWindow() {
   const appearanceThemeSelectId = useId();
   const menuBarIconStyleSelectId = useId();
   // 数字输入框单独保存字符串，允许用户编辑中间态，比如暂时清空输入框。
+  const [maxPinnedItemsInput, setMaxPinnedItemsInput] = useState(String(DEFAULT_SETTINGS.maxPinnedItems));
   const [maxHistoryCountInput, setMaxHistoryCountInput] = useState(
     String(DEFAULT_SETTINGS.maxHistoryCount),
   );
@@ -550,6 +554,7 @@ export function PreferencesWindow() {
     latestSettingsRef.current = nextSettings;
     setSettingsDraft(nextSettings);
     setMaxHistoryCountInput(String(nextSettings.maxHistoryCount));
+    setMaxPinnedItemsInput(String(nextSettings.maxPinnedItems));
     setVisibleItemCountInputs({
       historyGroupItemCount: String(nextSettings.historyGroupItemCount),
       mainWindowItemCount: String(nextSettings.mainWindowItemCount),
@@ -868,6 +873,21 @@ export function PreferencesWindow() {
         [kind]: !current.enabledHistoryTypes[kind],
       },
     }), "history.types");
+  };
+
+  const updateMaxPinnedItems = (value: string, commit = false) => {
+    setMaxPinnedItemsInput(value);
+    const parsed = value.trim() === "" ? NaN : Number(value);
+    if (!Number.isInteger(parsed)) {
+      if (commit) setMaxPinnedItemsInput(String(latestSettingsRef.current.maxPinnedItems));
+      return;
+    }
+    if (!commit && (parsed < MIN_MAX_PINNED_ITEMS || parsed > MAX_MAX_PINNED_ITEMS)) return;
+    const next = clampMaxPinnedItems(parsed);
+    setMaxPinnedItemsInput(String(next));
+    if (next !== latestSettingsRef.current.maxPinnedItems) {
+      applySettingsPatch((current) => ({ ...current, maxPinnedItems: next }), "history.pin-limit");
+    }
   };
 
   const updateMaxHistoryCount = (nextValue: number) => {
@@ -1418,6 +1438,29 @@ export function PreferencesWindow() {
                     />
                   </div>
                 </div>
+
+                <PreferenceRow
+                  label={t.maxPinnedItemsLabel}
+                  description={t.maxPinnedItemsDescription}
+                  focusTargetId={preferenceFocusTargetId("history.pin-limit")}
+                  feedback={preferenceFeedback["history.pin-limit"]}
+                  feedbackLabels={feedbackLabels}
+                >
+                  <div className={ui.stepper}>
+                    <input
+                      aria-label={t.maxPinnedItemsLabel}
+                      className={ui.stepperInput}
+                      min={MIN_MAX_PINNED_ITEMS}
+                      max={MAX_MAX_PINNED_ITEMS}
+                      step={1}
+                      type="number"
+                      value={maxPinnedItemsInput}
+                      onChange={(event) => updateMaxPinnedItems(event.target.value)}
+                      onBlur={() => updateMaxPinnedItems(maxPinnedItemsInput, true)}
+                      onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+                    />
+                  </div>
+                </PreferenceRow>
 
                 <SettingsGroup label={t.displayGroupLabel}>
                 <div

@@ -2,6 +2,7 @@ import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type {
   AppSettings,
+  PinFailureNotice,
   HistoryChange,
   HistoryItemPreviewPayload,
   HistoryPreviewGroupItemActivatedPayload,
@@ -295,4 +296,12 @@ export function listenToHistoryPreviewSelectionCancelled(
 
 export function listenToPreferencesOpening(handler: () => void) {
   return listen<void>("preferences-opening", handler);
+}
+
+export function sendPinFailureNotice(target: "main" | "image-viewer", notice: PinFailureNotice) {
+  return emitTo(target, "pin-failure", notice);
+}
+
+export function listenToPinFailureNotice(handler: (notice: unknown) => void) {
+  return listen<unknown>("pin-failure", (event) => handler(event.payload));
 }

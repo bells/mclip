@@ -31,7 +31,7 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 - Clipboard content types: text, images, and files
 - File history restores a system file list instead of copying path-only text
 - New installs retain 200 history items by default, configurable from 10 to 500
-- Up to 100 frequently reused entries can be pinned ahead of ordinary history; pins do not consume the ordinary retention, main-window, or archive-group counts
+- The current source pin admission limit defaults to 10, configurable from 5 to 20 in History settings; existing pins are retained when lowering it. Pins appear ahead of ordinary history; pins do not consume the ordinary retention, main-window, or archive-group counts
 - The main app window shows the latest 10 items by default and groups older history by 10 by default; both display counts are configurable
 - Preferences include appearance theme, main/group display counts, row number visibility, and main-window branding
 - System, light, and dark appearance applies across the main, preview, preview-detail, image viewer, About, and Preferences windows
@@ -73,6 +73,7 @@ Typical commands:
 - mclip-cli delete --id h_xxx
 - mclip-cli pin --id h_xxx
 - mclip-cli list --pinned --json
+- mclip-cli list --json --with-meta
 - mclip-cli unpin --index 1
 - mclip-cli clear --yes --keep-pinned
 - mclip-cli clear --yes
@@ -85,6 +86,8 @@ Safety boundaries:
 - mclip-cli transform supports JSON prettify/minify, RFC 4648 Base64 encode/decode, and URL-component encode/decode. It reads no history, writes no clipboard, and prints content-only stdout on success.
 - Text transforms are local and bounded to 1 MiB input and 4 MiB output. Desktop quick actions preview first; replacing a history item requires confirmation.
 - mclip-cli clear requires --yes.
+- list --json --with-meta returns { meta: { pinnedCount, maxPinnedItems }, data }; counts precede filtering, entry masking is unchanged, and plain list --json remains an array.
+- CLI --index includes pins; GUI ordinary row numbers exclude them. pin/unpin read settings.json beside the selected history; missing settings default to 10, invalid settings fail.
 - mclip-cli clear --yes removes pins too and reports their count; --keep-pinned removes only ordinary history.
 
 Public installer command:

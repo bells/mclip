@@ -35,7 +35,7 @@
 - 全局快捷键 `CommandOrControl+Shift+V` 唤起或隐藏主窗口。
 - 保存文本、图片、文件三类剪贴板历史；文件历史选择后应回填系统文件列表，而不是普通路径文本。
 - 去重后最新内容在最前，同一内容重复复制会更新次数和时间。
-- 常用历史可置顶，按最近置顶时间排列在普通历史之前；置顶不占普通历史上限或主界面/分组条数，最多 100 条，重复复制保留置顶时间。
+- 常用历史可置顶，按最近置顶时间排列在普通历史之前；置顶不占普通历史上限或主界面/分组条数，新增置顶上限默认 10 条，可在历史设置中调整为 5..=20；降低上限保留已有置顶，重复复制保留置顶时间。
 - 主窗口默认显示最新 10 条普通历史，可设置为 `5..=maxHistoryCount`；更多普通历史默认按每 50 条分组，分组条数范围 `5..=100`。置顶记录另计。
 - 文本和文件列表使用紧凑行高，图片条目保留更高的缩略图行；不要为了统一高度压缩图片。
 - 历史分组和单条详情都使用独立透明 preview 窗口，不把预览塞回主窗口 DOM。
@@ -73,7 +73,7 @@ pnpm run site:build
 
 `pnpm run check` 不包含根目录 `tests/*.test.mjs`，涉及前端契约、性能或窗口生命周期时还要单独跑 `node --test tests/*.test.mjs`。提交前优先跑这两道门禁。如果只改 TSX/CSS 文档化小界面，可以先跑 `pnpm run build` 快速确认，再跑完整检查。官网或发布文案有变化时还要跑 `pnpm run site:test`、`pnpm run site:build` 和 `git diff --check`。
 
-CLI 是 AI Agent/终端入口。`pnpm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持 `--help`/`help`、`--version`/`-V`/`version`，Agent 聚合命令 `agent`、只读命令 `list/get/search/context`、本地纯变换命令 `transform`，以及操作命令 `add/copy/delete/pin/unpin/clear`。help/version/transform help 和 transform 执行不应读取历史文件；CLI 与桌面应用共用产品版本。`agent` 输出最近历史、命令能力表和安全边界，默认 Markdown，`--json` 输出结构化包；五个只读命令默认遮罩已分类的敏感文本，`--raw` 或 `--reveal-secrets` 只为当前调用显式显示原文；Agent 默认语义变更后 schema 为 2。`add` 只写历史不覆盖系统剪贴板；`copy --index|--id` 保留选择器语义，`copy --stdin` 或隐式管道只写系统剪贴板、不直接修改历史；所有 stdin/transform 输入最多 1 MiB，变换输出最多 4 MiB。`pin/unpin` 支持稳定 ID 或一位起始序号，read/Agent 命令支持 `--pinned`；`clear` 必须带 `--yes`，`--keep-pinned` 只清普通历史。`pnpm run cli:test` 是 CLI 的快速回归测试，`pnpm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
+CLI 是 AI Agent/终端入口。`pnpm run cli -- ...` 会运行 `mclip-cli`，默认读取本机 mclip 配置目录的 `history.json`；测试或排查时可用 `--history-path /path/to/history.json` 指定文件。当前支持 `--help`/`help`、`--version`/`-V`/`version`，Agent 聚合命令 `agent`、只读命令 `list/get/search/context`、本地纯变换命令 `transform`，以及操作命令 `add/copy/delete/pin/unpin/clear`。help/version/transform help 和 transform 执行不应读取历史文件；CLI 与桌面应用共用产品版本。`agent` 输出最近历史、命令能力表和安全边界，默认 Markdown，`--json` 输出结构化包；五个只读命令默认遮罩已分类的敏感文本，`--raw` 或 `--reveal-secrets` 只为当前调用显式显示原文；Agent 默认语义变更后 schema 为 2。`add` 只写历史不覆盖系统剪贴板；`copy --index|--id` 保留选择器语义，`copy --stdin` 或隐式管道只写系统剪贴板、不直接修改历史；所有 stdin/transform 输入最多 1 MiB，变换输出最多 4 MiB。`list --json --with-meta` 返回 `{ meta: { pinnedCount, maxPinnedItems }, data }`，普通 `list --json` 保留数组。CLI pin/unpin 读取所选 history.json 同目录的 settings.json，缺失默认 10，损坏报错；`--index` 仍包含置顶。`pin/unpin` 支持稳定 ID 或一位起始序号，read/Agent 命令支持 `--pinned`；`clear` 必须带 `--yes`，`--keep-pinned` 只清普通历史。`pnpm run cli:test` 是 CLI 的快速回归测试，`pnpm run cli:install` 会把 `mclip-cli` 安装到用户目录。因为 Cargo 包里同时有 `mclip` 和 `mclip-cli` 两个 binary，`src-tauri/Cargo.toml` 必须保留 `default-run = "mclip"`，否则 Tauri dev 内部裸 `cargo run` 会不知道启动哪个 binary。
 
 ## 代码地图
 
@@ -127,6 +127,9 @@ src/
   components/HistoryDetailPanel.tsx   详情页的三段式外壳
   components/HistoryDetailDeleteButton.tsx
                                       主列表详情/分组详情复用的删除动作
+  components/PinToastHost.tsx         主窗口/viewer 共用置顶错误 Toast，preview 定向发送安全错误，不抢焦点
+  hooks/usePinHistory.ts              置顶 pending 与失效请求生命周期
+  utils/pinHistory.ts                 结构化错误收窄、数字选择与可测试的置顶控制器
   components/HistoryPinButton.tsx     单条/分组详情和图片查看器标题栏复用的置顶动作
   components/HistoryPreviewDetailContent.tsx
                                       文本/图片/文件详情内容渲染
@@ -318,7 +321,7 @@ Windows 监听注意：
 
 - 由 `src-tauri/src/settings.rs` 管理。
 - 存在系统 app config 目录的 `settings.json`。
-- 字段包括 `launchAtLogin`、`language`、`menuBarIconStyle`、`autoPaste`、`maxHistoryCount`、`enabledHistoryTypes`、`mainWindowItemCount`、`historyGroupItemCount`、`showHistoryItemNumbers`、`showMainWindowBrand`、`appearanceTheme`、`maskSensitiveContent`、`ignoredSourceAppIds`、`textQuickActions`。后者包含 `json`、`base64`、`urlComponent` 三个开关。
+- 字段包括 `launchAtLogin`、`language`、`menuBarIconStyle`、`autoPaste`、`maxHistoryCount`、`maxPinnedItems`、`enabledHistoryTypes`、`mainWindowItemCount`、`historyGroupItemCount`、`showHistoryItemNumbers`、`showMainWindowBrand`、`appearanceTheme`、`maskSensitiveContent`、`ignoredSourceAppIds`、`textQuickActions`。后者包含 `json`、`base64`、`urlComponent` 三个开关。
 - 每条 `HistoryEntryCommon` 还包含 `isPinned` 与 `pinnedAt`；旧文件缺省为未置顶，read-only load 只在内存修复非法组合，不单独改写文件。
 - 前端有 `normalizeSettings`，后端有 `AppSettings::sanitize`，改边界时两边都要同步考虑。
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { GROUP_PREVIEW_DETAIL_WINDOW_WIDTH } from "../constants";
+import { usePinHistory } from "../hooks/usePinHistory";
 import { useApplyAppTheme } from "../hooks/useApplyAppTheme";
 import { getTranslations } from "../i18n";
 import {
@@ -21,7 +22,6 @@ import {
   notifyHistoryPreviewSelectionCancelled,
   notifyHistoryPreviewSelectionStarted,
   pasteClipboard,
-  toggleHistoryItemPinned,
   openImageViewer,
   requestHistoryPreviewClose,
   showHistoryPreviewDetailWindow,
@@ -72,6 +72,7 @@ export function HistoryPreviewWindow() {
   const isKeyboardNavigatingRef = useRef(false);
   const pendingKeyboardActivationGroupIndexRef = useRef<number | null>(null);
   const detailUpdateQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const { isPinPending, togglePin } = usePinHistory(preview);
   useApplyAppTheme(preview?.appearanceTheme ?? "system");
 
   function setPreviewKeyboardNavigating(nextValue: boolean) {
@@ -470,15 +471,14 @@ export function HistoryPreviewWindow() {
     return (
       <HistoryItemPreviewWindow
         preview={preview}
+        isPinPending={isPinPending}
         translations={t}
         onDeleteItem={(id) => {
           void deletePreviewItem(id);
         }}
         onPointerInside={notifyPointerInside}
         onTogglePinned={(id) => {
-          void toggleHistoryItemPinned(id).catch((error) => {
-            console.error("更新历史置顶状态失败:", error);
-          });
+          void togglePin(id);
         }}
         onViewFullscreen={() => {
           if (preview.item.kind !== "image") {

@@ -1,6 +1,6 @@
 # OpenSpec 项目索引 / Project Index
 
-核对日期 / Reviewed: 2026-09-07。当前源码版本为 `0.1.1`，多个面向 `0.2.0` 的功能已经进入实现。本文提供规格与验收入口，不证明某个 Release 已发布，也不替代各 change 的任务和验证记录。
+核对日期 / Reviewed: 2026-09-08。当前源码版本为 `0.1.1`，多个面向 `0.2.0` 的功能已经进入实现。本文提供规格与验收入口，不证明某个 Release 已发布，也不替代各 change 的任务和验证记录。
 
 The source version is still `0.1.1`, with subsequent features already implemented. This index separates specification, implementation, and delivery evidence; it does not certify a published release.
 
@@ -29,6 +29,7 @@ The following is a dated snapshot. Refresh it from the CLI and source task lists
 
 | Change / 任务入口 | 完成 / Total | 待核实事项 / Evidence boundary |
 | --- | --- | --- |
+| [optimize-pin-limits-and-display](changes/optimize-pin-limits-and-display/tasks.md) | 26/29 | 配置上限、Toast、普通编号和兼容 CLI metadata 已实施；三平台原生验收待完成 |
 | [select-ignored-source-apps](changes/select-ignored-source-apps/tasks.md) | 6/6 | 清单完成；Windows/Linux 原生选择与运行时仍待验证，详见 verification |
 | [modernize-node-pnpm-toolchain](changes/modernize-node-pnpm-toolchain/tasks.md) | 14/14 | 清单完成，尚未归档 |
 | [refine-preferences-theme-and-image-viewer](changes/refine-preferences-theme-and-image-viewer/tasks.md) | 21/21 | 清单完成，尚未归档；不自动关闭旧 viewer change 的验收任务 |
@@ -81,3 +82,5 @@ Linux 安装包与会话协议见 [Linux support](../docs/linux-support.md)。�
 Release readiness additionally requires migration, packaged native behavior, and same-Draft asset/checksum/version verification. Preserve explicit release-owner authorization for tag pushes, Draft publication, and remote asset replacement.
 
 本轮界面调整见 [refine-v0-2-0-interface](changes/refine-v0-2-0-interface/verification.md)：托盘偏好设置入口、外观归类、转换布局与主题状态。实施和验证记录独立于原生验收；旧 delta 的归类冲突按该 change 的 design 协调表在后续显式 sync 时处理。
+
+置顶限制与显示调整见 [verification](changes/optimize-pin-limits-and-display/verification.md) 和 [reconciliation](changes/optimize-pin-limits-and-display/reconciliation.md)。默认上限 10、可调 5–20；已有置顶保留。旧固定 100 与无行标识规则等待后续显式同步消解；当前主规格与旧 change 未改写。
