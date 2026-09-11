@@ -30,6 +30,12 @@ const { getTextHistoryAffordance } = await importTypeScriptModule(
   "src/utils/historyAffordance.ts",
 );
 
+test("emoji affordances retain the 16-code-point boundary for astral text", () => {
+  assert.equal(getTextHistoryAffordance("😀".repeat(16))?.kind, "emoji");
+  assert.equal(getTextHistoryAffordance("😀".repeat(17)), null);
+  assert.equal(getTextHistoryAffordance("a".repeat(1024 * 1024)), null);
+});
+
 test("hex and rgb color text produce a color affordance", () => {
   assert.deepEqual(getTextHistoryAffordance("  #7cc7c1  "), {
     color: "#7cc7c1",

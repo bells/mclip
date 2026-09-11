@@ -1,0 +1,212 @@
+[
+  {
+    "name": "classify",
+    "samples": [
+      {
+        "allocatedBytes": 0,
+        "allocations": 0,
+        "nanos": 11947
+      },
+      {
+        "allocatedBytes": 0,
+        "allocations": 0,
+        "nanos": 11875
+      },
+      {
+        "allocatedBytes": 0,
+        "allocations": 0,
+        "nanos": 11806
+      },
+      {
+        "allocatedBytes": 0,
+        "allocations": 0,
+        "nanos": 11833
+      },
+      {
+        "allocatedBytes": 0,
+        "allocations": 0,
+        "nanos": 11835
+      }
+    ]
+  },
+  {
+    "name": "hash",
+    "samples": [
+      {
+        "allocatedBytes": 368,
+        "allocations": 35,
+        "nanos": 4904
+      },
+      {
+        "allocatedBytes": 368,
+        "allocations": 35,
+        "nanos": 4866
+      },
+      {
+        "allocatedBytes": 368,
+        "allocations": 35,
+        "nanos": 4852
+      },
+      {
+        "allocatedBytes": 368,
+        "allocations": 35,
+        "nanos": 4806
+      },
+      {
+        "allocatedBytes": 368,
+        "allocations": 35,
+        "nanos": 4822
+      }
+    ]
+  },
+  {
+    "name": "search500",
+    "samples": [
+      {
+        "allocatedBytes": 15400892,
+        "allocations": 3004,
+        "nanos": 7666912
+      },
+      {
+        "allocatedBytes": 15400892,
+        "allocations": 3004,
+        "nanos": 7095916
+      },
+      {
+        "allocatedBytes": 15400892,
+        "allocations": 3004,
+        "nanos": 9460381
+      },
+      {
+        "allocatedBytes": 15400892,
+        "allocations": 3004,
+        "nanos": 7116345
+      },
+      {
+        "allocatedBytes": 15400892,
+        "allocations": 3004,
+        "nanos": 7125187
+      }
+    ]
+  },
+  {
+    "name": "listJson500",
+    "samples": [
+      {
+        "allocatedBytes": 36771673,
+        "allocations": 3023,
+        "nanos": 2958656
+      },
+      {
+        "allocatedBytes": 36771673,
+        "allocations": 3023,
+        "nanos": 3024116
+      },
+      {
+        "allocatedBytes": 36771673,
+        "allocations": 3023,
+        "nanos": 2942277
+      },
+      {
+        "allocatedBytes": 36771673,
+        "allocations": 3023,
+        "nanos": 3086877
+      },
+      {
+        "allocatedBytes": 36771673,
+        "allocations": 3023,
+        "nanos": 3136250
+      }
+    ]
+  },
+  {
+    "name": "context5",
+    "samples": [
+      {
+        "allocatedBytes": 445704,
+        "allocations": 109,
+        "nanos": 23989
+      },
+      {
+        "allocatedBytes": 445704,
+        "allocations": 109,
+        "nanos": 23918
+      },
+      {
+        "allocatedBytes": 445704,
+        "allocations": 109,
+        "nanos": 23941
+      },
+      {
+        "allocatedBytes": 445704,
+        "allocations": 109,
+        "nanos": 23818
+      },
+      {
+        "allocatedBytes": 445704,
+        "allocations": 109,
+        "nanos": 23858
+      }
+    ]
+  },
+  {
+    "name": "merge500IncludingInputClone",
+    "samples": [
+      {
+        "allocatedBytes": 5311652,
+        "allocations": 1506,
+        "nanos": 191439
+      },
+      {
+        "allocatedBytes": 5311652,
+        "allocations": 1506,
+        "nanos": 201054
+      },
+      {
+        "allocatedBytes": 5311652,
+        "allocations": 1506,
+        "nanos": 209570
+      },
+      {
+        "allocatedBytes": 5311652,
+        "allocations": 1506,
+        "nanos": 197485
+      },
+      {
+        "allocatedBytes": 5311652,
+        "allocations": 1506,
+        "nanos": 190206
+      }
+    ]
+  },
+  {
+    "name": "jsonMinifyIncludingInputClone",
+    "samples": [
+      {
+        "allocatedBytes": 43009,
+        "allocations": 271,
+        "nanos": 28375
+      },
+      {
+        "allocatedBytes": 43009,
+        "allocations": 271,
+        "nanos": 28287
+      },
+      {
+        "allocatedBytes": 43009,
+        "allocations": 271,
+        "nanos": 30058
+      },
+      {
+        "allocatedBytes": 43009,
+        "allocations": 271,
+        "nanos": 28287
+      },
+      {
+        "allocatedBytes": 43009,
+        "allocations": 271,
+        "nanos": 28306
+      }
+    ]
+  }
+]

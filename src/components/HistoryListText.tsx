@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { ui } from "../uiStyles";
 import { getTextHistoryAffordance } from "../utils/historyAffordance";
 
@@ -9,7 +11,7 @@ type HistoryListTextProps = {
   text: string;
 };
 
-export function HistoryListText({
+export const HistoryListText = memo(function HistoryListText({
   className,
   displayText,
   sensitiveLabel,
@@ -56,4 +58,4 @@ export function HistoryListText({
       <span className={ui.historyDisplayText}>{displayText}</span>
     </span>
   );
-}
+});

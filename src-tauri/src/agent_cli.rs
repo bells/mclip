@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::env;
 use std::io::{self, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
@@ -18,6 +19,9 @@ use crate::text_transform::{
 };
 
 const APP_IDENTIFIER: &str = "com.watson.mclip";
+
+#[cfg(test)]
+mod benchmarks;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum OutputFormat {
@@ -64,9 +68,9 @@ struct PinMetadata {
 }
 
 #[derive(Debug, Serialize)]
-struct ListWithMeta {
+struct ListWithMeta<'a> {
     meta: PinMetadata,
-    data: Vec<HistoryEntry>,
+    data: Vec<Cow<'a, HistoryEntry>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -99,14 +103,14 @@ struct AgentCommand {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct AgentBundle {
+struct AgentBundle<'a> {
     schema_version: u8,
     mode: &'static str,
     history_count: usize,
     selected_count: usize,
     commands: Vec<AgentCommand>,
     safety: Vec<&'static str>,
-    context: Vec<HistoryEntry>,
+    context: Vec<Cow<'a, HistoryEntry>>,
 }
 
 pub fn run_from_env() -> i32 {
@@ -275,7 +279,10 @@ fn run_list(path: &Path, history: &[HistoryEntry], args: &[String]) -> Result<St
             data: presentation_entries(&entries, reveal_secrets),
         };
         return serde_json::to_string(&output)
-            .map(|json| format!("{json}\n"))
+            .map(|mut json| {
+                json.push('\n');
+                json
+            })
             .map_err(|_| CliError::Runtime("Unable to serialize history.".to_string()));
     }
     format_entries(&entries, format, reveal_secrets)
@@ -392,7 +399,6 @@ fn run_search(history: &[HistoryEntry], args: &[String]) -> Result<String, CliEr
         .filter(|entry| !pinned_only || entry.is_pinned())
         .filter(|entry| searchable_text(entry).to_lowercase().contains(&query))
         .take(limit)
-        .cloned()
         .collect::<Vec<_>>();
 
     format_entries(&entries, format, reveal_secrets)
@@ -499,7 +505,10 @@ fn run_agent(history: &[HistoryEntry], args: &[String]) -> Result<String, CliErr
         };
 
         return serde_json::to_string(&bundle)
-            .map(|json| format!("{json}\n"))
+            .map(|mut json| {
+                json.push('\n');
+                json
+            })
             .map_err(|error| CliError::Runtime(error.to_string()));
     }
 
@@ -1005,7 +1014,10 @@ fn run_transform<I: CliInput>(args: &[String], input: &mut I) -> Result<String, 
 fn format_action_result(result: ActionResult, json: bool) -> Result<String, CliError> {
     if json {
         return serde_json::to_string(&result)
-            .map(|json| format!("{json}\n"))
+            .map(|mut json| {
+                json.push('\n');
+                json
+            })
             .map_err(|error| CliError::Runtime(error.to_string()));
     }
 
@@ -1158,7 +1170,7 @@ fn agent_safety_contract() -> Vec<&'static str> {
     ]
 }
 
-fn format_agent_markdown(history_count: usize, entries: &[HistoryEntry]) -> String {
+fn format_agent_markdown(history_count: usize, entries: &[Cow<'_, HistoryEntry>]) -> String {
     let mut markdown = String::from("# mclip Agent Mode\n\n");
 
     markdown.push_str("## Scope\n\n");
@@ -1207,36 +1219,56 @@ fn select_recent(
     limit: usize,
     kind: Option<HistoryKind>,
     pinned_only: bool,
-) -> Vec<HistoryEntry> {
+) -> Vec<&HistoryEntry> {
     history
         .iter()
         .filter(|entry| kind_matches(entry, kind))
         .filter(|entry| !pinned_only || entry.is_pinned())
         .take(limit)
-        .cloned()
         .collect()
 }
 
-fn presentation_entries(entries: &[HistoryEntry], reveal_secrets: bool) -> Vec<HistoryEntry> {
-    if reveal_secrets {
-        entries.to_vec()
+fn presentation_entry(entry: &HistoryEntry, reveal_secrets: bool) -> Cow<'_, HistoryEntry> {
+    if !reveal_secrets
+        && matches!(
+            entry,
+            HistoryEntry::Text {
+                secret_type: Some(_),
+                ..
+            }
+        )
+    {
+        Cow::Owned(entry.masked_for_presentation())
     } else {
-        entries
-            .iter()
-            .map(HistoryEntry::masked_for_presentation)
-            .collect()
+        Cow::Borrowed(entry)
     }
 }
 
+fn presentation_entries<'a>(
+    entries: &[&'a HistoryEntry],
+    reveal_secrets: bool,
+) -> Vec<Cow<'a, HistoryEntry>> {
+    entries
+        .iter()
+        .map(|entry| presentation_entry(entry, reveal_secrets))
+        .collect()
+}
+
 fn format_entries(
-    entries: &[HistoryEntry],
+    entries: &[&HistoryEntry],
     format: OutputFormat,
     reveal_secrets: bool,
 ) -> Result<String, CliError> {
+    if format == OutputFormat::Raw {
+        return Ok(format_raw_entries(entries));
+    }
     let presented_entries = presentation_entries(entries, reveal_secrets);
     match format {
         OutputFormat::Json => serde_json::to_string(&presented_entries)
-            .map(|json| format!("{json}\n"))
+            .map(|mut json| {
+                json.push('\n');
+                json
+            })
             .map_err(|error| CliError::Runtime(error.to_string())),
         OutputFormat::Raw => Ok(format_raw_entries(entries)),
         OutputFormat::Markdown => Ok(format_markdown_context(&presented_entries)),
@@ -1249,14 +1281,13 @@ fn format_single_entry(
     format: OutputFormat,
     reveal_secrets: bool,
 ) -> Result<String, CliError> {
-    let presented_entry = if reveal_secrets {
-        entry.clone()
-    } else {
-        entry.masked_for_presentation()
-    };
+    let presented_entry = presentation_entry(entry, reveal_secrets || format == OutputFormat::Raw);
     match format {
         OutputFormat::Json => serde_json::to_string(&presented_entry)
-            .map(|json| format!("{json}\n"))
+            .map(|mut json| {
+                json.push('\n');
+                json
+            })
             .map_err(|error| CliError::Runtime(error.to_string())),
         OutputFormat::Raw => Ok(format!("{}\n", raw_content(entry))),
         OutputFormat::Markdown => Ok(format_markdown_context(std::slice::from_ref(
@@ -1266,7 +1297,7 @@ fn format_single_entry(
     }
 }
 
-fn format_text_list(entries: &[HistoryEntry]) -> String {
+fn format_text_list(entries: &[Cow<'_, HistoryEntry>]) -> String {
     entries
         .iter()
         .enumerate()
@@ -1287,10 +1318,10 @@ fn format_text_item(index: usize, entry: &HistoryEntry) -> String {
     )
 }
 
-fn format_raw_entries(entries: &[HistoryEntry]) -> String {
+fn format_raw_entries(entries: &[&HistoryEntry]) -> String {
     let body = entries
         .iter()
-        .map(raw_content)
+        .map(|entry| raw_content(entry))
         .collect::<Vec<_>>()
         .join("\n---\n");
 
@@ -1301,14 +1332,14 @@ fn format_raw_entries(entries: &[HistoryEntry]) -> String {
     }
 }
 
-fn format_markdown_context(entries: &[HistoryEntry]) -> String {
+fn format_markdown_context(entries: &[Cow<'_, HistoryEntry>]) -> String {
     let mut markdown = String::from("# mclip Clipboard Context\n\n");
 
     push_markdown_entries(&mut markdown, entries, "##");
     markdown
 }
 
-fn push_markdown_entries(markdown: &mut String, entries: &[HistoryEntry], heading: &str) {
+fn push_markdown_entries(markdown: &mut String, entries: &[Cow<'_, HistoryEntry>], heading: &str) {
     if entries.is_empty() {
         markdown.push_str("No clipboard history entries matched.\n");
         return;
@@ -1356,11 +1387,11 @@ fn searchable_text(entry: &HistoryEntry) -> String {
     )
 }
 
-fn raw_content(entry: &HistoryEntry) -> String {
+fn raw_content(entry: &HistoryEntry) -> Cow<'_, str> {
     match entry {
-        HistoryEntry::Text { text, .. } => text.clone(),
-        HistoryEntry::Image { image_path, .. } => image_path.clone(),
-        HistoryEntry::Files { file_paths, .. } => file_paths.join("\n"),
+        HistoryEntry::Text { text, .. } => Cow::Borrowed(text),
+        HistoryEntry::Image { image_path, .. } => Cow::Borrowed(image_path),
+        HistoryEntry::Files { file_paths, .. } => Cow::Owned(file_paths.join("\n")),
     }
 }
 
@@ -1581,6 +1612,25 @@ mod tests {
             secret_type: None,
             secret_detector_version: None,
         }
+    }
+
+    #[test]
+    fn borrowed_presentation_masks_secrets_without_mutating_originals() {
+        let mut entry = text_entry("fixture", "synthetic secret");
+        assert!(matches!(
+            super::presentation_entry(&entry, false),
+            std::borrow::Cow::Borrowed(_)
+        ));
+        if let HistoryEntry::Text { secret_type, .. } = &mut entry {
+            *secret_type = Some(SecretType::OpenAiApiKey);
+        }
+        let masked = super::presentation_entry(&entry, false);
+        assert_eq!(super::raw_content(&masked), "••••••••");
+        assert_eq!(super::raw_content(&entry), "synthetic secret");
+        assert!(matches!(
+            super::presentation_entry(&entry, true),
+            std::borrow::Cow::Borrowed(_)
+        ));
     }
 
     #[test]

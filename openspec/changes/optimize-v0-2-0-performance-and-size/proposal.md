@@ -26,4 +26,4 @@ v0.2.0 功能基本就绪，需要在保持现有桌面和 CLI 行为的前提�
 - 第一阶段涉及 Cargo/Vite 配置、`performance/` 证据和 OpenSpec 索引。后续候选包括 `agent_cli.rs`、`clipboard.rs`、`history.rs`、`sensitive_content.rs`、相关 hooks/list 组件及资源分析脚本。
 - 不变更 IPC、历史/设置格式、隐私规则、公开 CLI schema、窗口数量、数据上限、签名策略或产品版本。不使用 UPX、不移除功能、不上传用户数据、不自动拆分 workspace。
 - 继承 `optimize-v0-1-1-runtime-performance` 的懒加载窗口、revision delta、图片缓存约束；配合 `refine-v0-2-0-interface`、`optimize-pin-limits-and-display`、`add-linux-desktop-support`，不替这些 change 完成原生验收。
-- `prepare-v0-2-0-release` 继续独立管理发布；本轮不提交、归档、改 tag 或发布。用户当前要求先实施第一阶段，其余阶段保留清单。
+- `prepare-v0-2-0-release` 继续独立管理发布；第一阶段已按用户要求本地提交为 `735f707`；随后授权实施第二、三阶段，结果见 [阶段报告](../../../performance/v0.2.0-performance-phase-2-3.md)。后两阶段暂未提交，不归档、改 tag 或发布。

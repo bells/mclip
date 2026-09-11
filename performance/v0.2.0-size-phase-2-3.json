@@ -1,0 +1,181 @@
+{
+  "label": "phase-2-3",
+  "recordedAt": "2026-09-11T08:47:23.382Z",
+  "sourceCommit": "735f707",
+  "dirtyScope": "stage 2-3 implementation and benchmark tools",
+  "target": "aarch64-apple-darwin",
+  "cargoLockSha256": "e9ce111f52601c512a1b1902ffebc521f34ab600211b7c08f2d40f4fb81bca77",
+  "appBytes": 8670650,
+  "appFiles": [
+    {
+      "path": "Contents/Info.plist",
+      "bytes": 986,
+      "sha256": "17252f3a054274702b155320ded3d74902aef80d1cd059a4d533c872faf54209"
+    },
+    {
+      "path": "Contents/MacOS/mclip",
+      "bytes": 5367344,
+      "sha256": "2d9315926e9b98e62fa5263b1ba2eaed6c6dab5c75334ea77cb423e4d4ac33b2"
+    },
+    {
+      "path": "Contents/MacOS/mclip-cli",
+      "bytes": 1675680,
+      "sha256": "57a9ffb142fa0baba7ba7d28c218692c33a8a274368f9a60a79213ce45bb7e3e"
+    },
+    {
+      "path": "Contents/Resources/icon.icns",
+      "bytes": 1623981,
+      "sha256": "a774171a5f3dfdffa19efe7aa87c09de079088601351e460fe8dfb198840bb70"
+    },
+    {
+      "path": "Contents/_CodeSignature/CodeResources",
+      "bytes": 2659,
+      "sha256": "c3fa6e3b90220bfe501769b7843fc0e73e030f4ee3f97edc3a958d38b378412a"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "mclip-cli",
+      "bytes": 1667248,
+      "sha256": "f52e7c3befba630ab3c6fa2f3b74eb28419f70f373ad430dff5a727e4c070a4e"
+    },
+    {
+      "path": "mclip.dmg",
+      "bytes": 7215130,
+      "sha256": "cecf97273bda946931d3f31c977b4024bad6b69a7df588a5064bdca4c916ae6e"
+    }
+  ],
+  "distBytes": 600264,
+  "distFiles": [
+    {
+      "path": ".vite/manifest.json",
+      "bytes": 6280,
+      "sha256": "fc5288d3dcb824738ffd398ede8f135b9ccac2b3a2d06bc423c1d3666a352320"
+    },
+    {
+      "path": "assets/128x128-CiflHCdp.png",
+      "bytes": 20739,
+      "sha256": "bc20ea28f83c7a34d72943269bf18dbffa01442cc2c2083fc6cfd5138fa74de7"
+    },
+    {
+      "path": "assets/128x128@2x-Ce3AsZTw.js",
+      "bytes": 58,
+      "sha256": "8e317556ef445982dbc6499bf9fdd2d2efa014cd7a9d2d228233a2bfba6e0603"
+    },
+    {
+      "path": "assets/128x128@2x-DjuAEhNE.png",
+      "bytes": 67512,
+      "sha256": "43332f640c0705ec6792cdb1583b5de91ce800bfbf28dddd3cd0f0a5bb622d8b"
+    },
+    {
+      "path": "assets/AboutWindow-D3LLW_oP.js",
+      "bytes": 4983,
+      "sha256": "06ee9cd246711fcc238ca3aa36dc70ed5a724f33c18dea9047c8481c7596d9a5"
+    },
+    {
+      "path": "assets/App-C5_sJYW5.js",
+      "bytes": 25538,
+      "sha256": "a06b08c07492182cc318b497dcf649437739757d0c93dd46a95a1622ae748071"
+    },
+    {
+      "path": "assets/DialogStatusBar-DjaGuoxF.js",
+      "bytes": 1841,
+      "sha256": "e44c7b6860c44c7651b2e14ed0a572fd3a0414deecf32ea0301f8df4fdf13939"
+    },
+    {
+      "path": "assets/DialogWindowFrame-wRMwb-ri.js",
+      "bytes": 568,
+      "sha256": "60a3a173b59e519a9d0992323999bb0c72d512414b558f8befc193bfd86ef4d9"
+    },
+    {
+      "path": "assets/FullscreenImageViewer-mdKCXVxk.js",
+      "bytes": 3156,
+      "sha256": "1b7e90efde44a8a8742f01894cd8ffe82f5677ea68ef6069de70f9ee4500618b"
+    },
+    {
+      "path": "assets/HistoryDetailFullscreenButton-Dj1U6uI5.js",
+      "bytes": 478,
+      "sha256": "a0759faed7807a8f178ac2ed5cc609662bc3fe384a45573ba018ba8b73029b1d"
+    },
+    {
+      "path": "assets/HistoryPinButton-DHqaGMax.js",
+      "bytes": 10449,
+      "sha256": "f8ef448e1351eddbabd1652645c93cf4773e56a46b3d99173eab5bdb5954d6ec"
+    },
+    {
+      "path": "assets/HistoryPreviewDetailWindow-KGBwqIyf.js",
+      "bytes": 2284,
+      "sha256": "06bc446e625af48c4f4bae1ef719581104522b789daca00152b71b2e39d5e57f"
+    },
+    {
+      "path": "assets/HistoryPreviewWindow-CwQGHMDU.js",
+      "bytes": 10281,
+      "sha256": "ef5876c6d4a2644e485af63591043348a2752cef4e702a7b14853ed70dc6484b"
+    },
+    {
+      "path": "assets/ImageThumb-F1OY2gFb.js",
+      "bytes": 3904,
+      "sha256": "af4f5d85cbd6fe12e80eac84b347423a9527238335b508b564b4122f2a11258b"
+    },
+    {
+      "path": "assets/Modal-C_qBF5GG.js",
+      "bytes": 546,
+      "sha256": "a474c341c33b56bb58fab27e6b41d05a0f692f25b2a0505a9dfc2b47e18fa0da"
+    },
+    {
+      "path": "assets/PinToastHost-CYRgcro_.js",
+      "bytes": 35602,
+      "sha256": "bafad801d44ca497cb81fe3ed79ef5632e64bfa09966c8431847629ec206fdb7"
+    },
+    {
+      "path": "assets/PreferencesWindow-fAisTZ3v.js",
+      "bytes": 39364,
+      "sha256": "ded82877330393a84c01ca8f87dda1285c2478994b422ee6b9f2a7cbc188c73b"
+    },
+    {
+      "path": "assets/QuickActionWindow-eg6NAEIn.js",
+      "bytes": 2741,
+      "sha256": "e64c3e7bd602431269e4e101d5b7e843118387bc18d7b178b0dfe5bb146fd2c6"
+    },
+    {
+      "path": "assets/UiIcons-DBFl5xDj.js",
+      "bytes": 1873,
+      "sha256": "53287fb7d98f1fc647eabfbbc82bd67bb75027643228ecf2fd10e09f7cade10e"
+    },
+    {
+      "path": "assets/i18n-BLc85mkH.js",
+      "bytes": 59717,
+      "sha256": "6498cbb94d950abc3b02d7e756ecbb3c91f32f69b25b26f54fdc9275e83413a6"
+    },
+    {
+      "path": "assets/index-CUkSAbnr.js",
+      "bytes": 247858,
+      "sha256": "6c55c210347927586fd435d73bcbe049e92a4bc3c0d9e636240411bba672d05e"
+    },
+    {
+      "path": "assets/index-v7GOn7n2.css",
+      "bytes": 37980,
+      "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+    },
+    {
+      "path": "assets/menu-bar-icon-light-128-ky9ZDsCy.png",
+      "bytes": 9855,
+      "sha256": "4ad2f83b9ebcf06890e3074c5afff59c5fe202d67ce59cda708e8da186c04383"
+    },
+    {
+      "path": "assets/selectionBehavior-CocwN0LX.js",
+      "bytes": 4922,
+      "sha256": "671bafae371856f8025d1cbde5e803053ec6956fda96286b8567dd76270e0aad"
+    },
+    {
+      "path": "assets/settings-COxBTbbN.js",
+      "bytes": 1225,
+      "sha256": "f635d326b05ee56580776842ccc44d99d899152552c2dcc2ee1d09f3be41eae4"
+    },
+    {
+      "path": "index.html",
+      "bytes": 510,
+      "sha256": "87e33a176e56dc2ba949136dedc8cd70c8f9ee1e100156d7f5f8ee24386c86da"
+    }
+  ]
+}

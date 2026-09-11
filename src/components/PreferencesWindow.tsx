@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
-import appIconUrl from "../../app-icon.png";
+import appIconUrl from "../../src-tauri/icons/128x128@2x.png";
 import lightMenuBarIconUrl from "../../src-tauri/icons/menu-bar-icon-light-128.png";
 import mMenuBarIconUrl from "../../src-tauri/icons/menu-bar-icon-m-128.png";
 import {

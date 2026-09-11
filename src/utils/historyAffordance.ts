@@ -14,6 +14,7 @@ const RGB_COLOR_PATTERN =
 const EMOJI_TEXT_PATTERN =
   /^[\p{Extended_Pictographic}\p{Emoji_Presentation}\p{Emoji_Modifier}\u200d\ufe0f\s]+$/u;
 const HAS_EMOJI_PATTERN = /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u;
+const MAX_EMOJI_CODE_POINTS = 16;
 const FIRST_EMOJI_PATTERN =
   /^(?:\p{Regional_Indicator}{2}|[#*0-9]\ufe0f?\u20e3|[\p{Extended_Pictographic}\p{Emoji_Presentation}](?:\ufe0f|\p{Emoji_Modifier})?(?:\u200d[\p{Extended_Pictographic}\p{Emoji_Presentation}](?:\ufe0f|\p{Emoji_Modifier})?)*)/u;
 
@@ -41,7 +42,8 @@ function isColorCode(value: string) {
 
 function isShortEmojiText(value: string) {
   return (
-    Array.from(value).length <= 16 &&
+    value.length <= MAX_EMOJI_CODE_POINTS * 2 &&
+    Array.from(value).length <= MAX_EMOJI_CODE_POINTS &&
     HAS_EMOJI_PATTERN.test(value) &&
     EMOJI_TEXT_PATTERN.test(value)
   );

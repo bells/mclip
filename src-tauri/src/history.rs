@@ -1225,8 +1225,7 @@ fn merge_history(
         new_common.pinned_at = existing_common.pinned_at;
     }
 
-    let new_item_id = new_item.id().to_string();
-    history.retain(|item| item.id() != new_item_id);
+    history.retain(|item| item.id() != new_item.id());
     history.push(new_item);
     sanitize_and_sort_history(&mut history);
     trim_unpinned_in_place(&mut history, max_history_count);
@@ -1472,7 +1471,7 @@ fn history_id(dedupe_key: &str) -> String {
 
 pub fn hash_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    format!("{digest:x}")
 }
 
 fn current_timestamp_millis() -> u64 {

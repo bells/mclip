@@ -77,17 +77,37 @@ export function filterHistoryItems(
 ): HistoryListItem[] {
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  return history
-    .map((entry, index) => ({
+  const matches: HistoryListItem[] = [];
+  history.forEach((entry, index) => {
+    if (normalizedQuery !== "" && !matchesSearchQuery(entry, normalizedQuery)) {
+      return;
+    }
+    matches.push({
       ...entry,
       renderId: `${index}:${entry.id}:${entry.lastCopiedAt}`,
       position: index + 1,
-    }))
-    .filter(
-      (item) =>
-        normalizedQuery === "" ||
-        getHistoryItemSearchText(item).toLowerCase().includes(normalizedQuery),
-    );
+    });
+  });
+  return matches;
+}
+
+function matchesSearchQuery(item: HistoryEntry, query: string): boolean {
+  // Keep phrase matches across the spaces joining fields, without building the
+  // combined string for single-field queries or retaining a second text index.
+  if (query.includes(" ")) {
+    return getHistoryItemSearchText(item).toLowerCase().includes(query);
+  }
+  if (item.displayText.toLowerCase().includes(query) || item.sourceApp?.toLowerCase().includes(query)) {
+    return true;
+  }
+  switch (item.kind) {
+    case "text":
+      return item.text !== item.displayText && item.text.toLowerCase().includes(query);
+    case "files":
+      return item.filePaths.some((filePath) => filePath.toLowerCase().includes(query));
+    case "image":
+      return "image".includes(query) || `${item.width}x${item.height}`.includes(query);
+  }
 }
 
 export function splitPinnedHistoryItems(items: HistoryListItem[]) {

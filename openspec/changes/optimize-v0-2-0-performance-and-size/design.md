@@ -61,4 +61,12 @@ macOS GUI 留原生 smoke 项；Windows source check 和 Windows runtime 分开�
 
 ## Migration Plan
 
-无数据迁移。先生成提案和清单，再依用户当前要求实施第一阶段。配置改动可独立还原；基线保留在 ignored target，证据保留版本化报告。后续阶段独立实施与验收，发布仍走原有流程。
+无数据迁移。第一阶段已提交 `735f707`，第二、三阶段已获授权并实施。配置改动可独立还原；基线保留在 ignored target，证据保留版本化报告。后续阶段独立实施与验收，发布仍走原有流程。
+
+## 第二、三阶段落地（2026-09-11）
+
+- CLI 用借用/Cow 保留普通与 reveal 记录，只有敏感展示才复制并遮罩；SHA-256 直接格式化摘要。LazyLock、轮询平台策略、历史与输出契约保持。
+- 复用已有 256px 图标替换前端和 Rust 托盘的 1024px 内嵌原图；保留 root 原图与原生 ICNS。深浅背景/DPR2 浏览器对比通过，原生托盘 HiDPI 留 4.2。
+- 文本展示先限制长度再分配 code-point 数组，memo 只用于 primitive props 的 HistoryListText。搜索先筛选再装饰，跨字段含空格查询保留原拼接语义。500 行选中更新合成中位数 61.4 → 2.1 ms，暂不引入虚拟列表或 debounce。
+- CLI 独立产物仍为 1,667,248 bytes，系统 AppKit/WebKit 是动态链接。共享持久化/剪贴板尚有 adapter 耦合，未做拆分原型，现有证据不足以证明拆 workspace 的尺寸收益，暂保留单包。图像格式和传递运行时 feature 有实际用途，不机械裁剪。
+- 最终 DMG 7,215,130 bytes，未达到 3–5 MB。完整方法、分配与时间样本、未采用候选和原生边界见 [报告](../../../performance/v0.2.0-performance-phase-2-3.md)。

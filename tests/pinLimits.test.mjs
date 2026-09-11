@@ -16,7 +16,11 @@ const { getPinFailureNotice, getNumericHistoryTargetId, createPinActionControlle
 const { getVisibleHistoryItems, filterHistoryItems } = await import(await moduleUrl('src/utils/history.ts'));
 const { createPreferenceSaveController } = await import(await moduleUrl('src/components/preferences/preferenceSaveController.ts'));
 const base = { key: '1', hasModifier: false, isEditing: false, isComposing: false, repeat: false, blocked: false };
-const items = Array.from({ length: 15 }, (_, i) => ({ id: `item-${i}`, kind: 'text', text: `fixture-${i}`, isPinned: i < 3, position: i + 1, lastCopiedAt: 100-i }));
+const items = Array.from({ length: 15 }, (_, i) => ({
+  id: `item-${i}`, kind: 'text', text: `fixture-${i}`, displayText: `fixture-${i}`,
+  sourceApp: null, copyCount: 1, firstCopiedAt: 1, lastCopiedAt: 100-i,
+  isPinned: i < 3, pinnedAt: i < 3 ? 100-i : null, position: i + 1,
+}));
 const deferred = () => { let resolve, reject; const promise = new Promise((a,b) => { resolve=a; reject=b; }); return { promise, resolve, reject }; };
 
 test('pin configuration defaults and normalizes valid integer boundaries', () => {

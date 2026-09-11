@@ -1,0 +1,674 @@
+{
+  "bootstrap": {
+    "assets": [
+      "assets/index-v7GOn7n2.css"
+    ],
+    "resources": [
+      {
+        "file": "assets/index-v7GOn7n2.css",
+        "rawBytes": 37980,
+        "gzipBytes": 7730,
+        "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+      }
+    ],
+    "javascript": [
+      {
+        "file": "assets/index-CUkSAbnr.js",
+        "rawBytes": 247858,
+        "gzipBytes": 73600,
+        "sha256": "6c55c210347927586fd435d73bcbe049e92a4bc3c0d9e636240411bba672d05e"
+      }
+    ],
+    "gzipBytes": 73600,
+    "rawBytes": 247858,
+    "totalRawBytes": 285838,
+    "totalGzipBytes": 81330
+  },
+  "bootstrapBudgetBytes": 76800,
+  "bootstrapWithinBudget": true,
+  "routes": {
+    "about": {
+      "assets": [
+        "assets/128x128-CiflHCdp.png",
+        "assets/index-v7GOn7n2.css"
+      ],
+      "resources": [
+        {
+          "file": "assets/128x128-CiflHCdp.png",
+          "rawBytes": 20739,
+          "gzipBytes": 20767,
+          "sha256": "bc20ea28f83c7a34d72943269bf18dbffa01442cc2c2083fc6cfd5138fa74de7"
+        },
+        {
+          "file": "assets/index-v7GOn7n2.css",
+          "rawBytes": 37980,
+          "gzipBytes": 7730,
+          "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+        }
+      ],
+      "javascript": [
+        {
+          "file": "assets/AboutWindow-D3LLW_oP.js",
+          "rawBytes": 4983,
+          "gzipBytes": 2074,
+          "sha256": "06ee9cd246711fcc238ca3aa36dc70ed5a724f33c18dea9047c8481c7596d9a5"
+        },
+        {
+          "file": "assets/DialogStatusBar-DjaGuoxF.js",
+          "rawBytes": 1841,
+          "gzipBytes": 733,
+          "sha256": "e44c7b6860c44c7651b2e14ed0a572fd3a0414deecf32ea0301f8df4fdf13939"
+        },
+        {
+          "file": "assets/DialogWindowFrame-wRMwb-ri.js",
+          "rawBytes": 568,
+          "gzipBytes": 410,
+          "sha256": "60a3a173b59e519a9d0992323999bb0c72d512414b558f8befc193bfd86ef4d9"
+        },
+        {
+          "file": "assets/i18n-BLc85mkH.js",
+          "rawBytes": 59717,
+          "gzipBytes": 18015,
+          "sha256": "6498cbb94d950abc3b02d7e756ecbb3c91f32f69b25b26f54fdc9275e83413a6"
+        },
+        {
+          "file": "assets/index-CUkSAbnr.js",
+          "rawBytes": 247858,
+          "gzipBytes": 73600,
+          "sha256": "6c55c210347927586fd435d73bcbe049e92a4bc3c0d9e636240411bba672d05e"
+        },
+        {
+          "file": "assets/settings-COxBTbbN.js",
+          "rawBytes": 1225,
+          "gzipBytes": 593,
+          "sha256": "f635d326b05ee56580776842ccc44d99d899152552c2dcc2ee1d09f3be41eae4"
+        }
+      ],
+      "gzipBytes": 95425,
+      "rawBytes": 316192,
+      "totalRawBytes": 374911,
+      "totalGzipBytes": 123922
+    },
+    "image-viewer": {
+      "assets": [
+        "assets/index-v7GOn7n2.css"
+      ],
+      "resources": [
+        {
+          "file": "assets/index-v7GOn7n2.css",
+          "rawBytes": 37980,
+          "gzipBytes": 7730,
+          "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+        }
+      ],
+      "javascript": [
+        {
+          "file": "assets/DialogWindowFrame-wRMwb-ri.js",
+          "rawBytes": 568,
+          "gzipBytes": 410,
+          "sha256": "60a3a173b59e519a9d0992323999bb0c72d512414b558f8befc193bfd86ef4d9"
+        },
+        {
+          "file": "assets/FullscreenImageViewer-mdKCXVxk.js",
+          "rawBytes": 3156,
+          "gzipBytes": 1418,
+          "sha256": "1b7e90efde44a8a8742f01894cd8ffe82f5677ea68ef6069de70f9ee4500618b"
+        },
+        {
+          "file": "assets/HistoryPinButton-DHqaGMax.js",
+          "rawBytes": 10449,
+          "gzipBytes": 3510,
+          "sha256": "f8ef448e1351eddbabd1652645c93cf4773e56a46b3d99173eab5bdb5954d6ec"
+        },
+        {
+          "file": "assets/ImageThumb-F1OY2gFb.js",
+          "rawBytes": 3904,
+          "gzipBytes": 1844,
+          "sha256": "af4f5d85cbd6fe12e80eac84b347423a9527238335b508b564b4122f2a11258b"
+        },
+        {
+          "file": "assets/PinToastHost-CYRgcro_.js",
+          "rawBytes": 35602,
+          "gzipBytes": 10321,
+          "sha256": "bafad801d44ca497cb81fe3ed79ef5632e64bfa09966c8431847629ec206fdb7"
+        },
+        {
+          "file": "assets/UiIcons-DBFl5xDj.js",
+          "rawBytes": 1873,
+          "gzipBytes": 692,
+          "sha256": "53287fb7d98f1fc647eabfbbc82bd67bb75027643228ecf2fd10e09f7cade10e"
+        },
+        {
+          "file": "assets/i18n-BLc85mkH.js",
+          "rawBytes": 59717,
+          "gzipBytes": 18015,
+          "sha256": "6498cbb94d950abc3b02d7e756ecbb3c91f32f69b25b26f54fdc9275e83413a6"
+        },
+        {
+          "file": "assets/index-CUkSAbnr.js",
+          "rawBytes": 247858,
+          "gzipBytes": 73600,
+          "sha256": "6c55c210347927586fd435d73bcbe049e92a4bc3c0d9e636240411bba672d05e"
+        }
+      ],
+      "gzipBytes": 109810,
+      "rawBytes": 363127,
+      "totalRawBytes": 401107,
+      "totalGzipBytes": 117540
+    },
+    "main": {
+      "assets": [
+        "assets/128x128@2x-DjuAEhNE.png",
+        "assets/index-v7GOn7n2.css"
+      ],
+      "resources": [
+        {
+          "file": "assets/128x128@2x-DjuAEhNE.png",
+          "rawBytes": 67512,
+          "gzipBytes": 67459,
+          "sha256": "43332f640c0705ec6792cdb1583b5de91ce800bfbf28dddd3cd0f0a5bb622d8b"
+        },
+        {
+          "file": "assets/index-v7GOn7n2.css",
+          "rawBytes": 37980,
+          "gzipBytes": 7730,
+          "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+        }
+      ],
+      "javascript": [
+        {
+          "file": "assets/128x128@2x-Ce3AsZTw.js",
+          "rawBytes": 58,
+          "gzipBytes": 78,
+          "sha256": "8e317556ef445982dbc6499bf9fdd2d2efa014cd7a9d2d228233a2bfba6e0603"
+        },
+        {
+          "file": "assets/App-C5_sJYW5.js",
+          "rawBytes": 25538,
+          "gzipBytes": 7943,
+          "sha256": "a06b08c07492182cc318b497dcf649437739757d0c93dd46a95a1622ae748071"
+        },
+        {
+          "file": "assets/ImageThumb-F1OY2gFb.js",
+          "rawBytes": 3904,
+          "gzipBytes": 1844,
+          "sha256": "af4f5d85cbd6fe12e80eac84b347423a9527238335b508b564b4122f2a11258b"
+        },
+        {
+          "file": "assets/Modal-C_qBF5GG.js",
+          "rawBytes": 546,
+          "gzipBytes": 307,
+          "sha256": "a474c341c33b56bb58fab27e6b41d05a0f692f25b2a0505a9dfc2b47e18fa0da"
+        },
+        {
+          "file": "assets/PinToastHost-CYRgcro_.js",
+          "rawBytes": 35602,
+          "gzipBytes": 10321,
+          "sha256": "bafad801d44ca497cb81fe3ed79ef5632e64bfa09966c8431847629ec206fdb7"
+        },
+        {
+          "file": "assets/UiIcons-DBFl5xDj.js",
+          "rawBytes": 1873,
+          "gzipBytes": 692,
+          "sha256": "53287fb7d98f1fc647eabfbbc82bd67bb75027643228ecf2fd10e09f7cade10e"
+        },
+        {
+          "file": "assets/i18n-BLc85mkH.js",
+          "rawBytes": 59717,
+          "gzipBytes": 18015,
+          "sha256": "6498cbb94d950abc3b02d7e756ecbb3c91f32f69b25b26f54fdc9275e83413a6"
+        },
+        {
+          "file": "assets/index-CUkSAbnr.js",
+          "rawBytes": 247858,
+          "gzipBytes": 73600,
+          "sha256": "6c55c210347927586fd435d73bcbe049e92a4bc3c0d9e636240411bba672d05e"
+        },
+        {
+          "file": "assets/selectionBehavior-CocwN0LX.js",
+          "rawBytes": 4922,
+          "gzipBytes": 1973,
+          "sha256": "671bafae371856f8025d1cbde5e803053ec6956fda96286b8567dd76270e0aad"
+        },
+        {
+          "file": "assets/settings-COxBTbbN.js",
+          "rawBytes": 1225,
+          "gzipBytes": 593,
+          "sha256": "f635d326b05ee56580776842ccc44d99d899152552c2dcc2ee1d09f3be41eae4"
+        }
+      ],
+      "gzipBytes": 115366,
+      "rawBytes": 381243,
+      "totalRawBytes": 486735,
+      "totalGzipBytes": 190555
+    },
+    "preferences": {
+      "assets": [
+        "assets/128x128@2x-DjuAEhNE.png",
+        "assets/index-v7GOn7n2.css",
+        "assets/menu-bar-icon-light-128-ky9ZDsCy.png"
+      ],
+      "resources": [
+        {
+          "file": "assets/128x128@2x-DjuAEhNE.png",
+          "rawBytes": 67512,
+          "gzipBytes": 67459,
+          "sha256": "43332f640c0705ec6792cdb1583b5de91ce800bfbf28dddd3cd0f0a5bb622d8b"
+        },
+        {
+          "file": "assets/index-v7GOn7n2.css",
+          "rawBytes": 37980,
+          "gzipBytes": 7730,
+          "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+        },
+        {
+          "file": "assets/menu-bar-icon-light-128-ky9ZDsCy.png",
+          "rawBytes": 9855,
+          "gzipBytes": 9842,
+          "sha256": "4ad2f83b9ebcf06890e3074c5afff59c5fe202d67ce59cda708e8da186c04383"
+        }
+      ],
+      "javascript": [
+        {
+          "file": "assets/128x128@2x-Ce3AsZTw.js",
+          "rawBytes": 58,
+          "gzipBytes": 78,
+          "sha256": "8e317556ef445982dbc6499bf9fdd2d2efa014cd7a9d2d228233a2bfba6e0603"
+        },
+        {
+          "file": "assets/DialogStatusBar-DjaGuoxF.js",
+          "rawBytes": 1841,
+          "gzipBytes": 733,
+          "sha256": "e44c7b6860c44c7651b2e14ed0a572fd3a0414deecf32ea0301f8df4fdf13939"
+        },
+        {
+          "file": "assets/DialogWindowFrame-wRMwb-ri.js",
+          "rawBytes": 568,
+          "gzipBytes": 410,
+          "sha256": "60a3a173b59e519a9d0992323999bb0c72d512414b558f8befc193bfd86ef4d9"
+        },
+        {
+          "file": "assets/PreferencesWindow-fAisTZ3v.js",
+          "rawBytes": 39364,
+          "gzipBytes": 12052,
+          "sha256": "ded82877330393a84c01ca8f87dda1285c2478994b422ee6b9f2a7cbc188c73b"
+        },
+        {
+          "file": "assets/UiIcons-DBFl5xDj.js",
+          "rawBytes": 1873,
+          "gzipBytes": 692,
+          "sha256": "53287fb7d98f1fc647eabfbbc82bd67bb75027643228ecf2fd10e09f7cade10e"
+        },
+        {
+          "file": "assets/i18n-BLc85mkH.js",
+          "rawBytes": 59717,
+          "gzipBytes": 18015,
+          "sha256": "6498cbb94d950abc3b02d7e756ecbb3c91f32f69b25b26f54fdc9275e83413a6"
+        },
+        {
+          "file": "assets/index-CUkSAbnr.js",
+          "rawBytes": 247858,
+          "gzipBytes": 73600,
+          "sha256": "6c55c210347927586fd435d73bcbe049e92a4bc3c0d9e636240411bba672d05e"
+        },
+        {
+          "file": "assets/settings-COxBTbbN.js",
+          "rawBytes": 1225,
+          "gzipBytes": 593,
+          "sha256": "f635d326b05ee56580776842ccc44d99d899152552c2dcc2ee1d09f3be41eae4"
+        }
+      ],
+      "gzipBytes": 106173,
+      "rawBytes": 352504,
+      "totalRawBytes": 467851,
+      "totalGzipBytes": 191204
+    },
+    "preview": {
+      "assets": [
+        "assets/index-v7GOn7n2.css"
+      ],
+      "resources": [
+        {
+          "file": "assets/index-v7GOn7n2.css",
+          "rawBytes": 37980,
+          "gzipBytes": 7730,
+          "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+        }
+      ],
+      "javascript": [
+        {
+          "file": "assets/HistoryDetailFullscreenButton-Dj1U6uI5.js",
+          "rawBytes": 478,
+          "gzipBytes": 380,
+          "sha256": "a0759faed7807a8f178ac2ed5cc609662bc3fe384a45573ba018ba8b73029b1d"
+        },
+        {
+          "file": "assets/HistoryPinButton-DHqaGMax.js",
+          "rawBytes": 10449,
+          "gzipBytes": 3510,
+          "sha256": "f8ef448e1351eddbabd1652645c93cf4773e56a46b3d99173eab5bdb5954d6ec"
+        },
+        {
+          "file": "assets/HistoryPreviewWindow-CwQGHMDU.js",
+          "rawBytes": 10281,
+          "gzipBytes": 3876,
+          "sha256": "ef5876c6d4a2644e485af63591043348a2752cef4e702a7b14853ed70dc6484b"
+        },
+        {
+          "file": "assets/ImageThumb-F1OY2gFb.js",
+          "rawBytes": 3904,
+          "gzipBytes": 1844,
+          "sha256": "af4f5d85cbd6fe12e80eac84b347423a9527238335b508b564b4122f2a11258b"
+        },
+        {
+          "file": "assets/UiIcons-DBFl5xDj.js",
+          "rawBytes": 1873,
+          "gzipBytes": 692,
+          "sha256": "53287fb7d98f1fc647eabfbbc82bd67bb75027643228ecf2fd10e09f7cade10e"
+        },
+        {
+          "file": "assets/i18n-BLc85mkH.js",
+          "rawBytes": 59717,
+          "gzipBytes": 18015,
+          "sha256": "6498cbb94d950abc3b02d7e756ecbb3c91f32f69b25b26f54fdc9275e83413a6"
+        },
+        {
+          "file": "assets/index-CUkSAbnr.js",
+          "rawBytes": 247858,
+          "gzipBytes": 73600,
+          "sha256": "6c55c210347927586fd435d73bcbe049e92a4bc3c0d9e636240411bba672d05e"
+        },
+        {
+          "file": "assets/selectionBehavior-CocwN0LX.js",
+          "rawBytes": 4922,
+          "gzipBytes": 1973,
+          "sha256": "671bafae371856f8025d1cbde5e803053ec6956fda96286b8567dd76270e0aad"
+        }
+      ],
+      "gzipBytes": 103890,
+      "rawBytes": 339482,
+      "totalRawBytes": 377462,
+      "totalGzipBytes": 111620
+    },
+    "preview-detail": {
+      "assets": [
+        "assets/index-v7GOn7n2.css"
+      ],
+      "resources": [
+        {
+          "file": "assets/index-v7GOn7n2.css",
+          "rawBytes": 37980,
+          "gzipBytes": 7730,
+          "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+        }
+      ],
+      "javascript": [
+        {
+          "file": "assets/HistoryDetailFullscreenButton-Dj1U6uI5.js",
+          "rawBytes": 478,
+          "gzipBytes": 380,
+          "sha256": "a0759faed7807a8f178ac2ed5cc609662bc3fe384a45573ba018ba8b73029b1d"
+        },
+        {
+          "file": "assets/HistoryPinButton-DHqaGMax.js",
+          "rawBytes": 10449,
+          "gzipBytes": 3510,
+          "sha256": "f8ef448e1351eddbabd1652645c93cf4773e56a46b3d99173eab5bdb5954d6ec"
+        },
+        {
+          "file": "assets/HistoryPreviewDetailWindow-KGBwqIyf.js",
+          "rawBytes": 2284,
+          "gzipBytes": 1150,
+          "sha256": "06bc446e625af48c4f4bae1ef719581104522b789daca00152b71b2e39d5e57f"
+        },
+        {
+          "file": "assets/ImageThumb-F1OY2gFb.js",
+          "rawBytes": 3904,
+          "gzipBytes": 1844,
+          "sha256": "af4f5d85cbd6fe12e80eac84b347423a9527238335b508b564b4122f2a11258b"
+        },
+        {
+          "file": "assets/UiIcons-DBFl5xDj.js",
+          "rawBytes": 1873,
+          "gzipBytes": 692,
+          "sha256": "53287fb7d98f1fc647eabfbbc82bd67bb75027643228ecf2fd10e09f7cade10e"
+        },
+        {
+          "file": "assets/i18n-BLc85mkH.js",
+          "rawBytes": 59717,
+          "gzipBytes": 18015,
+          "sha256": "6498cbb94d950abc3b02d7e756ecbb3c91f32f69b25b26f54fdc9275e83413a6"
+        },
+        {
+          "file": "assets/index-CUkSAbnr.js",
+          "rawBytes": 247858,
+          "gzipBytes": 73600,
+          "sha256": "6c55c210347927586fd435d73bcbe049e92a4bc3c0d9e636240411bba672d05e"
+        }
+      ],
+      "gzipBytes": 99191,
+      "rawBytes": 326563,
+      "totalRawBytes": 364543,
+      "totalGzipBytes": 106921
+    },
+    "quick-action": {
+      "assets": [
+        "assets/index-v7GOn7n2.css"
+      ],
+      "resources": [
+        {
+          "file": "assets/index-v7GOn7n2.css",
+          "rawBytes": 37980,
+          "gzipBytes": 7730,
+          "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+        }
+      ],
+      "javascript": [
+        {
+          "file": "assets/DialogStatusBar-DjaGuoxF.js",
+          "rawBytes": 1841,
+          "gzipBytes": 733,
+          "sha256": "e44c7b6860c44c7651b2e14ed0a572fd3a0414deecf32ea0301f8df4fdf13939"
+        },
+        {
+          "file": "assets/DialogWindowFrame-wRMwb-ri.js",
+          "rawBytes": 568,
+          "gzipBytes": 410,
+          "sha256": "60a3a173b59e519a9d0992323999bb0c72d512414b558f8befc193bfd86ef4d9"
+        },
+        {
+          "file": "assets/Modal-C_qBF5GG.js",
+          "rawBytes": 546,
+          "gzipBytes": 307,
+          "sha256": "a474c341c33b56bb58fab27e6b41d05a0f692f25b2a0505a9dfc2b47e18fa0da"
+        },
+        {
+          "file": "assets/QuickActionWindow-eg6NAEIn.js",
+          "rawBytes": 2741,
+          "gzipBytes": 1167,
+          "sha256": "e64c3e7bd602431269e4e101d5b7e843118387bc18d7b178b0dfe5bb146fd2c6"
+        },
+        {
+          "file": "assets/i18n-BLc85mkH.js",
+          "rawBytes": 59717,
+          "gzipBytes": 18015,
+          "sha256": "6498cbb94d950abc3b02d7e756ecbb3c91f32f69b25b26f54fdc9275e83413a6"
+        },
+        {
+          "file": "assets/index-CUkSAbnr.js",
+          "rawBytes": 247858,
+          "gzipBytes": 73600,
+          "sha256": "6c55c210347927586fd435d73bcbe049e92a4bc3c0d9e636240411bba672d05e"
+        }
+      ],
+      "gzipBytes": 94232,
+      "rawBytes": 313271,
+      "totalRawBytes": 351251,
+      "totalGzipBytes": 101962
+    }
+  },
+  "distribution": {
+    "files": [
+      {
+        "file": ".vite/manifest.json",
+        "rawBytes": 6280,
+        "gzipBytes": 1002,
+        "sha256": "fc5288d3dcb824738ffd398ede8f135b9ccac2b3a2d06bc423c1d3666a352320"
+      },
+      {
+        "file": "assets/128x128-CiflHCdp.png",
+        "rawBytes": 20739,
+        "gzipBytes": 20767,
+        "sha256": "bc20ea28f83c7a34d72943269bf18dbffa01442cc2c2083fc6cfd5138fa74de7"
+      },
+      {
+        "file": "assets/128x128@2x-Ce3AsZTw.js",
+        "rawBytes": 58,
+        "gzipBytes": 78,
+        "sha256": "8e317556ef445982dbc6499bf9fdd2d2efa014cd7a9d2d228233a2bfba6e0603"
+      },
+      {
+        "file": "assets/128x128@2x-DjuAEhNE.png",
+        "rawBytes": 67512,
+        "gzipBytes": 67459,
+        "sha256": "43332f640c0705ec6792cdb1583b5de91ce800bfbf28dddd3cd0f0a5bb622d8b"
+      },
+      {
+        "file": "assets/AboutWindow-D3LLW_oP.js",
+        "rawBytes": 4983,
+        "gzipBytes": 2074,
+        "sha256": "06ee9cd246711fcc238ca3aa36dc70ed5a724f33c18dea9047c8481c7596d9a5"
+      },
+      {
+        "file": "assets/App-C5_sJYW5.js",
+        "rawBytes": 25538,
+        "gzipBytes": 7943,
+        "sha256": "a06b08c07492182cc318b497dcf649437739757d0c93dd46a95a1622ae748071"
+      },
+      {
+        "file": "assets/DialogStatusBar-DjaGuoxF.js",
+        "rawBytes": 1841,
+        "gzipBytes": 733,
+        "sha256": "e44c7b6860c44c7651b2e14ed0a572fd3a0414deecf32ea0301f8df4fdf13939"
+      },
+      {
+        "file": "assets/DialogWindowFrame-wRMwb-ri.js",
+        "rawBytes": 568,
+        "gzipBytes": 410,
+        "sha256": "60a3a173b59e519a9d0992323999bb0c72d512414b558f8befc193bfd86ef4d9"
+      },
+      {
+        "file": "assets/FullscreenImageViewer-mdKCXVxk.js",
+        "rawBytes": 3156,
+        "gzipBytes": 1418,
+        "sha256": "1b7e90efde44a8a8742f01894cd8ffe82f5677ea68ef6069de70f9ee4500618b"
+      },
+      {
+        "file": "assets/HistoryDetailFullscreenButton-Dj1U6uI5.js",
+        "rawBytes": 478,
+        "gzipBytes": 380,
+        "sha256": "a0759faed7807a8f178ac2ed5cc609662bc3fe384a45573ba018ba8b73029b1d"
+      },
+      {
+        "file": "assets/HistoryPinButton-DHqaGMax.js",
+        "rawBytes": 10449,
+        "gzipBytes": 3510,
+        "sha256": "f8ef448e1351eddbabd1652645c93cf4773e56a46b3d99173eab5bdb5954d6ec"
+      },
+      {
+        "file": "assets/HistoryPreviewDetailWindow-KGBwqIyf.js",
+        "rawBytes": 2284,
+        "gzipBytes": 1150,
+        "sha256": "06bc446e625af48c4f4bae1ef719581104522b789daca00152b71b2e39d5e57f"
+      },
+      {
+        "file": "assets/HistoryPreviewWindow-CwQGHMDU.js",
+        "rawBytes": 10281,
+        "gzipBytes": 3876,
+        "sha256": "ef5876c6d4a2644e485af63591043348a2752cef4e702a7b14853ed70dc6484b"
+      },
+      {
+        "file": "assets/i18n-BLc85mkH.js",
+        "rawBytes": 59717,
+        "gzipBytes": 18015,
+        "sha256": "6498cbb94d950abc3b02d7e756ecbb3c91f32f69b25b26f54fdc9275e83413a6"
+      },
+      {
+        "file": "assets/ImageThumb-F1OY2gFb.js",
+        "rawBytes": 3904,
+        "gzipBytes": 1844,
+        "sha256": "af4f5d85cbd6fe12e80eac84b347423a9527238335b508b564b4122f2a11258b"
+      },
+      {
+        "file": "assets/index-CUkSAbnr.js",
+        "rawBytes": 247858,
+        "gzipBytes": 73600,
+        "sha256": "6c55c210347927586fd435d73bcbe049e92a4bc3c0d9e636240411bba672d05e"
+      },
+      {
+        "file": "assets/index-v7GOn7n2.css",
+        "rawBytes": 37980,
+        "gzipBytes": 7730,
+        "sha256": "272fd1390172daea71c2493413a589d3d8b2992007ae9324f39b6cef19570a95"
+      },
+      {
+        "file": "assets/menu-bar-icon-light-128-ky9ZDsCy.png",
+        "rawBytes": 9855,
+        "gzipBytes": 9842,
+        "sha256": "4ad2f83b9ebcf06890e3074c5afff59c5fe202d67ce59cda708e8da186c04383"
+      },
+      {
+        "file": "assets/Modal-C_qBF5GG.js",
+        "rawBytes": 546,
+        "gzipBytes": 307,
+        "sha256": "a474c341c33b56bb58fab27e6b41d05a0f692f25b2a0505a9dfc2b47e18fa0da"
+      },
+      {
+        "file": "assets/PinToastHost-CYRgcro_.js",
+        "rawBytes": 35602,
+        "gzipBytes": 10321,
+        "sha256": "bafad801d44ca497cb81fe3ed79ef5632e64bfa09966c8431847629ec206fdb7"
+      },
+      {
+        "file": "assets/PreferencesWindow-fAisTZ3v.js",
+        "rawBytes": 39364,
+        "gzipBytes": 12052,
+        "sha256": "ded82877330393a84c01ca8f87dda1285c2478994b422ee6b9f2a7cbc188c73b"
+      },
+      {
+        "file": "assets/QuickActionWindow-eg6NAEIn.js",
+        "rawBytes": 2741,
+        "gzipBytes": 1167,
+        "sha256": "e64c3e7bd602431269e4e101d5b7e843118387bc18d7b178b0dfe5bb146fd2c6"
+      },
+      {
+        "file": "assets/selectionBehavior-CocwN0LX.js",
+        "rawBytes": 4922,
+        "gzipBytes": 1973,
+        "sha256": "671bafae371856f8025d1cbde5e803053ec6956fda96286b8567dd76270e0aad"
+      },
+      {
+        "file": "assets/settings-COxBTbbN.js",
+        "rawBytes": 1225,
+        "gzipBytes": 593,
+        "sha256": "f635d326b05ee56580776842ccc44d99d899152552c2dcc2ee1d09f3be41eae4"
+      },
+      {
+        "file": "assets/UiIcons-DBFl5xDj.js",
+        "rawBytes": 1873,
+        "gzipBytes": 692,
+        "sha256": "53287fb7d98f1fc647eabfbbc82bd67bb75027643228ecf2fd10e09f7cade10e"
+      },
+      {
+        "file": "index.html",
+        "rawBytes": 510,
+        "gzipBytes": 360,
+        "sha256": "87e33a176e56dc2ba949136dedc8cd70c8f9ee1e100156d7f5f8ee24386c86da"
+      }
+    ],
+    "rawBytes": 600264,
+    "gzipBytes": 249296,
+    "sourceMaps": [],
+    "duplicateFiles": []
+  }
+}

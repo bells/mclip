@@ -86,7 +86,7 @@ use crate::window::{
 const SHOW_GUARD_MS: u64 = 450;
 const TOGGLE_WINDOW_SHORTCUT: &str = "CommandOrControl+Shift+V";
 const TRAY_ICON_ID: &str = "main";
-const APP_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../../app-icon.png");
+const APP_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/128x128@2x.png");
 const LIGHT_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/menu-bar-icon-light.png");
 const M_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/menu-bar-icon-m.png");
 #[cfg(any(target_os = "macos", test))]
@@ -988,8 +988,8 @@ mod tests {
         let light_icon = menu_bar_icon(&MenuBarIconStyle::Light).unwrap();
         let m_icon = menu_bar_icon(&MenuBarIconStyle::M).unwrap();
 
-        assert_eq!(app_icon.width(), 1024);
-        assert_eq!(app_icon.height(), 1024);
+        assert_eq!(app_icon.width(), 256);
+        assert_eq!(app_icon.height(), 256);
         assert_eq!(light_icon.width(), 512);
         assert_eq!(light_icon.height(), 512);
         assert_eq!(m_icon.width(), 512);

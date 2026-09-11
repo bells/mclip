@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>mclip icon comparison</title>
+    <style>
+      body { font: 14px system-ui; margin: 24px; }
+      section { display: flex; align-items: center; gap: 24px; padding: 24px; }
+      .dark { background: #202124; color: #f5f5f5; }
+      .light { background: #f5f5f5; color: #202124; }
+      img { object-fit: contain; width: 22px; height: 22px; }
+      .large { width: 32px; height: 32px; }
+    </style>
+  </head>
+  <body>
+    <p>Original 1024 px and existing 256 px asset, at 22 and 32 CSS pixels.</p>
+    <section class="light">
+      <span>Original</span><img src="../../app-icon.png" alt="Original at 22 px" /><img class="large" src="../../app-icon.png" alt="Original at 32 px" />
+      <span>256 px</span><img src="../../src-tauri/icons/128x128@2x.png" alt="Candidate at 22 px" /><img class="large" src="../../src-tauri/icons/128x128@2x.png" alt="Candidate at 32 px" />
+    </section>
+    <section class="dark">
+      <span>Original</span><img src="../../app-icon.png" alt="Original at 22 px" /><img class="large" src="../../app-icon.png" alt="Original at 32 px" />
+      <span>256 px</span><img src="../../src-tauri/icons/128x128@2x.png" alt="Candidate at 22 px" /><img class="large" src="../../src-tauri/icons/128x128@2x.png" alt="Candidate at 32 px" />
+    </section>
+  </body>
+</html>

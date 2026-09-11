@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 
-import appIconUrl from "../../app-icon.png";
+import appIconUrl from "../../src-tauri/icons/128x128@2x.png";
 import { APP_NAME } from "../constants";
 import type { AppTranslations } from "../i18n";
 import { ui } from "../uiStyles";

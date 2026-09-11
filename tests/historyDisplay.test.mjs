@@ -67,6 +67,20 @@ function textItem(id, lastCopiedAt, isPinned = false, pinnedAt = null) {
   };
 }
 
+test("search keeps Unicode, field-boundary phrases, and original result positions", () => {
+  const history = [
+    { ...textItem("first", 3), displayText: "Hello", sourceApp: "Editor", text: "世界 Σ İ" },
+    { ...fileItem(["/synthetic/first file.txt", "/synthetic/second.png"]), id: "files" },
+    { ...textItem("image", 1), kind: "image", width: 120, height: 80, imagePath: "fixture", contentHash: "fixture", byteSize: 1 },
+  ];
+  for (const [query, ids] of [
+    ["HELLO", ["first"]], ["editor 世界", ["first"]], ["σ", ["first"]],
+    ["i̇", ["first"]], ["file.txt /synthetic", ["files"]], ["120x80", ["image"]],
+    ["IMAGE 120", ["image"]], ["absent", []],
+  ]) assert.deepEqual(filterHistoryItems(history, query).map(item => item.id), ids);
+  assert.equal(filterHistoryItems(history, "120x80")[0].position, 3);
+});
+
 test("file history list display uses middle ellipsis and keeps extension", () => {
   assert.equal(
     getHistoryListDisplayText(
