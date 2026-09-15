@@ -21,7 +21,7 @@ pub const MAX_MAX_PINNED_ITEMS: usize = 20;
 
 pub const DEFAULT_MAX_HISTORY_COUNT: u32 = 200;
 pub const MIN_MAX_HISTORY_COUNT: u32 = 10;
-pub const MAX_MAX_HISTORY_COUNT: u32 = 500;
+pub const MAX_MAX_HISTORY_COUNT: u32 = 1000;
 pub const DEFAULT_MAIN_WINDOW_ITEM_COUNT: u32 = 10;
 pub const DEFAULT_HISTORY_GROUP_ITEM_COUNT: u32 = 50;
 pub const MIN_VISIBLE_ITEM_COUNT: u32 = 5;
@@ -364,7 +364,9 @@ pub fn load_settings(app_handle: &AppHandle) -> Result<AppSettings, String> {
         AppSettings::default()
     };
 
-    settings.launch_at_login = launch_agent_enabled(app_handle)?;
+    if performance_config_dir_override()?.is_none() {
+        settings.launch_at_login = launch_agent_enabled(app_handle)?;
+    }
 
     Ok(settings)
 }
@@ -372,7 +374,9 @@ pub fn load_settings(app_handle: &AppHandle) -> Result<AppSettings, String> {
 fn persist_settings(app_handle: &AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
     let settings = settings.sanitize();
     // 保存偏好时同步外部副作用：启动项与历史条数裁剪必须和配置保持一致。
-    sync_launch_at_login(app_handle, settings.launch_at_login)?;
+    if performance_config_dir_override()?.is_none() {
+        sync_launch_at_login(app_handle, settings.launch_at_login)?;
+    }
     trim_history_to_max(app_handle, settings.max_history_count as usize)?;
 
     let path = settings_path(app_handle)?;
@@ -596,10 +600,20 @@ mod tests {
     }
 
     #[test]
-    fn history_count_defaults_to_200_with_a_500_entry_upper_bound() {
+    fn history_count_defaults_to_200_with_a_1000_entry_upper_bound() {
         assert_eq!(DEFAULT_MAX_HISTORY_COUNT, 200);
-        assert_eq!(MAX_MAX_HISTORY_COUNT, 500);
+        assert_eq!(MAX_MAX_HISTORY_COUNT, 1000);
         assert_eq!(AppSettings::default().max_history_count, 200);
+        for (value, expected) in [(9, 10), (200, 200), (500, 500), (1000, 1000), (1001, 1000)] {
+            let settings = AppSettings {
+                max_history_count: value,
+                main_window_item_count: 1000,
+                ..AppSettings::default()
+            }
+            .sanitize();
+            assert_eq!(settings.max_history_count, expected);
+            assert_eq!(settings.main_window_item_count, expected);
+        }
     }
 
     #[test]
@@ -677,7 +691,7 @@ mod tests {
     #[test]
     fn sanitize_clamps_history_count_to_upper_bound() {
         let settings = AppSettings {
-            max_history_count: 999,
+            max_history_count: MAX_MAX_HISTORY_COUNT + 1,
             ..AppSettings::default()
         }
         .sanitize();

@@ -19,13 +19,19 @@ test("performance fixtures are isolated, bounded, and mixed", async () => {
 
 test("performance fixtures reject non-temporary and oversized targets", async () => {
   await assert.rejects(
-    createPerformanceFixture({ count: 201 }),
-    /between 0 and 200/,
+    createPerformanceFixture({ count: 1001 }),
+    /between 0 and 1000/,
   );
   await assert.rejects(
     createPerformanceFixture({ count: 10, outputDir: process.cwd() }),
     /must be inside/,
   );
+});
+
+test("1000-entry fixture preserves the full requested retention limit", async () => {
+  const fixture = await createPerformanceFixture({count: 1000});
+  assert.equal(fixture.history.length, 1000);
+  assert.equal(fixture.settings.maxHistoryCount, 1000);
 });
 
 test("macOS benchmark commands use LaunchServices for primary startup and retain fixture isolation", async () => {

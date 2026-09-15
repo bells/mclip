@@ -1,13 +1,14 @@
 //! 默认关闭的本地性能里程碑。
 //! 记录结构只允许枚举和数字，避免把剪贴板内容带入性能证据。
 
+use std::collections::HashSet;
 use std::env;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{self, Sender};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use std::thread;
 use std::time::Instant;
 
@@ -25,7 +26,7 @@ pub const PERFORMANCE_CLOSE_VIEWER_ARGUMENT: &str = "--mclip-performance-action=
 pub const PERFORMANCE_QUIT_ARGUMENT: &str = "--mclip-performance-action=quit";
 const MAX_INTERACTION_ID_CHARS: usize = 64;
 const MAX_ELAPSED_MS: f64 = 3_600_000.0;
-const MAX_FIXTURE_SIZE: u32 = 200;
+const MAX_FIXTURE_SIZE: u32 = 1100;
 
 static PROCESS_STARTED_AT: OnceLock<Instant> = OnceLock::new();
 static INTERACTION_SEQUENCE: AtomicU64 = AtomicU64::new(1);
@@ -60,10 +61,15 @@ pub enum PerformanceMilestoneName {
     ImageCacheMiss,
     ImageReady,
     ImageError,
+    PageProbeReady,
+    PageRequest,
+    PageDispatchReady,
+    PagePainted,
+    HistorySnapshotRead,
     TextTransformComplete,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PerformanceWindowLabel {
     Main,
@@ -166,12 +172,16 @@ impl PerformanceMilestone {
 #[derive(Debug)]
 pub struct PerformanceRecorder {
     sender: Option<Sender<PerformanceMilestone>>,
+    page_probes: Mutex<HashSet<PerformanceWindowLabel>>,
 }
 
 impl PerformanceRecorder {
     pub fn from_env() -> Result<Self, String> {
         if env::var(PERFORMANCE_MODE_ENV).as_deref() != Ok("1") {
-            return Ok(Self { sender: None });
+            return Ok(Self {
+                sender: None,
+                page_probes: Mutex::default(),
+            });
         }
 
         let trace_path = env::var_os(PERFORMANCE_TRACE_PATH_ENV)
@@ -209,6 +219,7 @@ impl PerformanceRecorder {
 
         Ok(Self {
             sender: Some(sender),
+            page_probes: Mutex::default(),
         })
     }
 
@@ -218,10 +229,27 @@ impl PerformanceRecorder {
 
     pub fn record(&self, milestone: PerformanceMilestone) -> Result<(), String> {
         milestone.validate()?;
+        if self.is_enabled()
+            && milestone.milestone == PerformanceMilestoneName::PageProbeReady
+            && milestone.clock == PerformanceClock::Frontend
+        {
+            if let Some(label) = milestone.window_label {
+                self.page_probes
+                    .lock()
+                    .map_err(|_| "pageProbeLockFailed")?
+                    .insert(label);
+            }
+        }
         match &self.sender {
             Some(sender) => sender.send(milestone).map_err(|error| error.to_string()),
             None => Ok(()),
         }
+    }
+
+    pub fn page_probe_ready(&self, label: PerformanceWindowLabel) -> bool {
+        self.page_probes
+            .lock()
+            .is_ok_and(|probes| probes.contains(&label))
     }
 }
 
@@ -249,6 +277,9 @@ pub fn record_rust_milestone(
     interaction_id: Option<String>,
     outcome: PerformanceOutcome,
 ) {
+    if !recorder.is_enabled() {
+        return;
+    }
     let _ = recorder.record(PerformanceMilestone {
         clock: PerformanceClock::Rust,
         milestone,
@@ -268,6 +299,9 @@ pub fn record_text_transform_performance(
     duration_ms: f64,
     outcome: PerformanceOutcome,
 ) {
+    if !recorder.is_enabled() {
+        return;
+    }
     let _ = recorder.record(PerformanceMilestone {
         clock: PerformanceClock::Rust,
         milestone: PerformanceMilestoneName::TextTransformComplete,

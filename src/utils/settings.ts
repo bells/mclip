@@ -18,6 +18,10 @@ const MENU_BAR_ICON_STYLES: readonly MenuBarIconStyle[] = [
   "m",
 ];
 
+export function requiresHistoryPresentationRefresh(previous: AppSettings, next: AppSettings): boolean {
+  return previous.maskSensitiveContent !== next.maskSensitiveContent;
+}
+
 export function normalizeSettings(settings: AppSettings): AppSettings {
   const enabledHistoryTypes = {
     ...DEFAULT_SETTINGS.enabledHistoryTypes,

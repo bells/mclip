@@ -24,7 +24,7 @@ import {
   splitPinnedHistoryItems,
 } from "../utils/history";
 import { getSearchQueryAfterHistorySelection } from "../utils/searchInteraction";
-import { normalizeSettings } from "../utils/settings";
+import { normalizeSettings, requiresHistoryPresentationRefresh } from "../utils/settings";
 import { recordFrontendPerformanceAfterPaint } from "../services/performance";
 import { applyHistoryChange as reduceHistoryChange } from "../utils/historyChanges";
 import { maskSensitiveHistoryItems } from "../utils/sensitiveContent";
@@ -59,6 +59,8 @@ export function useClipboardDataController({
   const [sensitiveRevealNotice, setSensitiveRevealNotice] =
     useState<SensitiveHistoryRevealErrorCode | null>(null);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const settingsRef = useRef(settings);
+  const presentationRevisionRef = useRef(0);
   const historySnapshotRef = useRef(historySnapshot);
   const historyInitializedRef = useRef(false);
   const historyRefreshPromiseRef = useRef<Promise<void> | null>(null);
@@ -112,15 +114,17 @@ export function useClipboardDataController({
     setHistorySnapshot(nextSnapshot);
   }
 
-  function refreshHistorySnapshot() {
+  function refreshHistorySnapshot(): Promise<void> {
     if (historyRefreshPromiseRef.current) {
       return historyRefreshPromiseRef.current;
     }
 
+    const presentationRevision = presentationRevisionRef.current;
     const refreshPromise = getHistorySnapshot()
       .then((nextSnapshot) => {
         if (
           isMountedRef.current &&
+          presentationRevision === presentationRevisionRef.current &&
           nextSnapshot.revision >= historySnapshotRef.current.revision
         ) {
           commitHistorySnapshot(nextSnapshot);
@@ -132,6 +136,9 @@ export function useClipboardDataController({
       .finally(() => {
         if (historyRefreshPromiseRef.current === refreshPromise) {
           historyRefreshPromiseRef.current = null;
+          if (isMountedRef.current && presentationRevision !== presentationRevisionRef.current) {
+            void refreshHistorySnapshot();
+          }
         }
       });
 
@@ -194,6 +201,7 @@ export function useClipboardDataController({
         }
 
         const normalizedSettings = normalizeSettings(loadedSettings);
+        settingsRef.current = normalizedSettings;
         setSettings(normalizedSettings);
         commitHistorySnapshot(initialSnapshot);
         historyInitializedRef.current = true;
@@ -256,8 +264,14 @@ export function useClipboardDataController({
     let unlisten: UnlistenFn | undefined;
 
     void listenToSettingsUpdated((updatedSettings) => {
-      setSettings(normalizeSettings(updatedSettings));
-      void refreshHistorySnapshot();
+      const nextSettings = normalizeSettings(updatedSettings);
+      const refreshPresentation = requiresHistoryPresentationRefresh(settingsRef.current, nextSettings);
+      settingsRef.current = nextSettings;
+      setSettings(nextSettings);
+      if (refreshPresentation) {
+        presentationRevisionRef.current += 1;
+        void refreshHistorySnapshot();
+      }
     }).then((unsubscribe) => {
       unlisten = unsubscribe;
     });

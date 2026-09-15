@@ -16,27 +16,34 @@ function macAppBundle(binary) {
 
 export function spawnPerformanceApp(binary, performanceEnvironment) {
   if (process.platform !== "darwin") {
-    return spawn(binary, [], {
+    const child = spawn(binary, [], {
       env: { ...process.env, ...performanceEnvironment },
       stdio: "ignore",
     });
+    child.performanceEnvironment = performanceEnvironment;
+    return child;
   }
 
   const environmentArguments = Object.entries(performanceEnvironment).flatMap(
     ([name, value]) => ["--env", `${name}=${value}`],
   );
-  return spawn(
+  const child = spawn(
     "/usr/bin/open",
     ["-n", "-g", "-W", ...environmentArguments, macAppBundle(binary)],
     { stdio: "ignore" },
   );
+  child.performanceEnvironment = performanceEnvironment;
+  return child;
 }
 
 export async function stopPerformanceApp(binary, child) {
   if (child.exitCode !== null) return;
 
   try {
-    await execFileAsync(binary, [PERFORMANCE_QUIT_ARGUMENT], { timeout: 5_000 });
+    await execFileAsync(binary, [PERFORMANCE_QUIT_ARGUMENT], {
+      timeout: 5_000,
+      env: { ...process.env, ...child.performanceEnvironment },
+    });
   } catch {
     // The primary process may already have exited after a failed startup.
   }

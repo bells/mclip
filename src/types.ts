@@ -32,7 +32,23 @@ export type PerformanceMilestoneName =
   | "imageCacheMiss"
   | "imageReady"
   | "imageError"
+  | "pageProbeReady"
+  | "pageRequest"
+  | "pageDispatchReady"
+  | "pagePainted"
+  | "historySnapshotRead"
   | "textTransformComplete";
+
+export type PerformancePageAction =
+  | "openAbout" | "openPreferences" | "openQuickAction"
+  | "preferencesGeneral" | "preferencesAppearance" | "preferencesHistory"
+  | "preferencesPrivacy" | "preferencesTextActions" | "preferencesCli"
+  | "preferencesSearch" | "preferencesSave";
+
+export interface PerformancePageRequest {
+  action: PerformancePageAction;
+  interactionId: string;
+}
 export type PerformanceWindowLabel =
   | "main"
   | "preview"

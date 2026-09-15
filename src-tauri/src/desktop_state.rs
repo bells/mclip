@@ -16,7 +16,7 @@ use crate::history::{
     HistoryMutationResult, LoadedHistoryFile, PinMutationError,
 };
 use crate::image_cache::ImageDataCache;
-use crate::settings::AppSettings;
+use crate::settings::{AppSettings, HistoryTypes};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DesktopHistorySnapshot {
@@ -89,6 +89,14 @@ impl DesktopStateRepository {
             .map_err(|error| error.to_string())
     }
 
+    pub fn history_types(&self) -> Result<HistoryTypes, String> {
+        self.inner
+            .settings
+            .lock()
+            .map(|settings| settings.enabled_history_types.clone())
+            .map_err(|error| error.to_string())
+    }
+
     pub fn commit_settings(&self, settings: AppSettings) -> Result<AppSettings, String> {
         let settings = settings.sanitize();
         *self
@@ -100,14 +108,18 @@ impl DesktopStateRepository {
     }
 
     pub fn history_snapshot(&self) -> Result<DesktopHistorySnapshot, String> {
-        Ok(self.refresh_history_snapshot()?.snapshot)
+        let mut state = self.lock_history()?;
+        if !self.ensure_history_loaded(&mut state)? {
+            self.reload_external_change(&mut state)?;
+        }
+        Ok(snapshot_from_state(&state))
     }
 
     pub fn refresh_history_snapshot(&self) -> Result<DesktopHistoryMutation, String> {
         let mut state = self.lock_history()?;
-        self.ensure_history_loaded(&mut state)?;
+        let initial_load = self.ensure_history_loaded(&mut state)?;
         let previous_snapshot = snapshot_from_state(&state);
-        let external_reloaded = self.reload_external_change(&mut state)?;
+        let external_reloaded = !initial_load && self.reload_external_change(&mut state)?;
         Ok(DesktopHistoryMutation {
             previous_snapshot,
             snapshot: snapshot_from_state(&state),
@@ -117,11 +129,14 @@ impl DesktopStateRepository {
     }
 
     pub fn find_history_item(&self, id: &str) -> Result<Option<HistoryEntry>, String> {
-        Ok(self
-            .history_snapshot()?
-            .history
-            .into_iter()
-            .find(|item| item.id() == id))
+        let mut state = self.lock_history()?;
+        if !self.ensure_history_loaded(&mut state)? {
+            self.reload_external_change(&mut state)?;
+        }
+        Ok(state
+            .loaded
+            .as_ref()
+            .and_then(|loaded| loaded.history.iter().find(|item| item.id() == id).cloned()))
     }
 
     pub fn merge_history_entry(
@@ -221,8 +236,8 @@ impl DesktopStateRepository {
         mutation: impl FnOnce(Vec<HistoryEntry>) -> Result<HistoryMutationResult, E>,
     ) -> Result<DesktopHistoryMutation, E> {
         let mut state = self.lock_history()?;
-        self.ensure_history_loaded(&mut state)?;
-        let external_reloaded = self.reload_external_change(&mut state)?;
+        let initial_load = self.ensure_history_loaded(&mut state)?;
+        let external_reloaded = !initial_load && self.reload_external_change(&mut state)?;
         let previous_snapshot = snapshot_from_state(&state);
 
         let current = state
@@ -263,12 +278,13 @@ impl DesktopStateRepository {
         self.inner.history.lock().map_err(|error| error.to_string())
     }
 
-    fn ensure_history_loaded(&self, state: &mut DesktopHistoryState) -> Result<(), String> {
+    fn ensure_history_loaded(&self, state: &mut DesktopHistoryState) -> Result<bool, String> {
         if state.loaded.is_none() {
             state.loaded = Some(self.load_history_resilient());
             state.revision = state.revision.saturating_add(1);
+            return Ok(true);
         }
-        Ok(())
+        Ok(false)
     }
 
     fn reload_external_change(&self, state: &mut DesktopHistoryState) -> Result<bool, String> {
@@ -539,6 +555,97 @@ mod tests {
         assert_eq!(first.revision, 1);
         assert_eq!(second, first);
         fs::remove_dir_all(path.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn single_item_reads_reconcile_external_changes_and_do_not_write_history() {
+        let path = unique_path("lookup");
+        let first = text_entry("first");
+        let second = text_entry("second");
+        persist_history_to_path(&path, std::slice::from_ref(&first)).unwrap();
+        let repository = DesktopStateRepository::new(path.clone(), AppSettings::default());
+        assert_eq!(
+            repository.find_history_item(first.id()).unwrap(),
+            Some(first.clone())
+        );
+        let bytes = fs::read(&path).unwrap();
+        assert_eq!(repository.find_history_item("missing").unwrap(), None);
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+        persist_history_to_path(&path, std::slice::from_ref(&second)).unwrap();
+        assert_eq!(repository.find_history_item(first.id()).unwrap(), None);
+        assert_eq!(
+            repository.find_history_item(second.id()).unwrap(),
+            Some(second)
+        );
+        assert_eq!(repository.history_snapshot().unwrap().revision, 2);
+        fs::remove_dir_all(path.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn thousand_ordinary_entries_retain_pins_and_trim_only_oldest_ordinary() {
+        let path = unique_path("retention1000");
+        let mut entries = (0..1000)
+            .map(|i| text_entry(&format!("ordinary-{i}")))
+            .collect::<Vec<_>>();
+        let mut pin = text_entry("pinned");
+        pin.common_mut().is_pinned = true;
+        pin.common_mut().pinned_at = Some(1);
+        let pin_id = pin.id().to_string();
+        entries.push(pin);
+        persist_history_to_path(&path, &entries).unwrap();
+        let repository = DesktopStateRepository::new(
+            path.clone(),
+            AppSettings {
+                max_history_count: 1000,
+                ..AppSettings::default()
+            },
+        );
+        let before = repository.history_snapshot().unwrap();
+        let oldest_id = before
+            .history
+            .iter()
+            .rev()
+            .find(|entry| !entry.is_pinned())
+            .unwrap()
+            .id()
+            .to_string();
+        let inserted = text_entry("new ordinary");
+        let inserted_id = inserted.id().to_string();
+        let result = repository.merge_history_entry(inserted, 1000).unwrap();
+        assert_eq!(result.snapshot.history.len(), 1001);
+        assert_eq!(
+            result
+                .snapshot
+                .history
+                .iter()
+                .filter(|entry| !entry.is_pinned())
+                .count(),
+            1000
+        );
+        assert!(repository
+            .find_history_item(&pin_id)
+            .unwrap()
+            .unwrap()
+            .is_pinned());
+        assert!(repository
+            .find_history_item(&inserted_id)
+            .unwrap()
+            .is_some());
+        assert!(repository.find_history_item(&oldest_id).unwrap().is_none());
+        fs::remove_dir_all(path.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn history_types_reads_current_committed_settings() {
+        let repository = DesktopStateRepository::new(unique_path("types"), AppSettings::default());
+        let mut settings = repository.settings().unwrap();
+        settings.enabled_history_types.image = false;
+        settings.ignored_source_app_ids = vec!["org.fixture.app".to_string()];
+        repository.commit_settings(settings.clone()).unwrap();
+        assert_eq!(
+            repository.history_types().unwrap(),
+            settings.enabled_history_types
+        );
     }
 
     #[test]

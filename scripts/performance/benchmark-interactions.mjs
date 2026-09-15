@@ -102,19 +102,10 @@ function interactionAfter(records, startIndex, requestMilestone, completionMiles
   return null;
 }
 
-function cleanLauncherEnvironment() {
-  const environment = { ...process.env };
-  delete environment.MCLIP_PERF_CONFIG_DIR;
-  delete environment.MCLIP_PERF_FIXTURE_SIZE;
-  delete environment.MCLIP_PERF_MODE;
-  delete environment.MCLIP_PERF_TRACE_PATH;
-  return environment;
-}
-
 async function triggerSingleInstance(binary, action = null) {
   const arguments_ = action ? [PERFORMANCE_ACTION_ARGUMENTS[action]] : [];
   await execFileAsync(binary, arguments_, {
-    env: cleanLauncherEnvironment(),
+    env: { ...process.env, ...performanceEnvironment },
     timeout: 5_000,
   });
 }
@@ -245,12 +236,13 @@ await execFileAsync("swiftc", await swiftCompilerArguments(
   path.join(benchmarkRoot, "swift-module-cache"),
 ));
 
-const child = spawnPerformanceApp(options.binary, {
+const performanceEnvironment = {
   MCLIP_PERF_CONFIG_DIR: fixture.fixtureRoot,
   MCLIP_PERF_FIXTURE_SIZE: String(options.count),
   MCLIP_PERF_MODE: "1",
   MCLIP_PERF_TRACE_PATH: tracePath,
-});
+};
+const child = spawnPerformanceApp(options.binary, performanceEnvironment);
 let appOwnerPid = null;
 
 const samples = {

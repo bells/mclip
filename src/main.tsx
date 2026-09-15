@@ -5,12 +5,18 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./styles.css";
 import { installClientErrorLogging } from "./utils/diagnostics";
 import { getCurrentWindowLabel } from "./services/ipc/windows";
-import { recordFrontendPerformanceAfterPaint } from "./services/performance";
+import { isPerformanceModeEnabled, recordFrontendPerformanceAfterPaint } from "./services/performance";
 import type { PerformanceWindowLabel } from "./types";
 import { loadWindowRoute } from "./windowRoutes";
 
 installClientErrorLogging();
 const windowLabel = getCurrentWindowLabel();
+void isPerformanceModeEnabled().then(async (enabled) => {
+  if (enabled) {
+    const { installPerformancePageProbe } = await import("./services/performancePages");
+    await installPerformancePageProbe();
+  }
+});
 // index.html 固定提供 root 节点，所有 window route 共用同一个诊断边界。
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,

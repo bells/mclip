@@ -125,14 +125,17 @@ pub fn get_auto_paste_permission_status() -> AutoPastePermissionStatus {
 }
 
 pub fn spawn_clipboard_watcher(app_handle: AppHandle) {
+    // Fixture runs must not import real clipboard data into synthetic history.
+    match crate::performance::performance_config_dir_override() {
+        Ok(Some(_)) => return,
+        Err(_) => return,
+        Ok(None) => {}
+    }
     spawn_platform_clipboard_watcher(app_handle);
 }
 
 fn configured_history_types(app_handle: &AppHandle) -> Result<HistoryTypes, String> {
-    app_handle
-        .state::<DesktopStateRepository>()
-        .settings()
-        .map(|settings| settings.enabled_history_types)
+    app_handle.state::<DesktopStateRepository>().history_types()
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -1184,22 +1187,23 @@ mod macos_clipboard_watcher {
             let mut last_change_token = general_pasteboard_change_count().unwrap_or_default();
 
             loop {
-                if let Ok(history_types) = configured_history_types(&app_handle) {
-                    let current_change_token = general_pasteboard_change_count();
-                    if current_change_token
-                        .map(|change_token| change_token != last_change_token)
-                        .unwrap_or(false)
-                    {
-                        thread::sleep(Duration::from_millis(CLIPBOARD_CHANGE_SETTLE_DELAY_MS));
-                    }
+                let current_change_token = general_pasteboard_change_count();
+                if current_change_token
+                    .map(|change_token| change_token != last_change_token)
+                    .unwrap_or(false)
+                {
+                    thread::sleep(Duration::from_millis(CLIPBOARD_CHANGE_SETTLE_DELAY_MS));
+                }
 
-                    if let Some(snapshot) = read_snapshot_after_change_token_update(
-                        &mut last_change_token,
-                        current_change_token,
-                        || read_current_clipboard_snapshot(&app_handle, &history_types),
-                    ) {
-                        process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
-                    }
+                if let Some(snapshot) = read_snapshot_after_change_token_update(
+                    &mut last_change_token,
+                    current_change_token,
+                    || {
+                        let history_types = configured_history_types(&app_handle).ok()?;
+                        read_current_clipboard_snapshot(&app_handle, &history_types)
+                    },
+                ) {
+                    process_clipboard_snapshot(&app_handle, &mut last_signature, snapshot);
                 }
 
                 thread::sleep(Duration::from_millis(CLIPBOARD_POLL_INTERVAL_MS));

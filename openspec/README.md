@@ -52,7 +52,7 @@ The following is a dated snapshot. Refresh it from the CLI and source task lists
 
 ## 证据沿用 / Reusing Evidence
 
-2026-09-10 新增 [optimize-v0-2-0-performance-and-size](changes/optimize-v0-2-0-performance-and-size/tasks.md)：第二轮性能、代码结构与体积优化，按四阶段推进；第一阶段证据见 [体积报告](../performance/v0.2.0-size-phase-1.md)，2026-09-11 第二、三阶段实现与自动化/打包结果见 [后续报告](../performance/v0.2.0-performance-phase-2-3.md)。此条为上表快照之后的增量，实时进度以 tasks 为准。保持行为的重构声明 `skip_specs: true`；原生性能验收和发布状态独立记录。
+2026-09-10 新增 [optimize-v0-2-0-performance-and-size](changes/optimize-v0-2-0-performance-and-size/tasks.md)：第二轮性能、代码结构与体积优化，按四阶段推进；第一阶段证据见 [体积报告](../performance/v0.2.0-size-phase-1.md)，2026-09-11 第二、三阶段实现与自动化/打包结果见 [后续报告](../performance/v0.2.0-performance-phase-2-3.md)。此条为上表快照之后的增量，实时进度以 tasks 为准。2026-09-13 扩展到 1000 条上限、启动/常驻/七窗口响应，补充 history-display/runtime-performance delta，移除 `skip_specs`；见 [运行时报告](../performance/v0.2.0-runtime-response.md)。2026-09-15 补充六设置页及 About/quick-action 原生响应、保存请求 1→0 和主进程资源样本；完整原生性能验收和发布状态独立记录。
 
 Added on 2026-09-10: the second performance/size pass tracks build profiles, Rust internals, frontend resources, and native evidence separately. See its task list and first-phase size report for current results.
 

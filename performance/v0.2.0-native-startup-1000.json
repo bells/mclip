@@ -1,0 +1,43 @@
+{
+  "architecture": "main-only-startup-dynamic-auxiliary-webviews",
+  "fixtureSize": 1000,
+  "measuredRuns": 5,
+  "metrics": {
+    "rustTrayReadyMs": {
+      "medianMs": 208.528208,
+      "p95Ms": 257.208666,
+      "values": [
+        220.749958,
+        208.528208,
+        203.506375,
+        200.169083,
+        257.208666
+      ]
+    },
+    "frontendHistoryReadyMs": {
+      "medianMs": 63,
+      "p95Ms": 99,
+      "values": [
+        99,
+        62,
+        64,
+        63,
+        61
+      ]
+    },
+    "externalHistoryReadyMs": {
+      "medianMs": 545.1768750000001,
+      "p95Ms": 585.7552089999999,
+      "values": [
+        543.1159580000003,
+        553.7882500000001,
+        526.351083,
+        545.1768750000001,
+        585.7552089999999
+      ]
+    }
+  },
+  "platform": "darwin-arm64",
+  "warmupRuns": 1,
+  "isolation": "temporary synthetic config; system clipboard watcher disabled; native WebKit and window operations enabled"
+}

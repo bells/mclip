@@ -3,6 +3,7 @@
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -24,7 +25,8 @@ pub const SENSITIVE_HISTORY_REVEAL_FAILED_EVENT: &str = "sensitive-history-revea
 const MAIN_WINDOW_LABEL: &str = "main";
 const PREVIEW_WINDOW_LABEL: &str = "preview";
 pub const LEGACY_MAX_PINNED_HISTORY_COUNT: usize = 100;
-pub const MAX_PERSISTED_HISTORY_COUNT: usize = 600;
+pub const MAX_PERSISTED_HISTORY_COUNT: usize =
+    crate::settings::MAX_MAX_HISTORY_COUNT as usize + LEGACY_MAX_PINNED_HISTORY_COUNT;
 pub const PIN_LIMIT_ERROR_CODE: &str = "pinnedHistoryLimitReached";
 
 #[derive(Debug, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
@@ -340,18 +342,22 @@ impl HistoryEntry {
 
     pub fn masked_for_presentation(&self) -> Self {
         let mut entry = self.clone();
+        entry.mask_for_presentation();
+        entry
+    }
+
+    fn mask_for_presentation(&mut self) {
         if let HistoryEntry::Text {
             common,
             text,
             secret_type: Some(secret_type),
             ..
-        } = &mut entry
+        } = self
         {
             let masked = masked_text(text, Some(*secret_type), true);
             common.display_text = masked.clone();
             *text = masked;
         }
-        entry
     }
 }
 
@@ -375,6 +381,13 @@ impl NewHistoryItem {
 
 #[tauri::command]
 pub async fn get_history_snapshot(app_handle: AppHandle) -> Result<HistorySnapshot, String> {
+    crate::performance::record_rust_milestone(
+        &app_handle.state::<crate::performance::PerformanceRecorder>(),
+        crate::performance::PerformanceMilestoneName::HistorySnapshotRead,
+        Some(crate::performance::PerformanceWindowLabel::Main),
+        None,
+        crate::performance::PerformanceOutcome::Success,
+    );
     let repository = app_handle.state::<DesktopStateRepository>().inner().clone();
     let masking_enabled = repository.settings()?.mask_sensitive_content;
     tauri::async_runtime::spawn_blocking(move || repository.history_snapshot())
@@ -738,11 +751,9 @@ impl HistoryChange {
 impl HistorySnapshot {
     fn for_presentation(mut self, masking_enabled: bool) -> Self {
         if masking_enabled {
-            self.entries = self
-                .entries
-                .iter()
-                .map(HistoryEntry::masked_for_presentation)
-                .collect();
+            for entry in &mut self.entries {
+                entry.mask_for_presentation();
+            }
         }
         self
     }
@@ -904,9 +915,26 @@ pub fn history_file_fingerprint(path: &Path) -> Result<HistoryFileFingerprint, S
         return Ok(HistoryFileFingerprint::missing());
     }
 
-    fs::read(path)
-        .map(|bytes| fingerprint_for_bytes(&bytes))
-        .map_err(|error| error.to_string())
+    let mut file = fs::File::open(path).map_err(|error| error.to_string())?;
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    let mut byte_len = 0;
+    loop {
+        let count = match file.read(&mut buffer) {
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            result => result.map_err(|error| error.to_string())?,
+        };
+        if count == 0 {
+            break;
+        }
+        digest.update(&buffer[..count]);
+        byte_len += count as u64;
+    }
+    Ok(HistoryFileFingerprint {
+        exists: true,
+        byte_len,
+        content_hash: Some(format!("{:x}", digest.finalize())),
+    })
 }
 
 pub fn persist_history_to_path(path: &Path, history: &[HistoryEntry]) -> Result<(), String> {
@@ -1312,7 +1340,7 @@ fn trim_unpinned_in_place(history: &mut Vec<HistoryEntry>, max_history_count: us
     debug_assert!(
         history.len() <= max_history_count.saturating_add(LEGACY_MAX_PINNED_HISTORY_COUNT)
     );
-    if max_history_count == 500 {
+    if max_history_count == crate::settings::MAX_MAX_HISTORY_COUNT as usize {
         debug_assert!(history.len() <= MAX_PERSISTED_HISTORY_COUNT);
     }
     history.len() != original_len
@@ -2238,7 +2266,7 @@ mod tests {
         );
         assert_eq!(
             MAX_PERSISTED_HISTORY_COUNT,
-            500 + LEGACY_MAX_PINNED_HISTORY_COUNT
+            1000 + LEGACY_MAX_PINNED_HISTORY_COUNT
         );
         let wire = super::HistoryCommandError::from_pin(error, &crate::settings::AppLanguage::En);
         let json = serde_json::to_value(wire).unwrap();
@@ -2372,6 +2400,58 @@ mod tests {
         assert_eq!(
             hash_hex(b"mclip"),
             "3983158eb7199a0eddb1a5733d2323bd825448f3d16533bfa7a1c5328631e603"
+        );
+    }
+
+    #[test]
+    fn streamed_fingerprint_matches_full_content_at_chunk_boundaries() {
+        let path = unique_history_path("streamed-fingerprint");
+        for size in [0, 1, 65535, 65536, 65537, 131079] {
+            let bytes: Vec<u8> = (0..size).map(|i| (i % 251) as u8).collect();
+            fs::write(&path, &bytes).unwrap();
+            assert_eq!(
+                history_file_fingerprint(&path).unwrap(),
+                super::fingerprint_for_bytes(&bytes)
+            );
+        }
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn owned_snapshot_masks_only_its_sensitive_fields_and_retains_ordinary_buffers() {
+        let ordinary = text_entry("ordinary", 1, None);
+        let secret = text_entry("sk-proj-abcdefghijklmnopqrstuvwxyz0123456789", 2, None);
+        assert!(secret.is_secret());
+        let mut snapshot = HistorySnapshot {
+            revision: 7,
+            entries: vec![ordinary.clone(), secret.clone()],
+        };
+        let ordinary_text_ptr = match &snapshot.entries[0] {
+            HistoryEntry::Text { text, .. } => text.as_ptr(),
+            _ => unreachable!(),
+        };
+        snapshot = snapshot.for_presentation(true);
+        assert_eq!(snapshot.revision, 7);
+        assert_eq!(snapshot.entries[0], ordinary);
+        if let HistoryEntry::Text { text, .. } = &snapshot.entries[0] {
+            assert_eq!(text.as_ptr(), ordinary_text_ptr);
+        }
+        if let HistoryEntry::Text { text, common, .. } = &snapshot.entries[1] {
+            assert_eq!(text, "••••••••");
+            assert_eq!(common.display_text, "••••••••");
+        }
+        assert_eq!(
+            reveal_sensitive_history_entry(Some(secret.clone())).unwrap(),
+            "sk-proj-abcdefghijklmnopqrstuvwxyz0123456789"
+        );
+        assert_eq!(
+            HistorySnapshot {
+                revision: 8,
+                entries: vec![secret.clone()]
+            }
+            .for_presentation(false)
+            .entries,
+            vec![secret]
         );
     }
 }

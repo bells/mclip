@@ -52,3 +52,7 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# Full-file SHA-256 reconciliation runs on every history read and mutation.
+[profile.release.package.sha2]
+opt-level = 3

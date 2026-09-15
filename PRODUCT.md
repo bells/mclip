@@ -21,7 +21,7 @@ Reviewed on 2026-09-06. The source manifests still declare `0.1.1`; the working 
 The desktop shell provides:
 
 - System, light, and dark appearance across every Tauri window.
-- New installs retain 200 ordinary history items by default, configurable from 10–500. Main-list count defaults to 10 and accepts 5 through the ordinary history limit; archive-group count defaults to 50 and accepts 5–100. Row numbers and main-window branding are configurable.
+- New installs retain 200 ordinary history items by default, configurable from 10–1000. Main-list count defaults to 10 and accepts 5 through the ordinary history limit; archive-group count defaults to 50 and accepts 5–100. Row numbers and main-window branding are configurable.
 - Pinned items (default admission limit 10, configurable from 5 to 20 in History settings) appear before ordinary history, ordered by most recent pin time. Lowering the cap preserves existing pins. Passive Pin icons occupy their number slot; ordinary rows start at 1 and unmodified 1–9/0 select the first ten outside text editing. They do not consume ordinary retention or main/archive count limits; repeated copying preserves the pin time.
 - A bounded main-window history scroller that keeps search and footer actions available.
 - Compact text/file rows and taller image rows that preserve useful thumbnails in the main list and archive previews.

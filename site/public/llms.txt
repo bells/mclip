@@ -30,7 +30,7 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 - Main workflow: open from the menu bar or system tray, search clipboard history, preview an item, copy it, then return to the current task
 - Clipboard content types: text, images, and files
 - File history restores a system file list instead of copying path-only text
-- New installs retain 200 history items by default, configurable from 10 to 500
+- New installs retain 200 history items by default, configurable from 10 to 1000 in current source (pending release)
 - The current source pin admission limit defaults to 10, configurable from 5 to 20 in History settings; existing pins are retained when lowering it. Pins appear ahead of ordinary history; pins do not consume the ordinary retention, main-window, or archive-group counts
 - The main app window shows the latest 10 items by default and groups older history by 10 by default; both display counts are configurable
 - Preferences include appearance theme, main/group display counts, row number visibility, and main-window branding

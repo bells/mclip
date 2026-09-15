@@ -43,12 +43,8 @@ async function waitForMilestone(tracePath, milestone, timeoutMs = 15_000) {
   throw new Error(`timed out waiting for ${milestone} in ${tracePath}`);
 }
 
-async function triggerSingleInstanceMainShow(binary) {
-  const launcherEnvironment = { ...process.env };
-  delete launcherEnvironment.MCLIP_PERF_CONFIG_DIR;
-  delete launcherEnvironment.MCLIP_PERF_FIXTURE_SIZE;
-  delete launcherEnvironment.MCLIP_PERF_MODE;
-  delete launcherEnvironment.MCLIP_PERF_TRACE_PATH;
+async function triggerSingleInstanceMainShow(binary, performanceEnvironment) {
+  const launcherEnvironment = { ...process.env, ...performanceEnvironment };
 
   const launcher = spawn(binary, [], {
     env: launcherEnvironment,
@@ -74,16 +70,17 @@ async function triggerSingleInstanceMainShow(binary) {
 
 async function runOnce({ binary, count, fixtureRoot, tracePath }) {
   const externalStartedAt = performance.now();
-  const child = spawnPerformanceApp(binary, {
+  const performanceEnvironment = {
     MCLIP_PERF_CONFIG_DIR: fixtureRoot,
     MCLIP_PERF_FIXTURE_SIZE: String(count),
     MCLIP_PERF_MODE: "1",
     MCLIP_PERF_TRACE_PATH: tracePath,
-  });
+  };
+  const child = spawnPerformanceApp(binary, performanceEnvironment);
 
   try {
     await waitForMilestone(tracePath, "trayReady");
-    const launcherCompletion = triggerSingleInstanceMainShow(binary).then(
+    const launcherCompletion = triggerSingleInstanceMainShow(binary, performanceEnvironment).then(
       () => null,
       (error) => error,
     );

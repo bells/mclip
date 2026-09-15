@@ -14,6 +14,7 @@ mod history;
 mod ignored_apps;
 mod image_cache;
 pub mod performance;
+mod performance_pages;
 pub mod sensitive_content;
 mod settings;
 mod source_app;
@@ -438,6 +439,7 @@ enum SingleInstanceLaunchAction {
     ShowMainWindow,
     Performance(PerformanceAutomationAction),
     QuitPerformanceRun,
+    Page(performance_pages::PerformancePageAction),
 }
 
 fn single_instance_launch_action(
@@ -446,6 +448,12 @@ fn single_instance_launch_action(
     performance_mode_enabled: bool,
 ) -> SingleInstanceLaunchAction {
     if performance_mode_enabled {
+        if let [_, argument] = args {
+            if let Some(action) = performance_pages::PerformancePageAction::from_argument(argument)
+            {
+                return SingleInstanceLaunchAction::Page(action);
+            }
+        }
         match args {
             [_, action] if action == PERFORMANCE_OPEN_VIEWER_ARGUMENT => {
                 return SingleInstanceLaunchAction::Performance(
@@ -521,6 +529,17 @@ fn handle_single_instance_launch(
             }
         }
         SingleInstanceLaunchAction::QuitPerformanceRun => app_handle.exit(0),
+        SingleInstanceLaunchAction::Page(action) => {
+            let handle = app_handle.clone();
+            tauri::async_runtime::spawn(async move {
+                if performance_pages::run(handle.clone(), action)
+                    .await
+                    .is_err()
+                {
+                    log_error(&handle, "performance", "pageProbeFailed");
+                }
+            });
+        }
     }
 }
 
@@ -892,6 +911,25 @@ mod tests {
         assert!(should_hide_main_window_on_focus_loss(false, false, false));
         assert!(!should_hide_main_window_on_focus_loss(true, false, false));
         assert!(!should_hide_main_window_on_focus_loss(false, true, false));
+    }
+
+    #[test]
+    fn page_automation_is_disabled_for_ordinary_launches_and_rejects_extra_inputs() {
+        let args = vec!["mclip".into(), "--mclip-performance-page=about".into()];
+        assert_eq!(
+            single_instance_launch_action(&args, "", false),
+            SingleInstanceLaunchAction::ShowMainWindow
+        );
+        assert!(matches!(
+            single_instance_launch_action(&args, "", true),
+            SingleInstanceLaunchAction::Page(_)
+        ));
+        let mut extra = args;
+        extra.push("untrusted-input".into());
+        assert_eq!(
+            single_instance_launch_action(&extra, "", true),
+            SingleInstanceLaunchAction::ShowMainWindow
+        );
     }
 
     #[test]

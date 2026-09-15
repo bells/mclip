@@ -27,7 +27,7 @@ try {
   await page.goto(`http://127.0.0.1:${server.address().port}/list-benchmark.html`);
   await page.waitForFunction(()=>Boolean(window.mclipListBenchmark));
   const samples=[];
-  for(const count of [10,50,500]) samples.push(await page.evaluate(count=>window.mclipListBenchmark.benchmark(count),count));
+  for(const count of [10,50,500,1000]) samples.push(await page.evaluate(count=>window.mclipListBenchmark.benchmark(count),count));
   assert.ok(samples.every(x=>x.react.samples.length===30));
   assert.ok(samples.every(x=>x.buttons===x.count));
   const first=page.locator("#root button").first();

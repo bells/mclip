@@ -1,0 +1,279 @@
+{
+  "resources": {
+    "scope": "mclip host process only; WebKit helpers are not attributed; fixture disables clipboard watcher",
+    "intervalSeconds": 0
+  },
+  "platform": "darwin-arm64",
+  "fixtureSize": 1000,
+  "runs": 1,
+  "warmups": 0,
+  "evidence": "native release WebKit, actual React controls, synthetic fixture; request to visible-window double-rAF receipt; system clipboard watcher disabled; no copy/replace/install operations",
+  "firstUse": {
+    "about": {
+      "responseMs": 255.8552919999999,
+      "dispatchMs": 176.81974999999994,
+      "snapshotReads": 1
+    },
+    "preferences": {
+      "responseMs": 177.90583400000003,
+      "dispatchMs": 130.454209,
+      "snapshotReads": 0
+    },
+    "preferences-general": {
+      "responseMs": 13.95854200000008,
+      "dispatchMs": 0.02529200000003584,
+      "snapshotReads": 0
+    },
+    "preferences-appearance": {
+      "responseMs": 45.13908300000003,
+      "dispatchMs": 0.05795799999987139,
+      "snapshotReads": 0
+    },
+    "preferences-save": {
+      "responseMs": 44.38391699999988,
+      "dispatchMs": 0.14254200000004857,
+      "snapshotReads": 0
+    },
+    "preferences-history": {
+      "responseMs": 37.87245800000005,
+      "dispatchMs": 0.05895800000007512,
+      "snapshotReads": 0
+    },
+    "preferences-privacy": {
+      "responseMs": 36.97095799999988,
+      "dispatchMs": 0.045415999999931955,
+      "snapshotReads": 0
+    },
+    "preferences-text-actions": {
+      "responseMs": 40.009207999999944,
+      "dispatchMs": 0.04541700000004312,
+      "snapshotReads": 0
+    },
+    "preferences-cli": {
+      "responseMs": 37.83587499999999,
+      "dispatchMs": 0.1306659999997919,
+      "snapshotReads": 0
+    },
+    "preferences-search": {
+      "responseMs": 36.62304199999994,
+      "dispatchMs": 0.05537499999991269,
+      "snapshotReads": 0
+    },
+    "quick-action": {
+      "responseMs": 164.74691699999994,
+      "dispatchMs": 115.62262500000043,
+      "snapshotReads": 0
+    }
+  },
+  "metrics": {
+    "about": {
+      "response": {
+        "medianMs": 45.17512500000021,
+        "p95Ms": 45.17512500000021,
+        "values": [
+          45.17512500000021
+        ]
+      },
+      "dispatch": {
+        "medianMs": 2.0474169999997684,
+        "p95Ms": 2.0474169999997684,
+        "values": [
+          2.0474169999997684
+        ]
+      },
+      "snapshotReads": [
+        0
+      ]
+    },
+    "preferences": {
+      "response": {
+        "medianMs": 33.21366699999999,
+        "p95Ms": 33.21366699999999,
+        "values": [
+          33.21366699999999
+        ]
+      },
+      "dispatch": {
+        "medianMs": 2.2066249999998035,
+        "p95Ms": 2.2066249999998035,
+        "values": [
+          2.2066249999998035
+        ]
+      },
+      "snapshotReads": [
+        0
+      ]
+    },
+    "preferences-general": {
+      "response": {
+        "medianMs": 47.94154200000048,
+        "p95Ms": 47.94154200000048,
+        "values": [
+          47.94154200000048
+        ]
+      },
+      "dispatch": {
+        "medianMs": 0.16879200000039418,
+        "p95Ms": 0.16879200000039418,
+        "values": [
+          0.16879200000039418
+        ]
+      },
+      "snapshotReads": [
+        0
+      ]
+    },
+    "preferences-appearance": {
+      "response": {
+        "medianMs": 37.53808300000037,
+        "p95Ms": 37.53808300000037,
+        "values": [
+          37.53808300000037
+        ]
+      },
+      "dispatch": {
+        "medianMs": 0.0779579999998532,
+        "p95Ms": 0.0779579999998532,
+        "values": [
+          0.0779579999998532
+        ]
+      },
+      "snapshotReads": [
+        0
+      ]
+    },
+    "preferences-save": {
+      "response": {
+        "medianMs": 53.31233400000019,
+        "p95Ms": 53.31233400000019,
+        "values": [
+          53.31233400000019
+        ]
+      },
+      "dispatch": {
+        "medianMs": 0.12891700000000128,
+        "p95Ms": 0.12891700000000128,
+        "values": [
+          0.12891700000000128
+        ]
+      },
+      "snapshotReads": [
+        0
+      ]
+    },
+    "preferences-history": {
+      "response": {
+        "medianMs": 35.17070800000056,
+        "p95Ms": 35.17070800000056,
+        "values": [
+          35.17070800000056
+        ]
+      },
+      "dispatch": {
+        "medianMs": 0.026749999999992724,
+        "p95Ms": 0.026749999999992724,
+        "values": [
+          0.026749999999992724
+        ]
+      },
+      "snapshotReads": [
+        0
+      ]
+    },
+    "preferences-privacy": {
+      "response": {
+        "medianMs": 44.67366600000014,
+        "p95Ms": 44.67366600000014,
+        "values": [
+          44.67366600000014
+        ]
+      },
+      "dispatch": {
+        "medianMs": 0.04954100000031758,
+        "p95Ms": 0.04954100000031758,
+        "values": [
+          0.04954100000031758
+        ]
+      },
+      "snapshotReads": [
+        0
+      ]
+    },
+    "preferences-text-actions": {
+      "response": {
+        "medianMs": 45.55316700000003,
+        "p95Ms": 45.55316700000003,
+        "values": [
+          45.55316700000003
+        ]
+      },
+      "dispatch": {
+        "medianMs": 0.0632500000001528,
+        "p95Ms": 0.0632500000001528,
+        "values": [
+          0.0632500000001528
+        ]
+      },
+      "snapshotReads": [
+        0
+      ]
+    },
+    "preferences-cli": {
+      "response": {
+        "medianMs": 46.19958399999996,
+        "p95Ms": 46.19958399999996,
+        "values": [
+          46.19958399999996
+        ]
+      },
+      "dispatch": {
+        "medianMs": 0.0497920000002523,
+        "p95Ms": 0.0497920000002523,
+        "values": [
+          0.0497920000002523
+        ]
+      },
+      "snapshotReads": [
+        0
+      ]
+    },
+    "preferences-search": {
+      "response": {
+        "medianMs": 28.633833000000322,
+        "p95Ms": 28.633833000000322,
+        "values": [
+          28.633833000000322
+        ]
+      },
+      "dispatch": {
+        "medianMs": 0.047792000000299595,
+        "p95Ms": 0.047792000000299595,
+        "values": [
+          0.047792000000299595
+        ]
+      },
+      "snapshotReads": [
+        0
+      ]
+    },
+    "quick-action": {
+      "response": {
+        "medianMs": 35.53066600000011,
+        "p95Ms": 35.53066600000011,
+        "values": [
+          35.53066600000011
+        ]
+      },
+      "dispatch": {
+        "medianMs": 5.1132910000001175,
+        "p95Ms": 5.1132910000001175,
+        "values": [
+          5.1132910000001175
+        ]
+      },
+      "snapshotReads": [
+        0
+      ]
+    }
+  }
+}

@@ -44,7 +44,7 @@ return to their current work with minimal interruption.
   in the local app config directory.
 - Duplicate ordinary clipboard content is moved back to the top. Pins are ordered by most recent pin time before ordinary history; duplicate copying preserves pin time. The pin admission limit defaults to 10 and is configurable from 5 to 20; lowering it preserves existing pins, independently of ordinary limits.
 - Main-window and archive-group visible item counts default to `10` and `50`
-  respectively. Main count accepts `5..=maxHistoryCount`; group count accepts `5..=100`. Ordinary retention defaults to 200 and accepts `10..=500`.
+  respectively. Main count accepts `5..=maxHistoryCount`; group count accepts `5..=100`. Ordinary retention defaults to 200 and accepts `10..=1000`.
 - Preferences include launch at login, language, appearance theme, menu bar icon
   style, auto paste, max history count, visible counts, row number visibility,
   main-window branding, enabled history types, sensitive masking, ignored source

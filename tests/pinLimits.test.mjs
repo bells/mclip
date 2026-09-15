@@ -11,7 +11,7 @@ async function moduleUrl(path, replacements = {}) {
 }
 const constantsUrl = await moduleUrl('src/constants.ts');
 const { DEFAULT_SETTINGS, clampMaxPinnedItems } = await import(constantsUrl);
-const { normalizeSettings } = await import(await moduleUrl('src/utils/settings.ts', { '../constants': constantsUrl }));
+const { normalizeSettings, requiresHistoryPresentationRefresh } = await import(await moduleUrl('src/utils/settings.ts', { '../constants': constantsUrl }));
 const { getPinFailureNotice, getNumericHistoryTargetId, createPinActionController } = await import(await moduleUrl('src/utils/pinHistory.ts'));
 const { getVisibleHistoryItems, filterHistoryItems } = await import(await moduleUrl('src/utils/history.ts'));
 const { createPreferenceSaveController } = await import(await moduleUrl('src/components/preferences/preferenceSaveController.ts'));
@@ -21,6 +21,29 @@ const items = Array.from({ length: 15 }, (_, i) => ({
   sourceApp: null, copyCount: 1, firstCopiedAt: 1, lastCopiedAt: 100-i,
   isPinned: i < 3, pinnedAt: i < 3 ? 100-i : null, position: i + 1,
 }));
+
+test('ordinary retention accepts 1000 and reconciles dependent main count without changing pins', () => {
+  assert.equal(DEFAULT_SETTINGS.maxHistoryCount, 200);
+  for (const [value, expected] of [[9,10],[200,200],[500,500],[1000,1000],[1001,1000]]) {
+    const normalized = normalizeSettings({...DEFAULT_SETTINGS, maxHistoryCount: value, mainWindowItemCount: 1000});
+    assert.equal(normalized.maxHistoryCount, expected);
+    assert.equal(normalized.mainWindowItemCount, expected);
+    assert.equal(normalized.maxPinnedItems, 10);
+    assert.equal(normalized.historyGroupItemCount, 50);
+  }
+});
+
+test('settings only refetch full history when the masking presentation changes', () => {
+  for (const patch of [{appearanceTheme:'dark'}, {language:'ja'}, {showHistoryItemNumbers:false},
+    {maxHistoryCount:1000}, {maxPinnedItems:20}, {mainWindowItemCount:1000}, {autoPaste:true},
+    {ignoredSourceAppIds:['org.fixture.app']}, {textQuickActions:{json:false,base64:false,urlComponent:false}}]) {
+    assert.equal(requiresHistoryPresentationRefresh(DEFAULT_SETTINGS,{...DEFAULT_SETTINGS,...patch}),false);
+  }
+  const unmasked = {...DEFAULT_SETTINGS,maskSensitiveContent:false};
+  assert.equal(requiresHistoryPresentationRefresh(DEFAULT_SETTINGS,unmasked),true);
+  assert.equal(requiresHistoryPresentationRefresh(unmasked,DEFAULT_SETTINGS),true);
+  assert.equal(requiresHistoryPresentationRefresh(unmasked,unmasked),false);
+});
 const deferred = () => { let resolve, reject; const promise = new Promise((a,b) => { resolve=a; reject=b; }); return { promise, resolve, reject }; };
 
 test('pin configuration defaults and normalizes valid integer boundaries', () => {

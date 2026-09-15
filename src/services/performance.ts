@@ -18,7 +18,7 @@ type FrontendMilestoneOptions = {
   windowLabel?: PerformanceWindowLabel | null;
 };
 
-function isPerformanceModeEnabled() {
+export function isPerformanceModeEnabled() {
   performanceModePromise ??= invoke<boolean>("is_performance_mode_enabled").catch(
     () => false,
   );

@@ -1,0 +1,485 @@
+{
+  "scope": "release synthetic repository, 256 repeats of multilingual text and displayText; filesystem cache warm; not native UI latency",
+  "samples": [
+    {
+      "name": "initialSnapshot10",
+      "samples": [
+        {
+          "allocatedBytes": 460151,
+          "allocations": 330,
+          "nanos": 1984233
+        },
+        {
+          "allocatedBytes": 460151,
+          "allocations": 330,
+          "nanos": 1383745
+        },
+        {
+          "allocatedBytes": 460151,
+          "allocations": 330,
+          "nanos": 1186443
+        },
+        {
+          "allocatedBytes": 460151,
+          "allocations": 330,
+          "nanos": 1172191
+        },
+        {
+          "allocatedBytes": 460151,
+          "allocations": 330,
+          "nanos": 1170156
+        }
+      ]
+    },
+    {
+      "name": "warmSnapshot10",
+      "samples": [
+        {
+          "allocatedBytes": 209621,
+          "allocations": 34,
+          "nanos": 526491
+        },
+        {
+          "allocatedBytes": 209621,
+          "allocations": 34,
+          "nanos": 521045
+        },
+        {
+          "allocatedBytes": 209621,
+          "allocations": 34,
+          "nanos": 523689
+        },
+        {
+          "allocatedBytes": 209621,
+          "allocations": 34,
+          "nanos": 528627
+        },
+        {
+          "allocatedBytes": 209621,
+          "allocations": 34,
+          "nanos": 520983
+        }
+      ]
+    },
+    {
+      "name": "findLast10",
+      "samples": [
+        {
+          "allocatedBytes": 115620,
+          "allocations": 6,
+          "nanos": 529450
+        },
+        {
+          "allocatedBytes": 115620,
+          "allocations": 6,
+          "nanos": 521968
+        },
+        {
+          "allocatedBytes": 115620,
+          "allocations": 6,
+          "nanos": 514129
+        },
+        {
+          "allocatedBytes": 115620,
+          "allocations": 6,
+          "nanos": 524927
+        },
+        {
+          "allocatedBytes": 115620,
+          "allocations": 6,
+          "nanos": 516652
+        }
+      ]
+    },
+    {
+      "name": "findMissing10",
+      "samples": [
+        {
+          "allocatedBytes": 105371,
+          "allocations": 3,
+          "nanos": 514660
+        },
+        {
+          "allocatedBytes": 105371,
+          "allocations": 3,
+          "nanos": 528764
+        },
+        {
+          "allocatedBytes": 105371,
+          "allocations": 3,
+          "nanos": 511804
+        },
+        {
+          "allocatedBytes": 105371,
+          "allocations": 3,
+          "nanos": 524891
+        },
+        {
+          "allocatedBytes": 105371,
+          "allocations": 3,
+          "nanos": 521168
+        }
+      ]
+    },
+    {
+      "name": "initialSnapshot50",
+      "samples": [
+        {
+          "allocatedBytes": 2257367,
+          "allocations": 773,
+          "nanos": 5582445
+        },
+        {
+          "allocatedBytes": 2257367,
+          "allocations": 773,
+          "nanos": 5600050
+        },
+        {
+          "allocatedBytes": 2257367,
+          "allocations": 773,
+          "nanos": 5599395
+        },
+        {
+          "allocatedBytes": 2257367,
+          "allocations": 773,
+          "nanos": 5583858
+        },
+        {
+          "allocatedBytes": 2257367,
+          "allocations": 773,
+          "nanos": 5584035
+        }
+      ]
+    },
+    {
+      "name": "warmSnapshot50",
+      "samples": [
+        {
+          "allocatedBytes": 1047701,
+          "allocations": 154,
+          "nanos": 2570112
+        },
+        {
+          "allocatedBytes": 1047701,
+          "allocations": 154,
+          "nanos": 2571229
+        },
+        {
+          "allocatedBytes": 1047701,
+          "allocations": 154,
+          "nanos": 2573237
+        },
+        {
+          "allocatedBytes": 1047701,
+          "allocations": 154,
+          "nanos": 2562327
+        },
+        {
+          "allocatedBytes": 1047701,
+          "allocations": 154,
+          "nanos": 2564931
+        }
+      ]
+    },
+    {
+      "name": "findLast50",
+      "samples": [
+        {
+          "allocatedBytes": 536661,
+          "allocations": 6,
+          "nanos": 2557879
+        },
+        {
+          "allocatedBytes": 536661,
+          "allocations": 6,
+          "nanos": 2550522
+        },
+        {
+          "allocatedBytes": 536661,
+          "allocations": 6,
+          "nanos": 2542641
+        },
+        {
+          "allocatedBytes": 536661,
+          "allocations": 6,
+          "nanos": 2536433
+        },
+        {
+          "allocatedBytes": 536661,
+          "allocations": 6,
+          "nanos": 2541129
+        }
+      ]
+    },
+    {
+      "name": "findMissing50",
+      "samples": [
+        {
+          "allocatedBytes": 526411,
+          "allocations": 3,
+          "nanos": 2539345
+        },
+        {
+          "allocatedBytes": 526411,
+          "allocations": 3,
+          "nanos": 2555989
+        },
+        {
+          "allocatedBytes": 526411,
+          "allocations": 3,
+          "nanos": 2557608
+        },
+        {
+          "allocatedBytes": 526411,
+          "allocations": 3,
+          "nanos": 2550883
+        },
+        {
+          "allocatedBytes": 526411,
+          "allocations": 3,
+          "nanos": 2556316
+        }
+      ]
+    },
+    {
+      "name": "initialSnapshot500",
+      "samples": [
+        {
+          "allocatedBytes": 22426266,
+          "allocations": 5726,
+          "nanos": 56489279
+        },
+        {
+          "allocatedBytes": 22426266,
+          "allocations": 5726,
+          "nanos": 56191054
+        },
+        {
+          "allocatedBytes": 22426266,
+          "allocations": 5726,
+          "nanos": 56164858
+        },
+        {
+          "allocatedBytes": 22426266,
+          "allocations": 5726,
+          "nanos": 58843577
+        },
+        {
+          "allocatedBytes": 22426266,
+          "allocations": 5726,
+          "nanos": 56223929
+        }
+      ]
+    },
+    {
+      "name": "warmSnapshot500",
+      "samples": [
+        {
+          "allocatedBytes": 10477302,
+          "allocations": 1504,
+          "nanos": 26165135
+        },
+        {
+          "allocatedBytes": 10477302,
+          "allocations": 1504,
+          "nanos": 26204262
+        },
+        {
+          "allocatedBytes": 10477302,
+          "allocations": 1504,
+          "nanos": 26217514
+        },
+        {
+          "allocatedBytes": 10477302,
+          "allocations": 1504,
+          "nanos": 26167060
+        },
+        {
+          "allocatedBytes": 10477302,
+          "allocations": 1504,
+          "nanos": 26321816
+        }
+      ]
+    },
+    {
+      "name": "findLast500",
+      "samples": [
+        {
+          "allocatedBytes": 5274163,
+          "allocations": 6,
+          "nanos": 25848466
+        },
+        {
+          "allocatedBytes": 5274163,
+          "allocations": 6,
+          "nanos": 25743329
+        },
+        {
+          "allocatedBytes": 5274163,
+          "allocations": 6,
+          "nanos": 25722875
+        },
+        {
+          "allocatedBytes": 5274163,
+          "allocations": 6,
+          "nanos": 25693266
+        },
+        {
+          "allocatedBytes": 5274163,
+          "allocations": 6,
+          "nanos": 25659045
+        }
+      ]
+    },
+    {
+      "name": "findMissing500",
+      "samples": [
+        {
+          "allocatedBytes": 5263912,
+          "allocations": 3,
+          "nanos": 25678450
+        },
+        {
+          "allocatedBytes": 5263912,
+          "allocations": 3,
+          "nanos": 25780406
+        },
+        {
+          "allocatedBytes": 5263912,
+          "allocations": 3,
+          "nanos": 25909754
+        },
+        {
+          "allocatedBytes": 5263912,
+          "allocations": 3,
+          "nanos": 25808452
+        },
+        {
+          "allocatedBytes": 5263912,
+          "allocations": 3,
+          "nanos": 25736872
+        }
+      ]
+    },
+    {
+      "name": "initialSnapshot1000",
+      "samples": [
+        {
+          "allocatedBytes": 44841493,
+          "allocations": 11227,
+          "nanos": 113124539
+        },
+        {
+          "allocatedBytes": 44841493,
+          "allocations": 11227,
+          "nanos": 113242354
+        },
+        {
+          "allocatedBytes": 44841493,
+          "allocations": 11227,
+          "nanos": 115217687
+        },
+        {
+          "allocatedBytes": 44841493,
+          "allocations": 11227,
+          "nanos": 114808754
+        },
+        {
+          "allocatedBytes": 44841493,
+          "allocations": 11227,
+          "nanos": 113715093
+        }
+      ]
+    },
+    {
+      "name": "warmSnapshot1000",
+      "samples": [
+        {
+          "allocatedBytes": 20954803,
+          "allocations": 3004,
+          "nanos": 52490277
+        },
+        {
+          "allocatedBytes": 20954803,
+          "allocations": 3004,
+          "nanos": 52620375
+        },
+        {
+          "allocatedBytes": 20954803,
+          "allocations": 3004,
+          "nanos": 52620970
+        },
+        {
+          "allocatedBytes": 20954803,
+          "allocations": 3004,
+          "nanos": 52525645
+        },
+        {
+          "allocatedBytes": 20954803,
+          "allocations": 3004,
+          "nanos": 52553247
+        }
+      ]
+    },
+    {
+      "name": "findLast1000",
+      "samples": [
+        {
+          "allocatedBytes": 10538164,
+          "allocations": 6,
+          "nanos": 51993133
+        },
+        {
+          "allocatedBytes": 10538164,
+          "allocations": 6,
+          "nanos": 51859335
+        },
+        {
+          "allocatedBytes": 10538164,
+          "allocations": 6,
+          "nanos": 51903722
+        },
+        {
+          "allocatedBytes": 10538164,
+          "allocations": 6,
+          "nanos": 54211141
+        },
+        {
+          "allocatedBytes": 10538164,
+          "allocations": 6,
+          "nanos": 51935102
+        }
+      ]
+    },
+    {
+      "name": "findMissing1000",
+      "samples": [
+        {
+          "allocatedBytes": 10527913,
+          "allocations": 3,
+          "nanos": 51887431
+        },
+        {
+          "allocatedBytes": 10527913,
+          "allocations": 3,
+          "nanos": 51732579
+        },
+        {
+          "allocatedBytes": 10527913,
+          "allocations": 3,
+          "nanos": 52041952
+        },
+        {
+          "allocatedBytes": 10527913,
+          "allocations": 3,
+          "nanos": 51918404
+        },
+        {
+          "allocatedBytes": 10527913,
+          "allocations": 3,
+          "nanos": 51789816
+        }
+      ]
+    }
+  ]
+}

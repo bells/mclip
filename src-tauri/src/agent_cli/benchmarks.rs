@@ -104,3 +104,46 @@ fn synthetic_hot_paths() {
         .unwrap()
     });
 }
+
+#[test]
+#[ignore = "synthetic desktop repository benchmark; run explicitly in release mode"]
+fn synthetic_desktop_reads() {
+    use crate::desktop_state::DesktopStateRepository;
+    use crate::history::persist_history_to_path;
+    use crate::settings::AppSettings;
+    let root = std::env::temp_dir().join(format!("mclip-desktop-bench-{}", std::process::id()));
+    std::fs::create_dir_all(&root).unwrap();
+    for count in [10, 50, 500, 1000] {
+        let history: Vec<HistoryEntry> = (0..count).map(|index| {
+            serde_json::from_value(serde_json::json!({
+                "kind":"text", "id":format!("fixture-{index}"),
+                "text":"Fixture text 世界 ".repeat(256), "displayText":"Fixture text 世界 ".repeat(256),
+                "firstCopiedAt":1, "lastCopiedAt":count-index, "copyCount":1,
+                "sourceApp":null, "isPinned":false, "pinnedAt":null
+            })).unwrap()
+        }).collect();
+        let path = root.join(format!("history-{count}.json"));
+        persist_history_to_path(&path, &history).unwrap();
+        let settings = AppSettings {
+            ignored_source_app_ids: (0..100).map(|i| format!("org.fixture.app{i}")).collect(),
+            ..AppSettings::default()
+        };
+        let repository = DesktopStateRepository::new(path.clone(), settings.clone());
+        let id = format!("fixture-{}", count - 1);
+        measure(&format!("initialSnapshot{count}"), || {
+            DesktopStateRepository::new(path.clone(), settings.clone())
+                .history_snapshot()
+                .unwrap()
+        });
+        measure(&format!("warmSnapshot{count}"), || {
+            repository.history_snapshot().unwrap()
+        });
+        measure(&format!("findLast{count}"), || {
+            repository.find_history_item(black_box(&id)).unwrap()
+        });
+        measure(&format!("findMissing{count}"), || {
+            repository.find_history_item(black_box("missing")).unwrap()
+        });
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}

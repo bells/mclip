@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const MIN_FIXTURE_SIZE = 0;
-const MAX_FIXTURE_SIZE = 200;
+const MAX_FIXTURE_SIZE = 1000;
 const DEFAULT_FIXTURE_SIZE = 50;
 const TINY_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+XqTzAAAAAElFTkSuQmCC",
@@ -24,7 +24,7 @@ function assertTemporaryOutput(outputDir) {
 }
 
 function createCommon(index) {
-  const copiedAt = 1_700_000_000_000 + index;
+  const copiedAt = 1_700_000_000_000 - index;
   return {
     copyCount: (index % 4) + 1,
     displayText: `fixture-${index}`,
@@ -93,7 +93,7 @@ export async function createPerformanceFixture({
     language: "system",
     launchAtLogin: false,
     mainWindowItemCount: Math.min(10, Math.max(5, count || 10)),
-    maxHistoryCount: Math.min(200, Math.max(10, count || 10)),
+    maxHistoryCount: Math.min(MAX_FIXTURE_SIZE, Math.max(10, count || 10)),
     menuBarIconStyle: "light",
     showHistoryItemNumbers: true,
     showMainWindowBrand: true,

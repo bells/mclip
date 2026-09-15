@@ -19,7 +19,7 @@ export const MAX_MAX_PINNED_ITEMS = 20;
 export const DEFAULT_MAX_PINNED_ITEMS = 10;
 
 export const MIN_MAX_HISTORY_COUNT = 10;
-export const MAX_MAX_HISTORY_COUNT = 500;
+export const MAX_MAX_HISTORY_COUNT = 1000;
 export const DEFAULT_MAIN_WINDOW_ITEM_COUNT = 10;
 export const DEFAULT_HISTORY_GROUP_ITEM_COUNT = 50;
 export const MIN_VISIBLE_ITEM_COUNT = 5;

@@ -312,7 +312,7 @@ Windows 监听注意：
 - Preferences 的 Agent CLI 页直接探测固定安装路径的 `mclip-cli --version`，状态为 `notInstalled/current/outdated/newer/unknown`；旧版和 unknown 可以升级，current 可以重装，newer 不自动降级。生产安装必须下载与当前桌面版本完全一致的受支持 Release 资产及其 `.sha256`，校验成功后才能可回滚地替换旧 CLI，不依赖 Cargo/Git。
 - 公开安装命令使用 `curl -fsSL https://www.mclip.cn/install.sh | sh`；Windows 用户需要在 Git Bash 或兼容 POSIX shell 中运行。脚本默认下载最新公开 Release，可用 `MCLIP_VERSION` 固定版本；预构建资产必须同时下载和验证 `.sha256`，校验失败不得覆盖旧 CLI。只有二进制资产不存在时才回退到本地/源码构建。`site/public/install.sh` 由 Vercel 静态托管，内容必须和根目录 `install.sh` 保持一致。
 - 新内容先生成稳定 id，再与已有历史合并。
-- 新安装默认最多保存 200 条普通历史，可配置范围为 10..=500；超过最大条数会裁剪普通历史，置顶历史另计且不被该上限裁剪。
+- 新安装默认最多保存 200 条普通历史，可配置范围为 10..=1000；超过最大条数会裁剪普通历史，置顶历史另计且不被该上限裁剪。
 - 删除和裁剪历史后要清理未使用图片资源。
 - Rust 序列化字段必须保持前端需要的 camelCase，例如 `filePaths`、`imagePath`、`byteSize`、`contentHash`。
 - 文件历史详情必须显示完整绝对路径和完整文件名；主列表和分组 preview 列表可以对长文件名做中间省略，但要保留扩展名。
