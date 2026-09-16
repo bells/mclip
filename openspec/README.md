@@ -1,8 +1,8 @@
 # OpenSpec 项目索引 / Project Index
 
-核对日期 / Reviewed: 2026-09-08。当前源码版本为 `0.1.1`，多个面向 `0.2.0` 的功能已经进入实现。本文提供规格与验收入口，不证明某个 Release 已发布，也不替代各 change 的任务和验证记录。
+核对日期 / Reviewed: 2026-09-16。当前源码版本为 `0.2.0`。本文提供规格与验收入口，不证明对应 Release 已发布，也不替代各 change 的任务和验证记录。
 
-The source version is still `0.1.1`, with subsequent features already implemented. This index separates specification, implementation, and delivery evidence; it does not certify a published release.
+The source version is `0.2.0`. This index separates specification, implementation, and delivery evidence; it does not certify a published release.
 
 ## 阅读顺序 / Reading Order
 
@@ -48,7 +48,7 @@ The following is a dated snapshot. Refresh it from the CLI and source task lists
 | [optimize-v0-1-1-experience](changes/optimize-v0-1-1-experience/tasks.md) | 20/23 | 以原始清单中的剩余验证任务为准 |
 | [add-cli-version-and-update-management](changes/add-cli-version-and-update-management/tasks.md) | 29/32 | Windows 检查、Preferences CLI 状态矩阵、同一 Draft 下载校验 |
 | [introduce-tailwind-ui-refactor](changes/introduce-tailwind-ui-refactor/tasks.md) | 26/27 | 原生窗口深浅色视觉 smoke |
-| [prepare-v0-2-0-release](changes/prepare-v0-2-0-release/tasks.md) | 0/35 | 前置、迁移、版本、打包原生验收与发布资产门禁仍开放 |
+| [prepare-v0-2-0-release](changes/prepare-v0-2-0-release/tasks.md) | 20/35 | 本地迁移、版本、文档、自动化与 Windows 源码检查已完成；前置未完成项已记录 scoped waiver，三平台原生验收、CI 与同一 Draft 资产仍开放 |
 
 ## 证据沿用 / Reusing Evidence
 

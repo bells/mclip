@@ -12,7 +12,7 @@
 - 官网：Astro 6，目录 `site/`
 - 打包发布：GitHub Actions + `tauri-apps/tauri-action`
 
-当前源码版本：`0.1.1`，已包含面向 `0.2.0` 的功能；源码存在不代表对应 Release 已发布或原生验收完成。应用版本以根目录 `package.json` 为真相，Tauri 通过 `src-tauri/tauri.conf.json` 的 `"version": "../package.json"` 读取；Cargo、官网 package 和前端版本回退值也要同步。
+当前源码版本：`0.2.0`；源码版本同步不代表对应 Release 已发布或原生验收完成。应用版本以根目录 `package.json` 为真相，Tauri 通过 `src-tauri/tauri.conf.json` 的 `"version": "../package.json"` 读取；Cargo、官网 package、前端版本回退值与官网结构化版本也要同步。
 
 ## 文档与代码上下文
 
@@ -443,8 +443,8 @@ Release：
 发版示例：
 
 ```bash
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 发布注意：

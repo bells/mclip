@@ -26,13 +26,14 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 - Product name: mclip
 - Product type: local-first clipboard history desktop app
 - Platforms: macOS and Windows
-- Current public version: 0.1.1
+- Current source version: 0.2.0
+- Public release status: verify the v0.2.0 tag and assets on GitHub Releases; source version synchronization does not prove publication
 - Main workflow: open from the menu bar or system tray, search clipboard history, preview an item, copy it, then return to the current task
 - Clipboard content types: text, images, and files
 - File history restores a system file list instead of copying path-only text
 - New installs retain 200 history items by default, configurable from 10 to 1000 in current source (pending release)
 - The current source pin admission limit defaults to 10, configurable from 5 to 20 in History settings; existing pins are retained when lowering it. Pins appear ahead of ordinary history; pins do not consume the ordinary retention, main-window, or archive-group counts
-- The main app window shows the latest 10 items by default and groups older history by 10 by default; both display counts are configurable
+- The main app window shows the latest 10 ordinary items by default and groups older ordinary history by 50 by default; both display counts are configurable and pins are counted separately
 - Preferences include appearance theme, main/group display counts, row number visibility, and main-window branding
 - System, light, and dark appearance applies across the main, preview, preview-detail, image viewer, About, and Preferences windows
 - Text and file list rows are compact while image rows retain a taller thumbnail layout
@@ -54,7 +55,7 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 mclip includes a local CLI called mclip-cli for AI Agent workflows.
 The CLI has an Agent Mode: mclip-cli agent --last 5 --json emits recent history, a command capability map, and safety boundaries in one structured bundle.
 The CLI also reads local clipboard history and can output text, JSON, raw text, or Markdown.
-In the in-development v0.2.0 behavior, list/get/search/context/agent mask classified sensitive text by default. --raw and --reveal-secrets explicitly reveal local plaintext for one invocation, and Agent JSON uses schema version 2.
+In v0.2.0, list/get/search/context/agent mask classified sensitive text by default. --raw and --reveal-secrets explicitly reveal local plaintext for one invocation, and Agent JSON uses schema version 2.
 It can also add text to history, copy a selected history item back to the system clipboard, pin or unpin one stable item, delete one item, or clear history with explicit confirmation.
 It is useful when tools such as Codex, Claude Code, Cursor, and Cline need recent local context that the user already copied or want to save important output without opening the desktop UI.
 
@@ -98,14 +99,14 @@ curl -fsSL https://www.mclip.cn/install.sh | sh
 
 The installer prefers prebuilt mclip-cli binaries from GitHub Releases. Rust/Cargo and Git are only needed when the prebuilt download is unavailable and the script falls back to a source build.
 The installer downloads the binary and its .sha256 companion from the same Release, verifies SHA-256 before replacement, preserves an existing CLI on verification failure, and accepts MCLIP_VERSION for pinned installs.
-The in-development desktop integration probes the fixed user-level mclip-cli path, distinguishes missing/outdated/unknown/current/newer versions, targets the exact desktop version, and never automatically downgrades a newer CLI.
+The desktop integration probes the fixed user-level mclip-cli path, distinguishes missing/outdated/unknown/current/newer versions, targets the exact desktop version, and never automatically downgrades a newer CLI.
 On Windows, run the shell installer from Git Bash or another POSIX-compatible shell. Install the desktop app itself from the GitHub Release .msi or .exe asset.
 
 ## Privacy and trust
 
 mclip keeps clipboard history, settings, and generated image assets on the local computer.
 mclip does not upload clipboard contents.
-The in-development v0.2.0 feature classifies only a bounded, versioned, high-confidence set of sensitive text patterns locally and masks classified values in desktop and default CLI/Agent presentation.
+v0.2.0 classifies only a bounded, versioned, high-confidence set of sensitive text patterns locally and masks classified values in desktop and default CLI/Agent presentation.
 Masking is not encryption at rest: original text remains local plaintext in history.json so explicit copy can preserve the exact content.
 Detection can produce false positives and false negatives. Source-application exclusions are also best-effort: macOS uses bundle identity, Windows a normalized executable identity, X11 WM_CLASS, and pure Wayland source exclusion is currently unavailable.
 Do not describe masking or source exclusions as a password manager, DLP system, credential-security boundary, or breach-prevention guarantee.

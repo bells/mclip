@@ -61,12 +61,16 @@ jobs:
           SITE_PACKAGE_VERSION="$(node -p "require('./site/package.json').version")"
           CARGO_PACKAGE_VERSION="$(cargo metadata --manifest-path src-tauri/Cargo.toml --no-deps --format-version 1 | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).packages.find((entry) => entry.name === 'mclip').version")"
           CARGO_LOCK_VERSION="$(awk '$0 == "name = \"mclip\"" { getline; gsub(/^version = \"|\"$/, ""); print; exit }' src-tauri/Cargo.lock)"
+          FRONTEND_FALLBACK_VERSION="$(node -e "const source=require('fs').readFileSync('src/constants.ts','utf8');const match=source.match(/DEFAULT_APP_VERSION = \\\"([^\\\"]+)\\\"/);if(!match)process.exit(1);process.stdout.write(match[1])")"
+          SITE_SCHEMA_VERSION="$(node -e "const source=require('fs').readFileSync('site/src/layouts/SiteLayout.astro','utf8');const match=source.match(/softwareVersion: \\\"([^\\\"]+)\\\"/);if(!match)process.exit(1);process.stdout.write(match[1])")"
 
           for VERSION_SOURCE in \
             "package.json:$ROOT_PACKAGE_VERSION" \
             "site/package.json:$SITE_PACKAGE_VERSION" \
             "src-tauri/Cargo.toml:$CARGO_PACKAGE_VERSION" \
-            "src-tauri/Cargo.lock:$CARGO_LOCK_VERSION"
+            "src-tauri/Cargo.lock:$CARGO_LOCK_VERSION" \
+            "src/constants.ts:$FRONTEND_FALLBACK_VERSION" \
+            "site/src/layouts/SiteLayout.astro:$SITE_SCHEMA_VERSION"
           do
             SOURCE_NAME="${VERSION_SOURCE%%:*}"
             SOURCE_VERSION="${VERSION_SOURCE#*:}"
@@ -136,9 +140,11 @@ jobs:
             - 主窗口搜索栏和底部操作区固定，大条数历史只滚动中间内容并受显示器工作区保护。
             - 历史分组按真实内容定高，hover 详情使用独立窗口，删除动作统一放在详情标题区。
             - 搜索、复制、删除、清空历史，以及 `CommandOrControl+Shift+V` 全局快捷键。
-            - 偏好设置：登录时启动、语言、外观主题、菜单栏图标样式、自动粘贴、展示条数、序号、主窗口 Logo、最大历史条数和保存类型。
+            - 常用记录可置顶；新增置顶上限默认 10 条、可调为 5–20，且置顶不占普通历史保留与展示条数。
+            - 偏好设置：登录时启动、中英日语言、外观主题、菜单栏图标样式、自动粘贴、展示条数、序号、主窗口 Logo、最大历史条数和保存类型。
             - 颜色代码、Emoji、长文件名与完整文件路径提供更清晰的展示，但复制内容保持原样。
             - `mclip-cli` 提供 Agent 模式、无需读取历史的 help/version、版本感知升级和 SHA-256 校验的预构建安装。
+            - 文本详情和 `mclip-cli transform` 支持有界 JSON、Base64、URL component 转换；桌面替换历史必须确认。
             - 已分类的敏感文本在桌面和 CLI/Agent 默认输出中遮罩；显式 reveal/raw 或 copy 仍使用本地原文。可按稳定来源应用标识排除捕获，并如实报告平台能力。
             - 剪贴板历史仅保存在本机，不会上传到云端。
 
@@ -149,9 +155,11 @@ jobs:
             - Fixed search and footer regions, with large histories scrolling only in the middle and native height capped to the monitor work area.
             - Content-sized archive windows, independent hover details, and a consistent detail-owned delete action.
             - Search, copy, delete, clear history, and the `CommandOrControl+Shift+V` global shortcut.
-            - Preferences for launch at login, language, appearance theme, menu bar icon style, auto paste, display counts, row numbers, main-window branding, maximum history size, and enabled history types.
+            - Frequently reused entries can be pinned; the new-pin cap defaults to 10, can be set from 5 to 20, and pins do not consume ordinary retention or display counts.
+            - Preferences for launch at login, Chinese/English/Japanese language, appearance theme, menu bar icon style, auto paste, display counts, row numbers, main-window branding, maximum history size, and enabled history types.
             - Clearer color-code, emoji, long-file-name, and full-path presentation without changing copied content.
             - `mclip-cli` Agent Mode, history-independent help/version, version-aware upgrades, and SHA-256-verified prebuilt installation.
+            - Text details and `mclip-cli transform` provide bounded JSON, Base64, and URL-component transformations; desktop history replacement requires confirmation.
             - Classified sensitive text is masked in desktop and default CLI/Agent output; explicit reveal/raw or copy still uses local original content. Capture can be excluded by stable source identity with honest platform capability reporting.
             - Clipboard history stays on your device and is not uploaded.
 
@@ -219,45 +227,64 @@ jobs:
   verify-cli-release-assets:
     name: Verify Draft release assets
     needs: publish
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            cli_asset: mclip-cli-darwin-arm64
+            verify_linux_desktop: false
+          - platform: windows-2022
+            cli_asset: mclip-cli-windows-x64.exe
+            verify_linux_desktop: false
+          - platform: ubuntu-latest
+            cli_asset: mclip-cli-linux-x64
+            verify_linux_desktop: true
+    runs-on: ${{ matrix.platform }}
     # Draft releases are only visible to tokens with push-level repository access.
     permissions:
       contents: write
 
     steps:
-      - name: Download and verify the complete CLI asset set
+      - name: Download and verify the platform CLI asset
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          EXPECTED_CLI_ASSETS=(
-            "mclip-cli-darwin-arm64"
-            "mclip-cli-darwin-arm64.sha256"
-            "mclip-cli-windows-x64.exe"
-            "mclip-cli-windows-x64.exe.sha256"
-            "mclip-cli-linux-x64"
-            "mclip-cli-linux-x64.sha256"
-          )
-
           mkdir -p cli-release-assets
           gh release download "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
             --dir cli-release-assets \
-            --pattern "mclip-cli-*"
+            --pattern "${{ matrix.cli_asset }}" \
+            --pattern "${{ matrix.cli_asset }}.sha256"
 
+          test -s "cli-release-assets/${{ matrix.cli_asset }}"
+          test -s "cli-release-assets/${{ matrix.cli_asset }}.sha256"
+          (
+            cd cli-release-assets
+            sha256sum -c "${{ matrix.cli_asset }}.sha256"
+          )
+
+          chmod +x "cli-release-assets/${{ matrix.cli_asset }}"
+          CLI_VERSION="$("cli-release-assets/${{ matrix.cli_asset }}" --version)"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$CLI_VERSION" != "mclip-cli $TAG_VERSION" ]; then
+            echo "Draft CLI version ($CLI_VERSION) does not match tag version ($TAG_VERSION)." >&2
+            exit 1
+          fi
+
+      - name: Verify advertised Linux desktop assets exist
+        if: matrix.verify_linux_desktop
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
           mkdir -p linux-desktop-assets
           gh release download "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
             --dir linux-desktop-assets \
             --pattern "*.deb" \
             --pattern "*.AppImage"
-
-          for ASSET_NAME in "${EXPECTED_CLI_ASSETS[@]}"; do
-            if [ ! -s "cli-release-assets/$ASSET_NAME" ]; then
-              echo "Draft Release is missing required CLI asset: $ASSET_NAME" >&2
-              exit 1
-            fi
-          done
 
           if ! find linux-desktop-assets -maxdepth 1 -type f -name '*.deb' -size +0c | grep -q .; then
             echo "Draft Release is missing a non-empty Linux .deb artifact" >&2
@@ -267,10 +294,3 @@ jobs:
             echo "Draft Release is missing a non-empty Linux AppImage artifact" >&2
             exit 1
           fi
-
-          (
-            cd cli-release-assets
-            sha256sum -c mclip-cli-darwin-arm64.sha256
-            sha256sum -c mclip-cli-windows-x64.exe.sha256
-            sha256sum -c mclip-cli-linux-x64.sha256
-          )

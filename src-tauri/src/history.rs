@@ -2024,24 +2024,87 @@ mod tests {
     }
 
     #[test]
-    fn v011_text_fixture_loads_without_inventing_classification() {
-        let history =
-            super::parse_history_content(include_str!("../tests/fixtures/v0.1.1-history.json"))
-                .unwrap();
-        assert_eq!(history.len(), 1);
-        match &history[0] {
+    fn v011_fixture_preserves_all_entry_variants_and_does_not_rewrite_assets() {
+        let fixture_dir = unique_history_path("v011-complete-migration").with_extension("");
+        fs::create_dir_all(&fixture_dir).unwrap();
+        let path = fixture_dir.join("history.json");
+        let content = include_str!("../tests/fixtures/v0.1.1-history.json");
+        fs::write(&path, content).unwrap();
+        let image_asset = super::history_assets_dir_for_history_path(&path)
+            .join("images")
+            .join("v011-image.png");
+        fs::create_dir_all(image_asset.parent().unwrap()).unwrap();
+        let image_bytes = b"synthetic v0.1.1 image fixture";
+        fs::write(&image_asset, image_bytes).unwrap();
+
+        let history = load_history_file(&path).unwrap().history;
+        assert_eq!(history.len(), 3);
+        assert_eq!(fs::read_to_string(&path).unwrap(), content);
+        assert_eq!(fs::read(&image_asset).unwrap(), image_bytes);
+        assert!(history.iter().all(|entry| !entry.is_pinned()));
+        assert!(history
+            .iter()
+            .all(|entry| entry.common().pinned_at.is_none()));
+
+        let text_entry = history
+            .iter()
+            .find(|entry| entry.id() == "v011-text-fixture")
+            .unwrap();
+        match text_entry {
             HistoryEntry::Text {
+                common,
                 text,
                 secret_type,
                 secret_detector_version,
                 ..
             } => {
                 assert_eq!(text, "legacy ordinary text");
+                assert_eq!(common.first_copied_at, 100);
+                assert_eq!(common.last_copied_at, 900);
+                assert_eq!(common.copy_count, 4);
+                assert_eq!(common.source_app.as_deref(), Some("Synthetic Editor"));
                 assert_eq!(*secret_type, None);
                 assert_eq!(*secret_detector_version, None);
             }
             _ => panic!("fixture should remain a text entry"),
         }
+
+        let image_entry = history
+            .iter()
+            .find(|entry| entry.id() == "v011-image-fixture")
+            .unwrap();
+        match image_entry {
+            HistoryEntry::Image {
+                image_path,
+                width,
+                height,
+                byte_size,
+                content_hash,
+                ..
+            } => {
+                assert_eq!(image_path, "history-assets/images/v011-image.png");
+                assert_eq!((*width, *height, *byte_size), (640, 480, 68));
+                assert_eq!(content_hash, "v011-synthetic-image-hash");
+            }
+            _ => panic!("fixture should remain an image entry"),
+        }
+
+        let files_entry = history
+            .iter()
+            .find(|entry| entry.id() == "v011-files-fixture")
+            .unwrap();
+        match files_entry {
+            HistoryEntry::Files { file_paths, .. } => assert_eq!(
+                file_paths,
+                &vec![
+                    "/synthetic/Documents/report.txt".to_string(),
+                    "/synthetic/Documents/diagram.png".to_string(),
+                ]
+            ),
+            _ => panic!("fixture should remain a files entry"),
+        }
+
+        fs::remove_dir_all(fixture_dir).unwrap();
     }
 
     #[test]

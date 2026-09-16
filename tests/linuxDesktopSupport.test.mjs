@@ -93,8 +93,8 @@ test("Linux CI, bundles, Release assets, and installer mappings are explicit", a
   assert.match(ci, /pnpm run tauri:build --bundles deb,appimage/);
   assert.doesNotMatch(ci, /pnpm run tauri:build -- --bundles/);
   assert.deepEqual(JSON.parse(config).bundle.targets, ["deb", "appimage"]);
-  assert.match(release, /mclip-cli-linux-x64/);
-  assert.match(release, /mclip-cli-linux-x64\.sha256/);
+  assert.match(release, /cli_asset: mclip-cli-linux-x64/);
+  assert.match(release, /matrix\.cli_asset \}\}\.sha256/);
   assert.match(release, /\*\.AppImage/);
   assert.match(release, /\*\.deb/);
   assert.match(installer, /Linux:x86_64\|Linux:amd64\) printf 'mclip-cli-linux-x64'/);

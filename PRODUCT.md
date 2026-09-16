@@ -14,9 +14,9 @@ mclip is a tray-first clipboard history tool for macOS and Windows, with a Linux
 
 ## Current Source Baseline
 
-Reviewed on 2026-09-06. The source manifests still declare `0.1.1`; the working tree also includes features tracked toward `0.2.0`. The following describes implemented source behavior, not the contents of a freshly verified published release. Release readiness and native evidence are tracked in [OpenSpec](openspec/README.md).
+Reviewed on 2026-09-16. The source manifests declare `0.2.0`. The following describes implemented source behavior, not the contents of a freshly verified published release; macOS/Windows native experience, Linux sessions, and same-Draft assets remain separate release evidence in [OpenSpec](openspec/README.md).
 
-当前源码版本仍为 `0.1.1`，已包含面向 `0.2.0` 的功能。本文描述源码现状；安装包、发布资产与各平台原生体验是否通过验收，应以对应验证记录为准。
+当前源码版本为 `0.2.0`。本文描述源码现状；安装包、发布资产与各平台原生体验是否通过验收，应以对应验证记录为准，版本同步本身不代表已经公开发布。
 
 The desktop shell provides:
 
@@ -47,7 +47,7 @@ The app has no accounts, cloud sync, remote clipboard storage, or uploaded usage
 - macOS uses ad-hoc signing and is not notarized; Windows installers are unsigned and may need the WebView2 bootstrapper.
 - Linux CI and Release workflows configure `.deb`/AppImage packages and an x64 CLI asset. Source/build configuration does not prove successful installation, clipboard ownership, tray positioning, or compositor behavior. See [Linux support](docs/linux-support.md).
 - Linux capabilities are reported independently as available, degraded, or unavailable. X11/XWayland and each named Wayland compositor require their own native evidence; Linux signature-first polling remains an open implementation task.
-- Version synchronization, migration/downgrade tests, native packaged smoke, and same-Draft asset verification remain part of the `prepare-v0-2-0-release` gate. A completed implementation checklist or strict OpenSpec validation does not establish release completion.
+- Version synchronization and synthetic migration/downgrade tests are part of the local `prepare-v0-2-0-release` candidate. Native packaged smoke and same-Draft asset verification remain open; a completed implementation checklist or strict OpenSpec validation does not establish release completion.
 
 ## Brand Personality
 

@@ -1,18 +1,18 @@
 # mclip Project Memory
 
-Last refreshed: 2026-09-06 (documentation alignment; historical measurements retain their original scope)
+Last refreshed: 2026-09-16 (v0.2.0 source synchronization; historical measurements retain their original scope)
 
 This file records working memory for future maintainers and agents. It is not a replacement for `AGENTS.md` or `README.md`: use those for the live project map, commands, and release-facing docs. Use this file to remember prior decisions, accepted behavior, repeated failure modes, and the user's preferences.
 
 For current behavior, verify live code/configuration and dated evidence before using an older memory. Update this project document when documentation maintenance is requested; do not rewrite dated historical results as new verification. [OpenSpec status](openspec/README.md) distinguishes implemented source, task completion, spec synchronization, native evidence, and release state.
 
-维护摘要：当前源码仍标记 `0.1.1`，但已经包含多项面向 `0.2.0` 的功能。以七个窗口、中英日三语、Node 24/pnpm 10.33.0、Linux x64 预览实现为当前上下文；历史测试与性能数字只证明记录时的范围。
+维护摘要：当前源码标记为 `0.2.0`。以七个窗口、中英日三语、Node 24/pnpm 10.33.0、Linux x64 预览实现为当前上下文；macOS/Windows 原生体验、Linux 会话与同一 Draft 资产仍待发布验收，历史测试与性能数字只证明记录时的范围。
 
 ## Product Shape
 
 `mclip` is a tray-first clipboard history utility for macOS and Windows, with Linux x86_64 preview code and packaging configuration pending native session verification. It should feel like a compact desktop tool, not a normal always-open app and not a marketing page.
 
-The current stack is React 19, TypeScript, Vite, Tailwind CSS 4, Tauri 2, and Rust. The public site is Astro 6 under `site/`, with Chinese, English, and Japanese routes. Node is `>=24 <25`, pnpm is `10.33.0`, and root `pnpm-lock.yaml` is the shared workspace lockfile. The source version comes from `package.json` and remains `0.1.1`; do not infer published Release contents from that version alone.
+The current stack is React 19, TypeScript, Vite, Tailwind CSS 4, Tauri 2, and Rust. The public site is Astro 6 under `site/`, with Chinese, English, and Japanese routes. Node is `>=24 <25`, pnpm is `10.33.0`, and root `pnpm-lock.yaml` is the shared workspace lockfile. The source version comes from `package.json` and is `0.2.0`; do not infer published Release contents from that version alone.
 
 ## v0.1.1 Decisions
 

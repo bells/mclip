@@ -1,8 +1,8 @@
 # Project Context
 
-Reviewed against source on 2026-09-06. This is implementation context for new changes; it does not certify a release. See [the OpenSpec index](README.md) for baseline specs, active changes, and evidence boundaries, and [AGENTS.md](../AGENTS.md) for the detailed code map.
+Reviewed against source on 2026-09-16. This is implementation context for new changes; it does not certify a release. See [the OpenSpec index](README.md) for baseline specs, active changes, and evidence boundaries, and [AGENTS.md](../AGENTS.md) for the detailed code map.
 
-项目上下文：源码版本仍为 `0.1.1`；七个窗口、中英日三语及面向 `0.2.0` 的新增功能已进入代码。Linux 为待原生验收的 x64 预览实现。规格校验、功能实现、原生验收和发布状态分别记录。
+项目上下文：源码版本为 `0.2.0`；七个窗口、中英日三语及 v0.2.0 功能已进入代码。Linux 为待原生验收的 x64 预览实现，macOS/Windows 全面体验检查也仍由发布负责人执行。规格校验、功能实现、原生验收和发布状态分别记录。
 
 ## Purpose
 

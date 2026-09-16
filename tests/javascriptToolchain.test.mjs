@@ -49,6 +49,43 @@ test("one pnpm workspace lock governs the application and website", async () => 
   assert.equal(existsSync("site/pnpm-lock.yaml"), false);
 });
 
+test("v0.2.0 product version is synchronized across every source mirror", async () => {
+  const [
+    rootPackageSource,
+    sitePackageSource,
+    cargoManifest,
+    cargoLock,
+    tauriSource,
+    constants,
+    siteLayout,
+    llms,
+  ] = await Promise.all([
+    readSource("package.json"),
+    readSource("site/package.json"),
+    readSource("src-tauri/Cargo.toml"),
+    readSource("src-tauri/Cargo.lock"),
+    readSource("src-tauri/tauri.conf.json"),
+    readSource("src/constants.ts"),
+    readSource("site/src/layouts/SiteLayout.astro"),
+    readSource("site/public/llms.txt"),
+  ]);
+  const rootPackage = JSON.parse(rootPackageSource);
+  const sitePackage = JSON.parse(sitePackageSource);
+  const tauri = JSON.parse(tauriSource);
+
+  assert.equal(rootPackage.version, "0.2.0");
+  assert.equal(sitePackage.version, rootPackage.version);
+  assert.match(cargoManifest, /^version = "0\.2\.0"$/m);
+  assert.match(cargoLock, /name = "mclip"\nversion = "0\.2\.0"/);
+  assert.equal(tauri.version, "../package.json");
+  assert.match(constants, /DEFAULT_APP_VERSION = "0\.2\.0"/);
+  assert.match(siteLayout, /softwareVersion: "0\.2\.0"/);
+  assert.match(llms, /Current source version: 0\.2\.0/);
+  assert.equal(existsSync("package-lock.json"), false);
+  assert.equal(existsSync("site/package-lock.json"), false);
+  assert.equal(existsSync("site/pnpm-lock.yaml"), false);
+});
+
 test("package scripts and Tauri lifecycle hooks are pnpm-native", async () => {
   const [rootPackageSource, tauriSource] = await Promise.all([
     readSource("package.json"),
@@ -91,6 +128,12 @@ test("CI and release use Node 24 with frozen pnpm installs", async () => {
   assert.match(release, /SITE_PACKAGE_VERSION/);
   assert.match(release, /CARGO_PACKAGE_VERSION/);
   assert.match(release, /CARGO_LOCK_VERSION/);
+  assert.match(release, /FRONTEND_FALLBACK_VERSION/);
+  assert.match(release, /SITE_SCHEMA_VERSION/);
+  assert.match(release, /cli_asset: mclip-cli-darwin-arm64/);
+  assert.match(release, /cli_asset: mclip-cli-windows-x64\.exe/);
+  assert.match(release, /cli_asset: mclip-cli-linux-x64/);
+  assert.match(release, /CLI_VERSION=.*--version/);
   assert.doesNotMatch(release, /package-lock\.json|ROOT_LOCK_VERSION|SITE_LOCK_VERSION/);
   assert.ok(
     release.indexOf("pnpm install --frozen-lockfile") <

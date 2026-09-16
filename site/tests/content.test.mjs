@@ -20,7 +20,7 @@ test("Chinese, English, and Japanese homepages expose the core product promise",
   assert.match(ja, /mclip をダウンロード/);
 });
 
-test("site publishes the v0.1.1 release and current product capabilities", async () => {
+test("site presents the v0.2.0 source candidate without claiming publication", async () => {
   const zh = await read("src/pages/zh/index.astro");
   const en = await read("src/pages/en/index.astro");
   const zhChangelog = await read("src/pages/zh/changelog.astro");
@@ -30,26 +30,32 @@ test("site publishes the v0.1.1 release and current product capabilities", async
   const layout = await read("src/layouts/SiteLayout.astro");
   const llms = await read("public/llms.txt");
 
-  assert.match(zh, /当前版本 0\.1\.1/);
-  assert.match(en, /Current version 0\.1\.1/);
+  assert.match(zh, /当前源码版本 0\.2\.0/);
+  assert.match(en, /Current source version 0\.2\.0/);
   assert.match(zhChangelog, /0\.1\.1/);
+  assert.match(zhChangelog, /0\.2\.0 · 发布候选/);
+  assert.match(zhChangelog, /下载可用性以 GitHub Releases/);
   assert.match(zhChangelog, /Tailwind CSS 4/);
   assert.match(zhChangelog, /更快、更清晰的完整核心体验/);
   assert.match(zhChangelog, /托盘就绪中位数提升 51\.3%/);
   assert.match(zhChangelog, /SHA-256/);
   assert.match(enChangelog, /0\.1\.1/);
+  assert.match(enChangelog, /0\.2\.0 · Release candidate/);
+  assert.match(enChangelog, /Check GitHub Releases/);
   assert.match(enChangelog, /System\/Light\/Dark/);
   assert.match(enChangelog, /A faster, clearer complete core experience/);
   assert.match(enChangelog, /tray-ready median improved 51\.3%/);
-  assert.match(ja, /現在の公開バージョンは 0\.1\.1/);
+  assert.match(ja, /現在のソースバージョンは 0\.2\.0/);
   assert.match(ja, /Windows では Git Bash/);
   assert.match(ja, /既定で 10 件、履歴設定で 5〜20 件/);
   assert.match(jaChangelog, /0\.1\.1/);
+  assert.match(jaChangelog, /0\.2\.0 · リリース候補/);
   assert.match(jaChangelog, /Tailwind CSS 4/);
   assert.match(jaChangelog, /SHA-256/);
   assert.match(jaChangelog, /Windows 実機の証拠ではありません/);
-  assert.match(layout, /softwareVersion: "0\.1\.1"/);
-  assert.match(llms, /Current public version: 0\.1\.1/);
+  assert.match(layout, /softwareVersion: "0\.2\.0"/);
+  assert.match(llms, /Current source version: 0\.2\.0/);
+  assert.match(llms, /source version synchronization does not prove publication/);
   assert.match(llms, /independent detail window/);
   assert.match(zh, /Windows CLI 用户请在 Git Bash/);
   assert.match(zh, /SHA-256 校验资产/);

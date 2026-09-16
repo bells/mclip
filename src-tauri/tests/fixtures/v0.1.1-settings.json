@@ -1,17 +1,17 @@
 {
-  "autoPaste": false,
-  "launchAtLogin": false,
-  "language": "system",
-  "maxHistoryCount": 200,
+  "autoPaste": true,
+  "launchAtLogin": true,
+  "language": "en",
+  "maxHistoryCount": 500,
   "enabledHistoryTypes": {
     "text": true,
-    "image": true,
+    "image": false,
     "files": true
   },
-  "menuBarIconStyle": "light",
-  "mainWindowItemCount": 10,
-  "historyGroupItemCount": 50,
-  "showHistoryItemNumbers": true,
-  "showMainWindowBrand": true,
-  "appearanceTheme": "system"
+  "menuBarIconStyle": "appIcon",
+  "mainWindowItemCount": 5,
+  "historyGroupItemCount": 100,
+  "showHistoryItemNumbers": false,
+  "showMainWindowBrand": false,
+  "appearanceTheme": "dark"
 }

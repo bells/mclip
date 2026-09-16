@@ -3,12 +3,37 @@
     "kind": "text",
     "id": "v011-text-fixture",
     "displayText": "legacy ordinary text",
-    "firstCopiedAt": 1,
-    "lastCopiedAt": 2,
-    "sourceApp": null,
-    "copyCount": 1,
-    "isPinned": false,
-    "pinnedAt": null,
+    "firstCopiedAt": 100,
+    "lastCopiedAt": 900,
+    "sourceApp": "Synthetic Editor",
+    "copyCount": 4,
     "text": "legacy ordinary text"
+  },
+  {
+    "kind": "image",
+    "id": "v011-image-fixture",
+    "displayText": "640 × 480 image",
+    "firstCopiedAt": 200,
+    "lastCopiedAt": 800,
+    "sourceApp": "Synthetic Capture",
+    "copyCount": 2,
+    "image_path": "history-assets/images/v011-image.png",
+    "width": 640,
+    "height": 480,
+    "byte_size": 68,
+    "content_hash": "v011-synthetic-image-hash"
+  },
+  {
+    "kind": "files",
+    "id": "v011-files-fixture",
+    "displayText": "report.txt + diagram.png",
+    "firstCopiedAt": 300,
+    "lastCopiedAt": 700,
+    "sourceApp": "Synthetic Files",
+    "copyCount": 3,
+    "file_paths": [
+      "/synthetic/Documents/report.txt",
+      "/synthetic/Documents/diagram.png"
+    ]
   }
 ]

@@ -193,14 +193,14 @@ test("public install scripts stay identical and publish checksum assets", async 
   );
   for (const expectedAsset of [
     "mclip-cli-darwin-arm64",
-    "mclip-cli-darwin-arm64.sha256",
     "mclip-cli-windows-x64.exe",
-    "mclip-cli-windows-x64.exe.sha256",
     "mclip-cli-linux-x64",
-    "mclip-cli-linux-x64.sha256",
   ]) {
-    assert.match(releaseWorkflow, new RegExp(`"${expectedAsset.replaceAll(".", "\\.")}"`));
+    assert.match(releaseWorkflow, new RegExp(`cli_asset: ${expectedAsset.replaceAll(".", "\\.")}`));
   }
+  assert.match(releaseWorkflow, /matrix\.cli_asset \}\}\.sha256/);
+  assert.match(releaseWorkflow, /sha256sum -c "\$\{\{ matrix\.cli_asset \}\}\.sha256"/);
+  assert.match(releaseWorkflow, /CLI_VERSION=.*matrix\.cli_asset.*--version/);
 });
 
 test("installer verifies latest release before replacing an existing CLI", async () => {

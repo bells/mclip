@@ -618,14 +618,43 @@ mod tests {
 
     #[test]
     fn v011_settings_load_with_safe_privacy_defaults() {
-        let settings: AppSettings =
-            serde_json::from_str(include_str!("../tests/fixtures/v0.1.1-settings.json")).unwrap();
+        let path = std::env::temp_dir().join(format!(
+            "mclip-v011-settings-{}-{}.json",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let content = include_str!("../tests/fixtures/v0.1.1-settings.json");
+        std::fs::write(&path, content).unwrap();
+        let settings = super::load_settings_from_path(&path).unwrap();
+
+        assert!(settings.auto_paste);
+        assert!(settings.launch_at_login);
+        assert_eq!(settings.language, AppLanguage::En);
+        assert_eq!(settings.max_history_count, 500);
+        assert_eq!(settings.main_window_item_count, 5);
+        assert_eq!(settings.history_group_item_count, 100);
+        assert!(settings.enabled_history_types.text);
+        assert!(!settings.enabled_history_types.image);
+        assert!(settings.enabled_history_types.files);
+        assert_eq!(
+            settings.menu_bar_icon_style,
+            super::MenuBarIconStyle::AppIcon
+        );
+        assert!(!settings.show_history_item_numbers);
+        assert!(!settings.show_main_window_brand);
+        assert_eq!(settings.appearance_theme, AppearanceTheme::Dark);
         assert!(settings.mask_sensitive_content);
         assert!(settings.ignored_source_app_ids.is_empty());
+        assert_eq!(settings.max_pinned_items, 10);
         assert_eq!(
             settings.text_quick_actions,
             TextQuickActionSettings::default()
         );
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+        std::fs::remove_file(path).unwrap();
     }
 
     #[test]

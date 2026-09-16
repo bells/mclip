@@ -10,9 +10,9 @@
 
 `mclip` 是一个常驻托盘的剪贴板历史工具。它专注于桌面日常复制场景：快速唤起、搜索、回填历史内容，并在不打断当前工作的前提下查看更早的记录。
 
-当前源码版本：`0.1.1`。源码已包含多项面向 `0.2.0` 的功能；下文功能说明不代表所有功能已进入当前公开安装包。产品现状见 [PRODUCT.md](PRODUCT.md)，开发约定见 [AGENTS.md](AGENTS.md)，规格与待验收事项见 [OpenSpec 索引](openspec/README.md)。
+当前源码版本：`0.2.0`。版本已完成本地同步，但公开 Release、安装包资产与 macOS/Windows 原生体验仍需按发布门禁验收；下文源码功能说明不等于已经公开发布。产品现状见 [PRODUCT.md](PRODUCT.md)，开发约定见 [AGENTS.md](AGENTS.md)，规格与待验收事项见 [OpenSpec 索引](openspec/README.md)。
 
-### v0.1.1 更新重点
+### v0.2.0 源码重点
 
 - 完成 Tailwind CSS 4 界面迁移，统一主窗口、preview、About、Preferences 和确认弹窗的深浅色视觉与可访问焦点状态。
 - 新增跟随系统/浅色/深色主题，以及主界面条数、历史分组条数、复制项序号、主窗口 Logo 等显示偏好。
@@ -105,7 +105,7 @@ Windows CLI 用户请在 Git Bash（或兼容的 POSIX shell）中执行该命�
 
 当前 CLI 不启动桌面 UI。`--help`/`help` 输出帮助，`--version`、`-V` 和 `version` 输出与 mclip 产品 Release 一致的版本号，且这些信息命令不会读取历史文件。`agent` 会输出一个面向 AI Agent 的聚合包，包含最近历史、可用命令能力表和安全边界，默认 Markdown，也支持 `--json`；`list/search/context/agent --pinned` 只返回置顶记录；`pin` 和 `unpin` 使用稳定 ID 或当前快照的一位起始序号；`clear --yes` 仍清除全部历史并报告其中的置顶条数，`clear --yes --keep-pinned` 只清除普通历史。`add` 会把文本写入历史但不覆盖当前系统剪贴板；`copy --index|--id` 保留原有选择语义，`copy --stdin` 或隐式管道会把唯一的 UTF-8 输入写入系统剪贴板但不直接修改历史。`transform <action>` 支持 JSON 格式化/压缩、RFC 4648 Base64 和 URL component 编解码，成功 stdout 只包含结果，不读历史也不写剪贴板。桌面文本详情使用相同 Rust 变换服务，在独立结果窗口中预览；复制结果走普通剪贴板监听，替换原记录则必须确认并保留稳定 ID 与置顶状态。输入上限为 1 MiB，输出上限为 4 MiB。偏好设置会下载与当前桌面版本完全一致的 GitHub Release 资产；公开安装脚本默认下载最新公开 Release，也可通过 `MCLIP_VERSION` 固定版本。两条预构建安装路径都会先验证同 Release 的 SHA-256 资产，校验失败时保留旧 CLI。只有预构建二进制不存在时，公开脚本才回退到本地或源码构建并要求 Rust/Cargo 和 Git。
 
-v0.2.0 开发版会在 `list`、`get`、`search`、`context` 和 `agent` 的 Text、Markdown、JSON 输出中默认遮罩已分类的敏感文本。`--raw` 和 `--reveal-secrets` 只为当前命令显式显示本地原文；`copy` 仍把用户选中的原始内容写回剪贴板，但不会在操作结果中回显。检测是有界的高置信度启发式规则，可能误报或漏报，不能替代凭证管理。
+v0.2.0 会在 `list`、`get`、`search`、`context` 和 `agent` 的 Text、Markdown、JSON 输出中默认遮罩已分类的敏感文本。`--raw` 和 `--reveal-secrets` 只为当前命令显式显示本地原文；`copy` 仍把用户选中的原始内容写回剪贴板，但不会在操作结果中回显。检测是有界的高置信度启发式规则，可能误报或漏报，不能替代凭证管理。
 
 ### Windows 注意事项
 
@@ -139,7 +139,7 @@ xattr -dr com.apple.quarantine /Applications/mclip.app
 
 应用本身不会上传剪贴板内容。只有在你手动点击“检查更新”时，应用会请求 GitHub Releases 的最新版本信息。Windows 安装器仅在缺少 WebView2 运行时时可能联网下载运行时组件。
 
-v0.2.0 开发版新增本地敏感内容分类、默认遮罩和可配置的来源应用排除。遮罩只保护界面与默认 CLI 输出，不是静态加密：原始文本仍以本地明文保存在 `history.json` 中，以保证复制内容逐字节一致。检测只覆盖一组版本化的高置信度模式，可能误报或漏报；来源应用识别同样是 best-effort，macOS 使用 bundle ID、Windows 使用可执行文件名、X11 使用 `WM_CLASS`，纯 Wayland 当前不可用。不要把这些能力当成密码管理器、DLP 或泄露防护保证。
+v0.2.0 新增本地敏感内容分类、默认遮罩和可配置的来源应用排除。遮罩只保护界面与默认 CLI 输出，不是静态加密：原始文本仍以本地明文保存在 `history.json` 中，以保证复制内容逐字节一致。检测只覆盖一组版本化的高置信度模式，可能误报或漏报；来源应用识别同样是 best-effort，macOS 使用 bundle ID、Windows 使用可执行文件名、X11 使用 `WM_CLASS`，纯 Wayland 当前不可用。不要把这些能力当成密码管理器、DLP 或泄露防护保证。
 
 ### 本地开发
 
@@ -195,19 +195,19 @@ Vercel 部署时，根路径 `/` 由 `site/vercel.json` 在边缘层重定向到
 Release 由 GitHub Actions 触发：
 
 ```bash
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
-发布前必须保证 tag、根 `package.json`/lockfile、官网 package/lockfile、Cargo package/lockfile 和构建后的 `mclip-cli --version` 完全一致，例如产品版本为 `0.1.1` 时 tag 必须是 `v0.1.1`。Release workflow 会同时构建 macOS/Windows 安装包、受支持架构的 `mclip-cli` 预构建资产及其 `.sha256` 校验资产，并生成 draft release。
+发布前必须保证 tag、根 `package.json`、官网 package、Cargo package/lockfile、前端版本回退值、官网结构化版本和构建后的 `mclip-cli --version` 完全一致；产品版本为 `0.2.0` 时 tag 必须是 `v0.2.0`。根 `pnpm-lock.yaml` 只记录依赖，不包含应用版本。Release workflow 会构建 macOS/Windows 安装包、待原生验收的 Linux x86_64 预览包、受支持架构的 `mclip-cli` 及其 `.sha256`，并生成 Draft Release。
 
 发布前可检查 Draft 的 CLI 资产：
 
 ```bash
-gh release view v0.1.1 --repo bells/mclip --json isDraft,assets --jq '{isDraft, assets: [.assets[].name]}'
+gh release view v0.2.0 --repo bells/mclip --json isDraft,assets --jq '{isDraft, assets: [.assets[].name]}'
 ```
 
-必须同时看到 `mclip-cli-darwin-arm64`、`mclip-cli-darwin-arm64.sha256`、`mclip-cli-windows-x64.exe` 和 `mclip-cli-windows-x64.exe.sha256`；Release workflow 会在两个平台任务结束后下载并复核这四个资产。发布 Draft、移动已有 tag 或替换远端资产属于单独的发布操作，不由构建或普通代码验证自动执行。
+必须同时看到 macOS ARM64、Windows x64、Linux x64 三个 `mclip-cli` 二进制及各自 `.sha256`，并看到 Linux `.deb` 与 AppImage；Release workflow 会在对应系统重新下载同一 Draft 的 CLI、校验 SHA-256 并执行 `--version`。发布 Draft、移动已有 tag 或替换远端资产属于单独的发布操作，不由构建或普通代码验证自动执行。
 
 ### 当前限制
 
@@ -222,9 +222,9 @@ gh release view v0.1.1 --repo bells/mclip --json isDraft,assets --jq '{isDraft, 
 
 `mclip` is a tray-first clipboard history app for everyday desktop copying. It is designed to open quickly, stay compact, search local history, and restore previous clipboard items without taking over the screen.
 
-Current source version: `0.1.1`. The source also includes features tracked toward `0.2.0`; the feature descriptions below do not establish that all of them are in the current public installer. See [PRODUCT.md](PRODUCT.md) for current behavior, [AGENTS.md](AGENTS.md) for development rules, and the [OpenSpec index](openspec/README.md) for specs and pending verification.
+Current source version: `0.2.0`. Version mirrors are synchronized locally, while the public Release, downloadable assets, and native macOS/Windows experience still require the release gates. Source behavior below does not by itself establish publication. See [PRODUCT.md](PRODUCT.md) for current behavior, [AGENTS.md](AGENTS.md) for development rules, and the [OpenSpec index](openspec/README.md) for specs and pending verification.
 
-### v0.1.1 Highlights
+### v0.2.0 Source Highlights
 
 - Completes the Tailwind CSS 4 UI migration across the main window, previews, About, Preferences, and confirmation surfaces, with consistent light/dark styling and visible focus states.
 - Adds System/Light/Dark appearance plus configurable main/archive counts, row numbers, and main-window branding.
@@ -317,7 +317,7 @@ Windows CLI users should run this command from Git Bash or another POSIX-compati
 
 The current CLI does not start the desktop UI. `--help`/`help` prints help, and `--version`, `-V`, and `version` print the shared mclip product Release version without reading the history file. `agent` emits an AI-agent-ready bundle with recent history, command capabilities, and safety boundaries; it defaults to Markdown and supports `--json`. `list/search/context/agent --pinned` returns only pins; `pin` and `unpin` use a stable ID or a one-based index from the current snapshot. `clear --yes` still clears everything and reports the pinned count, while `clear --yes --keep-pinned` removes only ordinary history. `add` writes text into history without replacing the current system clipboard. `copy --index|--id` preserves selector behavior, while `copy --stdin` or implicit piped stdin writes the sole UTF-8 input to the system clipboard without directly mutating history. `transform <action>` provides JSON prettify/minify, RFC 4648 Base64, and URL-component encode/decode; successful stdout is content-only, and the command reads no history and writes no clipboard. Desktop text details use the same Rust service in an independent result window: Copy follows the normal watcher, while Replace requires confirmation and preserves the stable ID and pin state. Input is limited to 1 MiB and output to 4 MiB. Preferences downloads the GitHub Release asset for the exact desktop version; the public installer defaults to the latest published Release and accepts `MCLIP_VERSION` for a pinned install. Both prebuilt paths verify the companion SHA-256 asset before replacement and preserve the previous CLI on failure. The public script falls back to local/source builds only when a prebuilt binary is missing, so Rust/Cargo and Git are not required for the normal path.
 
-The in-development v0.2.0 CLI masks classified sensitive text by default in Text, Markdown, and JSON output from `list`, `get`, `search`, `context`, and `agent`. `--raw` and `--reveal-secrets` explicitly reveal local plaintext for that invocation only. `copy` still writes the exact selected content to the clipboard without echoing it in the action result. Detection is a bounded, high-confidence heuristic and can produce false positives or false negatives; it is not a credential manager.
+The v0.2.0 CLI masks classified sensitive text by default in Text, Markdown, and JSON output from `list`, `get`, `search`, `context`, and `agent`. `--raw` and `--reveal-secrets` explicitly reveal local plaintext for that invocation only. `copy` still writes the exact selected content to the clipboard without echoing it in the action result. Detection is a bounded, high-confidence heuristic and can produce false positives or false negatives; it is not a credential manager.
 
 ### Windows Notes
 
@@ -349,7 +349,7 @@ Pin metadata is stored as additive JSON fields that the v0.1.1 serde model ignor
 
 The app does not upload clipboard contents. It requests the latest GitHub Releases version only when you manually click “Check for Updates”. On Windows, the installer may access the network only to download WebView2 when the runtime is missing.
 
-The in-development v0.2.0 privacy controls add local sensitive-text classification, masked presentation, and configurable source-application exclusions. Masking protects the UI and default CLI output; it is not encryption at rest. Original text remains local plaintext in `history.json` so explicit copy stays byte-exact. The versioned detector intentionally covers only a small high-confidence set and can miss secrets or mask ordinary text. Source identity is also best-effort: macOS uses a bundle ID, Windows a normalized executable name, and X11 `WM_CLASS`; pure Wayland source exclusion is currently unavailable. These controls are not a password manager, DLP system, or breach-prevention guarantee.
+The v0.2.0 privacy controls add local sensitive-text classification, masked presentation, and configurable source-application exclusions. Masking protects the UI and default CLI output; it is not encryption at rest. Original text remains local plaintext in `history.json` so explicit copy stays byte-exact. The versioned detector intentionally covers only a small high-confidence set and can miss secrets or mask ordinary text. Source identity is also best-effort: macOS uses a bundle ID, Windows a normalized executable name, and X11 `WM_CLASS`; pure Wayland source exclusion is currently unavailable. These controls are not a password manager, DLP system, or breach-prevention guarantee.
 
 ### Development
 
@@ -405,19 +405,19 @@ On Vercel, the root path `/` is redirected to `/en/` by `site/vercel.json` at th
 GitHub Actions publishes release drafts from version tags:
 
 ```bash
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
-The tag, root package and lockfile, site package and lockfile, Cargo package and lockfile, and built `mclip-cli --version` must all match. For example, product version `0.1.1` must be released with tag `v0.1.1`. The workflow builds macOS/Windows installers plus each supported `mclip-cli` binary and its `.sha256` companion, then creates a draft release.
+The tag, root package, site package, Cargo package/lockfile, frontend fallback, website structured version, and built `mclip-cli --version` must all match. Product version `0.2.0` must be released with tag `v0.2.0`; the shared pnpm lock records dependencies rather than the app version. The workflow builds macOS/Windows installers, Linux x86_64 preview packages pending native validation, and each supported `mclip-cli` binary with its `.sha256` companion, then creates a Draft Release.
 
 Inspect the draft CLI assets before publication:
 
 ```bash
-gh release view v0.1.1 --repo bells/mclip --json isDraft,assets --jq '{isDraft, assets: [.assets[].name]}'
+gh release view v0.2.0 --repo bells/mclip --json isDraft,assets --jq '{isDraft, assets: [.assets[].name]}'
 ```
 
-The draft must contain `mclip-cli-darwin-arm64`, `mclip-cli-darwin-arm64.sha256`, `mclip-cli-windows-x64.exe`, and `mclip-cli-windows-x64.exe.sha256`. After both platform jobs finish, the Release workflow downloads and revalidates all four. Publishing the draft, moving an existing tag, or replacing remote assets is a separate release-owner action and is never performed implicitly by a build or ordinary source verification.
+The Draft must contain the macOS ARM64, Windows x64, and Linux x64 `mclip-cli` binaries with all three `.sha256` companions, plus the Linux `.deb` and AppImage previews. The Release workflow downloads each CLI on its matching OS, verifies SHA-256, and runs `--version` against the same Draft. Publishing the Draft, moving an existing tag, or replacing remote assets is a separate release-owner action and is never performed implicitly by a build or ordinary source verification.
 
 ### Known Limitations
 
