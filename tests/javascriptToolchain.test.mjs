@@ -76,7 +76,7 @@ test("v0.2.0 product version is synchronized across every source mirror", async 
   assert.equal(rootPackage.version, "0.2.0");
   assert.equal(sitePackage.version, rootPackage.version);
   assert.match(cargoManifest, /^version = "0\.2\.0"$/m);
-  assert.match(cargoLock, /name = "mclip"\nversion = "0\.2\.0"/);
+  assert.match(cargoLock, /name = "mclip"\r?\nversion = "0\.2\.0"/);
   assert.equal(tauri.version, "../package.json");
   assert.match(constants, /DEFAULT_APP_VERSION = "0\.2\.0"/);
   assert.match(siteLayout, /softwareVersion: "0\.2\.0"/);
