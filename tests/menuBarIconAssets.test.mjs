@@ -100,13 +100,17 @@ test("notebook m icon keeps one explicit monochrome vector source", async () => 
 });
 
 test("notebook m derivatives retain required dimensions and transparency", async () => {
-  const [runtimePng, preferencesPng] = await Promise.all([
+  const [runtimePng, preferencesPng, highContrastLightPng, highContrastMPng] = await Promise.all([
     readFile("src-tauri/icons/menu-bar-icon-m.png"),
     readFile("src-tauri/icons/menu-bar-icon-m-128.png"),
+    readFile("src-tauri/icons/menu-bar-icon-light-high-contrast.png"),
+    readFile("src-tauri/icons/menu-bar-icon-m-high-contrast.png"),
   ]);
 
   decodeAlphaContract(runtimePng, 512);
   decodeAlphaContract(preferencesPng, 128);
+  decodeAlphaContract(highContrastLightPng, 32);
+  decodeAlphaContract(highContrastMPng, 32);
 });
 
 test("notebook m stays wired to Preferences and native template rendering", async () => {
@@ -122,14 +126,18 @@ test("notebook m stays wired to Preferences and native template rendering", asyn
 
   assert.match(preferences, /menu-bar-icon-m-128\.png/);
   assert.match(rust, /include_bytes!\("\.\.\/icons\/menu-bar-icon-m\.png"\)/);
+  assert.match(rust, /menu-bar-icon-light-high-contrast\.png/);
+  assert.match(rust, /menu-bar-icon-m-high-contrast\.png/);
   assert.match(
     rust,
-    /matches!\(style, MenuBarIconStyle::Light \| MenuBarIconStyle::M\)/,
+    /platform == TrayIconPlatform::Macos[\s\S]*matches!\(style, MenuBarIconStyle::Light \| MenuBarIconStyle::M\)/,
   );
   assert.match(types, /"appIcon" \| "light" \| "m"/);
   assert.match(generator, /requestedSizes = \[16, 18, 22, 128, 512\]/);
   assert.match(generator, /copyFileSync\(runtimeGenerated, runtimePath\)/);
   assert.match(generator, /copyFileSync\(preferencesGenerated, preferencesPath\)/);
+  assert.match(generator, /generatePng\(lightSource, highContrastLightDir, \[32\]\)/);
+  assert.match(generator, /generatePng\(mSource, highContrastMDir, \[32\]\)/);
   assert.match(zhCn, /带小写 m 的记事本模板图标/);
   assert.match(en, /notebook with a lowercase m/);
   assert.match(ja, /小文字の m を配したノート型/);

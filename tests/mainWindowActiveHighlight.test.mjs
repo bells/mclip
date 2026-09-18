@@ -45,6 +45,29 @@ test("pointer activation is movement-driven and skips disabled footer actions", 
   assert.doesNotMatch(groupSource, /onMouseEnter=/);
 });
 
+test("Windows preview display preserves main-window keyboard ownership", async () => {
+  const [windowSource, libSource, auxiliaryContractSource] = await Promise.all([
+    readSource("src-tauri/src/window.rs"),
+    readSource("src-tauri/src/lib.rs"),
+    readSource("src-tauri/src/auxiliary_window_contract.rs"),
+  ]);
+
+  assert.match(
+    auxiliaryContractSource,
+    /label: "preview"[\s\S]*?focusable: false/,
+  );
+  assert.match(
+    auxiliaryContractSource,
+    /label: "preview-detail"[\s\S]*?focusable: false/,
+  );
+  assert.match(libSource, /manage\(PreviewFocusLossGuard::default\(\)\)/);
+  assert.match(libSource, /preview_focus_loss_guard_active/);
+  assert.match(
+    windowSource,
+    /#\[cfg\(target_os = "windows"\)\][\s\S]*state::<crate::PreviewFocusLossGuard>\(\)[\s\S]*\.protect\(\);[\s\S]*preview_window\.show\(\)/,
+  );
+});
+
 test("main footer uses compact shortcut labels instead of explanatory copy", async () => {
   const [footerSource, stylesSource] = await Promise.all([
     readSource("src/components/AppFooter.tsx"),

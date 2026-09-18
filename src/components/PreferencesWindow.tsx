@@ -1405,62 +1405,60 @@ export function PreferencesWindow() {
                   </div>
                 </div>
 
-                <div
-                  className={ui.settingsRow}
-                  id={preferenceFocusTargetId("history.maximum")}
-                >
-                  <div className={ui.settingsCopy}>
-                    <div className={ui.settingsLabel}>{t.maxHistoryCountLabel}</div>
-                    <div className={ui.settingsDescription}>
-                      {t.maxHistoryCountDescription}
+                <SettingsGroup label={t.retentionGroupLabel}>
+                  <PreferenceRow
+                    label={t.maxHistoryCountLabel}
+                    description={t.maxHistoryCountDescription}
+                    focusTargetId={preferenceFocusTargetId("history.maximum")}
+                    feedback={preferenceFeedback["history.maximum"]}
+                    feedbackLabels={feedbackLabels}
+                    note={t.rangeNote(MIN_MAX_HISTORY_COUNT, MAX_MAX_HISTORY_COUNT)}
+                  >
+                    <div className={ui.stepper}>
+                      <input
+                        aria-label={t.maxHistoryCountAriaLabel}
+                        className={ui.stepperInput}
+                        max={MAX_MAX_HISTORY_COUNT}
+                        min={MIN_MAX_HISTORY_COUNT}
+                        onBlur={commitMaxHistoryCountInput}
+                        onChange={(event) => updateMaxHistoryCountInput(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.currentTarget.blur();
+                          }
+                        }}
+                        step={1}
+                        type="number"
+                        value={maxHistoryCountInput}
+                      />
                     </div>
-                    <div className={ui.settingsNote}>
-                      {t.rangeNote(MIN_MAX_HISTORY_COUNT, MAX_MAX_HISTORY_COUNT)}
+                  </PreferenceRow>
+
+                  <PreferenceRow
+                    label={t.maxPinnedItemsLabel}
+                    description={t.maxPinnedItemsDescription}
+                    focusTargetId={preferenceFocusTargetId("history.pin-limit")}
+                    feedback={preferenceFeedback["history.pin-limit"]}
+                    feedbackLabels={feedbackLabels}
+                  >
+                    <div className={ui.stepper}>
+                      <input
+                        aria-label={t.maxPinnedItemsLabel}
+                        className={ui.stepperInput}
+                        min={MIN_MAX_PINNED_ITEMS}
+                        max={MAX_MAX_PINNED_ITEMS}
+                        step={1}
+                        type="number"
+                        value={maxPinnedItemsInput}
+                        onChange={(event) => updateMaxPinnedItems(event.target.value)}
+                        onBlur={() => updateMaxPinnedItems(maxPinnedItemsInput, true)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") event.currentTarget.blur();
+                        }}
+                      />
                     </div>
-                  </div>
-
-                  <div className={ui.stepper}>
-                    <input
-                      aria-label={t.maxHistoryCountAriaLabel}
-                      className={ui.stepperInput}
-                      max={MAX_MAX_HISTORY_COUNT}
-                      min={MIN_MAX_HISTORY_COUNT}
-                      onBlur={commitMaxHistoryCountInput}
-                      onChange={(event) => updateMaxHistoryCountInput(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.currentTarget.blur();
-                        }
-                      }}
-                      step={1}
-                      type="number"
-                      value={maxHistoryCountInput}
-                    />
-                  </div>
-                </div>
-
-                <PreferenceRow
-                  label={t.maxPinnedItemsLabel}
-                  description={t.maxPinnedItemsDescription}
-                  focusTargetId={preferenceFocusTargetId("history.pin-limit")}
-                  feedback={preferenceFeedback["history.pin-limit"]}
-                  feedbackLabels={feedbackLabels}
-                >
-                  <div className={ui.stepper}>
-                    <input
-                      aria-label={t.maxPinnedItemsLabel}
-                      className={ui.stepperInput}
-                      min={MIN_MAX_PINNED_ITEMS}
-                      max={MAX_MAX_PINNED_ITEMS}
-                      step={1}
-                      type="number"
-                      value={maxPinnedItemsInput}
-                      onChange={(event) => updateMaxPinnedItems(event.target.value)}
-                      onBlur={() => updateMaxPinnedItems(maxPinnedItemsInput, true)}
-                      onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
-                    />
-                  </div>
-                </PreferenceRow>
+                  </PreferenceRow>
+                </SettingsGroup>
 
                 <SettingsGroup label={t.displayGroupLabel}>
                 <div

@@ -20,6 +20,14 @@ const preferencesPath = join(
   projectRoot,
   "src-tauri/icons/menu-bar-icon-m-128.png",
 );
+const highContrastLightPath = join(
+  projectRoot,
+  "src-tauri/icons/menu-bar-icon-light-high-contrast.png",
+);
+const highContrastMPath = join(
+  projectRoot,
+  "src-tauri/icons/menu-bar-icon-m-high-contrast.png",
+);
 const previewPath = join(tmpdir(), "mclip-menu-bar-m-size-preview.svg");
 const tauriCliPath = require.resolve("@tauri-apps/cli/tauri.js");
 const requestedSizes = [16, 18, 22, 128, 512];
@@ -119,16 +127,10 @@ function createPreview(generatedDir) {
   writeFileSync(previewPath, preview);
 }
 
-const canonicalSource = readFileSync(sourcePath, "utf8");
-assertSourceContract(canonicalSource);
-
-const temporaryRoot = mkdtempSync(join(tmpdir(), "mclip-menu-bar-icon-"));
-const generatedDir = join(temporaryRoot, "generated");
-mkdirSync(generatedDir);
-
-try {
-  const args = ["icon", sourcePath, "--output", generatedDir];
-  for (const size of requestedSizes) {
+function generatePng(source, outputDir, sizes) {
+  mkdirSync(outputDir, { recursive: true });
+  const args = ["icon", source, "--output", outputDir];
+  for (const size of sizes) {
     args.push("--png", String(size));
   }
 
@@ -141,6 +143,45 @@ try {
       `Tauri icon generation failed:\n${result.stdout ?? ""}${result.stderr ?? ""}`,
     );
   }
+}
+
+function createHighContrastSources(temporaryRoot, canonicalSource) {
+  const lightPng = readFileSync(
+    join(projectRoot, "src-tauri/icons/menu-bar-icon-light-128.png"),
+  );
+  const canonicalBody = canonicalSource
+    .replace(/^\s*<svg[^>]*>/u, "")
+    .replace(/<\/svg>\s*$/u, "");
+  const lightSource = join(temporaryRoot, "light-high-contrast.svg");
+  const mSource = join(temporaryRoot, "m-high-contrast.svg");
+
+  writeFileSync(
+    lightSource,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <rect x="1" y="1" width="22" height="22" rx="6" fill="#17482f" stroke="#0a2518" stroke-width="1.5"/>
+      <image x="2" y="2" width="20" height="20" href="data:image/png;base64,${lightPng.toString("base64")}"/>
+    </svg>`,
+  );
+  writeFileSync(
+    mSource,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <rect x="1" y="1" width="22" height="22" rx="6" fill="#f4f1e8" stroke="#243129" stroke-width="1.5"/>
+      <g fill="none" transform="translate(3 3) scale(.75)">${canonicalBody}</g>
+    </svg>`,
+  );
+
+  return { lightSource, mSource };
+}
+
+const canonicalSource = readFileSync(sourcePath, "utf8");
+assertSourceContract(canonicalSource);
+
+const temporaryRoot = mkdtempSync(join(tmpdir(), "mclip-menu-bar-icon-"));
+const generatedDir = join(temporaryRoot, "generated");
+mkdirSync(generatedDir);
+
+try {
+  generatePng(sourcePath, generatedDir, requestedSizes);
 
   const runtimeGenerated = join(generatedDir, "512x512.png");
   const preferencesGenerated = join(generatedDir, "128x128.png");
@@ -148,6 +189,17 @@ try {
   readPngContract(preferencesGenerated, 128);
   copyFileSync(runtimeGenerated, runtimePath);
   copyFileSync(preferencesGenerated, preferencesPath);
+
+  const { lightSource, mSource } = createHighContrastSources(
+    temporaryRoot,
+    canonicalSource,
+  );
+  const highContrastLightDir = join(temporaryRoot, "high-contrast-light");
+  const highContrastMDir = join(temporaryRoot, "high-contrast-m");
+  generatePng(lightSource, highContrastLightDir, [32]);
+  generatePng(mSource, highContrastMDir, [32]);
+  copyFileSync(join(highContrastLightDir, "32x32.png"), highContrastLightPath);
+  copyFileSync(join(highContrastMDir, "32x32.png"), highContrastMPath);
   createPreview(generatedDir);
 } finally {
   rmSync(temporaryRoot, { force: true, recursive: true });
@@ -155,4 +207,6 @@ try {
 
 console.log(`Generated ${runtimePath}`);
 console.log(`Generated ${preferencesPath}`);
+console.log(`Generated ${highContrastLightPath}`);
+console.log(`Generated ${highContrastMPath}`);
 console.log(`Generated ${previewPath}`);

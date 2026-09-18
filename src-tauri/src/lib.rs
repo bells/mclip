@@ -90,8 +90,45 @@ const TRAY_ICON_ID: &str = "main";
 const APP_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/128x128@2x.png");
 const LIGHT_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/menu-bar-icon-light.png");
 const M_MENU_BAR_ICON_BYTES: &[u8] = include_bytes!("../icons/menu-bar-icon-m.png");
+const HIGH_CONTRAST_LIGHT_TRAY_ICON_BYTES: &[u8] =
+    include_bytes!("../icons/menu-bar-icon-light-high-contrast.png");
+const HIGH_CONTRAST_M_TRAY_ICON_BYTES: &[u8] =
+    include_bytes!("../icons/menu-bar-icon-m-high-contrast.png");
 #[cfg(any(target_os = "macos", test))]
 const TRAY_POSITION_AUTOSAVE_NAME: &str = "com.watson.mclip.tray.main";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TrayIconPlatform {
+    Macos,
+    Other,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct PreviewFocusLossGuard {
+    deadline: Mutex<Option<Instant>>,
+}
+
+impl PreviewFocusLossGuard {
+    #[cfg(any(target_os = "windows", test))]
+    pub(crate) fn protect(&self) {
+        if let Ok(mut deadline) = self.deadline.lock() {
+            *deadline = Some(Instant::now() + Duration::from_millis(SHOW_GUARD_MS));
+        }
+    }
+
+    fn is_active(&self) -> bool {
+        let Ok(mut deadline) = self.deadline.lock() else {
+            return false;
+        };
+        let active = deadline
+            .map(|deadline| deadline.saturating_duration_since(Instant::now()))
+            .is_some_and(|remaining| !remaining.is_zero());
+        if !active {
+            *deadline = None;
+        }
+        active
+    }
+}
 
 struct TrayMenuItems {
     preferences: MenuItem<tauri::Wry>,
@@ -283,20 +320,49 @@ fn configure_tray_icon(app_handle: &AppHandle, style: &MenuBarIconStyle) {
     }
 }
 
-fn menu_bar_icon_bytes(style: &MenuBarIconStyle) -> &'static [u8] {
-    match style {
-        MenuBarIconStyle::AppIcon => APP_MENU_BAR_ICON_BYTES,
-        MenuBarIconStyle::Light => LIGHT_MENU_BAR_ICON_BYTES,
-        MenuBarIconStyle::M => M_MENU_BAR_ICON_BYTES,
+fn current_tray_icon_platform() -> TrayIconPlatform {
+    if cfg!(target_os = "macos") {
+        TrayIconPlatform::Macos
+    } else {
+        TrayIconPlatform::Other
     }
 }
 
-fn menu_bar_icon(style: &MenuBarIconStyle) -> Result<Image<'static>, String> {
-    Image::from_bytes(menu_bar_icon_bytes(style)).map_err(|error| error.to_string())
+fn menu_bar_icon_bytes_for_platform(
+    style: &MenuBarIconStyle,
+    platform: TrayIconPlatform,
+) -> &'static [u8] {
+    match (platform, style) {
+        (TrayIconPlatform::Other, MenuBarIconStyle::Light) => HIGH_CONTRAST_LIGHT_TRAY_ICON_BYTES,
+        (TrayIconPlatform::Other, MenuBarIconStyle::M) => HIGH_CONTRAST_M_TRAY_ICON_BYTES,
+        (_, MenuBarIconStyle::AppIcon) => APP_MENU_BAR_ICON_BYTES,
+        (_, MenuBarIconStyle::Light) => LIGHT_MENU_BAR_ICON_BYTES,
+        (_, MenuBarIconStyle::M) => M_MENU_BAR_ICON_BYTES,
+    }
+}
+
+fn menu_bar_icon_is_template_for_platform(
+    style: &MenuBarIconStyle,
+    platform: TrayIconPlatform,
+) -> bool {
+    platform == TrayIconPlatform::Macos
+        && matches!(style, MenuBarIconStyle::Light | MenuBarIconStyle::M)
 }
 
 fn menu_bar_icon_is_template(style: &MenuBarIconStyle) -> bool {
-    matches!(style, MenuBarIconStyle::Light | MenuBarIconStyle::M)
+    menu_bar_icon_is_template_for_platform(style, current_tray_icon_platform())
+}
+
+fn menu_bar_icon_for_platform(
+    style: &MenuBarIconStyle,
+    platform: TrayIconPlatform,
+) -> Result<Image<'static>, String> {
+    Image::from_bytes(menu_bar_icon_bytes_for_platform(style, platform))
+        .map_err(|error| error.to_string())
+}
+
+fn menu_bar_icon(style: &MenuBarIconStyle) -> Result<Image<'static>, String> {
+    menu_bar_icon_for_platform(style, current_tray_icon_platform())
 }
 
 fn set_tray_icon(app_handle: &AppHandle, style: &MenuBarIconStyle) -> Result<(), String> {
@@ -560,6 +626,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AutoPasteTargetState::default())
         .manage(AuxiliaryWindowRegistry::default())
+        .manage(PreviewFocusLossGuard::default())
         .manage(DesktopCapabilityState::detect())
         .manage(performance_recorder)
         .on_window_event({
@@ -591,6 +658,8 @@ pub fn run() {
                         .and_then(|deadline| *deadline)
                         .map(|deadline| deadline.saturating_duration_since(Instant::now()))
                         .unwrap_or_default();
+                    let preview_focus_loss_guard_active =
+                        window.state::<PreviewFocusLossGuard>().is_active();
 
                     let is_pointer_over_preview =
                         is_pointer_over_preview_window(window.app_handle()).unwrap_or(false);
@@ -606,7 +675,7 @@ pub fn run() {
                         .has_background_entrypoint();
                     if has_background_entrypoint
                         && should_hide_main_window_on_focus_loss(
-                            !remaining_guard.is_zero(),
+                            !remaining_guard.is_zero() || preview_focus_loss_guard_active,
                             is_pointer_over_preview,
                             image_viewer_visible,
                         )
@@ -808,8 +877,9 @@ mod tests {
     use tauri_plugin_global_shortcut::Shortcut;
 
     use super::{
-        menu_bar_icon, menu_bar_icon_is_template, should_hide_main_window_on_focus_loss,
-        single_instance_launch_action, tray_menu_labels, tray_tooltip, SingleInstanceLaunchAction,
+        menu_bar_icon_for_platform, menu_bar_icon_is_template_for_platform,
+        should_hide_main_window_on_focus_loss, single_instance_launch_action, tray_menu_labels,
+        tray_tooltip, PreviewFocusLossGuard, SingleInstanceLaunchAction, TrayIconPlatform,
         TOGGLE_WINDOW_SHORTCUT, TRAY_POSITION_AUTOSAVE_NAME,
     };
     use crate::auxiliary_window_contract::{auxiliary_window_descriptor, LogicalWindowSize};
@@ -911,6 +981,15 @@ mod tests {
         assert!(should_hide_main_window_on_focus_loss(false, false, false));
         assert!(!should_hide_main_window_on_focus_loss(true, false, false));
         assert!(!should_hide_main_window_on_focus_loss(false, true, false));
+    }
+
+    #[test]
+    fn preview_focus_loss_guard_is_short_lived_and_reusable() {
+        let guard = PreviewFocusLossGuard::default();
+
+        assert!(!guard.is_active());
+        guard.protect();
+        assert!(guard.is_active());
     }
 
     #[test]
@@ -1022,9 +1101,17 @@ mod tests {
 
     #[test]
     fn menu_bar_icon_styles_load_valid_assets() {
-        let app_icon = menu_bar_icon(&MenuBarIconStyle::AppIcon).unwrap();
-        let light_icon = menu_bar_icon(&MenuBarIconStyle::Light).unwrap();
-        let m_icon = menu_bar_icon(&MenuBarIconStyle::M).unwrap();
+        let app_icon =
+            menu_bar_icon_for_platform(&MenuBarIconStyle::AppIcon, TrayIconPlatform::Macos)
+                .unwrap();
+        let light_icon =
+            menu_bar_icon_for_platform(&MenuBarIconStyle::Light, TrayIconPlatform::Macos).unwrap();
+        let m_icon =
+            menu_bar_icon_for_platform(&MenuBarIconStyle::M, TrayIconPlatform::Macos).unwrap();
+        let high_contrast_light_icon =
+            menu_bar_icon_for_platform(&MenuBarIconStyle::Light, TrayIconPlatform::Other).unwrap();
+        let high_contrast_m_icon =
+            menu_bar_icon_for_platform(&MenuBarIconStyle::M, TrayIconPlatform::Other).unwrap();
 
         assert_eq!(app_icon.width(), 256);
         assert_eq!(app_icon.height(), 256);
@@ -1032,12 +1119,33 @@ mod tests {
         assert_eq!(light_icon.height(), 512);
         assert_eq!(m_icon.width(), 512);
         assert_eq!(m_icon.height(), 512);
+        assert_eq!(high_contrast_light_icon.width(), 32);
+        assert_eq!(high_contrast_light_icon.height(), 32);
+        assert_eq!(high_contrast_m_icon.width(), 32);
+        assert_eq!(high_contrast_m_icon.height(), 32);
     }
 
     #[test]
     fn template_menu_bar_icons_use_macos_template_rendering() {
-        assert!(!menu_bar_icon_is_template(&MenuBarIconStyle::AppIcon));
-        assert!(menu_bar_icon_is_template(&MenuBarIconStyle::Light));
-        assert!(menu_bar_icon_is_template(&MenuBarIconStyle::M));
+        assert!(!menu_bar_icon_is_template_for_platform(
+            &MenuBarIconStyle::AppIcon,
+            TrayIconPlatform::Macos,
+        ));
+        assert!(menu_bar_icon_is_template_for_platform(
+            &MenuBarIconStyle::Light,
+            TrayIconPlatform::Macos,
+        ));
+        assert!(menu_bar_icon_is_template_for_platform(
+            &MenuBarIconStyle::M,
+            TrayIconPlatform::Macos,
+        ));
+        assert!(!menu_bar_icon_is_template_for_platform(
+            &MenuBarIconStyle::Light,
+            TrayIconPlatform::Other,
+        ));
+        assert!(!menu_bar_icon_is_template_for_platform(
+            &MenuBarIconStyle::M,
+            TrayIconPlatform::Other,
+        ));
     }
 }

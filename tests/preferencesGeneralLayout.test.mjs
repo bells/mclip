@@ -66,6 +66,10 @@ test("appearance and history keep their established controls and bounds", async 
   assert.match(source.slice(historyIndex), /max=\{MAX_MAX_HISTORY_COUNT\}/);
   assert.match(source.slice(historyIndex), /max=\{mainWindowItemCountMax\}/);
   assert.match(source.slice(historyIndex), /max=\{MAX_HISTORY_GROUP_ITEM_COUNT\}/);
+  assert.match(
+    source.slice(historyIndex),
+    /<SettingsGroup label=\{t\.retentionGroupLabel\}>[\s\S]*t\.maxHistoryCountLabel[\s\S]*t\.maxPinnedItemsLabel[\s\S]*<\/SettingsGroup>/,
+  );
 });
 
 test("preferences keep a fixed lazy auxiliary window at 820 by 600", async () => {

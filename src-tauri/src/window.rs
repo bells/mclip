@@ -566,6 +566,11 @@ pub async fn show_history_preview_window(
         return Ok(default_preview_window_position());
     }
 
+    // Windows can report the main window as unfocused while showing a
+    // non-focusable auxiliary WebView. Protect that native transition so a
+    // hover or Arrow-key preview cannot dismiss the tray popover itself.
+    #[cfg(target_os = "windows")]
+    app_handle.state::<crate::PreviewFocusLossGuard>().protect();
     preview_window.show().map_err(|error| error.to_string())?;
     preview_window
         .emit(HISTORY_PREVIEW_PLACEMENT_UPDATED_EVENT, position)
@@ -843,6 +848,8 @@ pub async fn show_history_preview_detail_window(
         return Ok(default_preview_family_position());
     }
 
+    #[cfg(target_os = "windows")]
+    app_handle.state::<crate::PreviewFocusLossGuard>().protect();
     preview_detail_window
         .show()
         .map_err(|error| error.to_string())?;
