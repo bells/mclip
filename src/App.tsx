@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type PointerEvent as ReactPointerEvent,
 } from "react";
 
 import { PinToastHost } from "./components/PinToastHost";
@@ -33,7 +34,9 @@ import {
   getMainHistoryDeleteTargetId,
   getMainPointerActivatedTargetId,
   getNextMainKeyboardNavigationTarget,
+  hasMainPointerMoved,
   MAIN_SEARCH_TARGET_ID,
+  type MainPointerPosition,
   parseMainKeyboardNavigationTarget,
   reconcileMainKeyboardNavigationTargetId,
   serializeMainKeyboardNavigationTarget,
@@ -70,6 +73,9 @@ function App() {
   const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
   const [isMainScrollConstrained, setIsMainScrollConstrained] = useState(false);
   const activeMainTargetIdRef = useRef<string>(MAIN_SEARCH_TARGET_ID);
+  const isKeyboardNavigatingRef = useRef(false);
+  const lastMainPointerPositionRef = useRef<MainPointerPosition | null>(null);
+  const mainPointerMovedRef = useRef(false);
   const headerMeasureRef = useRef<HTMLDivElement | null>(null);
   const contentMeasureRef = useRef<HTMLDivElement | null>(null);
   const footerMeasureRef = useRef<HTMLDivElement | null>(null);
@@ -202,6 +208,41 @@ function App() {
     );
   }, []);
 
+  const setKeyboardNavigationMode = useCallback((isActive: boolean) => {
+    isKeyboardNavigatingRef.current = isActive;
+
+    if (isActive) {
+      mainPointerMovedRef.current = false;
+    }
+
+    setIsKeyboardNavigating((currentValue) =>
+      currentValue === isActive ? currentValue : isActive,
+    );
+  }, []);
+
+  const handleMainPointerMoveCapture = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const currentPosition: MainPointerPosition = {
+        clientX: event.clientX,
+        clientY: event.clientY,
+      };
+      const pointerMoved = hasMainPointerMoved({
+        currentPosition,
+        movementX: event.movementX,
+        movementY: event.movementY,
+        previousPosition: lastMainPointerPositionRef.current,
+      });
+
+      lastMainPointerPositionRef.current = currentPosition;
+      mainPointerMovedRef.current = pointerMoved;
+
+      if (pointerMoved && isKeyboardNavigatingRef.current) {
+        setKeyboardNavigationMode(false);
+      }
+    },
+    [setKeyboardNavigationMode],
+  );
+
   const activateMainTarget = useCallback(
     (
       targetId: string,
@@ -213,7 +254,8 @@ function App() {
           ? getMainPointerActivatedTargetId({
               ...mainNavigationContext,
               currentTargetId: activeMainTargetIdRef.current,
-              hasPointerMoved: true,
+              hasPointerMoved:
+                !isKeyboardNavigatingRef.current || mainPointerMovedRef.current,
               isDisabled,
               pointerTargetId: targetId,
             })
@@ -300,7 +342,7 @@ function App() {
 
   const moveKeyboardNavigationFocus = useCallback(
     (direction: -1 | 1) => {
-      setIsKeyboardNavigating(true);
+      setKeyboardNavigationMode(true);
 
       const nextTarget = getNextMainKeyboardNavigationTarget(
         activeMainTargetIdRef.current,
@@ -319,6 +361,7 @@ function App() {
     [
       focusKeyboardNavigationTarget,
       mainNavigationContext,
+      setKeyboardNavigationMode,
     ],
   );
 
@@ -626,8 +669,13 @@ function App() {
     targetId: string,
     source: "focus" | "pointer",
   ) => {
+    const activatedTargetId = activateMainTarget(targetId, source);
+
+    if (activatedTargetId !== targetId) {
+      return;
+    }
+
     clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
-    activateMainTarget(targetId, source);
     openHistoryItemPreview(item, anchorTop);
   };
 
@@ -637,8 +685,13 @@ function App() {
     targetId: string,
     source: "focus" | "pointer",
   ) => {
+    const activatedTargetId = activateMainTarget(targetId, source);
+
+    if (activatedTargetId !== targetId) {
+      return;
+    }
+
     clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
-    activateMainTarget(targetId, source);
     openHistoryGroupPreview(groupIndex, anchorTop);
   };
 
@@ -646,15 +699,20 @@ function App() {
     targetId: string,
     source: "focus" | "pointer",
   ) => {
+    const activatedTargetId = activateMainTarget(targetId, source);
+
+    if (activatedTargetId !== targetId) {
+      return;
+    }
+
     clearKeyboardPreviewGroup(keyboardPreviewGroupIndex);
-    activateMainTarget(targetId, source);
     closeHistoryGroupPreview();
   };
 
   return (
     <div
       className={ui.appFrame}
-      onPointerMove={() => setIsKeyboardNavigating(false)}
+      onPointerMoveCapture={handleMainPointerMoveCapture}
     >
       <PinToastHost language={settings.language} />
       <div className={ui.appPanel}>

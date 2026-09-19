@@ -34,6 +34,18 @@ type MainPointerActivationContext = MainKeyboardNavigationContext & {
   pointerTargetId: string | null;
 };
 
+export type MainPointerPosition = {
+  clientX: number;
+  clientY: number;
+};
+
+type MainPointerMovementContext = {
+  currentPosition: MainPointerPosition;
+  movementX: number;
+  movementY: number;
+  previousPosition: MainPointerPosition | null;
+};
+
 type MainHistoryDeleteKeyContext = {
   activeTarget: MainKeyboardNavigationTarget | null;
   hasModifier: boolean;
@@ -183,6 +195,21 @@ export function getMainPointerActivatedTargetId({
     pointerTargetId
     ? pointerTargetId
     : reconciledCurrentTargetId;
+}
+
+export function hasMainPointerMoved({
+  currentPosition,
+  movementX,
+  movementY,
+  previousPosition,
+}: MainPointerMovementContext): boolean {
+  return (
+    movementX !== 0 ||
+    movementY !== 0 ||
+    (previousPosition !== null &&
+      (previousPosition.clientX !== currentPosition.clientX ||
+        previousPosition.clientY !== currentPosition.clientY))
+  );
 }
 
 export function getNextMainKeyboardNavigationTarget(

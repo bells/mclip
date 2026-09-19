@@ -18,6 +18,9 @@ test("main window derives every selected surface from one active target", async 
 
   assert.match(appSource, /useState\(MAIN_SEARCH_TARGET_ID\)/);
   assert.match(appSource, /activeMainTargetIdRef/);
+  assert.match(appSource, /isKeyboardNavigatingRef/);
+  assert.match(appSource, /onPointerMoveCapture=\{handleMainPointerMoveCapture\}/);
+  assert.match(appSource, /activatedTargetId !== targetId/);
   assert.match(appSource, /isActive=\{activeMainTarget\?\.kind === "search"\}/);
   assert.match(appSource, /selectedItemId=\{activeHistoryItemId \?\? undefined\}/);
   assert.match(appSource, /activeGroupIndex=\{activeHistoryGroupIndex\}/);

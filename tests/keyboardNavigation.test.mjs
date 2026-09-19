@@ -33,6 +33,7 @@ const {
   getMainPointerActivatedTargetId,
   getNextGroupPreviewItemIndex,
   getNextMainKeyboardNavigationTarget,
+  hasMainPointerMoved,
   MAIN_SEARCH_TARGET_ID,
   reconcileMainKeyboardNavigationTargetId,
   shouldClearPreviewForMainKeyboardTarget,
@@ -279,6 +280,54 @@ test("arrow navigation continues from the latest pointer-activated target", () =
     itemId: "item-2",
     kind: "history-item",
   });
+});
+
+test("stationary pointer events cannot take over after keyboard scrolling", () => {
+  const keyboardTarget = serializeMainKeyboardNavigationTarget({
+    itemId: "item-2",
+    kind: "history-item",
+  });
+  const pointerTarget = serializeMainKeyboardNavigationTarget({
+    itemId: "item-0",
+    kind: "history-item",
+  });
+  const context = {
+    canClearHistory: true,
+    historyGroupCount: 1,
+    visibleHistoryItemIds: visibleHistoryItemIds(3),
+  };
+
+  assert.equal(
+    hasMainPointerMoved({
+      currentPosition: { clientX: 160, clientY: 320 },
+      movementX: 0,
+      movementY: 0,
+      previousPosition: { clientX: 160, clientY: 320 },
+    }),
+    false,
+  );
+  assert.equal(
+    getMainPointerActivatedTargetId({
+      ...context,
+      currentTargetId: keyboardTarget,
+      hasPointerMoved: false,
+      isDisabled: false,
+      pointerTargetId: pointerTarget,
+    }),
+    keyboardTarget,
+  );
+});
+
+test("real pointer movement resumes pointer navigation after keyboard scrolling", () => {
+  assert.equal(
+    hasMainPointerMoved({
+      currentPosition: { clientX: 162, clientY: 320 },
+      movementX: 2,
+      movementY: 0,
+      previousPosition: { clientX: 160, clientY: 320 },
+    }),
+    true,
+  );
 });
 
 test("group preview entry key points toward the preview window side", () => {
