@@ -1,18 +1,18 @@
 # mclip Project Memory
 
-Last refreshed: 2026-09-16 (v0.2.0 source synchronization; historical measurements retain their original scope)
+Last refreshed: 2026-09-19 (v0.2.0 public release; historical measurements retain their original scope)
 
 This file records working memory for future maintainers and agents. It is not a replacement for `AGENTS.md` or `README.md`: use those for the live project map, commands, and release-facing docs. Use this file to remember prior decisions, accepted behavior, repeated failure modes, and the user's preferences.
 
 For current behavior, verify live code/configuration and dated evidence before using an older memory. Update this project document when documentation maintenance is requested; do not rewrite dated historical results as new verification. [OpenSpec status](openspec/README.md) distinguishes implemented source, task completion, spec synchronization, native evidence, and release state.
 
-维护摘要：当前源码标记为 `0.2.0`。以七个窗口、中英日三语、Node 24/pnpm 10.33.0、Linux x64 预览实现为当前上下文；macOS/Windows 原生体验、Linux 会话与同一 Draft 资产仍待发布验收，历史测试与性能数字只证明记录时的范围。
+维护摘要：当前源码与公开稳定版均为 `0.2.0`。`v0.2.0` 已于 2026-09-19 发布，包含三平台 CLI/checksum、macOS/Windows 桌面安装包和 Linux x86_64 预览包。以七个窗口、中英日三语、Node 24/pnpm 10.33.0、Linux x64 预览实现为当前上下文；macOS/Windows 未完整记录的原生场景、Linux 会话与公开安装器实测仍保持独立，历史测试与性能数字只证明记录时的范围。
 
 ## Product Shape
 
 `mclip` is a tray-first clipboard history utility for macOS and Windows, with Linux x86_64 preview code and packaging configuration pending native session verification. It should feel like a compact desktop tool, not a normal always-open app and not a marketing page.
 
-The current stack is React 19, TypeScript, Vite, Tailwind CSS 4, Tauri 2, and Rust. The public site is Astro 6 under `site/`, with Chinese, English, and Japanese routes. Node is `>=24 <25`, pnpm is `10.33.0`, and root `pnpm-lock.yaml` is the shared workspace lockfile. The source version comes from `package.json` and is `0.2.0`; do not infer published Release contents from that version alone.
+The current stack is React 19, TypeScript, Vite, Tailwind CSS 4, Tauri 2, and Rust. The public site is Astro 6 under `site/`, with Chinese, English, and Japanese routes. Node is `>=24 <25`, pnpm is `10.33.0`, and root `pnpm-lock.yaml` is the shared workspace lockfile. The source version comes from `package.json` and is `0.2.0`; the matching public `v0.2.0` Release was published on 2026-09-19, while native acceptance remains separate evidence.
 
 ## v0.1.1 Decisions
 
@@ -213,8 +213,9 @@ Current release constraints:
 - macOS builds use ad-hoc signing and are not notarized. Users may need to remove quarantine after downloading from GitHub.
 - Windows builds are unsigned and may trigger SmartScreen.
 - Windows installer uses WebView2 `downloadBootstrapper` in silent mode, so first install may need network access if WebView2 is missing.
-- CI uses `macos-latest`, `windows-2022`, and `ubuntu-24.04`, runs full project checks plus root Node tests, and builds Linux `.deb`/AppImage packages. Release has the same platform matrix and maps macOS ARM64, Windows x64, and Linux x64 CLI assets with SHA-256 companions. Configured jobs alone do not prove a current run passed.
-- `prepare-v0-2-0-release` requires prerequisite completion or an explicit scoped owner waiver, migration/downgrade evidence, version alignment, packaged native checks, and same-Draft asset verification. Do not change task checkboxes merely because docs were synchronized or strict validation passed.
+- CI uses `macos-latest`, `windows-2022`, and `ubuntu-24.04`, runs full project checks plus root Node tests, and builds Linux `.deb`/AppImage packages. Release has the same platform matrix and maps macOS ARM64, Windows x64, and Linux x64 CLI assets with SHA-256 companions.
+- On 2026-09-19, release run `35414182138` at tag/commit `v0.2.0` / `fb4e0f30af5da367663ddbda5b462ecf6b70cc5c` completed successfully. Its three verification jobs downloaded the same-Release CLI/checksum pairs, verified SHA-256 and `0.2.0`; Linux also confirmed non-empty `.deb` and AppImage assets. The non-Draft, non-prerelease Release was published at `2026-09-19T02:58:14Z` with 12 assets.
+- `prepare-v0-2-0-release` still separates prerequisite completion, migration/downgrade evidence, packaged native checks, public-installer tests, asset verification, and publication. Do not convert open native or installer tasks into passes merely because `v0.2.0` is public.
 
 Known environment caveats:
 

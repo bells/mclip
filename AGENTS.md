@@ -12,7 +12,7 @@
 - 官网：Astro 6，目录 `site/`
 - 打包发布：GitHub Actions + `tauri-apps/tauri-action`
 
-当前源码版本：`0.2.0`；源码版本同步不代表对应 Release 已发布或原生验收完成。应用版本以根目录 `package.json` 为真相，Tauri 通过 `src-tauri/tauri.conf.json` 的 `"version": "../package.json"` 读取；Cargo、官网 package、前端版本回退值与官网结构化版本也要同步。
+当前源码与公开稳定版均为 `0.2.0`；`v0.2.0` 已于 2026-09-19 发布。应用版本以根目录 `package.json` 为真相，Tauri 通过 `src-tauri/tauri.conf.json` 的 `"version": "../package.json"` 读取；Cargo、官网 package、前端版本回退值与官网结构化版本也要同步。发布状态与原生验收仍是独立证据。
 
 ## 文档与代码上下文
 
@@ -451,8 +451,8 @@ git push origin v0.2.0
 
 - Tauri 版本配置使用 `src-tauri/tauri.conf.json` 里的 `"version": "../package.json"`，安装包文件名会跟随 `package.json`。
 - 发版前同步根 `package.json`、`site/package.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock`、`src/constants.ts` 的版本回退值、官网版本文案和 CLI 输出，再创建同版本 tag。依赖变动时同步根工作区唯一的 `pnpm-lock.yaml`；它不存储应用自身版本，不创建根或 site 的 `package-lock.json`。Release workflow 校验两个 package manifest、Cargo manifest/lock、CLI 输出与 tag，并为每个 CLI 二进制生成同名 `.sha256`。
-- Release workflow 的平台矩阵结束后必须从同一 Draft 下载并验证 macOS ARM64、Windows x64、Linux x64 的 CLI 二进制及各自 `.sha256`。当前 workflow 校验的是 runner 本地生成资产，不等于已执行跨平台同一 Draft 下载验证；发布 Draft、移动 tag 或替换远端资产必须由发布负责人显式执行。
-- `prepare-v0-2-0-release` 仍有前置实现、迁移、原生验收和资产验证任务。文档更新、严格校验或某个 change 清单完成不能代替这些门禁；具体状态见 `openspec/README.md`。
+- Release workflow 的平台矩阵结束后必须从同一 Draft/Release 下载并验证 macOS ARM64、Windows x64、Linux x64 的 CLI 二进制及各自 `.sha256`。`v0.2.0` 的 run `35414182138` 已在三个对应 runner 完成这一验证，Linux job 同时检查了 `.deb` 和 AppImage。后续发布仍要保留相同的资产验证门禁；发布 Draft、移动 tag 或替换远端资产必须由发布负责人显式执行。
+- `prepare-v0-2-0-release` 已记录 tag、公开 Release 和同一 Release 资产验证，仍有前置实现、原生验收和公开安装器实测任务。文档更新、严格校验、某个 change 清单完成或公开发布都不能代替这些原生证据；具体状态见 `openspec/README.md`。
 - `release.yml` 的 Release body 需要同时提示 macOS 未 notarize 和 Windows 未签名。
 
 ## macOS 发布

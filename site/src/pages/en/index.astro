@@ -10,7 +10,7 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
 const features = [
   {
     title: "Tray-first",
-    body: "Click the menu bar or system tray icon, or press CommandOrControl+Shift+V. v0.1.1 keeps only the main window on the startup path, warms previews, and creates low-frequency windows on demand; measured tray-ready median improved 51.3% on an Apple M2.",
+    body: "Click the menu bar or system tray icon, or press CommandOrControl+Shift+V. v0.2.0 keeps only the main window on the startup path, warms previews, and creates low-frequency windows on demand; the recorded Apple M2 protocol measured a 51.3% tray-ready median improvement.",
   },
   {
     title: "Text, images, and files",
@@ -59,6 +59,10 @@ const installItems = [
     body: "Download the MSI or EXE installer and follow the setup wizard. The current installer is unsigned, so Windows SmartScreen may show an unknown-publisher warning.",
   },
   {
+    title: "Linux x86_64 preview",
+    body: "Download the DEB or AppImage from the v0.2.0 Release. Tray, shortcut, auto-paste, source-identity, and panel-positioning behavior can degrade independently across X11, XWayland, and Wayland sessions. ARM64 packages are not provided.",
+  },
+  {
     title: "Developers",
     body: "The source code is open on GitHub. The app uses Tauri 2, React 19, TypeScript, and Rust, and runs locally with pnpm run tauri:dev.",
   },
@@ -101,7 +105,7 @@ const faqItems = [
     description="mclip lives in the menu bar or system tray. Open it when you need a previous text snippet, image, or file, then return to work without a large window taking over."
     primaryCta="Download mclip"
     secondaryCta="View on GitHub"
-    note="Current source version 0.2.0; public download status follows GitHub Releases."
+    note="v0.2.0 was published on September 19, 2026 and is available from GitHub Releases."
     utilityLabel="Menu bar on macOS · System tray on Windows"
     proofItems={[
       "Measured tray-ready median improved 51.3% on Apple M2",
@@ -152,8 +156,8 @@ const faqItems = [
 
   <InstallGuide
     id="install"
-    title="Start with GitHub Releases"
-    intro="Downloads stay direct, and the current macOS notarization and Windows signing limitations are visible before install."
+    title="Download v0.2.0"
+    intro="Choose a platform asset from the published GitHub Release, with macOS notarization, Windows signing, and Linux preview limits visible before install."
     items={installItems}
   />
 

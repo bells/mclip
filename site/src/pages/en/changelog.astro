@@ -17,17 +17,17 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
     </div>
     <h1>Changelog</h1>
     <article class="release-note">
-      <p class="eyebrow">0.2.0 · Release candidate</p>
-      <h2>One desktop, CLI, and release version</h2>
+      <p class="eyebrow">0.2.0 · Released September 19, 2026</p>
+      <h2>Desktop, CLI, and website released together</h2>
       <p>
-        Source manifests, the desktop app, mclip-cli, website structured data, and the release workflow now agree on 0.2.0. The candidate includes pinned history, the six-page Settings Center, local sensitive-content masking, text quick actions, Agent CLI workflows, Chinese/English/Japanese UI, and lazy auxiliary windows.
+        Source manifests, the desktop app, mclip-cli, website structured data, and the release workflow now agree on 0.2.0. The public Release includes a macOS ARM64 DMG, Windows x64 MSI/EXE installers, Linux x86_64 preview DEB/AppImage packages, and SHA-256-verified CLI assets for all three platforms.
       </p>
       <p>
-        Publication and native acceptance remain separate: macOS is not notarized, Windows is unsigned, and Linux x86_64 remains a preview pending X11/XWayland and named Wayland session evidence. Check GitHub Releases for the tag and assets that are actually available.
+        This release adds pinned history, the six-page Settings Center, local sensitive-content masking, text quick actions, Agent CLI workflows, Chinese/English/Japanese UI, and lazy auxiliary windows. macOS remains unnotarized, Windows remains unsigned, and Linux x86_64 remains preview support pending X11/XWayland and named Wayland session evidence.
       </p>
     </article>
     <article class="release-note">
-      <p class="eyebrow">0.2.0 · Release candidate</p>
+      <p class="eyebrow">0.2.0</p>
       <h2>Japanese app and website localization</h2>
       <p>
         Adds Japanese across the desktop app, including main history, previews, the image viewer, quick actions, About, and Preferences. Follow System resolves Japanese OS locales to Japanese, while Chinese, English, and Japanese share one parity-checked typed catalog contract.
@@ -37,7 +37,7 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
       </p>
     </article>
     <article class="release-note">
-      <p class="eyebrow">0.2.0 · Release candidate</p>
+      <p class="eyebrow">0.2.0</p>
       <h2>Sensitive-content presentation protection and source exclusions</h2>
       <p>
         Adds a local, bounded, versioned detector for a small high-confidence set of sensitive text. Desktop history and default CLI/Agent output mask classified content. Explicit UI actions or one-invocation <code>--raw</code>/<code>--reveal-secrets</code> options can reveal it, while copy continues to use the original content without echoing it in the action result.
@@ -50,7 +50,7 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
       </p>
     </article>
     <article class="release-note">
-      <p class="eyebrow">0.2.0 · Release candidate</p>
+      <p class="eyebrow">0.2.0</p>
       <h2>Text quick actions and composable CLI pipelines</h2>
       <p>
         Text details add JSON prettify/minify, Base64, and URL-component encode/decode. Results preview in an independent window; Copy follows the normal clipboard flow, while replacing the original requires confirmation and preserves its stable ID and pin state.

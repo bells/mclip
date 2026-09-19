@@ -12,11 +12,11 @@ mclip is for people who copy text, screenshots, and files during normal desktop 
 
 mclip is a tray-first clipboard history tool for macOS and Windows, with a Linux x86_64 preview implementation pending native desktop verification. It keeps local clipboard history for text, images, and files, deduplicates repeated content, and lets users search, preview, copy, delete, and configure history behavior from compact desktop windows. File history should restore files as files rather than as path-only text. Success means the user can restore the right clipboard item with minimal reading and minimal interruption.
 
-## Current Source Baseline
+## Current Release Baseline
 
-Reviewed on 2026-09-16. The source manifests declare `0.2.0`. The following describes implemented source behavior, not the contents of a freshly verified published release; macOS/Windows native experience, Linux sessions, and same-Draft assets remain separate release evidence in [OpenSpec](openspec/README.md).
+Reviewed on 2026-09-19. [`v0.2.0`](https://github.com/bells/mclip/releases/tag/v0.2.0) is the current public release. Its tag resolves to `fb4e0f30af5da367663ddbda5b462ecf6b70cc5c`; release workflow run [35414182138](https://github.com/bells/mclip/actions/runs/35414182138) succeeded for macOS, Windows, and Linux and verified each platform CLI plus SHA-256 companion from the same Release. Native Linux sessions, macOS notarization, Windows signing, and the remaining packaged/manual scenarios stay separate evidence in [OpenSpec](openspec/README.md).
 
-当前源码版本为 `0.2.0`。本文描述源码现状；安装包、发布资产与各平台原生体验是否通过验收，应以对应验证记录为准，版本同步本身不代表已经公开发布。
+当前稳定版为 `v0.2.0`，已于 2026-09-19 正式发布。公开资产包含 macOS ARM64、Windows x64 和 Linux x86_64 预览包，以及三平台 CLI 与 SHA-256 校验文件。公开发布不自动补齐未完成的原生会话验收、签名或公证证据。
 
 The desktop shell provides:
 
@@ -45,9 +45,9 @@ The app has no accounts, cloud sync, remote clipboard storage, or uploaded usage
 ## Platform And Delivery Boundaries
 
 - macOS uses ad-hoc signing and is not notarized; Windows installers are unsigned and may need the WebView2 bootstrapper.
-- Linux CI and Release workflows configure `.deb`/AppImage packages and an x64 CLI asset. Source/build configuration does not prove successful installation, clipboard ownership, tray positioning, or compositor behavior. See [Linux support](docs/linux-support.md).
+- The public v0.2.0 Release includes Linux x86_64 `.deb`, AppImage, CLI, and checksum assets. Published artifacts do not prove successful installation, clipboard ownership, tray positioning, or compositor behavior. See [Linux support](docs/linux-support.md).
 - Linux capabilities are reported independently as available, degraded, or unavailable. X11/XWayland and each named Wayland compositor require their own native evidence; Linux signature-first polling remains an open implementation task.
-- Version synchronization and synthetic migration/downgrade tests are part of the local `prepare-v0-2-0-release` candidate. Native packaged smoke and same-Draft asset verification remain open; a completed implementation checklist or strict OpenSpec validation does not establish release completion.
+- Version synchronization, synthetic migration/downgrade tests, tag publication, and same-Release CLI/checksum verification are recorded for v0.2.0. Native packaged smoke and public-installer verification remain independently open; a public Release does not convert those scenarios into native passes.
 
 ## Brand Personality
 

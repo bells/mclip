@@ -17,17 +17,17 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
     </div>
     <h1>更新履歴</h1>
     <article class="release-note">
-      <p class="eyebrow">0.2.0 · リリース候補</p>
-      <h2>デスクトップ、CLI、リリースのバージョンを統一</h2>
+      <p class="eyebrow">0.2.0 · 2026 年 9 月 19 日正式公開</p>
+      <h2>デスクトップ、CLI、公式サイトを同時公開</h2>
       <p>
-        ソースマニフェスト、デスクトップアプリ、mclip-cli、サイトの構造化データ、リリースワークフローを 0.2.0 に統一しました。この候補にはピン留め履歴、6 ページの設定センター、ローカルの機密内容マスク、テキストのクイック操作、Agent CLI、中国語・英語・日本語 UI、補助ウィンドウの遅延作成が含まれます。
+        ソースマニフェスト、デスクトップアプリ、mclip-cli、サイトの構造化データ、リリースワークフローを 0.2.0 に統一しました。公開 Release には macOS ARM64 DMG、Windows x64 MSI/EXE、Linux x86_64 プレビューの DEB/AppImage、3 プラットフォームの CLI と SHA-256 検証アセットが含まれます。
       </p>
       <p>
-        公開とネイティブ受け入れ確認は別の状態です。macOS は notarization 未実施、Windows は未署名で、Linux x86_64 は X11/XWayland と各 Wayland セッションの証拠を待つプレビューです。実際に利用できる tag とアセットは GitHub Releases で確認してください。
+        ピン留め履歴、6 ページの設定センター、ローカルの機密内容マスク、テキストのクイック操作、Agent CLI、中国語・英語・日本語 UI、補助ウィンドウの遅延作成を追加しました。macOS は notarization 未実施、Windows は未署名で、Linux x86_64 は X11/XWayland と各 Wayland セッションの証拠を待つプレビュー対応です。
       </p>
     </article>
     <article class="release-note">
-      <p class="eyebrow">0.2.0 · リリース候補</p>
+      <p class="eyebrow">0.2.0</p>
       <h2>日本語のアプリ画面と公式サイト</h2>
       <p>
         デスクトップアプリのメイン、プレビュー、画像ビューア、クイック操作、About、環境設定を日本語化し、日本語のシステム locale を「システムに従う」で自動判定します。中国語、英語、日本語は同じ型付き翻訳契約を共有します。
@@ -37,7 +37,7 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
       </p>
     </article>
     <article class="release-note">
-      <p class="eyebrow">0.2.0 · リリース候補</p>
+      <p class="eyebrow">0.2.0</p>
       <h2>機密内容の表示保護とコピー元アプリの除外</h2>
       <p>
         少数の高確度な機密テキストを対象に、ローカルで動作する有界かつバージョン管理された検出器を追加します。デスクトップ履歴と既定の CLI/Agent 出力では分類済み内容をマスクします。明示的な画面操作または 1 回限りの <code>--raw</code>/<code>--reveal-secrets</code> で表示でき、コピーは元の内容を使用しますが操作結果へは表示しません。
@@ -50,7 +50,7 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
       </p>
     </article>
     <article class="release-note">
-      <p class="eyebrow">0.2.0 · リリース候補</p>
+      <p class="eyebrow">0.2.0</p>
       <h2>テキストのクイック操作と組み合わせ可能な CLI パイプライン</h2>
       <p>
         テキスト詳細に JSON の整形/圧縮、Base64、URL コンポーネントのエンコード/デコードを追加します。結果は独立したウィンドウで確認し、コピーは通常のクリップボード処理を使用します。元の履歴の置換には確認が必要で、安定した ID とピン留め状態を保持します。

@@ -10,9 +10,9 @@
 
 `mclip` 是一个常驻托盘的剪贴板历史工具。它专注于桌面日常复制场景：快速唤起、搜索、回填历史内容，并在不打断当前工作的前提下查看更早的记录。
 
-当前源码版本：`0.2.0`。版本已完成本地同步，但公开 Release、安装包资产与 macOS/Windows 原生体验仍需按发布门禁验收；下文源码功能说明不等于已经公开发布。产品现状见 [PRODUCT.md](PRODUCT.md)，开发约定见 [AGENTS.md](AGENTS.md)，规格与待验收事项见 [OpenSpec 索引](openspec/README.md)。
+当前稳定版：[`v0.2.0`](https://github.com/bells/mclip/releases/tag/v0.2.0)，已于 2026-09-19 正式发布。公开 Release 包含 macOS ARM64 DMG、Windows x64 MSI/EXE、Linux x86_64 预览版 DEB/AppImage，以及 macOS、Windows、Linux 三平台的 `mclip-cli` 与 SHA-256 校验文件。Linux 原生桌面验证、macOS notarization 和 Windows 代码签名仍是明确的支持边界。产品现状见 [PRODUCT.md](PRODUCT.md)，开发约定见 [AGENTS.md](AGENTS.md)，规格与待验收事项见 [OpenSpec 索引](openspec/README.md)。
 
-### v0.2.0 源码重点
+### v0.2.0 发布重点
 
 - 完成 Tailwind CSS 4 界面迁移，统一主窗口、preview、About、Preferences 和确认弹窗的深浅色视觉与可访问焦点状态。
 - 新增跟随系统/浅色/深色主题，以及主界面条数、历史分组条数、复制项序号、主窗口 Logo 等显示偏好。
@@ -22,7 +22,7 @@
 - 新增独立图片查看器：复用完整详情，打开时直接最大化，可恢复为 720×520，并支持最大化、恢复、删除和 `Escape` 关闭。
 - 增强颜色代码、Emoji、长文件名和完整文件路径展示，同时保持原始复制内容不变。
 - 运行时只让主窗口进入启动关键路径，preview 家族预热，About、Preferences 和图片查看器按需创建；历史改用 revision snapshot/delta，图片读取使用 32 MiB 有界单飞缓存。Apple M2 实测托盘就绪中位数提升 51.3%，重复图片查看器打开中位数从 384.62 ms 降到 49.37 ms。
-- 新安装默认最多保存 200 条历史，当前源码可配置上限提升到 1000（待发布）；`mclip-cli` 增加无需读取历史文件的 help/version，并通过版本感知、SHA-256 校验和可回滚替换安全安装/升级。
+- 新安装默认最多保存 200 条历史，可配置上限提升到 1000；`mclip-cli` 增加无需读取历史文件的 help/version，并通过版本感知、SHA-256 校验和可回滚替换安全安装/升级。
 
 上述性能数据来自 Apple M2、macOS release 构建、固定匿名 fixture 的 5 次预热与 20 次正式采样，不代表 Windows 真机结果；完整数据见 [`performance/final-v0.1.1-runtime-performance.md`](performance/final-v0.1.1-runtime-performance.md)。
 
@@ -44,10 +44,11 @@
 
 ### 安装使用
 
-从 GitHub Releases 下载对应系统的安装包：
+从 [GitHub Release v0.2.0](https://github.com/bells/mclip/releases/tag/v0.2.0) 下载对应系统的安装包：
 
 - macOS：下载 `.dmg`，把 `mclip.app` 拖到“应用程序”后打开。
 - Windows：下载 `.msi` 或 `.exe` 安装包，按安装向导完成安装。
+- Linux x86_64 预览版：下载 `.deb` 或 `.AppImage`。托盘、全局快捷键、自动粘贴、来源应用识别和面板定位可能随 X11/XWayland/Wayland 会话独立降级，当前不提供 Linux ARM64 包。
 
 安装后，`mclip` 会在系统托盘或菜单栏运行。可以点击托盘图标，也可以使用 `CommandOrControl+Shift+V` 打开主窗口。
 
@@ -192,22 +193,22 @@ Vercel 部署时，根路径 `/` 由 `site/vercel.json` 在边缘层重定向到
 
 ### 发布
 
-Release 由 GitHub Actions 触发：
+Release 由 GitHub Actions 触发。`v0.2.0` 已按下列流程发布：
 
 ```bash
 git tag v0.2.0
 git push origin v0.2.0
 ```
 
-发布前必须保证 tag、根 `package.json`、官网 package、Cargo package/lockfile、前端版本回退值、官网结构化版本和构建后的 `mclip-cli --version` 完全一致；产品版本为 `0.2.0` 时 tag 必须是 `v0.2.0`。根 `pnpm-lock.yaml` 只记录依赖，不包含应用版本。Release workflow 会构建 macOS/Windows 安装包、待原生验收的 Linux x86_64 预览包、受支持架构的 `mclip-cli` 及其 `.sha256`，并生成 Draft Release。
+发布前必须保证 tag、根 `package.json`、官网 package、Cargo package/lockfile、前端版本回退值、官网结构化版本和构建后的 `mclip-cli --version` 完全一致；产品版本为 `0.2.0` 时 tag 必须是 `v0.2.0`。根 `pnpm-lock.yaml` 只记录依赖，不包含应用版本。Release workflow 会构建 macOS/Windows 安装包、待原生验收的 Linux x86_64 预览包、受支持架构的 `mclip-cli` 及其 `.sha256`，并生成 Draft Release。发布负责人完成资产复核后再将 Draft 转为公开 Release。
 
-发布前可检查 Draft 的 CLI 资产：
+检查候选 Draft 或已公开 Release 的 CLI 资产：
 
 ```bash
 gh release view v0.2.0 --repo bells/mclip --json isDraft,assets --jq '{isDraft, assets: [.assets[].name]}'
 ```
 
-必须同时看到 macOS ARM64、Windows x64、Linux x64 三个 `mclip-cli` 二进制及各自 `.sha256`，并看到 Linux `.deb` 与 AppImage；Release workflow 会在对应系统重新下载同一 Draft 的 CLI、校验 SHA-256 并执行 `--version`。发布 Draft、移动已有 tag 或替换远端资产属于单独的发布操作，不由构建或普通代码验证自动执行。
+`v0.2.0` 的发布工作流 [run 35414182138](https://github.com/bells/mclip/actions/runs/35414182138) 已在 macOS、Windows 和 Linux 对应 runner 重新下载同一 Release 的 CLI，校验 SHA-256 并执行 `--version`；Linux 验证作业同时确认 `.deb` 与 AppImage 存在。当前公开 Release 共有 12 个资产。移动已有 tag 或替换远端资产仍属于单独的发布操作。
 
 ### 当前限制
 
@@ -222,9 +223,9 @@ gh release view v0.2.0 --repo bells/mclip --json isDraft,assets --jq '{isDraft, 
 
 `mclip` is a tray-first clipboard history app for everyday desktop copying. It is designed to open quickly, stay compact, search local history, and restore previous clipboard items without taking over the screen.
 
-Current source version: `0.2.0`. Version mirrors are synchronized locally, while the public Release, downloadable assets, and native macOS/Windows experience still require the release gates. Source behavior below does not by itself establish publication. See [PRODUCT.md](PRODUCT.md) for current behavior, [AGENTS.md](AGENTS.md) for development rules, and the [OpenSpec index](openspec/README.md) for specs and pending verification.
+Current stable version: [`v0.2.0`](https://github.com/bells/mclip/releases/tag/v0.2.0), published on September 19, 2026. The public release contains a macOS ARM64 DMG, Windows x64 MSI/EXE installers, Linux x86_64 preview DEB/AppImage packages, and SHA-256-verified `mclip-cli` assets for macOS, Windows, and Linux. Native Linux desktop validation, macOS notarization, and Windows code signing remain explicit support boundaries. See [PRODUCT.md](PRODUCT.md) for current behavior, [AGENTS.md](AGENTS.md) for development rules, and the [OpenSpec index](openspec/README.md) for specs and pending verification.
 
-### v0.2.0 Source Highlights
+### v0.2.0 Release Highlights
 
 - Completes the Tailwind CSS 4 UI migration across the main window, previews, About, Preferences, and confirmation surfaces, with consistent light/dark styling and visible focus states.
 - Adds System/Light/Dark appearance plus configurable main/archive counts, row numbers, and main-window branding.
@@ -234,7 +235,7 @@ Current source version: `0.2.0`. Version mirrors are synchronized locally, while
 - Adds a dedicated image viewer that reuses the full detail surface, opens maximized, restores to 720×520, and supports maximize, restore, delete, and Escape-to-close.
 - Improves color-code, emoji, long-file-name, and full-path presentation without changing copied content.
 - Keeps only the main window on the startup path, warms the preview family, and creates About, Preferences, and the image viewer on demand. Revisioned snapshot/delta updates and a bounded 32 MiB single-flight image cache reduce hidden-window work. On an Apple M2, measured tray-ready median improved 51.3%, while repeated viewer-open median fell from 384.62 ms to 49.37 ms.
-- New installs keep 200 history items by default with a configurable maximum of 1000 in current source (pending release). CLI help/version stay history-independent, while version-aware SHA-256 verification and recoverable replacement protect installs and upgrades.
+- New installs keep 200 history items by default with a configurable maximum of 1000. CLI help/version stay history-independent, while version-aware SHA-256 verification and recoverable replacement protect installs and upgrades.
 
 These performance results come from an Apple M2 macOS release build with an anonymized fixed fixture, 5 warm-ups, and 20 measured runs. They are not Windows device evidence; see [`performance/final-v0.1.1-runtime-performance.md`](performance/final-v0.1.1-runtime-performance.md) for the complete report.
 
@@ -245,7 +246,7 @@ These performance results come from an Apple M2 macOS release build with an anon
 - Saves text, image, and file clipboard history. File history is restored as a system file list, so files can be pasted again as files.
 - Keeps history locally, deduplicates repeated content, and moves reused items to the top.
 - Pins frequently reused text, images, or files ahead of ordinary history. Pins do not consume main/archive counts and are protected from automatic retention; the admission limit defaults to 10 and is configurable from 5 to 20. Lowering it preserves existing pins. Pin icons replace pinned row numbers; ordinary rows start at 1. Outside text input, digits 1–9/0 select the first ten ordinary rows.
-- Shows the latest 10 items in the main window by default, with older items grouped by 10 by default; both display counts are configurable in Preferences.
+- Shows the latest 10 items in the main window by default, with older items grouped by 50 by default; both display counts are configurable in Preferences.
 - Uses a separate transparent preview window for grouped history, so the main window stays compact.
 - Supports item details, grouped hover details, a dedicated image viewer, image thumbnails, color-code swatches, common emoji display, and file details.
 - Long file names are middle-ellipsized in lists to preserve extensions, while file details show the full absolute path and full file name.
@@ -256,10 +257,11 @@ These performance results come from an Apple M2 macOS release build with an anon
 
 ### Installation
 
-Download the installer for your platform from GitHub Releases:
+Download the installer for your platform from [GitHub Release v0.2.0](https://github.com/bells/mclip/releases/tag/v0.2.0):
 
 - macOS: download the `.dmg`, then drag `mclip.app` into Applications.
 - Windows: download the `.msi` or `.exe` installer and follow the setup wizard.
+- Linux x86_64 preview: download the `.deb` or `.AppImage`. Tray, global-shortcut, auto-paste, source-identity, and panel-positioning behavior can degrade independently across X11, XWayland, and Wayland sessions. Linux ARM64 packages are not provided.
 
 After installation, `mclip` runs in the system tray or menu bar. Click the tray icon or press `CommandOrControl+Shift+V` to open the main window.
 
@@ -402,22 +404,22 @@ On Vercel, the root path `/` is redirected to `/en/` by `site/vercel.json` at th
 
 ### Release
 
-GitHub Actions publishes release drafts from version tags:
+GitHub Actions creates release drafts from version tags. `v0.2.0` has been published through this flow:
 
 ```bash
 git tag v0.2.0
 git push origin v0.2.0
 ```
 
-The tag, root package, site package, Cargo package/lockfile, frontend fallback, website structured version, and built `mclip-cli --version` must all match. Product version `0.2.0` must be released with tag `v0.2.0`; the shared pnpm lock records dependencies rather than the app version. The workflow builds macOS/Windows installers, Linux x86_64 preview packages pending native validation, and each supported `mclip-cli` binary with its `.sha256` companion, then creates a Draft Release.
+The tag, root package, site package, Cargo package/lockfile, frontend fallback, website structured version, and built `mclip-cli --version` must all match. Product version `0.2.0` must be released with tag `v0.2.0`; the shared pnpm lock records dependencies rather than the app version. The workflow builds macOS/Windows installers, Linux x86_64 preview packages pending native validation, and each supported `mclip-cli` binary with its `.sha256` companion, then creates a Draft Release for release-owner review and publication.
 
-Inspect the draft CLI assets before publication:
+Inspect the candidate draft or published release assets:
 
 ```bash
 gh release view v0.2.0 --repo bells/mclip --json isDraft,assets --jq '{isDraft, assets: [.assets[].name]}'
 ```
 
-The Draft must contain the macOS ARM64, Windows x64, and Linux x64 `mclip-cli` binaries with all three `.sha256` companions, plus the Linux `.deb` and AppImage previews. The Release workflow downloads each CLI on its matching OS, verifies SHA-256, and runs `--version` against the same Draft. Publishing the Draft, moving an existing tag, or replacing remote assets is a separate release-owner action and is never performed implicitly by a build or ordinary source verification.
+The `v0.2.0` release workflow [run 35414182138](https://github.com/bells/mclip/actions/runs/35414182138) downloaded each CLI from the same Release on its matching OS, verified SHA-256, and ran `--version`; the Linux verification job also confirmed the `.deb` and AppImage assets. The public release contains 12 assets. Moving an existing tag or replacing remote assets remains a separate release-owner action and is never performed implicitly by an ordinary source verification.
 
 ### Known Limitations
 

@@ -211,7 +211,7 @@ static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) 
   CGFloat defaultDividerY = defaultRowY + 2.0;
   line(NSMakePoint(x + 6.0, defaultDividerY), NSMakePoint(x + width - 6.0, defaultDividerY), 1.0,
        color(0.14, 0.16, 0.15, opacity * (1.0 - filtered)));
-  NSArray<NSString *> *defaultGroups = @[ @"11 – 30", @"31 – 50", @"51 – 70" ];
+  NSArray<NSString *> *defaultGroups = @[ @"11 - 60", @"61 - 110", @"111 - 160" ];
   for (NSUInteger index = 0; index < defaultGroups.count; index += 1) {
     CGFloat groupY = defaultRowY + 14.0 + index * 36.0;
     roundedRect(NSMakeRect(x + 11.0, groupY + 5.0, 13.0, 10.0), 2.0, nil,
@@ -228,7 +228,7 @@ static void drawMainWindow(NSImage *appIcon, CGFloat progress, CGFloat opacity) 
   CGFloat searchGroupY = searchRowY + 14.0;
   roundedRect(NSMakeRect(x + 11.0, searchGroupY + 5.0, 13.0, 10.0), 2.0, nil,
               color(0.91, 0.66, 0.24, opacity * filtered));
-  text(@"11 – 30", NSMakeRect(x + 34.0, searchGroupY, 240.0, 26.0), 15.0, NSFontWeightMedium,
+  text(@"11 - 60", NSMakeRect(x + 34.0, searchGroupY, 240.0, 26.0), 15.0, NSFontWeightMedium,
        color(0.80, 0.83, 0.79, opacity * filtered), NSTextAlignmentLeft);
   text(@"›", NSMakeRect(x + width - 38.0, searchGroupY - 1.0, 20.0, 28.0), 22.0, NSFontWeightRegular,
        color(0.58, 0.64, 0.61, opacity * filtered), NSTextAlignmentCenter);
@@ -267,7 +267,7 @@ static void drawDetailWindow(CGFloat progress, CGFloat opacity) {
 
   text(@"History detail", NSMakeRect(x + 24.0, y + 20.0, 200.0, 30.0), 18.0, NSFontWeightBold,
        color(0.94, 0.68, 0.29, alpha), NSTextAlignmentLeft);
-  text(@"⌫   Text #18", NSMakeRect(x + width - 190.0, y + 20.0, 162.0, 30.0), 18.0, NSFontWeightSemibold,
+  text(@"⌫   Files #18", NSMakeRect(x + width - 190.0, y + 20.0, 162.0, 30.0), 18.0, NSFontWeightSemibold,
        color(0.90, 0.91, 0.88, alpha), NSTextAlignmentRight);
   line(NSMakePoint(x, y + 62.0), NSMakePoint(x + width, y + 62.0), 1.0, color(0.16, 0.18, 0.17, alpha));
 

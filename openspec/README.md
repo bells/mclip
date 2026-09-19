@@ -1,8 +1,8 @@
 # OpenSpec 项目索引 / Project Index
 
-核对日期 / Reviewed: 2026-09-16。当前源码版本为 `0.2.0`。本文提供规格与验收入口，不证明对应 Release 已发布，也不替代各 change 的任务和验证记录。
+核对日期 / Reviewed: 2026-09-19。当前源码与公开稳定版均为 `0.2.0`。[`v0.2.0`](https://github.com/bells/mclip/releases/tag/v0.2.0) 已发布；本文继续单独记录规格、任务、自动化、原生验收与交付证据。
 
-The source version is `0.2.0`. This index separates specification, implementation, and delivery evidence; it does not certify a published release.
+Source and current stable release are both `0.2.0`. The public release exists, while this index keeps specification, implementation, automated checks, native acceptance, and delivery evidence separate.
 
 ## 阅读顺序 / Reading Order
 
@@ -29,6 +29,9 @@ The following is a dated snapshot. Refresh it from the CLI and source task lists
 
 | Change / 任务入口 | 完成 / Total | 待核实事项 / Evidence boundary |
 | --- | --- | --- |
+| [prepare-v0-2-0-release](changes/prepare-v0-2-0-release/tasks.md) | 26/35 | 三平台 CI、tag、公开 Release 与同一 Release CLI/checksum 验证已完成；前置 waiver、原生安装验收和公开安装器实测仍开放 |
+| [optimize-v0-2-0-performance-and-size](changes/optimize-v0-2-0-performance-and-size/tasks.md) | 23/28 | 自动化、打包与已记录性能证据完成；完整 macOS/Windows/Linux 原生响应验收仍开放 |
+| [refine-v0-2-0-interface](changes/refine-v0-2-0-interface/tasks.md) | 17/31 | 实施与自动化证据已记录；主窗口、preview、六设置页、三语与三平台原生矩阵仍开放 |
 | [optimize-pin-limits-and-display](changes/optimize-pin-limits-and-display/tasks.md) | 26/29 | 配置上限、Toast、普通编号和兼容 CLI metadata 已实施；三平台原生验收待完成 |
 | [select-ignored-source-apps](changes/select-ignored-source-apps/tasks.md) | 6/6 | 清单完成；Windows/Linux 原生选择与运行时仍待验证，详见 verification |
 | [modernize-node-pnpm-toolchain](changes/modernize-node-pnpm-toolchain/tasks.md) | 14/14 | 清单完成，尚未归档 |
@@ -46,13 +49,12 @@ The following is a dated snapshot. Refresh it from the CLI and source task lists
 | [optimize-v0-1-1-runtime-performance](changes/optimize-v0-1-1-runtime-performance/tasks.md) | 39/41 | 精确 macOS 跨窗口路径与 Windows 性能/原生协议 |
 | [add-fullscreen-image-viewer](changes/add-fullscreen-image-viewer/tasks.md) | 13/16 | 历史 change 中自动化及两平台原生验收仍未勾选，需核对后续证据 |
 | [optimize-v0-1-1-experience](changes/optimize-v0-1-1-experience/tasks.md) | 20/23 | 以原始清单中的剩余验证任务为准 |
-| [add-cli-version-and-update-management](changes/add-cli-version-and-update-management/tasks.md) | 29/32 | Windows 检查、Preferences CLI 状态矩阵、同一 Draft 下载校验 |
+| [add-cli-version-and-update-management](changes/add-cli-version-and-update-management/tasks.md) | 30/32 | 同一 Release 的 macOS/Windows CLI 下载、checksum 和版本校验已完成；Windows 本地检查与 Preferences CLI 状态矩阵仍待完成 |
 | [introduce-tailwind-ui-refactor](changes/introduce-tailwind-ui-refactor/tasks.md) | 26/27 | 原生窗口深浅色视觉 smoke |
-| [prepare-v0-2-0-release](changes/prepare-v0-2-0-release/tasks.md) | 20/35 | 本地迁移、版本、文档、自动化与 Windows 源码检查已完成；前置未完成项已记录 scoped waiver，三平台原生验收、CI 与同一 Draft 资产仍开放 |
 
 ## 证据沿用 / Reusing Evidence
 
-2026-09-10 新增 [optimize-v0-2-0-performance-and-size](changes/optimize-v0-2-0-performance-and-size/tasks.md)：第二轮性能、代码结构与体积优化，按四阶段推进；第一阶段证据见 [体积报告](../performance/v0.2.0-size-phase-1.md)，2026-09-11 第二、三阶段实现与自动化/打包结果见 [后续报告](../performance/v0.2.0-performance-phase-2-3.md)。此条为上表快照之后的增量，实时进度以 tasks 为准。2026-09-13 扩展到 1000 条上限、启动/常驻/七窗口响应，补充 history-display/runtime-performance delta，移除 `skip_specs`；见 [运行时报告](../performance/v0.2.0-runtime-response.md)。2026-09-15 补充六设置页及 About/quick-action 原生响应、保存请求 1→0 和主进程资源样本；完整原生性能验收和发布状态独立记录。
+2026-09-10 新增 [optimize-v0-2-0-performance-and-size](changes/optimize-v0-2-0-performance-and-size/tasks.md)：第二轮性能、代码结构与体积优化，按四阶段推进；第一阶段证据见 [体积报告](../performance/v0.2.0-size-phase-1.md)，2026-09-11 第二、三阶段实现与自动化/打包结果见 [后续报告](../performance/v0.2.0-performance-phase-2-3.md)。2026-09-13 扩展到 1000 条上限、启动/常驻/七窗口响应，补充 history-display/runtime-performance delta，移除 `skip_specs`；见 [运行时报告](../performance/v0.2.0-runtime-response.md)。2026-09-15 补充六设置页及 About/quick-action 原生响应、保存请求 1→0 和主进程资源样本；完整原生性能验收仍与已发布状态独立记录。
 
 Added on 2026-09-10: the second performance/size pass tracks build profiles, Rust internals, frontend resources, and native evidence separately. See its task list and first-phase size report for current results.
 
@@ -81,9 +83,9 @@ On macOS, with LLVM, the Rust Windows target, and cargo-xwin installed:
 XWIN_ARCH=x86_64 cargo xwin check --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --all-targets
 ```
 
-Linux 安装包与会话协议见 [Linux support](../docs/linux-support.md)。发布前还需实际验证迁移、安装包、各平台运行和同一 Draft 的资产、checksum 与版本。当前 Release workflow 会校验各 runner 本地产生的 CLI，不等于已经实现或执行完整的同一 Draft 下载矩阵。
+Linux 安装包与会话协议见 [Linux support](../docs/linux-support.md)。`v0.2.0` 已执行同一 Release 的资产、checksum 与 CLI 版本矩阵；未完成的是各平台安装包/会话原生行为和公开安装器的实测。
 
-Release readiness additionally requires migration, packaged native behavior, and same-Draft asset/checksum/version verification. Preserve explicit release-owner authorization for tag pushes, Draft publication, and remote asset replacement.
+Future release readiness still requires migration, packaged native behavior, and same-Release asset/checksum/version verification. Preserve explicit release-owner authorization for tag pushes, Draft publication, and remote asset replacement.
 
 本轮界面调整见 [refine-v0-2-0-interface](changes/refine-v0-2-0-interface/verification.md)：托盘偏好设置入口、外观归类、转换布局与主题状态。实施和验证记录独立于原生验收；旧 delta 的归类冲突按该 change 的 design 协调表在后续显式 sync 时处理。
 

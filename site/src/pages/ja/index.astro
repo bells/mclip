@@ -10,7 +10,7 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
 const features = [
   {
     title: "トレイからすぐに開く",
-    body: "メニューバーまたはシステムトレイのアイコンをクリックするか、CommandOrControl+Shift+V を押します。v0.1.1 では起動時にメインウィンドウだけを読み込み、プレビューを事前準備し、使用頻度の低いウィンドウは必要なときに作成します。Apple M2 での計測ではトレイ準備完了時間の中央値が 51.3% 短縮しました。",
+    body: "メニューバーまたはシステムトレイのアイコンをクリックするか、CommandOrControl+Shift+V を押します。v0.2.0 では起動時にメインウィンドウだけを読み込み、プレビューを事前準備し、使用頻度の低いウィンドウは必要なときに作成します。Apple M2 の記録済みプロトコルではトレイ準備完了時間の中央値が 51.3% 短縮しました。",
   },
   {
     title: "テキスト、画像、ファイル",
@@ -59,6 +59,10 @@ const installItems = [
     body: "MSI または EXE インストーラーをダウンロードし、セットアップを進めます。現在のインストーラーはコード署名されていないため、Windows SmartScreen が不明な発行元として警告する場合があります。",
   },
   {
+    title: "Linux x86_64 プレビュー",
+    body: "v0.2.0 Release から DEB または AppImage をダウンロードします。トレイ、ショートカット、自動ペースト、コピー元識別、パネル位置は X11、XWayland、Wayland で個別に機能低下する場合があります。ARM64 パッケージは提供していません。",
+  },
+  {
     title: "開発者",
     body: "ソースコードは GitHub で公開しています。Tauri 2、React 19、TypeScript、Rust を使用し、pnpm run tauri:dev でローカル実行できます。",
   },
@@ -101,7 +105,7 @@ const faqItems = [
     description="mclip はメニューバーまたはシステムトレイに常駐します。以前コピーしたテキスト、画像、ファイルが必要なときだけ開き、大きなウィンドウに作業を遮られず、すぐ元の作業へ戻れます。"
     primaryCta="mclip をダウンロード"
     secondaryCta="GitHub で見る"
-    note="現在のソースバージョンは 0.2.0 です。公開ダウンロードの状態は GitHub Releases を確認してください。"
+    note="v0.2.0 は 2026 年 9 月 19 日に正式公開され、GitHub Releases からダウンロードできます。"
     utilityLabel="macOS のメニューバー · Windows のシステムトレイ"
     proofItems={[
       "Apple M2 でトレイ準備完了時間の中央値を 51.3% 短縮",
@@ -152,8 +156,8 @@ const faqItems = [
 
   <InstallGuide
     id="install"
-    title="GitHub Releases から始める"
-    intro="直接ダウンロードでき、現在の macOS notarization と Windows コード署名の制限もインストール前に確認できます。"
+    title="v0.2.0 をダウンロード"
+    intro="公開済みの GitHub Release からプラットフォームパッケージを選び、macOS notarization、Windows コード署名、Linux プレビューの制限をインストール前に確認できます。"
     items={installItems}
   />
 

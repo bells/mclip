@@ -25,13 +25,14 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 
 - Product name: mclip
 - Product type: local-first clipboard history desktop app
-- Platforms: macOS and Windows
-- Current source version: 0.2.0
-- Public release status: verify the v0.2.0 tag and assets on GitHub Releases; source version synchronization does not prove publication
+- Platforms: macOS and Windows; Linux x86_64 preview packages are published with session-specific limitations
+- Current stable version: 0.2.0
+- Public release: v0.2.0, published September 19, 2026 at https://github.com/bells/mclip/releases/tag/v0.2.0
+- Release assets: macOS ARM64 DMG/app archive, Windows x64 MSI/EXE, Linux x86_64 DEB/AppImage, plus macOS/Windows/Linux mclip-cli binaries and SHA-256 companions
 - Main workflow: open from the menu bar or system tray, search clipboard history, preview an item, copy it, then return to the current task
 - Clipboard content types: text, images, and files
 - File history restores a system file list instead of copying path-only text
-- New installs retain 200 history items by default, configurable from 10 to 1000 in current source (pending release)
+- New installs retain 200 history items by default, configurable from 10 to 1000 in v0.2.0
 - The current source pin admission limit defaults to 10, configurable from 5 to 20 in History settings; existing pins are retained when lowering it. Pins appear ahead of ordinary history; pins do not consume the ordinary retention, main-window, or archive-group counts
 - The main app window shows the latest 10 ordinary items by default and groups older ordinary history by 50 by default; both display counts are configurable and pins are counted separately
 - Preferences include appearance theme, main/group display counts, row number visibility, and main-window branding
@@ -48,7 +49,7 @@ It is a tray-first desktop utility for restoring recent text, image, and file cl
 - Interface languages: Chinese, English, and Japanese; Follow System uses Chinese for zh locales, Japanese for ja locales, and English for unsupported locales
 - mclip-cli command names, help, and output remain English-first and are not localized with the desktop interface
 - Public source repository: https://github.com/bells/mclip
-- Product demo video: https://www.mclip.cn/videos/mclip-v0.1.1-demo.mp4
+- Product demo video: https://www.mclip.cn/videos/mclip-v0.2.0-demo.mp4
 
 ## AI Agent and CLI
 

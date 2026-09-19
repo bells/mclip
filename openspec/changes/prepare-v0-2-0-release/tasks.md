@@ -24,7 +24,7 @@
 
 ## 4. Automated Release Gates
 
-- [ ] 4.1 Run `pnpm run check` on macOS, Windows, and Linux CI.
+- [x] 4.1 Run `pnpm run check` on macOS, Windows, and Linux CI.
 - [x] 4.2 Run `node --test tests/*.test.mjs`, `pnpm run cli:test`, installer tests, and migration fixtures on applicable targets.
 - [x] 4.3 On macOS with LLVM, the Rust Windows target, and cargo-xwin, run `XWIN_ARCH=x86_64 cargo xwin check --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --all-targets` and treat it as source evidence only.
 - [x] 4.4 Run `pnpm run site:test`, `pnpm run site:build`, `cmp -s install.sh site/public/install.sh`, and `git diff --check`.
@@ -38,18 +38,18 @@
 - [ ] 5.4 Install the Linux x86_64 package on every named supported Wayland compositor and record each capability independently.
 - [x] 5.5 Leave unavailable, degraded, skipped, and unsupported cells explicit; do not convert automated checks into native passes.
 
-## 6. Draft Release Asset Verification
+## 6. Release Asset Verification
 
-- [ ] 6.1 With explicit authorization, create/push the exact `v0.2.0` tag that matches the verified release commit without pushing unrelated branch changes.
-- [ ] 6.2 Inspect the same Draft Release for every advertised macOS, Windows, and Linux desktop artifact.
-- [ ] 6.3 Download every platform CLI binary and `.sha256` companion from the Draft and verify checksum plus `0.2.0` output.
+- [x] 6.1 With explicit authorization, create/push the exact `v0.2.0` tag that matches the verified release commit without pushing unrelated branch changes.
+- [x] 6.2 Inspect the same Release for every advertised macOS, Windows, and Linux desktop artifact.
+- [x] 6.3 Download every platform CLI binary and `.sha256` companion from the same Release and verify checksum plus `0.2.0` output.
 - [ ] 6.4 Run the public installer against the matching Draft/release path on each supported CLI platform and verify user-level atomic replacement/rollback.
-- [ ] 6.5 Reconcile any missing format by fixing the build or reducing public claims before publication.
+- [x] 6.5 Reconcile any missing format by fixing the build or reducing public claims before publication.
 
 ## 7. Release Handoff and Publication Boundary
 
 - [x] 7.1 Produce a final evidence report linking automated logs, native session results, migration results, asset inventory, and remaining limitations.
 - [x] 7.2 Verify the release commit and worktree contain only intended v0.2.0 integration changes before any requested commit.
 - [x] 7.3 Report exact local commit, tag, Draft, asset, and publication state; do not infer authorization for remote mutations.
-- [ ] 7.4 Publish the Draft or replace remote assets only after explicit release-owner authorization and a fresh same-Draft completeness check.
+- [x] 7.4 Publish the Draft or replace remote assets only after explicit release-owner authorization and a fresh same-Draft completeness check.
 - [x] 7.5 Run `openspec validate prepare-v0-2-0-release --type change --strict` and resolve every validation finding.

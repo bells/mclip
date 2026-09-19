@@ -80,7 +80,7 @@ test("v0.2.0 product version is synchronized across every source mirror", async 
   assert.equal(tauri.version, "../package.json");
   assert.match(constants, /DEFAULT_APP_VERSION = "0\.2\.0"/);
   assert.match(siteLayout, /softwareVersion: "0\.2\.0"/);
-  assert.match(llms, /Current source version: 0\.2\.0/);
+  assert.match(llms, /Current stable version: 0\.2\.0/);
   assert.equal(existsSync("package-lock.json"), false);
   assert.equal(existsSync("site/package-lock.json"), false);
   assert.equal(existsSync("site/pnpm-lock.yaml"), false);

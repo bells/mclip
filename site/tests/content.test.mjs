@@ -12,15 +12,18 @@ test("Chinese, English, and Japanese homepages expose the core product promise",
   assert.match(zh, /轻量、本地优先/);
   assert.match(zh, /macOS 和 Windows/);
   assert.match(zh, /下载 mclip/);
+  assert.match(zh, /Linux x86_64 预览版/);
   assert.match(en, /Lightweight, local-first/);
   assert.match(en, /macOS and Windows/);
   assert.match(en, /Download mclip/);
+  assert.match(en, /Linux x86_64 preview/);
   assert.match(ja, /軽量でローカルファースト/);
   assert.match(ja, /macOS と Windows/);
   assert.match(ja, /mclip をダウンロード/);
+  assert.match(ja, /Linux x86_64 プレビュー/);
 });
 
-test("site presents the v0.2.0 source candidate without claiming publication", async () => {
+test("site presents v0.2.0 as the current published release", async () => {
   const zh = await read("src/pages/zh/index.astro");
   const en = await read("src/pages/en/index.astro");
   const zhChangelog = await read("src/pages/zh/changelog.astro");
@@ -30,32 +33,34 @@ test("site presents the v0.2.0 source candidate without claiming publication", a
   const layout = await read("src/layouts/SiteLayout.astro");
   const llms = await read("public/llms.txt");
 
-  assert.match(zh, /当前源码版本 0\.2\.0/);
-  assert.match(en, /Current source version 0\.2\.0/);
+  assert.match(zh, /v0\.2\.0 已于 2026-09-19 正式发布/);
+  assert.match(en, /v0\.2\.0 was published on September 19, 2026/);
   assert.match(zhChangelog, /0\.1\.1/);
-  assert.match(zhChangelog, /0\.2\.0 · 发布候选/);
-  assert.match(zhChangelog, /下载可用性以 GitHub Releases/);
+  assert.match(zhChangelog, /0\.2\.0 · 2026-09-19 正式发布/);
+  assert.match(zhChangelog, /公开 Release 包含 macOS ARM64 DMG/);
   assert.match(zhChangelog, /Tailwind CSS 4/);
   assert.match(zhChangelog, /更快、更清晰的完整核心体验/);
   assert.match(zhChangelog, /托盘就绪中位数提升 51\.3%/);
   assert.match(zhChangelog, /SHA-256/);
   assert.match(enChangelog, /0\.1\.1/);
-  assert.match(enChangelog, /0\.2\.0 · Release candidate/);
-  assert.match(enChangelog, /Check GitHub Releases/);
+  assert.match(enChangelog, /0\.2\.0 · Released September 19, 2026/);
+  assert.match(enChangelog, /public Release includes a macOS ARM64 DMG/);
   assert.match(enChangelog, /System\/Light\/Dark/);
   assert.match(enChangelog, /A faster, clearer complete core experience/);
   assert.match(enChangelog, /tray-ready median improved 51\.3%/);
-  assert.match(ja, /現在のソースバージョンは 0\.2\.0/);
+  assert.match(ja, /v0\.2\.0 は 2026 年 9 月 19 日に正式公開/);
   assert.match(ja, /Windows では Git Bash/);
   assert.match(ja, /既定で 10 件、履歴設定で 5〜20 件/);
   assert.match(jaChangelog, /0\.1\.1/);
-  assert.match(jaChangelog, /0\.2\.0 · リリース候補/);
+  assert.match(jaChangelog, /0\.2\.0 · 2026 年 9 月 19 日正式公開/);
   assert.match(jaChangelog, /Tailwind CSS 4/);
   assert.match(jaChangelog, /SHA-256/);
   assert.match(jaChangelog, /Windows 実機の証拠ではありません/);
   assert.match(layout, /softwareVersion: "0\.2\.0"/);
-  assert.match(llms, /Current source version: 0\.2\.0/);
-  assert.match(llms, /source version synchronization does not prove publication/);
+  assert.match(layout, /Linux x86_64 \(preview\)/);
+  assert.match(llms, /Current stable version: 0\.2\.0/);
+  assert.match(llms, /Public release: v0\.2\.0, published September 19, 2026/);
+  assert.match(llms, /Linux x86_64 DEB\/AppImage/);
   assert.match(llms, /independent detail window/);
   assert.match(zh, /Windows CLI 用户请在 Git Bash/);
   assert.match(zh, /SHA-256 校验资产/);
@@ -222,7 +227,7 @@ test("layout exposes structured data for search and AI summaries", async () => {
   assert.match(layout, /Organization/);
   assert.match(layout, /SoftwareApplication/);
   assert.match(layout, /VideoObject/);
-  assert.match(layout, /mclip-v0\.1\.1-demo\.mp4/);
+  assert.match(layout, /mclip-v0\.2\.0-demo\.mp4/);
   assert.match(layout, /FAQPage/);
   assert.match(layout, /installUrl/);
   assert.match(layout, /AI Agent clipboard context/);
@@ -307,10 +312,10 @@ test("hero uses a tall autoplaying product video with a poster fallback", async 
   const css = await read("src/styles/global.css");
   const renderer = await read("scripts/render-hero-video.m");
   const video = await readFile(
-    new URL("../public/videos/mclip-v0.1.1-demo.mp4", import.meta.url),
+    new URL("../public/videos/mclip-v0.2.0-demo.mp4", import.meta.url),
   );
   const poster = await readFile(
-    new URL("../public/videos/mclip-v0.1.1-demo-poster.png", import.meta.url),
+    new URL("../public/videos/mclip-v0.2.0-demo-poster.png", import.meta.url),
   );
   const width = poster.readUInt32BE(16);
   const height = poster.readUInt32BE(20);
@@ -321,8 +326,8 @@ test("hero uses a tall autoplaying product video with a poster fallback", async 
   assert.match(hero, /muted/);
   assert.match(hero, /playsinline/);
   assert.match(hero, /preload="auto"/);
-  assert.match(hero, /poster="\/videos\/mclip-v0\.1\.1-demo-poster\.png"/);
-  assert.match(hero, /src="\/videos\/mclip-v0\.1\.1-demo\.mp4" type="video\/mp4"/);
+  assert.match(hero, /poster="\/videos\/mclip-v0\.2\.0-demo-poster\.png"/);
+  assert.match(hero, /src="\/videos\/mclip-v0\.2\.0-demo\.mp4" type="video\/mp4"/);
   assert.match(hero, new RegExp(`width="${width}"`));
   assert.match(hero, new RegExp(`height="${height}"`));
   assert.equal(video.subarray(4, 8).toString("ascii"), "ftyp");
@@ -335,8 +340,9 @@ test("hero uses a tall autoplaying product video with a poster fallback", async 
   assert.doesNotMatch(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*-/s);
   assert.match(renderer, /@"history"/);
   assert.match(renderer, /searchNumbers = @\[ @2, @7, @12, @18/);
+  assert.match(renderer, /11 - 60/);
+  assert.match(renderer, /Files #18/);
   assert.match(renderer, /File history pastes back as real files/);
-  assert.match(renderer, /Text #18/);
   assert.match(renderer, /Finder or Explorer/);
   assert.doesNotMatch(renderer, /OpenSpec|http_proxy|IMG_1363|Almanac|Sublime Text/);
   assert.match(renderer, /height = 842\.0 - filtered \* 128\.0/);

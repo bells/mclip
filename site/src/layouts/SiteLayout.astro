@@ -31,10 +31,10 @@ const alternateUrls = Object.fromEntries(
 const locale = SITE_LOCALES[lang];
 const alternateLocales = SITE_LOCALE_LIST.filter((candidate) => candidate !== lang);
 const ogImage = `${site}/og-image.png`;
-const demoVideo = `${site}/videos/mclip-v0.1.1-demo.mp4`;
-const demoPoster = `${site}/videos/mclip-v0.1.1-demo-poster.png`;
+const demoVideo = `${site}/videos/mclip-v0.2.0-demo.mp4`;
+const demoPoster = `${site}/videos/mclip-v0.2.0-demo-poster.png`;
 const githubUrl = "https://github.com/bells/mclip";
-const releasesUrl = "https://github.com/bells/mclip/releases";
+const currentReleaseUrl = "https://github.com/bells/mclip/releases/tag/v0.2.0";
 const installUrl = `${site}/install.sh`;
 const publisherId = `${site}/#organization`;
 const softwareId = `${site}/#software`;
@@ -54,7 +54,7 @@ const metadataCopy: Record<
 > = {
   zh: {
     demoDescription: "演示 mclip 搜索剪贴板历史、选择条目和打开独立详情预览的流程。",
-    demoName: "mclip 0.1.1 产品演示",
+    demoName: "mclip 0.2.0 产品演示",
     featureList: [
       "本地优先的剪贴板历史",
       "文本、图片和文件历史",
@@ -80,7 +80,7 @@ const metadataCopy: Record<
   en: {
     demoDescription:
       "Shows mclip searching clipboard history, selecting an item, and opening an independent detail preview.",
-    demoName: "mclip 0.1.1 product demo",
+    demoName: "mclip 0.2.0 product demo",
     featureList: [
       "Local-first clipboard history",
       "Text, image, and file history",
@@ -107,7 +107,7 @@ const metadataCopy: Record<
   ja: {
     demoDescription:
       "mclip でクリップボード履歴を検索し、項目を選択して独立した詳細プレビューを開く流れを紹介します。",
-    demoName: "mclip 0.1.1 製品デモ",
+    demoName: "mclip 0.2.0 製品デモ",
     featureList: [
       "ローカルファーストのクリップボード履歴",
       "テキスト、画像、ファイルの履歴",
@@ -178,7 +178,7 @@ const jsonLdGraph = [
     description: meta.demoDescription,
     thumbnailUrl: demoPoster,
     contentUrl: demoVideo,
-    uploadDate: "2026-08-09",
+    uploadDate: "2026-09-19",
     duration: "PT8S",
     inLanguage: locale.htmlLang,
   },
@@ -187,11 +187,12 @@ const jsonLdGraph = [
     "@id": softwareId,
     name: "mclip",
     applicationCategory: "UtilitiesApplication",
-    operatingSystem: ["macOS", "Windows"],
+    operatingSystem: ["macOS", "Windows", "Linux x86_64 (preview)"],
     softwareVersion: "0.2.0",
+    datePublished: "2026-09-19",
     url: productUrl,
     mainEntityOfPage: canonicalUrl,
-    downloadUrl: releasesUrl,
+    downloadUrl: currentReleaseUrl,
     installUrl,
     codeRepository: githubUrl,
     description: meta.productDescription,
@@ -205,7 +206,7 @@ const jsonLdGraph = [
       "@type": "Offer",
       price: "0",
       priceCurrency: "USD",
-      url: releasesUrl,
+      url: currentReleaseUrl,
     },
     featureList: meta.featureList,
     keywords: meta.keywords,
