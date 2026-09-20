@@ -45,7 +45,7 @@ export const ui = {
       "relative z-[1] min-h-0 flex-1 overflow-x-hidden overscroll-contain",
       isScrollable ? "mclip-scrollbar overflow-y-auto" : "overflow-y-hidden",
     ].join(" "),
-  mainScrollContent: "grid content-start",
+  mainScrollContent: "grid h-max content-start",
   mainHeaderMeasure: "shrink-0",
   mainFooterMeasure: "shrink-0",
 

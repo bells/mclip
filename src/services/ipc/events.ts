@@ -1,4 +1,11 @@
-import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
+import {
+  emitTo,
+  listen as listenRaw,
+  type EventCallback,
+  type EventName,
+  type Options,
+  type UnlistenFn,
+} from "@tauri-apps/api/event";
 
 import type {
   AppSettings,
@@ -49,6 +56,38 @@ const PREVIEW_WINDOW_LABEL = "preview";
 const PREVIEW_DETAIL_WINDOW_LABEL = "preview-detail";
 const IMAGE_VIEWER_WINDOW_LABEL = "image-viewer";
 const QUICK_ACTION_WINDOW_LABEL = "quick-action";
+
+type RuntimeUnlistenFn = () => void | Promise<void>;
+
+export function createIdempotentUnlisten(
+  unlisten: RuntimeUnlistenFn,
+): UnlistenFn {
+  let didUnlisten = false;
+
+  return () => {
+    if (didUnlisten) {
+      return;
+    }
+
+    didUnlisten = true;
+    try {
+      const result = unlisten();
+      if (result instanceof Promise) {
+        void result.catch(() => undefined);
+      }
+    } catch {
+      // Listener teardown is best-effort while a WebView is being replaced.
+    }
+  };
+}
+
+function listen<T>(
+  event: EventName,
+  handler: EventCallback<T>,
+  options?: Options,
+): Promise<UnlistenFn> {
+  return listenRaw(event, handler, options).then(createIdempotentUnlisten);
+}
 
 export function updateQuickActionWindow(payload: QuickActionPayload) {
   return emitTo(QUICK_ACTION_WINDOW_LABEL, QUICK_ACTION_UPDATED_EVENT, payload);

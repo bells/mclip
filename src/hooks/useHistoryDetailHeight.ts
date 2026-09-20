@@ -4,7 +4,7 @@ import { resizeHistoryDetailWindow } from "../services/ipc/commands";
 import { listenToHistoryPreviewPlacementUpdated } from "../services/ipc/events";
 import { getItemPreviewNaturalHeight } from "../utils/preview";
 
-export function useHistoryDetailHeight(enabled: boolean, item: object) {
+export function useHistoryDetailHeight(enabled: boolean) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -62,7 +62,7 @@ export function useHistoryDetailHeight(enabled: boolean, item: object) {
       observer.disconnect();
       unlisten?.();
     };
-  }, [enabled, item]);
+  }, [enabled]);
 
   return panelRef;
 }

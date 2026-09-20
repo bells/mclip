@@ -118,7 +118,10 @@ function App() {
 
   const measureAndApplyMainWindowHeight = useCallback((force = false) => {
     const headerHeight = headerMeasureRef.current?.getBoundingClientRect().height ?? 0;
-    const contentHeight = contentMeasureRef.current?.scrollHeight ?? 0;
+    // scrollHeight can report a stretched viewport after moving monitors. The
+    // max-content grid rect tracks only rendered history and archive rows.
+    const contentHeight =
+      contentMeasureRef.current?.getBoundingClientRect().height ?? 0;
     const footerHeight = footerMeasureRef.current?.getBoundingClientRect().height ?? 0;
     const contentWindowHeight = Math.ceil(headerHeight + contentHeight + footerHeight);
 

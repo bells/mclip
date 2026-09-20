@@ -72,6 +72,18 @@ export function HistoryGroupPreviewWindow({
     hoveredItemIdRef.current = hoveredItemId;
   }, [hoveredItemId]);
 
+  useLayoutEffect(() => {
+    if (!isKeyboardNavigating || hoveredItemId === null) {
+      return;
+    }
+
+    const activeItem = Array.from(
+      listRef.current?.querySelectorAll<HTMLElement>("[data-preview-item-id]") ?? [],
+    ).find((element) => element.dataset.previewItemId === hoveredItemId);
+
+    activeItem?.scrollIntoView({ block: "nearest" });
+  }, [hoveredItemId, isKeyboardNavigating]);
+
   const activateItem = useCallback((id: string) => {
     onPointerNavigation();
 

@@ -25,7 +25,7 @@ test("main history and archive navigation scroll only when the window is height 
   assert.match(stylesSource, /isScrollable\s*\? "mclip-scrollbar overflow-y-auto"\s*:\s*"overflow-y-hidden"/);
   assert.match(stylesSource, /min-h-0[\s\S]*flex-1[\s\S]*overflow-x-hidden/);
   assert.match(stylesSource, /mainScrollRegion:[\s\S]*overscroll-contain/);
-  assert.match(stylesSource, /mainScrollContent:[\s\S]*content-start/);
+  assert.match(stylesSource, /mainScrollContent:[\s\S]*h-max[\s\S]*content-start/);
   assert.match(stylesSource, /appBody:[\s\S]*shrink-0/);
 });
 
@@ -39,6 +39,11 @@ test("main window height follows measured content instead of row-count estimates
   assert.match(appSource, /ResizeObserver/);
   assert.match(appSource, /headerMeasureRef/);
   assert.match(appSource, /contentMeasureRef/);
+  assert.match(
+    appSource,
+    /contentMeasureRef\.current\?\.getBoundingClientRect\(\)\.height/,
+  );
+  assert.doesNotMatch(appSource, /contentMeasureRef\.current\?\.scrollHeight/);
   assert.match(appSource, /footerMeasureRef/);
   assert.match(appSource, /adjustWindowHeightToContent\(contentWindowHeight\)/);
   assert.doesNotMatch(hookSource, /adjustWindowHeight\(/);

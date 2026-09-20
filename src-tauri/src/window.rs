@@ -914,6 +914,35 @@ pub fn is_pointer_over_preview_window(app_handle: &AppHandle) -> Result<bool, St
         || is_pointer_over_window(app_handle, PREVIEW_DETAIL_WINDOW_LABEL)?)
 }
 
+#[cfg(target_os = "macos")]
+fn macos_pointer_position_in_window<R: Runtime>(
+    window: &WebviewWindow<R>,
+) -> Result<Option<WindowPointerPosition>, String> {
+    use raw_window_handle::RawWindowHandle;
+
+    let _main_thread = MainThreadMarker::new()
+        .ok_or_else(|| "native pointer geometry must be read on the main thread".to_string())?;
+    let window_handle = window.window_handle().map_err(|error| error.to_string())?;
+    let RawWindowHandle::AppKit(handle) = window_handle.as_raw() else {
+        return Err("preview window did not expose an AppKit window handle".to_string());
+    };
+    let ns_view = unsafe { &*handle.ns_view.as_ptr().cast::<NSView>() };
+    let ns_window = ns_view
+        .window()
+        .ok_or_else(|| "preview AppKit view is not attached to a window".to_string())?;
+    let frame = ns_window.frame();
+    let cursor = NSEvent::mouseLocation();
+
+    Ok(cocoa_pointer_to_logical_window_position(
+        cursor.x,
+        cursor.y,
+        frame.origin.x,
+        frame.origin.y,
+        frame.size.width,
+        frame.size.height,
+    ))
+}
+
 fn is_pointer_over_window(app_handle: &AppHandle, label: &str) -> Result<bool, String> {
     let Some(preview_window) = app_handle.get_webview_window(label) else {
         return Ok(false);
@@ -921,6 +950,15 @@ fn is_pointer_over_window(app_handle: &AppHandle, label: &str) -> Result<bool, S
 
     if !preview_window.is_visible().unwrap_or(false) {
         return Ok(false);
+    }
+
+    // AppKit exposes both the mouse and NSWindow frame in the same global
+    // point coordinate space. Prefer it on macOS so mixed-DPI displays and
+    // vertically offset screens cannot make a pointer inside the preview look
+    // outside when compared through Tauri's physical desktop coordinates.
+    #[cfg(target_os = "macos")]
+    if let Ok(position) = macos_pointer_position_in_window(&preview_window) {
+        return Ok(position.is_some());
     }
 
     let cursor_position = preview_window
@@ -956,6 +994,11 @@ fn get_pointer_position_in_window(
 
     if !window.is_visible().unwrap_or(false) {
         return Ok(None);
+    }
+
+    #[cfg(target_os = "macos")]
+    if let Ok(position) = macos_pointer_position_in_window(&window) {
+        return Ok(position);
     }
 
     let cursor_position = window
@@ -1784,6 +1827,27 @@ fn is_physical_point_in_rect(x: f64, y: f64, left: f64, top: f64, width: f64, he
     x >= left && x <= left + width && y >= top && y <= top + height
 }
 
+fn cocoa_pointer_to_logical_window_position(
+    cursor_x: f64,
+    cursor_y: f64,
+    frame_left: f64,
+    frame_bottom: f64,
+    frame_width: f64,
+    frame_height: f64,
+) -> Option<WindowPointerPosition> {
+    let local_x = cursor_x - frame_left;
+    let local_y = frame_bottom + frame_height - cursor_y;
+
+    if local_x < 0.0 || local_x > frame_width || local_y < 0.0 || local_y > frame_height {
+        return None;
+    }
+
+    Some(WindowPointerPosition {
+        x: local_x,
+        y: local_y,
+    })
+}
+
 fn physical_point_to_logical_window_position(
     x: f64,
     y: f64,
@@ -1902,8 +1966,9 @@ mod tests {
         calculate_tray_bottom_center_window_position, calculate_window_height,
         calculate_window_height_for_screen_bounds, choose_screen_placement_for_tray_anchor,
         clamp_preview_height, clamp_preview_height_for_screen_bounds, clamp_preview_width,
-        clicked_native_screen, is_physical_point_in_rect, NativeScreenGeometry, NativeTrayGeometry,
-        ScreenPlacementBounds, TrayWindowAnchor, TrayWindowPositionInput, MAX_WINDOW_HEIGHT,
+        clicked_native_screen, cocoa_pointer_to_logical_window_position, is_physical_point_in_rect,
+        NativeScreenGeometry, NativeTrayGeometry, ScreenPlacementBounds, TrayWindowAnchor,
+        TrayWindowPositionInput, MAX_WINDOW_HEIGHT,
     };
     use tauri::{PhysicalPosition, PhysicalSize, Rect};
 
@@ -2837,6 +2902,18 @@ mod tests {
             super::physical_point_to_logical_window_position(
                 401.0, 260.0, 280.0, 220.0, 120.0, 100.0, 2.0,
             ),
+            None,
+        );
+    }
+
+    #[test]
+    fn cocoa_pointer_position_handles_offset_secondary_screens() {
+        assert_eq!(
+            cocoa_pointer_to_logical_window_position(-840.0, 1320.0, -900.0, 900.0, 320.0, 500.0,),
+            Some(super::WindowPointerPosition { x: 60.0, y: 80.0 }),
+        );
+        assert_eq!(
+            cocoa_pointer_to_logical_window_position(-920.0, 1320.0, -900.0, 900.0, 320.0, 500.0,),
             None,
         );
     }

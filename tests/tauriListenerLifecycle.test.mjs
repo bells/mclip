@@ -30,3 +30,36 @@ test("preview keyboard navigation listener cleans up async subscriptions", async
   assert.match(listenerBlock, /isActive = false;/);
   assert.match(listenerBlock, /unlisten\?\.\(\);/);
 });
+
+test("event subscriptions expose an idempotent rejection-safe cleanup", async () => {
+  const source = await readFile("src/services/ipc/events.ts", "utf8");
+
+  assert.match(source, /listen as listenRaw/);
+  assert.match(source, /export function createIdempotentUnlisten/);
+  assert.match(source, /if \(didUnlisten\)/);
+  assert.match(source, /didUnlisten = true/);
+  assert.match(source, /result instanceof Promise/);
+  assert.match(source, /result\.catch\(\(\) => undefined\)/);
+  assert.match(source, /listenRaw\(event, handler, options\)\.then\(createIdempotentUnlisten\)/);
+});
+
+test("detail listener tears down registrations that resolve after unmount", async () => {
+  const source = await readFile("src/components/HistoryDetailPanel.tsx", "utf8");
+  const listenerBlock = getEffectBlockContaining(
+    source,
+    "void listenToSensitiveRevealReset",
+  );
+
+  assert.match(listenerBlock, /let isActive = true/);
+  assert.match(listenerBlock, /if \(isActive\)/);
+  assert.match(listenerBlock, /else \{\s*unsubscribe\(\)/);
+  assert.match(listenerBlock, /isActive = false/);
+});
+
+test("detail height listener stays stable while keyboard navigation changes items", async () => {
+  const source = await readFile("src/hooks/useHistoryDetailHeight.ts", "utf8");
+
+  assert.match(source, /export function useHistoryDetailHeight\(enabled: boolean\)/);
+  assert.match(source, /\}, \[enabled\]\);/);
+  assert.doesNotMatch(source, /\[enabled, item\]/);
+});

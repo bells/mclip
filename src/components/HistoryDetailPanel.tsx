@@ -65,7 +65,7 @@ export function HistoryDetailPanel({
   role = "dialog",
   textQuickActions = { base64: true, json: true, urlComponent: true },
 }: HistoryDetailPanelProps) {
-  const panelRef = useHistoryDetailHeight(presentation === "compact", item);
+  const panelRef = useHistoryDetailHeight(presentation === "compact");
   const [revealedText, setRevealedText] = useState<{
     item: HistoryListItem;
     text: string;
@@ -89,14 +89,22 @@ export function HistoryDetailPanel({
   }, [item]);
 
   useEffect(() => {
+    let isActive = true;
     let unlisten: (() => void) | undefined;
     void listenToSensitiveRevealReset(() => {
       setRevealedText(null);
       setRevealError(null);
     }).then((unsubscribe) => {
-      unlisten = unsubscribe;
+      if (isActive) {
+        unlisten = unsubscribe;
+      } else {
+        unsubscribe();
+      }
     });
-    return () => unlisten?.();
+    return () => {
+      isActive = false;
+      unlisten?.();
+    };
   }, []);
 
   const toggleSensitiveReveal = async () => {

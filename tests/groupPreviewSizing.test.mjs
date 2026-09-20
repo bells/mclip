@@ -60,10 +60,17 @@ test("group preview reports rendered natural height to the main controller", asy
 });
 
 test("group preview keeps a fixed header and scrollable list when clamped", async () => {
-  const stylesSource = await readSource("src/uiStyles.ts");
+  const [stylesSource, groupSource] = await Promise.all([
+    readSource("src/uiStyles.ts"),
+    readSource("src/components/HistoryGroupPreviewWindow.tsx"),
+  ]);
 
   assert.match(stylesSource, /historyPreviewHeader:[\s\S]*shrink-0/);
   assert.match(stylesSource, /historyGroupPreviewBody: "min-h-0 flex-1 overflow-hidden"/);
   assert.match(stylesSource, /historyPreviewList:[\s\S]*overflow-y-auto/);
   assert.doesNotMatch(stylesSource, /--group-preview-height/);
+  assert.match(
+    groupSource,
+    /isKeyboardNavigating[\s\S]*activeItem\?\.scrollIntoView\(\{ block: "nearest" \}\)/,
+  );
 });
