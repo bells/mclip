@@ -1827,6 +1827,7 @@ fn is_physical_point_in_rect(x: f64, y: f64, left: f64, top: f64, width: f64, he
     x >= left && x <= left + width && y >= top && y <= top + height
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn cocoa_pointer_to_logical_window_position(
     cursor_x: f64,
     cursor_y: f64,

@@ -20,6 +20,7 @@ const CLI_INSTALL_COMMAND: &str = "curl -fsSL https://www.mclip.cn/install.sh | 
 const CLI_RELEASE_BASE_URL: &str = "https://github.com/bells/mclip/releases";
 const CLI_VERSION_PREFIX: &str = "mclip-cli ";
 const CLI_VERSION_PROBE_TIMEOUT: Duration = Duration::from_secs(2);
+const CLI_VERSION_PROBE_RETRY_INTERVAL: Duration = Duration::from_millis(10);
 const CLI_HTTP_TIMEOUT: Duration = Duration::from_secs(30);
 const MAX_CLI_BINARY_BYTES: usize = 32 * 1024 * 1024;
 const MAX_CHECKSUM_BYTES: usize = 4 * 1024;
@@ -333,14 +334,28 @@ pub fn classify_cli_state(
 }
 
 pub fn probe_cli_version(path: &Path, timeout: Duration) -> Result<Version, String> {
-    let mut child = Command::new(path)
-        .arg("--version")
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|error| cli_error("CLI_VERSION_UNKNOWN", error))?;
     let started_at = std::time::Instant::now();
+    let mut child = loop {
+        match Command::new(path)
+            .arg("--version")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+        {
+            Ok(child) => break child,
+            Err(error)
+                if error.kind() == std::io::ErrorKind::ExecutableFileBusy
+                    && started_at.elapsed() < timeout =>
+            {
+                thread::sleep(
+                    CLI_VERSION_PROBE_RETRY_INTERVAL
+                        .min(timeout.saturating_sub(started_at.elapsed())),
+                );
+            }
+            Err(error) => return Err(cli_error("CLI_VERSION_UNKNOWN", error)),
+        }
+    };
 
     loop {
         match child
@@ -366,7 +381,9 @@ pub fn probe_cli_version(path: &Path, timeout: Duration) -> Result<Version, Stri
                 let _ = child.wait();
                 return Err(cli_error("CLI_VERSION_UNKNOWN", "version probe timed out"));
             }
-            None => thread::sleep(Duration::from_millis(10)),
+            None => thread::sleep(
+                CLI_VERSION_PROBE_RETRY_INTERVAL.min(timeout.saturating_sub(started_at.elapsed())),
+            ),
         }
     }
 }
@@ -771,6 +788,27 @@ mod tests {
         let started_at = std::time::Instant::now();
         assert!(probe_cli_version(&hanging, Duration::from_millis(50)).is_err());
         assert!(started_at.elapsed() < Duration::from_secs(1));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn retries_version_probe_while_executable_file_is_transiently_busy() {
+        let dir = unique_temp_dir("probe-busy");
+        let script = write_script(&dir, "busy", "printf 'mclip-cli 0.1.1\\n'");
+        let writer = fs::OpenOptions::new()
+            .write(true)
+            .open(&script)
+            .expect("busy fixture should stay open for writing");
+        let release_writer = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(50));
+            drop(writer);
+        });
+
+        assert_eq!(
+            probe_cli_version(&script, Duration::from_secs(1)).unwrap(),
+            Version::parse("0.1.1").unwrap()
+        );
+        release_writer.join().unwrap();
     }
 
     #[test]

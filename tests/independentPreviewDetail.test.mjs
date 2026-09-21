@@ -84,6 +84,10 @@ test("pointer hit testing keeps both preview windows in one family", async () =>
   assert.match(windowSource, /let frame = ns_window\.frame\(\)/);
   assert.match(windowSource, /let cursor = NSEvent::mouseLocation\(\)/);
   assert.match(windowSource, /cocoa_pointer_to_logical_window_position/);
+  assert.match(
+    windowSource,
+    /#\[cfg\(any\(target_os = "macos", test\)\)\]\s*fn cocoa_pointer_to_logical_window_position/,
+  );
 });
 
 test("detail sizing and placement share the group monitor physical coordinate space", async () => {
