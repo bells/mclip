@@ -9,62 +9,66 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
 
 const features = [
   {
-    title: "托盘优先",
-    body: "点击菜单栏或系统托盘图标，或者按 CommandOrControl+Shift+V 即可唤起。v0.2.0 只让主窗口进入启动关键路径，preview 预热、低频窗口按需创建；Apple M2 协议实测托盘就绪中位数缩短 51.3%。",
+    title: "从托盘，随手唤起",
+    body: "点击菜单栏或系统托盘图标，需要时打开，用完回到手头工作。",
   },
   {
-    title: "文本、图片、文件都能找回",
-    body: "保存文字、截图和 Finder 或资源管理器里的文件。置顶上限默认为 10 条，可在历史设置中调整为 5–20，降低上限保留已有置顶。常用记录置顶在普通历史之前，不占主界面或分组条数；选择文件历史时仍会回填系统文件列表，详情仍会显示完整绝对路径和文件名。",
+    title: "文字、图片、文件",
+    body: "找回片段、截图和文件。文件历史回填系统文件列表，详情显示完整绝对路径和文件名。",
   },
   {
-    title: "紧凑的独立预览",
-    body: "最新 10 条默认保持紧凑，文本/文件行不会挤占图片高度；更多历史默认按 50 条分组，hover 详情保持独立。图片详情可在独立查看器中最大化查看、恢复，并用 Escape 关闭。",
+    title: "独立预览，清晰查看",
+    body: "预览不撑宽主窗口。图片可在独立查看器中最大化、恢复，按 Esc 关闭。",
   },
   {
-    title: "搜索和键盘操作",
-    body: "输入关键词即可过滤历史，方向键移动，回车复制，Esc 收起。搜索、键盘和鼠标共用同一个激活目标，主列表、分组和底部操作不会出现两套高亮。",
+    title: "键盘操作，一气呵成",
+    body: "输入搜索，方向键选择，回车复制。常用内容置顶，下次不用再找。",
   },
   {
-    title: "本地优先",
-    body: "剪贴板历史、设置和图片资源只保存在本机。v0.2.0 可用有界启发式规则标记并默认遮罩高置信度敏感文本，也可按来源应用排除捕获；这些能力可能误报或漏报。",
+    title: "内容留在本机",
+    body: "剪贴板历史只保存在本机。可开启敏感文本遮罩，也可排除指定来源应用。",
   },
   {
-    title: "主题、语言和跨平台",
-    body: "支持 macOS 和 Windows，界面可跟随系统深浅色与系统语言，并提供中文、英文和日文；新安装默认保留 200 条、最多可调到 1000 条，还可调整主界面/分组条数、序号和主窗口 Logo，并在 Agent CLI 页安全安装、升级或重装匹配版本。",
+    title: "三个平台，同样顺手",
+    body: "支持 macOS、Windows 和 Linux。外观可跟随系统，界面支持中文、英文和日文。",
   },
 ];
 
 const agentCliPoints = [
   {
-    title: "Agent 模式一条命令",
-    body: "mclip-cli agent --last 5 --json 会输出最近历史、命令能力表和安全边界，适合 Codex、Claude Code、Cursor、Cline 直接读取。",
+    title: "一条命令获取上下文",
+    body: "Agent 模式打包最近历史、命令能力表和安全边界。",
   },
   {
-    title: "受控操作，不抢桌面",
-    body: "agent/list/get/search/context 只读并支持筛选置顶；pin/unpin 只修改一个稳定历史项；clear --yes --keep-pinned 清除普通历史并保留置顶。",
+    title: "先读取，再明确操作",
+    body: "读取命令不修改历史；复制、置顶、清空是独立操作。",
   },
   {
-    title: "适合错误、代码和 Prompt",
-    body: "Agent 模式默认输出 Markdown，也支持 JSON。transform 可在 stdin/stdout 中完成 JSON、Base64 和 URL 组件转换；copy 也支持唯一 stdin 输入。两者都不会直接修改历史。",
+    title: "可以组合的文本工具",
+    body: "通过标准输入输出转换 JSON、Base64 和 URL 组件。",
   },
 ];
 
 const installItems = [
   {
     title: "macOS",
-    body: "从 GitHub Releases 下载 DMG，把 mclip.app 拖入应用程序。当前版本未 notarize，如系统提示应用已损坏，可在确认信任后解除 quarantine。",
+    format: "ARM64 · DMG",
+    href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_aarch64.dmg",
+    body: "下载 DMG，把 mclip.app 拖入应用程序。当前版本未公证，首次打开可能需要解除系统隔离。",
   },
   {
     title: "Windows",
-    body: "下载 MSI 或 EXE 安装包后按向导安装。当前版本未代码签名，Windows SmartScreen 可能提示未知发布者。",
+    format: "x64 · EXE / MSI",
+    href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_x64-setup.exe",
+    alternatives: [{ label: "MSI", href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_x64_en-US.msi" }],
+    body: "下载 EXE 或 MSI，按向导安装。当前版本未签名，Windows SmartScreen 可能提示未知发布者。",
   },
   {
-    title: "Linux x86_64 预览版",
-    body: "从 v0.2.0 Release 下载 DEB 或 AppImage。托盘、快捷键、自动粘贴、来源应用识别和面板定位会随 X11、XWayland 或 Wayland 会话独立降级；当前不提供 ARM64 包。",
-  },
-  {
-    title: "开发者",
-    body: "源码在 GitHub 开放。项目使用 Tauri 2、React 19、TypeScript 和 Rust，可通过 pnpm run tauri:dev 本地运行。",
+    title: "Linux",
+    format: "x86_64 · DEB / AppImage",
+    href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_amd64.deb",
+    alternatives: [{ label: "AppImage", href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_amd64.AppImage" }],
+    body: "Linux x86_64 预览版，提供 DEB 和 AppImage。托盘、快捷键、自动粘贴和来源识别等能力随桌面会话而异；暂不提供 ARM64 包。",
   },
 ];
 
@@ -87,7 +91,7 @@ const faqItems = [
   },
   {
     question: "历史能保存多少条？",
-    answer: "新安装默认最多保存 200 条，可在偏好设置里调整为 10–1000 条；主界面展示条数和历史分组展示条数可独立调整，也可以只保存文本、图片或文件中的一部分类型。",
+    answer: "新安装默认最多保存 200 条，可在偏好设置里调整为 10–1000 条；主界面展示条数和历史分组展示条数可独立调整，也可以只保存文本、图片或文件中的一部分类型。 置顶上限默认为 10 条，可在历史设置中调整为 5–20；降低上限保留已有置顶，置顶不占普通历史和列表展示条数。",
   },
 ];
 ---
@@ -96,77 +100,80 @@ const faqItems = [
   lang="zh"
   path="/zh/"
   title="mclip - 轻量、本地优先的剪贴板历史工具"
-  description="mclip 是面向 macOS 和 Windows 的本地优先剪贴板历史工具，支持文本、图片、文件历史、搜索、独立预览、托盘快捷唤起和带 Agent 模式的 AI Agent CLI。"
+  description="mclip 是面向 macOS、Windows 和 Linux 的本地优先剪贴板历史工具，支持文本、图片、文件历史、搜索、独立预览、托盘快捷唤起和带 Agent 模式的 AI Agent CLI。"
   faqItems={faqItems}
 >
   <Hero
     lang="zh"
-    title="轻量、本地优先的剪贴板历史工具"
-    description="mclip 常驻菜单栏或系统托盘。需要时一键唤起，快速搜索文字、图片和文件历史，用完继续回到手头工作。"
+    title="复制过的，"
+    titleAccent="随时找回来。"
+    description="文字、图片、文件，留在本机。需要时唤起，搜索、预览，再复制回手头的工作。"
     primaryCta="下载 mclip"
     secondaryCta="查看 GitHub"
-    note="v0.2.0 已于 2026-09-19 正式发布，可从 GitHub Release 下载。"
-    utilityLabel="macOS 菜单栏 · Windows 系统托盘"
-    proofItems={[
-      "Apple M2 实测托盘就绪中位数提升 51.3%",
-      "文本、图片、文件与独立大图查看",
-      "增量更新、图片缓存，内容仍只留本机",
-    ]}
+    utilityLabel="macOS · Windows · Linux"
+    proofItems={["文字 · 图片 · 文件", "本地保存", "开源"]}
   />
 
-  <FeatureGrid
-    id="features"
-    title="把复制历史放在手边，但不打扰你"
-    summary="mclip 的界面按真实使用路径组织：唤起、搜索、预览、复制，然后回到原来的工作。"
-    features={features}
-  />
+  <main>
+    <FeatureGrid
+      id="features"
+      title="复制历史，就在手边。"
+      features={features}
+    />
 
-  <AgentCliSection
-    id="agents"
-    eyebrow="面向开发者和 AI Agent"
-    title="AI Agent 与 CLI"
-    summary="mclip-cli 是给 Codex、Claude Code、Cursor、Cline 等 AI Agent 使用的本地入口。Agent 模式会把最近剪贴板历史、可用命令和安全边界打包输出，不需要你反复手动粘贴。"
-    installLabel="安装 mclip-cli"
-    installCommand="curl -fsSL https://www.mclip.cn/install.sh | sh"
-    exampleLabel="常用命令"
-    examples={[
-      "mclip-cli agent --last 5 --json",
-      "mclip-cli list --limit 5 --json",
-      "mclip-cli context --last 3 --format markdown",
-      "mclip-cli add \"note from agent\"",
-      "mclip-cli copy --index 1",
-      "printf '%s' '{\"ok\":true}' | mclip-cli transform json-prettify",
-      "printf '%s' 'pipeline clipboard text' | mclip-cli copy",
-      "mclip-cli pin --id h_xxx",
-      "mclip-cli list --pinned --json",
-      "mclip-cli list --json --with-meta",
-    ]}
-    points={agentCliPoints}
-    note="安装脚本会下载同一 GitHub Release 的预构建 mclip-cli 与 SHA-256 校验资产，验证成功后才替换旧 CLI；可用 MCLIP_VERSION 固定版本。只有二进制资产不存在时才回退到源码构建。Windows CLI 用户请在 Git Bash 或兼容 POSIX shell 中运行。"
-  />
+    <AgentCliSection
+      id="agents"
+      title="AI Agent 与 CLI"
+      summary="让 Codex、Claude Code、Cursor、Cline 读取你已经复制的本地上下文。mclip-cli 输出 Markdown 或 JSON，省去反复粘贴。"
+      installLabel="安装 mclip-cli"
+      installCommand="curl -fsSL https://www.mclip.cn/install.sh | sh"
+      exampleLabel="常用命令"
+      examples={[
+        "mclip-cli agent --last 5 --json",
+        "mclip-cli list --limit 5 --json",
+        "mclip-cli context --last 3 --format markdown",
+        "mclip-cli add \"note from agent\"",
+        "mclip-cli copy --index 1",
+        "printf '%s' '{\"ok\":true}' | mclip-cli transform json-prettify",
+        "printf '%s' 'pipeline clipboard text' | mclip-cli copy",
+        "mclip-cli pin --id h_xxx",
+        "mclip-cli list --pinned --json",
+        "mclip-cli list --json --with-meta",
+      ]}
+      installNoteLabel="CLI 安装说明 · Windows 请用 Git Bash"
+      moreLabel="更多命令"
+      points={agentCliPoints}
+      note="安装脚本会下载同一 GitHub Release 的预构建 mclip-cli 与 SHA-256 校验资产，验证成功后才替换旧 CLI；可用 MCLIP_VERSION 固定版本。只有二进制资产不存在时才回退到源码构建。Windows CLI 用户请在 Git Bash 或兼容 POSIX shell 中运行。"
+    />
 
-  <section class="privacy-band">
-    <div>
-      <h2>本地保存，也诚实说明保护边界。</h2>
-    </div>
-    <p>
-      mclip 不上传剪贴板内容。v0.2.0 默认遮罩检测到的敏感文本，但历史仍是本地明文；遮罩不是静态加密，启发式检测和来源应用排除也不是 DLP 或泄露防护保证。
-    </p>
-  </section>
+    <section class="privacy-band">
+      <div>
+        <h2>你的剪贴板，留在你的电脑。</h2>
+      </div>
+      <p>
+        mclip 不上传剪贴板内容。v0.2.0 默认遮罩检测到的敏感文本，但历史仍是本地明文；遮罩不是静态加密，启发式检测和来源应用排除也不是 DLP 或泄露防护保证。
+      </p>
+    </section>
 
-  <InstallGuide
-    id="install"
-    title="下载 v0.2.0"
-    intro="直接从已公开的 GitHub Release 选择平台包，并在安装前了解 macOS notarization、Windows 代码签名和 Linux 预览支持边界。"
-    items={installItems}
-  />
+    <InstallGuide
+      id="install"
+      title="下载 v0.2.0"
+      intro="选择适合你平台的安装包，安装注意事项见下方。"
+      downloadLabel="下载"
+      releaseNote="v0.2.0 已于 2026-09-19 正式发布，可从 GitHub Release 下载。"
+      releaseLabel="全部发布资产"
+      sourceLabel="查看源码"
+      items={installItems}
+    />
 
-  <Faq
-    id="faq"
-    title="安装前常见问题"
-    summary="这些问题不藏在脚注里。签名、公证、WebView2 和本地数据边界都应该在下载前看得到。"
-    items={faqItems}
-  />
+    <Faq
+      id="faq"
+      title="安装前常见问题"
+      summary="关于安装、隐私和日常使用。"
+      items={faqItems}
+    />
+
+  </main>
 
   <SiteFooter lang="zh" />
 </SiteLayout>

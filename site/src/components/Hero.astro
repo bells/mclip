@@ -5,10 +5,10 @@ import LanguageNav from "./LanguageNav.astro";
 interface Props {
   lang: SiteLocale;
   title: string;
+  titleAccent: string;
   description: string;
   primaryCta: string;
   secondaryCta: string;
-  note: string;
   utilityLabel: string;
   proofItems: string[];
 }
@@ -16,10 +16,10 @@ interface Props {
 const {
   lang,
   title,
+  titleAccent,
   description,
   primaryCta,
   secondaryCta,
-  note,
   utilityLabel,
   proofItems,
 } = Astro.props;
@@ -35,6 +35,9 @@ const copy: Record<
     install: string;
     mainNavigation: string;
     productSummary: string;
+    pause: string;
+    play: string;
+    shortcut: string;
   }
 > = {
   zh: {
@@ -46,6 +49,9 @@ const copy: Record<
     install: "安装",
     mainNavigation: "主导航",
     productSummary: "产品摘要",
+    pause: "暂停演示",
+    play: "播放演示",
+    shortcut: "快捷唤起",
   },
   en: {
     agents: "Agent CLI",
@@ -56,6 +62,9 @@ const copy: Record<
     install: "Install",
     mainNavigation: "Main navigation",
     productSummary: "Product summary",
+    pause: "Pause demo",
+    play: "Play demo",
+    shortcut: "Open with a shortcut",
   },
   ja: {
     agents: "Agent CLI",
@@ -66,6 +75,9 @@ const copy: Record<
     install: "インストール",
     mainNavigation: "メインナビゲーション",
     productSummary: "製品概要",
+    pause: "デモを一時停止",
+    play: "デモを再生",
+    shortcut: "ショートカットで開く",
   },
 };
 const t = copy[lang];
@@ -89,28 +101,30 @@ const homePath = localizedPath(lang, "/en/");
 
   <div class="hero-shell">
     <div class="hero-content">
-      <p class="utility-label">{utilityLabel}</p>
-      <h1>{title}</h1>
+      <h1><span>{title}</span>{" "}<span>{titleAccent}</span></h1>
       <p class="hero-copy">{description}</p>
       <div class="hero-actions">
-        <a class="button primary" href="https://github.com/bells/mclip/releases/tag/v0.2.0">
+        <a class="button primary" href="#install">
           {primaryCta}
         </a>
         <a class="button secondary" href="https://github.com/bells/mclip">
           {secondaryCta}
         </a>
       </div>
-      <p class="hero-note">{note}</p>
+      <p class="utility-label">{utilityLabel}</p>
+      <p class="shortcut-hint" aria-label={`${t.shortcut}: CommandOrControl+Shift+V`}>
+        <kbd>⌘ / Ctrl</kbd><span aria-hidden="true">+</span><kbd>Shift</kbd><span aria-hidden="true">+</span><kbd>V</kbd>
+      </p>
     </div>
 
     <figure class="hero-figure">
       <video
         class="hero-product"
-        autoplay
         loop
         muted
         playsinline
-        preload="auto"
+        preload="metadata"
+        controls
         poster="/videos/mclip-v0.2.0-demo-poster.png"
         width="1280"
         height="960"
@@ -125,7 +139,10 @@ const homePath = localizedPath(lang, "/en/");
           height="960"
         />
       </video>
-      <figcaption>{t.demoCaption}</figcaption>
+      <figcaption>
+        <span>{t.demoCaption}</span>
+        <button type="button" data-demo-toggle data-play-label={t.play} data-pause-label={t.pause} hidden>{t.play}</button>
+      </figcaption>
     </figure>
   </div>
 
@@ -137,17 +154,20 @@ const homePath = localizedPath(lang, "/en/");
 <script>
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const heroVideos = document.querySelectorAll<HTMLVideoElement>("[data-hero-demo]");
-
-  const syncHeroMotion = () => {
-    heroVideos.forEach((video) => {
-      if (reducedMotion.matches) {
-        video.pause();
-        return;
-      }
-      void video.play().catch(() => undefined);
-    });
-  };
-
-  syncHeroMotion();
-  reducedMotion.addEventListener("change", syncHeroMotion);
+  heroVideos.forEach((video) => {
+    const button = video.closest("figure")?.querySelector<HTMLButtonElement>("[data-demo-toggle]");
+    if (!button) return;
+    button.hidden = false;
+    const syncLabel = () => {
+      button.textContent = (video.paused ? button.dataset.playLabel : button.dataset.pauseLabel) ?? "";
+    };
+    const play = () => { void video.play().catch(syncLabel); };
+    button.addEventListener("click", () => video.paused ? play() : video.pause());
+    video.addEventListener("play", syncLabel);
+    video.addEventListener("pause", syncLabel);
+    // Native controls remain usable without JavaScript; reduced motion starts on the poster.
+    const syncMotion = () => reducedMotion.matches ? video.pause() : play();
+    syncMotion();
+    reducedMotion.addEventListener("change", syncMotion);
+  });
 </script>

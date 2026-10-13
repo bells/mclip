@@ -14,12 +14,12 @@ mclip-cli installer: https://www.mclip.cn/install.sh
 
 ## Summary
 
-mclip is a lightweight, local-first clipboard history app for macOS and Windows.
+mclip is a lightweight, local-first clipboard history app for macOS, Windows, and Linux.
 It is a tray-first desktop utility for restoring recent text, image, and file clipboard items without opening a large application window.
 
-中文摘要：mclip 是面向 macOS 和 Windows 的轻量、本地优先剪贴板历史工具。它常驻菜单栏或系统托盘，用于快速搜索、预览和恢复最近复制过的文字、图片和文件。
+中文摘要：mclip 是面向 macOS、Windows 和 Linux 的轻量、本地优先剪贴板历史工具。它常驻菜单栏或系统托盘，用于快速搜索、预览和恢复最近复制过的文字、图片和文件。
 
-日本語の概要：mclip は macOS と Windows 向けの軽量でローカルファーストなクリップボード履歴ツールです。メニューバーまたはシステムトレイから開き、最近コピーしたテキスト、画像、ファイルを検索、プレビュー、復元できます。
+日本語の概要：mclip は macOS、Windows、Linux 向けの軽量でローカルファーストなクリップボード履歴ツールです。メニューバーまたはシステムトレイから開き、最近コピーしたテキスト、画像、ファイルを検索、プレビュー、復元できます。
 
 ## Product facts
 

@@ -175,7 +175,7 @@ test("canonical guidance and localized product copy no longer teach npm", async 
   assert.match(sources[0], /corepack enable/);
   assert.match(sources[1], /corepack enable/);
   assert.match(sources[2], /corepack enable/);
-  for (const source of sources.slice(5)) {
+  for (const source of sources.slice(5, 8)) {
     assert.match(source, /pnpm run tauri:dev/);
   }
 });

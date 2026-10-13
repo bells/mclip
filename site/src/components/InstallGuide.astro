@@ -2,6 +2,9 @@
 interface InstallItem {
   title: string;
   body: string;
+  format?: string;
+  href?: string;
+  alternatives?: { label: string; href: string }[];
 }
 
 interface Props {
@@ -9,9 +12,13 @@ interface Props {
   title: string;
   intro: string;
   items: InstallItem[];
+  downloadLabel: string;
+  releaseNote: string;
+  releaseLabel: string;
+  sourceLabel: string;
 }
 
-const { id, title, intro, items } = Astro.props;
+const { id, title, intro, items, downloadLabel, releaseNote, releaseLabel, sourceLabel } = Astro.props;
 ---
 
 <section class="section install-section" id={id}>
@@ -24,9 +31,19 @@ const { id, title, intro, items } = Astro.props;
       items.map((item) => (
         <article class="install-row">
           <h3>{item.title}</h3>
+          {item.format && <p class="platform-format">{item.format}</p>}
+          <div class="platform-downloads">
+            {item.href && <a class="button secondary" href={item.href} aria-label={`${downloadLabel} ${item.title}`}>{downloadLabel}</a>}
+            {item.alternatives?.map((asset) => <a class="alternate-download" href={asset.href}>{asset.label}</a>)}
+          </div>
           <p>{item.body}</p>
         </article>
       ))
     }
+  </div>
+  <div class="release-links">
+    <p>{releaseNote}</p>
+    <a href="https://github.com/bells/mclip/releases/tag/v0.2.0">{releaseLabel}</a>
+    <a href="https://github.com/bells/mclip">{sourceLabel}</a>
   </div>
 </section>

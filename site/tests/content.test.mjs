@@ -10,15 +10,15 @@ test("Chinese, English, and Japanese homepages expose the core product promise",
   const ja = await read("src/pages/ja/index.astro");
 
   assert.match(zh, /轻量、本地优先/);
-  assert.match(zh, /macOS 和 Windows/);
+  assert.match(zh, /macOS、Windows 和 Linux/);
   assert.match(zh, /下载 mclip/);
   assert.match(zh, /Linux x86_64 预览版/);
   assert.match(en, /Lightweight, local-first/);
-  assert.match(en, /macOS and Windows/);
+  assert.match(en, /macOS, Windows, and Linux/);
   assert.match(en, /Download mclip/);
   assert.match(en, /Linux x86_64 preview/);
   assert.match(ja, /軽量でローカルファースト/);
-  assert.match(ja, /macOS と Windows/);
+  assert.match(ja, /macOS、Windows、Linux/);
   assert.match(ja, /mclip をダウンロード/);
   assert.match(ja, /Linux x86_64 プレビュー/);
 });
@@ -307,7 +307,7 @@ test("layout bundles the site stylesheet through Astro", async () => {
   assert.doesNotMatch(layout, /href="\/styles\/global\.css"/);
 });
 
-test("hero uses a tall autoplaying product video with a poster fallback", async () => {
+test("hero uses a controllable product video and respects reduced motion", async () => {
   const hero = await read("src/components/Hero.astro");
   const css = await read("src/styles/global.css");
   const renderer = await read("scripts/render-hero-video.m");
@@ -321,11 +321,13 @@ test("hero uses a tall autoplaying product video with a poster fallback", async 
   const height = poster.readUInt32BE(20);
 
   assert.match(hero, /<video/);
-  assert.match(hero, /autoplay/);
+  assert.match(hero, /controls/);
+  assert.match(hero, /data-demo-toggle/);
+  assert.doesNotMatch(hero, /\n\s*autoplay\s*\n/);
   assert.match(hero, /loop/);
   assert.match(hero, /muted/);
   assert.match(hero, /playsinline/);
-  assert.match(hero, /preload="auto"/);
+  assert.match(hero, /preload="metadata"/);
   assert.match(hero, /poster="\/videos\/mclip-v0\.2\.0-demo-poster\.png"/);
   assert.match(hero, /src="\/videos\/mclip-v0\.2\.0-demo\.mp4" type="video\/mp4"/);
   assert.match(hero, new RegExp(`width="${width}"`));
@@ -335,8 +337,7 @@ test("hero uses a tall autoplaying product video with a poster fallback", async 
   assert.match(hero, /prefers-reduced-motion: reduce/);
   assert.match(css, /\.hero-product\s*{[^}]*height:\s*auto;/s);
   assert.match(css, /\.hero-product\s*{[^}]*aspect-ratio:\s*4 \/ 3;/s);
-  assert.match(css, /\.hero-figure\s*{[^}]*margin-top:\s*60px;/s);
-  assert.match(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*16px 0 0 auto;/s);
+  assert.match(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*8px 0 0;/s);
   assert.doesNotMatch(css, /\.hero-figure figcaption\s*{[^}]*margin:\s*-/s);
   assert.match(renderer, /@"history"/);
   assert.match(renderer, /searchNumbers = @\[ @2, @7, @12, @18/);

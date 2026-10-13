@@ -6,7 +6,6 @@ interface AgentCliPoint {
 
 interface Props {
   id: string;
-  eyebrow: string;
   title: string;
   summary: string;
   installLabel: string;
@@ -15,11 +14,12 @@ interface Props {
   examples: string[];
   points: AgentCliPoint[];
   note: string;
+  moreLabel: string;
+  installNoteLabel: string;
 }
 
 const {
   id,
-  eyebrow,
   title,
   summary,
   installLabel,
@@ -28,13 +28,14 @@ const {
   examples,
   points,
   note,
+  moreLabel,
+  installNoteLabel,
 } = Astro.props;
 ---
 
 <section class="section agent-cli-section" id={id}>
   <div class="agent-cli-board">
     <div class="agent-cli-copy">
-      <p class="eyebrow">{eyebrow}</p>
       <h2>{title}</h2>
       <p>{summary}</p>
       <div class="agent-points">
@@ -53,8 +54,15 @@ const {
       <p class="terminal-label">{installLabel}</p>
       <pre><code>{installCommand}</code></pre>
       <p class="terminal-label">{exampleLabel}</p>
-      {examples.map((example) => <pre><code>{example}</code></pre>)}
-      <p class="agent-cli-note">{note}</p>
+      <pre><code>{examples.slice(0, 3).join("\n\n")}</code></pre>
+      <details class="more-commands">
+        <summary>{moreLabel}</summary>
+        <pre><code>{examples.slice(3).join("\n\n")}</code></pre>
+      </details>
     </div>
   </div>
+  <details class="cli-install-notes">
+    <summary>{installNoteLabel}</summary>
+    <p class="agent-cli-note">{note}</p>
+  </details>
 </section>

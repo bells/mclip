@@ -10,61 +10,65 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
 const features = [
   {
     title: "トレイからすぐに開く",
-    body: "メニューバーまたはシステムトレイのアイコンをクリックするか、CommandOrControl+Shift+V を押します。v0.2.0 では起動時にメインウィンドウだけを読み込み、プレビューを事前準備し、使用頻度の低いウィンドウは必要なときに作成します。Apple M2 の記録済みプロトコルではトレイ準備完了時間の中央値が 51.3% 短縮しました。",
+    body: "メニューバーまたはシステムトレイをクリック。必要なときだけ開き、すぐ元の作業へ戻れます。",
   },
   {
     title: "テキスト、画像、ファイル",
-    body: "テキスト、スクリーンショット、Finder またはエクスプローラーのファイルを保存します。ピン留めの上限は既定で 10 件、履歴設定で 5〜20 件に変更できます。上限を下げても既存のピン留めは保持されます。よく使う項目を通常履歴より上にピン留めでき、メイン一覧や履歴グループの件数には含まれません。ファイル履歴を選ぶとパス文字列ではなくシステムのファイル一覧として復元し、詳細には完全な絶対パスとファイル名を表示します。",
+    body: "コピーした内容をまとめて保存。ファイルはシステムのファイル一覧として復元し、詳細には完全な絶対パスと名前を表示します。",
   },
   {
-    title: "コンパクトで独立したプレビュー",
-    body: "最新 10 件を既定でコンパクトに表示し、テキストとファイルの行を詰めても画像行の高さは保ちます。古い履歴はグループ化し、ホバー時の詳細も独立したままです。画像は専用ビューアで最大化して開き、元のサイズに戻したり Escape で閉じたりできます。",
+    title: "独立したプレビュー",
+    body: "メインウィンドウを広げずに確認。画像は専用ビューアで最大化、復元でき、Esc で閉じられます。",
   },
   {
-    title: "検索とキーボード操作",
-    body: "入力して絞り込み、矢印キーで移動し、Enter でコピー、Escape で閉じます。検索、キーボード、ポインターは履歴、グループ、フッター操作で同じ選択対象を共有します。",
+    title: "キーボードで素早く",
+    body: "入力して検索、矢印キーで選択、Enter でコピー。よく使う内容はピン留めできます。",
   },
   {
-    title: "ローカルファーストのプライバシー",
-    body: "クリップボード履歴、設定、画像アセットはこのコンピューターだけに保存されます。v0.2.0 は有界なヒューリスティックで高確度の機密テキストを分類して既定でマスクし、指定したコピー元アプリを除外できますが、どちらも誤検出や見落としが起こる可能性があります。",
+    title: "履歴はこの端末に",
+    body: "履歴はこのコンピューターだけに保存。機密テキストのマスクやコピー元アプリの除外を設定できます。",
   },
   {
-    title: "テーマ、言語、プラットフォーム",
-    body: "mclip は macOS と Windows に対応し、システムの外観と言語に従えます。中国語、英語、日本語を選択でき、新規インストールでは 200 件、最大 1000 件まで履歴を保持します。一覧件数、項目番号、ブランド表示、対応する Agent CLI のインストールも設定できます。",
+    title: "3 つのプラットフォーム",
+    body: "macOS、Windows、Linux に対応。外観はシステムに従い、中国語、英語、日本語を選べます。",
   },
 ];
 
 const agentCliPoints = [
   {
-    title: "1 コマンドの Agent Mode",
-    body: "mclip-cli agent --last 5 --json は、最近の履歴、コマンド機能、安全境界を Codex、Claude Code、Cursor、Cline 向けにまとめて出力します。",
+    title: "1 コマンドでコンテキスト取得",
+    body: "Agent Mode は最近の履歴、コマンド機能、安全境界をまとめます。",
   },
   {
-    title: "デスクトップを邪魔しない制御された操作",
-    body: "agent/list/get/search/context は読み取り専用でピン留めの絞り込みに対応します。pin/unpin は 1 件だけを変更し、clear --yes --keep-pinned はピン留めを残して通常履歴を消去します。",
+    title: "読み取りと操作を分ける",
+    body: "読み取りコマンドは履歴を変更しません。コピー、ピン留め、消去は個別の操作です。",
   },
   {
-    title: "エラー、コード、プロンプトに対応",
-    body: "Agent Mode は既定で Markdown、必要に応じて JSON を出力します。transform は stdin/stdout で JSON、Base64、URL コンポーネントを変換し、copy は 1 つの stdin 入力を受け取ります。どちらも履歴を直接変更しません。",
+    title: "組み合わせられるテキスト変換",
+    body: "標準入出力で JSON、Base64、URL コンポーネントを変換します。",
   },
 ];
 
 const installItems = [
   {
     title: "macOS",
-    body: "GitHub Releases から DMG をダウンロードし、mclip.app をアプリケーションフォルダへドラッグします。現在のビルドは notarization 済みではないため、ブラウザからのダウンロード後に macOS が隔離する場合があります。",
+    format: "ARM64 · DMG",
+    href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_aarch64.dmg",
+    body: "DMG を開き、mclip.app をアプリケーションへドラッグ。公証されていないため、初回起動時に macOS が隔離する場合があります。",
   },
   {
     title: "Windows",
-    body: "MSI または EXE インストーラーをダウンロードし、セットアップを進めます。現在のインストーラーはコード署名されていないため、Windows SmartScreen が不明な発行元として警告する場合があります。",
+    format: "x64 · EXE / MSI",
+    href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_x64-setup.exe",
+    alternatives: [{ label: "MSI", href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_x64_en-US.msi" }],
+    body: "EXE または MSI でインストール。未署名のため、Windows SmartScreen が警告する場合があります。",
   },
   {
-    title: "Linux x86_64 プレビュー",
-    body: "v0.2.0 Release から DEB または AppImage をダウンロードします。トレイ、ショートカット、自動ペースト、コピー元識別、パネル位置は X11、XWayland、Wayland で個別に機能低下する場合があります。ARM64 パッケージは提供していません。",
-  },
-  {
-    title: "開発者",
-    body: "ソースコードは GitHub で公開しています。Tauri 2、React 19、TypeScript、Rust を使用し、pnpm run tauri:dev でローカル実行できます。",
+    title: "Linux",
+    format: "x86_64 · DEB / AppImage",
+    href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_amd64.deb",
+    alternatives: [{ label: "AppImage", href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_amd64.AppImage" }],
+    body: "Linux x86_64 プレビュー。DEB と AppImage を提供。トレイ、ショートカット、自動ペースト、コピー元識別、位置調整はセッションで異なります。ARM64 は未提供です。",
   },
 ];
 
@@ -87,7 +91,7 @@ const faqItems = [
   },
   {
     question: "履歴は何件保存できますか？",
-    answer: "新規インストールでは既定で最大 200 件、10～1000 件の範囲で設定できます。メインウィンドウと履歴グループの表示件数は別々に設定でき、テキスト、画像、ファイルから保存する種類も選べます。",
+    answer: "新規インストールでは既定で最大 200 件、10～1000 件の範囲で設定できます。メインウィンドウと履歴グループの表示件数は別々に設定でき、テキスト、画像、ファイルから保存する種類も選べます。 ピン留めは既定で 10 件、履歴設定で 5〜20 件に変更できます。上限を下げても既存項目を保持し、通常履歴や表示件数には含まれません。",
   },
 ];
 ---
@@ -96,77 +100,80 @@ const faqItems = [
   lang="ja"
   path="/ja/"
   title="mclip - 軽量でローカルファーストなクリップボード履歴"
-  description="mclip は macOS と Windows 向けのローカルファーストなクリップボード履歴アプリです。テキスト、画像、ファイルの履歴、独立したプレビュー、トレイショートカット、Agent Mode 対応の AI Agent CLI を備えています。"
+  description="mclip は macOS、Windows、Linux 向けのローカルファーストなクリップボード履歴アプリです。テキスト、画像、ファイルの履歴、独立したプレビュー、トレイショートカット、Agent Mode 対応の AI Agent CLI を備えています。"
   faqItems={faqItems}
 >
   <Hero
     lang="ja"
-    title="軽量でローカルファーストなクリップボード履歴"
-    description="mclip はメニューバーまたはシステムトレイに常駐します。以前コピーしたテキスト、画像、ファイルが必要なときだけ開き、大きなウィンドウに作業を遮られず、すぐ元の作業へ戻れます。"
+    title="コピーしたものを、"
+    titleAccent="もう一度手元に。"
+    description="テキスト、画像、ファイルをローカルに保存。検索して確認し、必要な内容をすぐにコピー。"
     primaryCta="mclip をダウンロード"
     secondaryCta="GitHub で見る"
-    note="v0.2.0 は 2026 年 9 月 19 日に正式公開され、GitHub Releases からダウンロードできます。"
-    utilityLabel="macOS のメニューバー · Windows のシステムトレイ"
-    proofItems={[
-      "Apple M2 でトレイ準備完了時間の中央値を 51.3% 短縮",
-      "テキスト、画像、ファイルと専用画像ビューア",
-      "差分更新と画像キャッシュもローカルで完結",
-    ]}
+    utilityLabel="macOS · Windows · Linux"
+    proofItems={["テキスト · 画像 · ファイル", "ローカル保存", "オープンソース"]}
   />
 
-  <FeatureGrid
-    id="features"
-    title="コピー履歴を手元に置き、作業の邪魔をしない"
-    summary="トレイから開き、検索し、プレビューしてコピーしたら、すぐ元の作業へ戻る。mclip の画面はこの実際の流れに沿っています。"
-    features={features}
-  />
+  <main>
+    <FeatureGrid
+      id="features"
+      title="コピー履歴を、すぐ手元に。"
+      features={features}
+    />
 
-  <AgentCliSection
-    id="agents"
-    eyebrow="開発者と AI Agent 向け"
-    title="AI Agent と CLI"
-    summary="mclip-cli は Codex、Claude Code、Cursor、Cline がローカルのクリップボード履歴を参照するためのターミナル入口です。Agent Mode は最近の履歴、利用可能なコマンド、安全境界をまとめ、同じ内容を何度も貼り付ける手間を減らします。CLI のヘルプと出力は引き続き英語です。"
-    installLabel="mclip-cli をインストール"
-    installCommand="curl -fsSL https://www.mclip.cn/install.sh | sh"
-    exampleLabel="よく使うコマンド"
-    examples={[
-      "mclip-cli agent --last 5 --json",
-      "mclip-cli list --limit 5 --json",
-      "mclip-cli context --last 3 --format markdown",
-      "mclip-cli add \"note from agent\"",
-      "mclip-cli copy --index 1",
-      "printf '%s' '{\"ok\":true}' | mclip-cli transform json-prettify",
-      "printf '%s' 'pipeline clipboard text' | mclip-cli copy",
-      "mclip-cli pin --id h_xxx",
-      "mclip-cli list --pinned --json",
-      "mclip-cli list --json --with-meta",
-    ]}
-    points={agentCliPoints}
-    note="インストーラーは同じ GitHub Release からビルド済み mclip-cli と SHA-256 ファイルを取得し、古い CLI を置換する前に検証します。MCLIP_VERSION でバージョンを固定でき、バイナリアセットがない場合だけソースビルドへ切り替えます。Windows では Git Bash など POSIX 互換シェルから実行してください。"
-  />
+    <AgentCliSection
+      id="agents"
+      title="AI Agent と CLI"
+      summary="Codex、Claude Code、Cursor、Cline にコピー済みのローカル情報を渡せます。mclip-cli は Markdown や JSON を出力します。CLI のヘルプと出力は引き続き英語です。"
+      installLabel="mclip-cli をインストール"
+      installCommand="curl -fsSL https://www.mclip.cn/install.sh | sh"
+      exampleLabel="よく使うコマンド"
+      examples={[
+        "mclip-cli agent --last 5 --json",
+        "mclip-cli list --limit 5 --json",
+        "mclip-cli context --last 3 --format markdown",
+        "mclip-cli add \"note from agent\"",
+        "mclip-cli copy --index 1",
+        "printf '%s' '{\"ok\":true}' | mclip-cli transform json-prettify",
+        "printf '%s' 'pipeline clipboard text' | mclip-cli copy",
+        "mclip-cli pin --id h_xxx",
+        "mclip-cli list --pinned --json",
+        "mclip-cli list --json --with-meta",
+      ]}
+      installNoteLabel="CLI インストールの注意 · Windows は Git Bash"
+      moreLabel="その他のコマンド"
+      points={agentCliPoints}
+      note="インストーラーは同じ GitHub Release からビルド済み mclip-cli と SHA-256 ファイルを取得し、古い CLI を置換する前に検証します。MCLIP_VERSION でバージョンを固定でき、バイナリアセットがない場合だけソースビルドへ切り替えます。Windows では Git Bash など POSIX 互換シェルから実行してください。"
+    />
 
-  <section class="privacy-band">
-    <div>
-      <h2>履歴はコンピューターに残し、保護の限界も明示します。</h2>
-    </div>
-    <p>
-      mclip はクリップボード内容をアップロードしません。v0.2.0 は検出した機密テキストを既定でマスクしますが、履歴はローカルの平文です。マスクは保存時の暗号化ではなく、ヒューリスティック検出やコピー元除外も DLP や漏えい防止を保証しません。
-    </p>
-  </section>
+    <section class="privacy-band">
+      <div>
+        <h2>クリップボード履歴は、このコンピューターに。</h2>
+      </div>
+      <p>
+        mclip はクリップボード内容をアップロードしません。v0.2.0 は検出した機密テキストを既定でマスクしますが、履歴はローカルの平文です。マスクは保存時の暗号化ではなく、ヒューリスティック検出やコピー元除外も DLP や漏えい防止を保証しません。
+      </p>
+    </section>
 
-  <InstallGuide
-    id="install"
-    title="v0.2.0 をダウンロード"
-    intro="公開済みの GitHub Release からプラットフォームパッケージを選び、macOS notarization、Windows コード署名、Linux プレビューの制限をインストール前に確認できます。"
-    items={installItems}
-  />
+    <InstallGuide
+      id="install"
+      title="v0.2.0 をダウンロード"
+      intro="プラットフォームに合ったパッケージを選び、以下の注意事項をご確認ください。"
+      downloadLabel="ダウンロード"
+      releaseNote="v0.2.0 は 2026 年 9 月 19 日に正式公開され、GitHub Releases からダウンロードできます。"
+      releaseLabel="すべての配布ファイル"
+      sourceLabel="ソースコード"
+      items={installItems}
+    />
 
-  <Faq
-    id="faq"
-    title="インストール前のよくある質問"
-    summary="署名、notarization、WebView2、ローカルデータの境界をダウンロード前に確認できます。"
-    items={faqItems}
-  />
+    <Faq
+      id="faq"
+      title="インストール前のよくある質問"
+      summary="インストール、プライバシー、日常の使い方。"
+      items={faqItems}
+    />
+
+  </main>
 
   <SiteFooter lang="ja" />
 </SiteLayout>

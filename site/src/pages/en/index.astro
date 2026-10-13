@@ -9,62 +9,66 @@ import SiteLayout from "../../layouts/SiteLayout.astro";
 
 const features = [
   {
-    title: "Tray-first",
-    body: "Click the menu bar or system tray icon, or press CommandOrControl+Shift+V. v0.2.0 keeps only the main window on the startup path, warms previews, and creates low-frequency windows on demand; the recorded Apple M2 protocol measured a 51.3% tray-ready median improvement.",
+    title: "Open from the tray",
+    body: "Click the menu bar or system tray icon. Open mclip when you need it, then get back to work.",
   },
   {
     title: "Text, images, and files",
-    body: "mclip keeps text snippets, screenshots, and files from Finder or File Explorer. The pin limit defaults to 10, adjustable from 5 to 20 in History settings. Lowering the limit keeps existing pins. Pin frequently reused items ahead of ordinary history without consuming the main or archive count. Selecting file history restores a system file list rather than path-only text, while details still show the full absolute path and name.",
+    body: "Keep snippets, screenshots, and files together. File history restores a system file list; details show the full absolute path and name.",
   },
   {
-    title: "Compact, independent previews",
-    body: "The latest 10 items stay compact by default, with tighter text/file rows that do not shrink image rows. Older history stays grouped and hover details remain independent. Image details can open in a dedicated maximized viewer, restore, and close with Escape.",
+    title: "Independent previews",
+    body: "Preview without widening the main window. Open images in a dedicated viewer, maximize or restore, and close with Escape.",
   },
   {
-    title: "Search and keyboard flow",
-    body: "Type to filter, use arrow keys to move, press Enter to copy, and hit Escape to hide. Search, keyboard, and pointer input share one active target across history, groups, and footer actions.",
+    title: "Keyboard first",
+    body: "Type to search, use arrow keys to select, and press Enter to copy. Pin the items you reach for most.",
   },
   {
-    title: "Local-first privacy",
-    body: "Clipboard history, settings, and image assets stay on your computer. v0.2.0 uses bounded heuristics to classify and mask high-confidence sensitive text by default and can exclude configured source applications; both controls can miss or misclassify content.",
+    title: "Local by default",
+    body: "Your clipboard history stays on your computer. Sensitive-text masking and source-app exclusions are optional local controls.",
   },
   {
-    title: "Themes, languages, and platforms",
-    body: "mclip supports macOS and Windows, follows system appearance and language, and offers Chinese, English, and Japanese. New installs keep 200 items by default, configurable up to 1000, with controls for list counts, row numbers, and branding. The Agent CLI tab safely installs, upgrades, or reinstalls the matching version.",
+    title: "Three platforms",
+    body: "Available for macOS, Windows, and Linux. Follow the system theme and choose Chinese, English, or Japanese.",
   },
 ];
 
 const agentCliPoints = [
   {
-    title: "Agent Mode in one command",
-    body: "mclip-cli agent --last 5 --json emits recent history, command capabilities, and safety boundaries for Codex, Claude Code, Cursor, and Cline.",
+    title: "Context in one command",
+    body: "Agent Mode bundles recent history, command capabilities, and safety boundaries.",
   },
   {
-    title: "Controlled actions, no desktop noise",
-    body: "agent/list/get/search/context are read-only and support pinned filtering. pin/unpin mutate one stable item; clear --yes --keep-pinned removes ordinary history while preserving pins.",
+    title: "Read first, act explicitly",
+    body: "Read commands leave history untouched. Copy, pin, and clear are separate actions.",
   },
   {
-    title: "Built for errors, code, and prompts",
-    body: "Agent Mode defaults to Markdown and supports JSON. transform composes JSON, Base64, and URL-component operations over stdin/stdout, while copy accepts one stdin source. Neither mode directly mutates history.",
+    title: "Composable text tools",
+    body: "Transform JSON, Base64, or URL components through stdin and stdout.",
   },
 ];
 
 const installItems = [
   {
     title: "macOS",
-    body: "Download the DMG from GitHub Releases and drag mclip.app into Applications. The current build is not notarized, so macOS may quarantine it after browser download.",
+    format: "ARM64 · DMG",
+    href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_aarch64.dmg",
+    body: "Open the DMG and drag mclip.app into Applications. Not notarized; macOS may quarantine the first launch.",
   },
   {
     title: "Windows",
-    body: "Download the MSI or EXE installer and follow the setup wizard. The current installer is unsigned, so Windows SmartScreen may show an unknown-publisher warning.",
+    format: "x64 · EXE / MSI",
+    href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_x64-setup.exe",
+    alternatives: [{ label: "MSI", href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_x64_en-US.msi" }],
+    body: "Run the EXE or MSI installer. Unsigned; Windows SmartScreen may show an unknown-publisher warning.",
   },
   {
-    title: "Linux x86_64 preview",
-    body: "Download the DEB or AppImage from the v0.2.0 Release. Tray, shortcut, auto-paste, source-identity, and panel-positioning behavior can degrade independently across X11, XWayland, and Wayland sessions. ARM64 packages are not provided.",
-  },
-  {
-    title: "Developers",
-    body: "The source code is open on GitHub. The app uses Tauri 2, React 19, TypeScript, and Rust, and runs locally with pnpm run tauri:dev.",
+    title: "Linux",
+    format: "x86_64 · DEB / AppImage",
+    href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_amd64.deb",
+    alternatives: [{ label: "AppImage", href: "https://github.com/bells/mclip/releases/download/v0.2.0/mclip_0.2.0_amd64.AppImage" }],
+    body: "Linux x86_64 preview with DEB and AppImage. Tray, shortcuts, auto-paste, source identity, and positioning vary by desktop session. No ARM64 packages.",
   },
 ];
 
@@ -87,7 +91,7 @@ const faqItems = [
   },
   {
     question: "How many items can mclip keep?",
-    answer: "New installs keep up to 200 items by default, configurable from 10 to 1000. Main-window and archive-group counts are separate, and mclip can save text, images, files, or only selected types.",
+    answer: "New installs keep up to 200 items by default, configurable from 10 to 1000. Main-window and archive-group counts are separate, and mclip can save text, images, files, or only selected types. The pin limit defaults to 10, adjustable from 5 to 20 in History settings. Lowering it keeps existing pins; pins do not consume ordinary history or display counts.",
   },
 ];
 ---
@@ -96,77 +100,80 @@ const faqItems = [
   lang="en"
   path="/en/"
   title="mclip - Lightweight, local-first clipboard history"
-  description="mclip is a local-first clipboard history app for macOS and Windows, with text, image, and file history, independent previews, tray shortcuts, and an AI Agent CLI with Agent Mode."
+  description="mclip is a local-first clipboard history app for macOS, Windows, and Linux, with text, image, and file history, independent previews, tray shortcuts, and an AI Agent CLI with Agent Mode."
   faqItems={faqItems}
 >
   <Hero
     lang="en"
-    title="Lightweight, local-first clipboard history"
-    description="mclip lives in the menu bar or system tray. Open it when you need a previous text snippet, image, or file, then return to work without a large window taking over."
+    title="Copy once."
+    titleAccent="Find it again."
+    description="Text, images, and files. Search your clipboard history, preview what you need, and copy it back."
     primaryCta="Download mclip"
     secondaryCta="View on GitHub"
-    note="v0.2.0 was published on September 19, 2026 and is available from GitHub Releases."
-    utilityLabel="Menu bar on macOS · System tray on Windows"
-    proofItems={[
-      "Measured tray-ready median improved 51.3% on Apple M2",
-      "Text, images, files, and a dedicated image viewer",
-      "Revisioned updates and image caching stay local",
-    ]}
+    utilityLabel="macOS · Windows · Linux"
+    proofItems={["Text · Images · Files", "Local history", "Open source"]}
   />
 
-  <FeatureGrid
-    id="features"
-    title="Keep copy history close without adding noise"
-    summary="The page mirrors the product flow: open the tray window, search, preview, copy, then get back to the task you were doing."
-    features={features}
-  />
+  <main>
+    <FeatureGrid
+      id="features"
+      title="Keep copy history close."
+      features={features}
+    />
 
-  <AgentCliSection
-    id="agents"
-    eyebrow="For developers and AI agents"
-    title="AI Agent and CLI"
-    summary="mclip-cli gives Codex, Claude Code, Cursor, and Cline a local terminal entry into clipboard history. Agent Mode bundles recent history, available commands, and safety boundaries so agents do not need you to paste the same snippet again."
-    installLabel="Install mclip-cli"
-    installCommand="curl -fsSL https://www.mclip.cn/install.sh | sh"
-    exampleLabel="Common commands"
-    examples={[
-      "mclip-cli agent --last 5 --json",
-      "mclip-cli list --limit 5 --json",
-      "mclip-cli context --last 3 --format markdown",
-      "mclip-cli add \"note from agent\"",
-      "mclip-cli copy --index 1",
-      "printf '%s' '{\"ok\":true}' | mclip-cli transform json-prettify",
-      "printf '%s' 'pipeline clipboard text' | mclip-cli copy",
-      "mclip-cli pin --id h_xxx",
-      "mclip-cli list --pinned --json",
-      "mclip-cli list --json --with-meta",
-    ]}
-    points={agentCliPoints}
-    note="The installer downloads the prebuilt mclip-cli and SHA-256 companion from the same GitHub Release, verifies it before replacing an older CLI, and accepts MCLIP_VERSION for pinned installs. It falls back to a source build only when the binary asset is missing. Windows CLI users should run it from Git Bash or another POSIX-compatible shell."
-  />
+    <AgentCliSection
+      id="agents"
+      title="AI Agent and CLI"
+      summary="Give Codex, Claude Code, Cursor, and Cline local context from what you already copied. mclip-cli reads your history and returns Markdown or JSON."
+      installLabel="Install mclip-cli"
+      installCommand="curl -fsSL https://www.mclip.cn/install.sh | sh"
+      exampleLabel="Common commands"
+      examples={[
+        "mclip-cli agent --last 5 --json",
+        "mclip-cli list --limit 5 --json",
+        "mclip-cli context --last 3 --format markdown",
+        "mclip-cli add \"note from agent\"",
+        "mclip-cli copy --index 1",
+        "printf '%s' '{\"ok\":true}' | mclip-cli transform json-prettify",
+        "printf '%s' 'pipeline clipboard text' | mclip-cli copy",
+        "mclip-cli pin --id h_xxx",
+        "mclip-cli list --pinned --json",
+        "mclip-cli list --json --with-meta",
+      ]}
+      installNoteLabel="CLI installation notes · Git Bash on Windows"
+      moreLabel="More commands"
+      points={agentCliPoints}
+      note="The installer downloads the prebuilt mclip-cli and SHA-256 companion from the same GitHub Release, verifies it before replacing an older CLI, and accepts MCLIP_VERSION for pinned installs. It falls back to a source build only when the binary asset is missing. Windows CLI users should run it from Git Bash or another POSIX-compatible shell."
+    />
 
-  <section class="privacy-band">
-    <div>
-      <h2>Your clipboard history stays on your computer, with explicit protection limits.</h2>
-    </div>
-    <p>
-      mclip does not upload clipboard contents. v0.2.0 masks detected sensitive text by default, but history remains local plaintext: masking is not encryption at rest, and heuristic detection or source exclusions are not DLP or breach-prevention guarantees.
-    </p>
-  </section>
+    <section class="privacy-band">
+      <div>
+        <h2>Your clipboard history stays on your computer.</h2>
+      </div>
+      <p>
+        mclip does not upload clipboard contents. v0.2.0 masks detected sensitive text by default, but history remains local plaintext: masking is not encryption at rest, and heuristic detection or source exclusions are not DLP or breach-prevention guarantees.
+      </p>
+    </section>
 
-  <InstallGuide
-    id="install"
-    title="Download v0.2.0"
-    intro="Choose a platform asset from the published GitHub Release, with macOS notarization, Windows signing, and Linux preview limits visible before install."
-    items={installItems}
-  />
+    <InstallGuide
+      id="install"
+      title="Download v0.2.0"
+      intro="Choose a package for your platform. Installation notes are listed below."
+      downloadLabel="Download"
+      releaseNote="v0.2.0 was published on September 19, 2026 and is available from GitHub Releases."
+      releaseLabel="All release assets"
+      sourceLabel="Source code"
+      items={installItems}
+    />
 
-  <Faq
-    id="faq"
-    title="Common questions before installing"
-    summary="Signing, notarization, WebView2, and the local data boundary are visible before anyone downloads the app."
-    items={faqItems}
-  />
+    <Faq
+      id="faq"
+      title="Common questions before installing"
+      summary="Installation, privacy, and everyday use."
+      items={faqItems}
+    />
+
+  </main>
 
   <SiteFooter lang="en" />
 </SiteLayout>
