@@ -103,6 +103,29 @@ enum TrayIconPlatform {
     Other,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TrayClickAction {
+    ToggleMainWindow,
+    ShowContextMenu,
+    Ignore,
+}
+
+fn tray_click_action(event: &TrayIconEvent, platform: TrayIconPlatform) -> TrayClickAction {
+    match event {
+        TrayIconEvent::Click {
+            button: MouseButton::Left,
+            button_state: MouseButtonState::Up,
+            ..
+        } => TrayClickAction::ToggleMainWindow,
+        TrayIconEvent::Click {
+            button: MouseButton::Right,
+            button_state: MouseButtonState::Up,
+            ..
+        } if platform == TrayIconPlatform::Macos => TrayClickAction::ShowContextMenu,
+        _ => TrayClickAction::Ignore,
+    }
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct PreviewFocusLossGuard {
     deadline: Mutex<Option<Instant>>,
@@ -131,8 +154,19 @@ impl PreviewFocusLossGuard {
 }
 
 struct TrayMenuItems {
+    #[cfg(target_os = "linux")]
+    show_main: MenuItem<tauri::Wry>,
     preferences: MenuItem<tauri::Wry>,
     quit: MenuItem<tauri::Wry>,
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn tray_show_main_label(language: &AppLanguage) -> &'static str {
+    match resolve_app_language(language) {
+        ResolvedAppLanguage::ZhCn => "打开 mclip",
+        ResolvedAppLanguage::En => "Open mclip",
+        ResolvedAppLanguage::Ja => "mclip を開く",
+    }
 }
 
 fn tray_menu_labels(language: &AppLanguage) -> (&'static str, &'static str) {
@@ -147,6 +181,14 @@ fn configure_tray_menu(app: &AppHandle, language: &AppLanguage) {
     if let Some(items) = app.try_state::<TrayMenuItems>() {
         let (preferences, quit) = tray_menu_labels(language);
         if items.preferences.set_text(preferences).is_err() || items.quit.set_text(quit).is_err() {
+            log_error(app, "tray", "menu_labels_update_failed");
+        }
+        #[cfg(target_os = "linux")]
+        if items
+            .show_main
+            .set_text(tray_show_main_label(language))
+            .is_err()
+        {
             log_error(app, "tray", "menu_labels_update_failed");
         }
     }
@@ -209,8 +251,24 @@ fn build_tray(
         MenuItem::with_id(app, "preferences", preferences_label, true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, "quit", quit_label, true, None::<&str>)?;
+    #[cfg(target_os = "linux")]
+    let show_main_item = MenuItem::with_id(
+        app,
+        "show-main",
+        tray_show_main_label(&startup_settings.language),
+        true,
+        None::<&str>,
+    )?;
+    #[cfg(target_os = "linux")]
+    let menu = Menu::with_items(
+        app,
+        &[&show_main_item, &preferences_item, &separator, &quit_item],
+    )?;
+    #[cfg(not(target_os = "linux"))]
     let menu = Menu::with_items(app, &[&preferences_item, &separator, &quit_item])?;
     app.manage(TrayMenuItems {
+        #[cfg(target_os = "linux")]
+        show_main: show_main_item,
         preferences: preferences_item,
         quit: quit_item,
     });
@@ -228,22 +286,40 @@ fn build_tray(
         default_icon
     });
 
-    TrayIconBuilder::with_id(TRAY_ICON_ID)
+    let builder = TrayIconBuilder::with_id(TRAY_ICON_ID)
         .icon(icon)
         .icon_as_template(menu_bar_icon_is_template(
             &startup_settings.menu_bar_icon_style,
         ))
         .tooltip(tray_tooltip(&startup_settings.language))
-        .menu(&menu)
-        .show_menu_on_left_click(false)
+        .show_menu_on_left_click(false);
+    // An attached NSStatusItem menu can consume left clicks before tray-icon sees them.
+    // macOS presents this retained menu explicitly; Windows/Linux keep their native menu.
+    #[cfg(not(target_os = "macos"))]
+    let builder = builder.menu(&menu);
+    #[cfg(target_os = "linux")]
+    let menu_show_guard_until = Arc::clone(&show_guard_until);
+
+    builder
         .on_tray_icon_event(move |tray, event| {
             on_tray_event(tray.app_handle(), &event);
 
+            let action = tray_click_action(&event, current_tray_icon_platform());
+            if action == TrayClickAction::ShowContextMenu {
+                #[cfg(target_os = "macos")]
+                if let Some(main_window) = tray.app_handle().get_webview_window("main") {
+                    if main_window.popup_menu(&menu).is_err() {
+                        log_error(tray.app_handle(), "tray", "context_menu_open_failed");
+                    }
+                }
+                return;
+            }
+            if action != TrayClickAction::ToggleMainWindow {
+                return;
+            }
             if let TrayIconEvent::Click {
                 position,
                 rect,
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
                 ..
             } = event
             {
@@ -283,7 +359,17 @@ fn build_tray(
                 }
             }
         })
-        .on_menu_event(|app, event| {
+        .on_menu_event(move |app, event| {
+            #[cfg(target_os = "linux")]
+            if event.id == "show-main" {
+                remember_current_paste_target(app);
+                protect_next_focus_loss(&menu_show_guard_until);
+                // AppIndicator supplies neither click events nor icon geometry.
+                if show_main_window(app, WindowPlacement::Center).is_err() {
+                    log_error(app, "tray", "main_window_open_failed");
+                }
+                return;
+            }
             if event.id == "quit" {
                 app.exit(0);
             } else if event.id == "preferences" {
@@ -878,18 +964,119 @@ mod tests {
 
     use super::{
         menu_bar_icon_for_platform, menu_bar_icon_is_template_for_platform,
-        should_hide_main_window_on_focus_loss, single_instance_launch_action, tray_menu_labels,
-        tray_tooltip, PreviewFocusLossGuard, SingleInstanceLaunchAction, TrayIconPlatform,
-        TOGGLE_WINDOW_SHORTCUT, TRAY_POSITION_AUTOSAVE_NAME,
+        should_hide_main_window_on_focus_loss, single_instance_launch_action, tray_click_action,
+        tray_menu_labels, tray_show_main_label, tray_tooltip, PreviewFocusLossGuard,
+        SingleInstanceLaunchAction, TrayClickAction, TrayIconPlatform, TOGGLE_WINDOW_SHORTCUT,
+        TRAY_POSITION_AUTOSAVE_NAME,
     };
     use crate::auxiliary_window_contract::{auxiliary_window_descriptor, LogicalWindowSize};
     use crate::performance::{
         PerformanceAutomationAction, PERFORMANCE_CLOSE_VIEWER_ARGUMENT,
         PERFORMANCE_OPEN_VIEWER_ARGUMENT, PERFORMANCE_QUIT_ARGUMENT,
     };
+    use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
+
+    fn tray_click(button: MouseButton, button_state: MouseButtonState) -> TrayIconEvent {
+        TrayIconEvent::Click {
+            id: "main".into(),
+            position: tauri::PhysicalPosition::new(10.0, 10.0),
+            rect: tauri::Rect {
+                position: tauri::PhysicalPosition::new(0, 0).into(),
+                size: tauri::PhysicalSize::new(20, 20).into(),
+            },
+            button,
+            button_state,
+        }
+    }
+
+    #[test]
+    fn tray_left_click_toggles_once_on_release_on_both_platforms() {
+        for platform in [TrayIconPlatform::Macos, TrayIconPlatform::Other] {
+            assert_eq!(
+                tray_click_action(
+                    &tray_click(MouseButton::Left, MouseButtonState::Down),
+                    platform
+                ),
+                TrayClickAction::Ignore,
+            );
+            assert_eq!(
+                tray_click_action(
+                    &tray_click(MouseButton::Left, MouseButtonState::Up),
+                    platform
+                ),
+                TrayClickAction::ToggleMainWindow,
+            );
+        }
+    }
+
+    #[test]
+    fn tray_right_click_opens_menu_once_on_macos_only() {
+        for (button_state, platform, expected) in [
+            (
+                MouseButtonState::Down,
+                TrayIconPlatform::Macos,
+                TrayClickAction::Ignore,
+            ),
+            (
+                MouseButtonState::Up,
+                TrayIconPlatform::Macos,
+                TrayClickAction::ShowContextMenu,
+            ),
+            (
+                MouseButtonState::Down,
+                TrayIconPlatform::Other,
+                TrayClickAction::Ignore,
+            ),
+            (
+                MouseButtonState::Up,
+                TrayIconPlatform::Other,
+                TrayClickAction::Ignore,
+            ),
+        ] {
+            assert_eq!(
+                tray_click_action(&tray_click(MouseButton::Right, button_state), platform),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn tray_middle_click_and_double_click_do_not_toggle_main() {
+        for platform in [TrayIconPlatform::Macos, TrayIconPlatform::Other] {
+            for button_state in [MouseButtonState::Down, MouseButtonState::Up] {
+                assert_eq!(
+                    tray_click_action(&tray_click(MouseButton::Middle, button_state), platform),
+                    TrayClickAction::Ignore,
+                );
+            }
+            let click = tray_click(MouseButton::Left, MouseButtonState::Up);
+            let TrayIconEvent::Click {
+                id, position, rect, ..
+            } = click
+            else {
+                unreachable!()
+            };
+            assert_eq!(
+                tray_click_action(
+                    &TrayIconEvent::DoubleClick {
+                        id,
+                        position,
+                        rect,
+                        button: MouseButton::Left
+                    },
+                    platform
+                ),
+                TrayClickAction::Ignore,
+            );
+        }
+    }
 
     #[test]
     fn tray_preferences_and_quit_labels_follow_app_language() {
+        assert_eq!(tray_show_main_label(&AppLanguage::ZhCn), "打开 mclip");
+        assert_eq!(tray_show_main_label(&AppLanguage::En), "Open mclip");
+        assert_eq!(tray_show_main_label(&AppLanguage::Ja), "mclip を開く");
+        assert!(!tray_show_main_label(&AppLanguage::System).is_empty());
         assert_eq!(
             tray_menu_labels(&AppLanguage::ZhCn),
             ("偏好设置…", "退出 mclip")

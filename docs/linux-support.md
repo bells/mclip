@@ -59,6 +59,23 @@ false value.
 No systemd user service, root write, shell profile edit, or second history
 writer is installed.
 
+## Tray activation
+
+The pinned `tray-icon` 0.21.3 Linux backend uses AppIndicator. It does not
+emit `TrayIconEvent` clicks, supply icon geometry, or honor
+`show_menu_on_left_click(false)`. Whether a left click opens the menu depends
+on the panel/desktop host; the macOS native-menu repair does not change this.
+
+The Linux tray menu therefore includes a localized **Open mclip** entry before
+Preferences. It explicitly shows the main window at the centered fallback
+placement without relying on tray click events or the global shortcut. Language
+changes update the existing menu item. `CommandOrControl+Shift+V` remains another
+entrypoint when shortcut registration succeeds.
+
+Native smoke must check opening through this menu with the shortcut unavailable,
+and the actual left/right-click behavior on each supported desktop. A successful
+menu-based opening does not establish icon-adjacent positioning.
+
 ## Native smoke protocol
 
 For every supported row, record the distribution, desktop environment,
@@ -67,7 +84,9 @@ release-mode package and verify each item independently:
 
 1. Text, PNG image, and URI file-list capture and restoration.
 2. Clipboard content remains pasteable after desktop and CLI writes.
-3. Tray show/hide and `CommandOrControl+Shift+V`, including the degraded path.
+3. Tray **Open mclip**, actual left/right-click behavior, and
+   `CommandOrControl+Shift+V`, including opening through the menu when the
+   shortcut is unavailable.
 4. Main-window anchoring for top, bottom, left, and right panels on the clicked
    monitor, including negative coordinates and mixed scaling.
 5. Fixed-width main window, lazy auxiliary windows, and non-focusable

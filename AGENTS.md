@@ -30,8 +30,10 @@
 ## 核心体验
 
 - 托盘或菜单栏常驻，点击托盘图标显示或隐藏主窗口。右键菜单提供偏好设置、分隔线与退出；语言保存后更新已有菜单项，不重建 status item。
+- macOS 不给 `NSStatusItem` 常驻绑定菜单；左键释放切换主窗口，右键释放通过 Tauri `popup_menu` 显式展示菜单。Windows 保留原生右键菜单；Linux AppIndicator 不发送点击事件或图标位置，菜单额外提供“打开 mclip”，使用居中后备位置且不依赖快捷键。
 - macOS 菜单栏图标设置稳定 `NSStatusItem.autosaveName`，用于恢复用户拖动后的菜单栏位置；不要承诺可强制最右排序。
 - macOS 的浅色菜单栏图标必须设置为原生 Template Image，让系统根据菜单栏/壁纸/深浅色状态自动着色。
+- 当前品牌图标为低饱和赭红色枫叶与小写 m；`appIcon`、`light`、`m` 分别对应彩色枫叶、单色枫叶、原有记事本。默认仍是 `light`。规范源为 `src-tauri/icons/source/maple-app.png`，用 `pnpm run icons:generate-maple` 重建桌面/单色/对比度及官网静态资源，不能近似重画已选轮廓；记事本源和衍生 PNG 保持不变，历史视频与截图保留原版本外观。
 - 全局快捷键 `CommandOrControl+Shift+V` 唤起或隐藏主窗口。
 - 保存文本、图片、文件三类剪贴板历史；文件历史选择后应回填系统文件列表，而不是普通路径文本。
 - 去重后最新内容在最前，同一内容重复复制会更新次数和时间。

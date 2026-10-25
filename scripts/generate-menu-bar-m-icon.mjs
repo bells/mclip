@@ -11,6 +11,7 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { MAPLE_CONTRAST_BORDER, MAPLE_CONTRAST_SURFACE } from "./maple-icon-palette.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
@@ -158,7 +159,7 @@ function createHighContrastSources(temporaryRoot, canonicalSource) {
   writeFileSync(
     lightSource,
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-      <rect x="1" y="1" width="22" height="22" rx="6" fill="#17482f" stroke="#0a2518" stroke-width="1.5"/>
+      <rect x="1" y="1" width="22" height="22" rx="6" fill="${MAPLE_CONTRAST_SURFACE}" stroke="${MAPLE_CONTRAST_BORDER}" stroke-width="1.5"/>
       <image x="2" y="2" width="20" height="20" href="data:image/png;base64,${lightPng.toString("base64")}"/>
     </svg>`,
   );

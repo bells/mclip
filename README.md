@@ -52,6 +52,10 @@
 
 安装后，`mclip` 会在系统托盘或菜单栏运行。可以点击托盘图标，也可以使用 `CommandOrControl+Shift+V` 打开主窗口。
 
+Linux 的托盘点击行为由桌面环境决定；可从托盘菜单选择“打开 mclip”，通过居中的后备位置打开主窗口。当前 AppIndicator 后端不提供点击事件或图标位置。
+
+图标采用低饱和赭红色“枫叶 + m”。偏好设置保留彩色枫叶、单色枫叶和记事本三种菜单栏/托盘样式，默认单色枫叶；已有选择继续生效。历史演示素材保留其原版本图标。
+
 macOS 上，系统支持时可以按住 `Command` 拖动菜单栏里的 mclip 图标到更靠右的位置；mclip 会使用系统位置保存机制，后续启动时尽量恢复该位置。Windows 托盘排序由系统和用户设置控制，应用本身不能强制固定到最右侧。
 
 ### macOS 自动粘贴权限
@@ -264,6 +268,10 @@ Download the installer for your platform from [GitHub Release v0.2.0](https://gi
 - Linux x86_64 preview: download the `.deb` or `.AppImage`. Tray, global-shortcut, auto-paste, source-identity, and panel-positioning behavior can degrade independently across X11, XWayland, and Wayland sessions. Linux ARM64 packages are not provided.
 
 After installation, `mclip` runs in the system tray or menu bar. Click the tray icon or press `CommandOrControl+Shift+V` to open the main window.
+
+On Linux, tray click behavior depends on the desktop environment. Choose **Open mclip** from the tray menu to show the main window using its centered fallback placement; the current AppIndicator backend does not provide click events or icon geometry.
+
+The icon uses a muted russet maple leaf with a lowercase m. Preferences retains Color Maple, Monochrome Maple, and Notebook tray styles, with Monochrome Maple as the default; existing choices remain valid. Historical demos retain their original version's icon.
 
 On macOS, when the system allows it, hold `Command` and drag the mclip menu bar icon closer to the right side; mclip uses the system status-item position restore mechanism on later launches. On Windows, tray ordering is controlled by the system and user settings, so the app cannot force a rightmost position.
 

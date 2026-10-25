@@ -14,6 +14,7 @@
     "check:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
     "check": "pnpm run build && pnpm run check:rust",
     "icons:generate-menu-bar-m": "node scripts/generate-menu-bar-m-icon.mjs",
+    "icons:generate-maple": "node scripts/generate-maple-icons.mjs",
     "cli": "cargo run --manifest-path src-tauri/Cargo.toml --bin mclip-cli --",
     "cli:build": "cargo build --manifest-path src-tauri/Cargo.toml --bin mclip-cli",
     "cli:install": "sh install.sh",
